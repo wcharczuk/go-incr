@@ -49,10 +49,37 @@ func Map2[A, B, C any](inputA Incr[A], inputB Incr[B], fn func(A, B) C) Incr[C] 
 	})
 }
 
+// Map3 can be made in terms of map2 but lets be honest I don't have time.
+func Map3[A, B, C, D any] (inputA Incr[A], inputB Incr[B], inputC Incr[C], fn func(A, B, C) D) Incr[D] {
+	return IncrFunc[D](func() D {
+		return fn(inputA.Value(), inputB.Value(), inputC.Value())
+	})
+}
+
+// MapIf returns one value or the other as the result of a given boolean incremental.
+func MapIf[A any] (inputA, inputB Incr[A], c Incr[bool]) Incr[A] {
+	return IncrFunc[A](func() A {
+		if c.Value() {
+			return inputA.Value()
+		}
+		return inputB.Value()
+	})
+}
+
 // Map returns the result of a given function `fn` on a given input.
 func Bind[A, B any](input Incr[A], fn func(A) Incr[B]) Incr[B] {
 	return IncrBindFunc[B](func() Incr[B] {
 		return fn(input.Value())
+	})
+}
+
+// Map returns the result of a given function `fn` on a given input.
+func BindIf[A any](inputA Incr[A], inputB Incr[A], c Incr[bool]) Incr[A] {
+	return IncrBindFunc[A](func() Incr[A] {
+		if c.Value() {
+			return inputA
+		}
+		return inputB
 	})
 }
 

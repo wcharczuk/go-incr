@@ -30,7 +30,25 @@ func Test_Map2(t *testing.T) {
 	})
 
 	expected := "foo bar"
-	if value := m2.Value(); value != "foo bar" {
+	if value := m2.Value(); value != expected {
+		t.Errorf("expected %q, actual: %q", expected, value)
+		t.FailNow()
+	}
+}
+
+func Test_MapIf(t *testing.T) {
+	expected := "foo"
+	mi := MapIf(Return("foo"), Return("bar"), Return(true))
+
+	if value := mi.Value(); value != expected {
+		t.Errorf("expected %q, actual: %q", expected, value)
+		t.FailNow()
+	}
+
+	expected = "bar"
+	mi = MapIf(Return("foo"), Return("bar"), Return(false))
+
+	if value := mi.Value(); value != expected {
 		t.Errorf("expected %q, actual: %q", expected, value)
 		t.FailNow()
 	}
@@ -45,6 +63,24 @@ func Test_Bind(t *testing.T) {
 
 	expected := "foo bar"
 	if value := b.Value(); value != expected {
+		t.Errorf("expected %q, actual: %q", expected, value)
+		t.FailNow()
+	}
+}
+
+func Test_BindIf(t *testing.T) {
+	expected := "foo"
+	mi := BindIf(Return("foo"), Return("bar"), Return(true))
+
+	if value := mi.Value(); value != expected {
+		t.Errorf("expected %q, actual: %q", expected, value)
+		t.FailNow()
+	}
+
+	expected = "bar"
+	mi = BindIf(Return("foo"), Return("bar"), Return(false))
+
+	if value := mi.Value(); value != expected {
 		t.Errorf("expected %q, actual: %q", expected, value)
 		t.FailNow()
 	}
