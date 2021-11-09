@@ -85,3 +85,23 @@ func Test_BindIf(t *testing.T) {
 		t.FailNow()
 	}
 }
+
+func Test_OnUpdate(t *testing.T) {
+	var updatedValue string
+	o := OnUpdate(Map(Return("foo"), func(v string) string {
+		return "not "+v
+	}), func(v string) {
+		updatedValue = v
+	})
+
+	expected := "not foo"
+	value := o.Value()
+	if value != expected {
+		t.Errorf("expected %q, actual: %q", expected, value)
+		t.FailNow()
+	}
+	if updatedValue != expected {
+		t.Errorf("expected %q, actual: %q", expected, updatedValue)
+		t.FailNow()
+	}
+}
