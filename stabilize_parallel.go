@@ -66,7 +66,7 @@ func stabilizeDiscoverStale(ctx context.Context, outputs []Stabilizer) (chan Sta
 
 func stabilizeStale(ctx context.Context, stabilizationQueue chan Stabilizer) error {
 	action := func(ctx context.Context, w Stabilizer) error {
-		tracePrintf(ctx, "stabilizing %T", w)
+		tracePrintf(ctx, "stabilizing %T %s", w, w.getNode().id.String())
 		if err := w.Stabilize(ctx); err != nil {
 			return err
 		}
