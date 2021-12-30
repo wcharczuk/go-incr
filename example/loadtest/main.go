@@ -20,21 +20,24 @@ func main() {
 			return v0 * v1
 		},
 	)
-	if err := incr.Stabilize(incr.WithTracing(context.Background()), output); err != nil {
+	if err := incr.Stabilize(
+		incr.WithTracing(context.Background()),
+		output,
+	); err != nil {
 		fatal(err)
 	}
 	fmt.Printf("value: %0.2f\n", output.Value())
 }
 
-func prompt(message string) float64 {
+func prompt(message string) (output float64) {
 	fmt.Printf("%s: ", message)
 	scanner := bufio.NewScanner(os.Stdin)
 	if scanner.Scan() {
 		rawValue := scanner.Text()
-		parsedValue, _ := strconv.ParseFloat(rawValue, 64)
-		return parsedValue
+		output, _ = strconv.ParseFloat(rawValue, 64)
+		return
 	}
-	return 0
+	return
 }
 
 func fatal(err error) {

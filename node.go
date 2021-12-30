@@ -17,8 +17,12 @@ type nodeOption func(*node)
 
 func optNodeChildOf(p Stabilizer) nodeOption {
 	return func(n *node) {
-		p.getNode().children = append(p.getNode().children, n.self)
+		parentNode := p.getNode()
+		parentNode.children = append(parentNode.children, n.self)
 		n.parents = append(n.parents, p)
+		if !parentNode.changedAt.IsZero() {
+			n.changedAt = parentNode.changedAt
+		}
 	}
 }
 
@@ -36,15 +40,5 @@ type node struct {
 
 // isStale returns if the node is stale.
 func (n *node) isStale() bool {
-	if n.changedAt.IsZero() {
-		return false
-	}
-	return n.changedAt.After(n.recomputedAt)
-}
-
-func (n *node) setChangedAtRecursive(changedAt time.Time) {
-	n.changedAt = changedAt
-	for _, child := range n.children {
-		child.getNode().setChangedAtRecursive(changedAt)
-	}
+	return !n.changedAt.IsZero() && n.changedAt.After(n.recomputedAt)
 }

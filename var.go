@@ -33,7 +33,7 @@ func (v *varIncr[A]) Watch() WatchIncr[A] {
 
 func (v *varIncr[A]) Set(value A) {
 	v.latest = value
-	v.node.setChangedAtRecursive(time.Now())
+	v.node.changedAt = time.Now()
 }
 
 func (v *varIncr[A]) Value() A {

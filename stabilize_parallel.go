@@ -2,13 +2,10 @@ package incr
 
 import (
 	"context"
-	"errors"
 	"runtime"
 	"sync"
 	"time"
 )
-
-var errCycleDetected = errors.New("a reference cycle has been detected")
 
 // Stabilize stabilizes a computation.
 func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
@@ -26,7 +23,6 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 
 func stabilizeDiscoverStale(ctx context.Context, outputs []Stabilizer) (chan Stabilizer, error) {
 	mu := sync.Mutex{}
-	hq := new(Set[nodeID])
 	sq := new(Queue[Stabilizer])
 
 	discoverWork := make(chan Stabilizer, len(outputs))
@@ -34,17 +30,11 @@ func stabilizeDiscoverStale(ctx context.Context, outputs []Stabilizer) (chan Sta
 		discoverWork <- n
 	}
 	queueStabilization := func(s Stabilizer) error {
-		nodeID := s.getNode().id
 		mu.Lock()
-		if hq.Has(nodeID) {
-			return errCycleDetected
-		}
-		hq.Set(nodeID)
 		sq.Push(s)
 		mu.Unlock()
 		return nil
 	}
-
 	queueWork := func(ctx context.Context, s Stabilizer) {
 		select {
 		case <-ctx.Done():
@@ -53,7 +43,6 @@ func stabilizeDiscoverStale(ctx context.Context, outputs []Stabilizer) (chan Sta
 			return
 		}
 	}
-
 	action := func(ctx context.Context, w Stabilizer) error {
 		if w.getNode().isStale() {
 			if err := queueStabilization(w); err != nil {
@@ -108,6 +97,7 @@ func stabilizeBatch(ctx context.Context, work chan Stabilizer, action func(conte
 			action:    action,
 			finalizer: finalizer,
 			stop:      make(chan struct{}),
+			stopped:   make(chan struct{}),
 			errors:    batchErrors,
 		}
 		go worker.discover(ctx)
@@ -118,6 +108,7 @@ func stabilizeBatch(ctx context.Context, work chan Stabilizer, action func(conte
 	defer func() {
 		for _, w := range allWorkers {
 			close(w.stop)
+			<-w.stopped
 		}
 	}()
 
@@ -150,10 +141,13 @@ type stabilizeWorker struct {
 	action    func(context.Context, Stabilizer) error
 	finalizer func(*stabilizeWorker)
 	stop      chan struct{}
+	stopped   chan struct{}
 	errors    chan error
 }
 
 func (sw *stabilizeWorker) discover(ctx context.Context) {
+	defer func() { close(sw.stopped) }()
+
 	var w Stabilizer
 	var err error
 	for {
