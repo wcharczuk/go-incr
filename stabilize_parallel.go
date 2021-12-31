@@ -9,13 +9,11 @@ import (
 
 // Stabilize stabilizes a computation.
 func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
-	tracePrintln(ctx, "stabilize parallel", len(outputs), "outputs")
 	stabilizationQueue, err := stabilizeDiscoverStale(ctx, outputs)
 	if err != nil {
 		return err
 	}
-	tracePrintln(ctx, "stabilize parallel found", len(stabilizationQueue), "stale outputs")
-	if err = stabilizeStale(ctx, stabilizationQueue); err != nil {
+	if err = stabilize(ctx, stabilizationQueue); err != nil {
 		return err
 	}
 	return nil
@@ -23,6 +21,7 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 
 func stabilizeDiscoverStale(ctx context.Context, outputs []Stabilizer) (chan Stabilizer, error) {
 	mu := sync.Mutex{}
+	staleNodes := map[nodeID]bool{}
 	sq := new(Queue[Stabilizer])
 
 	discoverWork := make(chan Stabilizer, len(outputs))
@@ -44,7 +43,7 @@ func stabilizeDiscoverStale(ctx context.Context, outputs []Stabilizer) (chan Sta
 		}
 	}
 	action := func(ctx context.Context, w Stabilizer) error {
-		if w.getNode().isStale() {
+		if stabilizeIsStale(ctx, staleNodes, w) {
 			if err := queueStabilization(w); err != nil {
 				return err
 			}
@@ -64,7 +63,23 @@ func stabilizeDiscoverStale(ctx context.Context, outputs []Stabilizer) (chan Sta
 	return output, nil
 }
 
-func stabilizeStale(ctx context.Context, stabilizationQueue chan Stabilizer) error {
+func stabilizeIsStale(ctx context.Context, staleNodes map[nodeID]bool, w Stabilizer) bool {
+	if isStale, ok := staleNodes[w.getNode().id]; ok {
+		return isStale
+	}
+	if w.getNode().isStale() {
+		staleNodes[w.getNode().id] = true
+		return true
+	}
+	for _, p := range w.getNode().parents {
+		if stabilizeIsStale(ctx, staleNodes, p) {
+			return true
+		}
+	}
+	return false
+}
+
+func stabilize(ctx context.Context, stabilizationQueue chan Stabilizer) error {
 	action := func(ctx context.Context, w Stabilizer) error {
 		tracePrintf(ctx, "stabilizing %T %s", w, w.getNode().id.String())
 		if err := w.Stabilize(ctx); err != nil {

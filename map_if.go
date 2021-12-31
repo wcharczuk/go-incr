@@ -11,7 +11,7 @@ func MapIf[A any](i0, i1 Incr[A], c Incr[bool]) Incr[A] {
 		i1: i1,
 		c:  c,
 	}
-	mi.node = newNode(
+	mi.n = newNode(
 		mi,
 		optNodeChildOf(i0),
 		optNodeChildOf(i1),
@@ -20,7 +20,7 @@ func MapIf[A any](i0, i1 Incr[A], c Incr[bool]) Incr[A] {
 }
 
 type mapIfIncr[A any] struct {
-	*node
+	n     *node
 	i0    Incr[A]
 	i1    Incr[A]
 	c     Incr[bool]
@@ -43,5 +43,5 @@ func (mii mapIfIncr[A]) Stabilize(ctx context.Context) error {
 }
 
 func (mii mapIfIncr[A]) getNode() *node {
-	return mii.node
+	return mii.n
 }

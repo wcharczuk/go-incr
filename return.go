@@ -9,12 +9,12 @@ func Return[A any](value A) Incr[A] {
 	r := &returnIncr[A]{
 		value: value,
 	}
-	r.node = newNode(r)
+	r.n = newNode(r)
 	return r
 }
 
 type returnIncr[A any] struct {
-	*node
+	n     *node
 	value A
 }
 
@@ -28,5 +28,5 @@ func (r *returnIncr[A]) Stabilize(_ context.Context) error { return nil }
 
 // getNode implements node provider.
 func (r *returnIncr[A]) getNode() *node {
-	return r.node
+	return r.n
 }

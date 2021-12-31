@@ -20,9 +20,6 @@ func optNodeChildOf(p Stabilizer) nodeOption {
 		parentNode := p.getNode()
 		parentNode.children = append(parentNode.children, n.self)
 		n.parents = append(n.parents, p)
-		if !parentNode.changedAt.IsZero() {
-			n.changedAt = parentNode.changedAt
-		}
 	}
 }
 
@@ -40,5 +37,8 @@ type node struct {
 
 // isStale returns if the node is stale.
 func (n *node) isStale() bool {
+	if typed, ok := n.self.(interface{ IsStale() bool }); ok {
+		return typed.IsStale()
+	}
 	return !n.changedAt.IsZero() && n.changedAt.After(n.recomputedAt)
 }

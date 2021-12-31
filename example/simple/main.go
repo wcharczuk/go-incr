@@ -11,11 +11,18 @@ import (
 )
 
 func main() {
-	var input float64 = 2.0
+	var input float64 = prompt("input")
 
 	output := incr.Map2[float64](
 		incr.Var(input),
-		incr.Return(2.0),
+		incr.MapIf(
+			incr.Return(2.0),
+			incr.Return(4.0),
+			incr.Func(func(_ context.Context) (bool, error) {
+				println("input", input)
+				return input > 5, nil
+			}),
+		),
 		func(v0, v1 float64) float64 {
 			return v0 * v1
 		},

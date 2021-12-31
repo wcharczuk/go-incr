@@ -10,7 +10,7 @@ func Map2[A, B, C any](i0 Incr[A], i1 Incr[B], fn func(A, B) C) Incr[C] {
 		fn:    fn,
 		value: fn(i0.Value(), i1.Value()),
 	}
-	m2.node = newNode(
+	m2.n = newNode(
 		m2,
 		optNodeChildOf(i0),
 		optNodeChildOf(i1),
@@ -19,7 +19,7 @@ func Map2[A, B, C any](i0 Incr[A], i1 Incr[B], fn func(A, B) C) Incr[C] {
 }
 
 type map2Incr[A, B, C any] struct {
-	*node
+	n     *node
 	i0    Incr[A]
 	i1    Incr[B]
 	fn    func(A, B) C
@@ -36,5 +36,5 @@ func (m *map2Incr[A, B, C]) Stabilize(ctx context.Context) error {
 }
 
 func (m *map2Incr[A, B, C]) getNode() *node {
-	return m.node
+	return m.n
 }

@@ -11,14 +11,14 @@ func Map[A, B any](i Incr[A], fn func(A) B) Incr[B] {
 		fn:    fn,
 		value: fn(i.Value()),
 	}
-	m.node = newNode(m, optNodeChildOf(i))
+	m.n = newNode(m, optNodeChildOf(i))
 	return m
 }
 
 // mapIncr is a concrete implementation of Incr for
 // the map operator.
 type mapIncr[A, B any] struct {
-	*node
+	n     *node
 	i     Incr[A]
 	value B
 	fn    func(A) B
@@ -37,5 +37,5 @@ func (m *mapIncr[A, B]) Stabilize(ctx context.Context) error {
 
 // getNode implements nodeProvider.
 func (m *mapIncr[A, B]) getNode() *node {
-	return m.node
+	return m.n
 }

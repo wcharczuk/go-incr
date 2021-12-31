@@ -10,7 +10,7 @@ func BindIf[A any](i0 Incr[A], i1 Incr[A], c Incr[bool]) Incr[A] {
 		i1: i1,
 		c:  c,
 	}
-	bi.node = newNode(bi,
+	bi.n = newNode(bi,
 		optNodeChildOf(i0),
 		optNodeChildOf(i1),
 		optNodeChildOf(c),
@@ -19,7 +19,7 @@ func BindIf[A any](i0 Incr[A], i1 Incr[A], c Incr[bool]) Incr[A] {
 }
 
 type bindIfIncr[A any] struct {
-	*node
+	n  *node
 	i0 Incr[A]
 	i1 Incr[A]
 	c  Incr[bool]
@@ -37,5 +37,5 @@ func (bii bindIfIncr[A]) Stabilize(ctx context.Context) error {
 }
 
 func (bii bindIfIncr[A]) getNode() *node {
-	return bii.node
+	return bii.n
 }

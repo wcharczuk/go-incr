@@ -1,39 +1,30 @@
 package incr
 
 import (
+	"context"
 	"testing"
 )
 
 func Test_BindIf(t *testing.T) {
-
 	a := Return("a")
 	b := Return("b")
 	c := Var(true)
 
+	itsEqual(t, true, c.Value())
+
 	bi := BindIf(a, b, c)
 
-	if len(bi.getNode().parents) != 3 {
-		t.Errorf("expected (3) parents")
-	}
-	if len(a.getNode().children) != 1 {
-		t.Errorf("expected (1) children for 'a'")
-	}
-	if len(b.getNode().children) != 1 {
-		t.Errorf("expected (1) children for 'b'")
-	}
-	if len(c.getNode().children) != 1 {
-		t.Errorf("expected (1) children for 'c'")
-	}
+	itsEqual(t, 3, len(bi.getNode().parents))
+	itsEqual(t, 1, len(a.getNode().children))
+	itsEqual(t, 1, len(b.getNode().children))
+	itsEqual(t, 1, len(c.getNode().children))
 
-	// c.Set(true)
 	value := bi.Value()
-	if value != "a" {
-		t.Errorf("expected value to be 'a', actual: %q", value)
-	}
+	itsEqual(t, "a", value)
 
 	c.Set(false)
+	_ = c.Stabilize(context.TODO())
+
 	value = bi.Value()
-	if value != "b" {
-		t.Errorf("expected value to be 'b', actual: %q", value)
-	}
+	itsEqual(t, "b", value)
 }

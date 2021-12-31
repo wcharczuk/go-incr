@@ -8,9 +8,8 @@ import (
 // Var returns a new variable that wraps a given value.
 func Var[A any](value A) VarIncr[A] {
 	v := new(varIncr[A])
-	v.node = newNode(v)
-	v.node.changedAt = time.Now()
-	v.latest = value
+	v.n = newNode(v)
+	v.value = value
 	return v
 }
 
@@ -22,7 +21,7 @@ type VarIncr[A any] interface {
 }
 
 type varIncr[A any] struct {
-	*node
+	n      *node
 	value  A
 	latest A
 }
@@ -33,7 +32,7 @@ func (v *varIncr[A]) Watch() WatchIncr[A] {
 
 func (v *varIncr[A]) Set(value A) {
 	v.latest = value
-	v.node.changedAt = time.Now()
+	v.n.changedAt = time.Now()
 }
 
 func (v *varIncr[A]) Value() A {
@@ -47,4 +46,4 @@ func (v *varIncr[A]) Stabilize(ctx context.Context) error {
 	return nil
 }
 
-func (v *varIncr[A]) getNode() *node { return v.node }
+func (v *varIncr[A]) getNode() *node { return v.n }

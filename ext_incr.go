@@ -9,7 +9,7 @@ func Ext[A any](i ExtIncr[A]) Incr[A] {
 	ei := &extIncr[A]{
 		ei: i,
 	}
-	ei.node = newNode(ei)
+	ei.n = newNode(ei)
 	return ei
 }
 
@@ -20,7 +20,7 @@ type ExtIncr[A any] interface {
 }
 
 type extIncr[A any] struct {
-	*node
+	n  *node
 	ei ExtIncr[A]
 }
 
@@ -32,6 +32,13 @@ func (ei extIncr[A]) Stabilize(ctx context.Context) error {
 	return ei.ei.Stabilize(ctx)
 }
 
+func (ei extIncr[A]) IsStale() bool {
+	if typed, ok := ei.ei.(interface{ IsStale() bool }); ok {
+		return typed.IsStale()
+	}
+	return false
+}
+
 func (ei extIncr[A]) getNode() *node {
-	return ei.node
+	return ei.n
 }

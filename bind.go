@@ -10,7 +10,7 @@ func Bind[A, B any](i Incr[A], fn func(A) Incr[B]) Incr[B] {
 		i:  i,
 		fn: fn,
 	}
-	b.node = newNode(
+	b.n = newNode(
 		b,
 		optNodeChildOf(i),
 	)
@@ -20,7 +20,7 @@ func Bind[A, B any](i Incr[A], fn func(A) Incr[B]) Incr[B] {
 // bindIncr is a concrete implementation of Incr for
 // the bind operator.
 type bindIncr[A, B any] struct {
-	*node
+	n  *node
 	i  Incr[A]
 	fn func(A) Incr[B]
 }
@@ -36,5 +36,5 @@ func (bi bindIncr[A, B]) Stabilize(ctx context.Context) error {
 }
 
 func (bi bindIncr[A, B]) getNode() *node {
-	return bi.node
+	return bi.n
 }
