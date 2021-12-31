@@ -143,10 +143,11 @@ func Test_QueueEach(t *testing.T) {
 	}
 
 	called := 0
-	buffer.Each(func(v int) {
+	buffer.Each(func(v int) error {
 		if v == (called + 1) {
 			called++
 		}
+		return nil
 	})
 
 	itsEqual(t, 16, called)
@@ -160,10 +161,11 @@ func Test_QueueReverseEach(t *testing.T) {
 	}
 
 	called := 17
-	buffer.ReverseEach(func(v int) {
+	buffer.ReverseEach(func(v int) error {
 		if v == (called - 1) {
 			called--
 		}
+		return nil
 	})
 
 	itsEqual(t, 1, called)

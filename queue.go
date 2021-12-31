@@ -95,41 +95,55 @@ func (rb *Queue[A]) PeekBack() (output A, ok bool) {
 }
 
 // Each calls the fn for each element in the buffer.
-func (rb *Queue[A]) Each(fn func(A)) {
+func (rb *Queue[A]) Each(fn func(A) error) (err error) {
 	if rb.size == 0 {
 		return
 	}
 	if rb.head < rb.tail {
 		for cursor := rb.head; cursor < rb.tail; cursor++ {
-			fn(rb.array[cursor])
+			if err = fn(rb.array[cursor]); err != nil {
+				return
+			}
 		}
 	} else {
 		for cursor := rb.head; cursor < len(rb.array); cursor++ {
-			fn(rb.array[cursor])
+			if err = fn(rb.array[cursor]); err != nil {
+				return
+			}
 		}
 		for cursor := 0; cursor < rb.tail; cursor++ {
-			fn(rb.array[cursor])
+			if err = fn(rb.array[cursor]); err != nil {
+				return
+			}
 		}
 	}
+	return
 }
 
 // ReverseEach calls fn in reverse order (tail to head).
-func (rb *Queue[A]) ReverseEach(fn func(A)) {
+func (rb *Queue[A]) ReverseEach(fn func(A) error) (err error) {
 	if rb.size == 0 {
 		return
 	}
 	if rb.head < rb.tail {
 		for cursor := rb.tail - 1; cursor >= rb.head; cursor-- {
-			fn(rb.array[cursor])
+			if err = fn(rb.array[cursor]); err != nil {
+				return
+			}
 		}
 	} else {
 		for cursor := rb.tail; cursor > 0; cursor-- {
-			fn(rb.array[cursor])
+			if err = fn(rb.array[cursor]); err != nil {
+				return
+			}
 		}
 		for cursor := len(rb.array) - 1; cursor >= rb.head; cursor-- {
-			fn(rb.array[cursor])
+			if err = fn(rb.array[cursor]); err != nil {
+				return
+			}
 		}
 	}
+	return
 }
 
 func (rb *Queue[A]) setCapacity(capacity int) {

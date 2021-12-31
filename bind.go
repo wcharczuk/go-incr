@@ -5,6 +5,12 @@ import (
 )
 
 // Bind returns the result of a given function `fn` on a given input.
+//
+// It differs from `Map` in that the provided function must return an Incr[B]
+// as opposed to `Map` that returns just a B.
+//
+// The implication of returning an Incr[B] is that Bind _always_ is stale,
+// and will cause the children of any Bind node to recompute each pass.
 func Bind[A, B any](i Incr[A], fn func(A) Incr[B]) Incr[B] {
 	b := &bindIncr[A, B]{
 		i:  i,
@@ -17,22 +23,22 @@ func Bind[A, B any](i Incr[A], fn func(A) Incr[B]) Incr[B] {
 	return b
 }
 
-// bindIncr is a concrete implementation of Incr for
-// the bind operator.
 type bindIncr[A, B any] struct {
 	n  *node
 	i  Incr[A]
 	fn func(A) Incr[B]
 }
 
-// Value implements Incr[B]
 func (bi bindIncr[A, B]) Value() B {
 	return bi.fn(bi.i.Value()).Value()
 }
 
-// Stabilize implements Incr[B]
 func (bi bindIncr[A, B]) Stabilize(ctx context.Context) error {
 	return nil
+}
+
+func (bi bindIncr[A, B]) Stale() bool {
+	return true
 }
 
 func (bi bindIncr[A, B]) getNode() *node {

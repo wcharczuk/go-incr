@@ -5,11 +5,14 @@ import (
 )
 
 // Map returns a new map incremental.
+//
+// Map applies a given function `fn` to a given input incremental.
+//
+// Map holds the resulting value of the computation for re-use.
 func Map[A, B any](i Incr[A], fn func(A) B) Incr[B] {
 	m := &mapIncr[A, B]{
-		i:     i,
-		fn:    fn,
-		value: fn(i.Value()),
+		i:  i,
+		fn: fn,
 	}
 	m.n = newNode(m, optNodeChildOf(i))
 	return m
@@ -18,24 +21,25 @@ func Map[A, B any](i Incr[A], fn func(A) B) Incr[B] {
 // mapIncr is a concrete implementation of Incr for
 // the map operator.
 type mapIncr[A, B any] struct {
-	n     *node
-	i     Incr[A]
-	value B
-	fn    func(A) B
+	n           *node
+	i           Incr[A]
+	fn          func(A) B
+	initialized bool
+	value       B
 }
 
-// Value implements Incr[B]
 func (m *mapIncr[A, B]) Value() B {
 	return m.value
 }
 
-// Stabilize implements Incr[B]
 func (m *mapIncr[A, B]) Stabilize(ctx context.Context) error {
+	m.initialized = true
 	m.value = m.fn(m.i.Value())
 	return nil
 }
 
-// getNode implements nodeProvider.
+func (m *mapIncr[A, B]) Stale() bool { return !m.initialized || m.i.Stale() }
+
 func (m *mapIncr[A, B]) getNode() *node {
 	return m.n
 }

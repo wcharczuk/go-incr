@@ -2,25 +2,24 @@ package incr
 
 import (
 	"context"
-	"time"
 )
 
 // Var returns a new variable that wraps a given value.
-func Var[A any](value A) VarIncr[A] {
+func Var[A comparable](value A) VarIncr[A] {
 	v := new(varIncr[A])
 	v.n = newNode(v)
-	v.value = value
+	v.latest = value
 	return v
 }
 
 // VarIncr extends incr with a Watch method.
-type VarIncr[A any] interface {
+type VarIncr[A comparable] interface {
 	Incr[A]
 	Watch() WatchIncr[A]
 	Set(A)
 }
 
-type varIncr[A any] struct {
+type varIncr[A comparable] struct {
 	n      *node
 	value  A
 	latest A
@@ -32,7 +31,6 @@ func (v *varIncr[A]) Watch() WatchIncr[A] {
 
 func (v *varIncr[A]) Set(value A) {
 	v.latest = value
-	v.n.changedAt = time.Now()
 }
 
 func (v *varIncr[A]) Value() A {
@@ -44,6 +42,10 @@ func (v *varIncr[A]) Stabilize(ctx context.Context) error {
 	v.value = v.latest
 	v.latest = zero
 	return nil
+}
+
+func (v *varIncr[A]) Stale() bool {
+	return v.latest != v.value
 }
 
 func (v *varIncr[A]) getNode() *node { return v.n }

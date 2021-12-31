@@ -18,15 +18,14 @@ type returnIncr[A any] struct {
 	value A
 }
 
-// Value implements Incr[A].
 func (r *returnIncr[A]) Value() A {
 	return r.value
 }
 
-// Stabilize implements Incr[A].
 func (r *returnIncr[A]) Stabilize(_ context.Context) error { return nil }
 
-// getNode implements node provider.
+func (r *returnIncr[A]) Stale() bool { return false }
+
 func (r *returnIncr[A]) getNode() *node {
 	return r.n
 }

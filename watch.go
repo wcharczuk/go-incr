@@ -37,6 +37,8 @@ func (w *watchIncr[A]) Stabilize(ctx context.Context) error {
 	return nil
 }
 
+func (w *watchIncr[A]) Stale() bool { return false }
+
 func (w *watchIncr[A]) Values() []A {
 	return w.values
 }

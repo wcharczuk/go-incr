@@ -1,7 +1,5 @@
 package incr
 
-import "time"
-
 func newNode(self Stabilizer, opts ...nodeOption) *node {
 	n := &node{
 		id:   newNodeID(),
@@ -20,25 +18,19 @@ func optNodeChildOf(p Stabilizer) nodeOption {
 		parentNode := p.getNode()
 		parentNode.children = append(parentNode.children, n.self)
 		n.parents = append(n.parents, p)
+		n.height = parentNode.height + 1
 	}
 }
+
+type generation uint64
 
 type node struct {
 	id nodeID
 
-	self Stabilizer
+	height int
 
-	recomputedAt time.Time
-	changedAt    time.Time
+	self Stabilizer
 
 	parents  []Stabilizer
 	children []Stabilizer
-}
-
-// isStale returns if the node is stale.
-func (n *node) isStale() bool {
-	if typed, ok := n.self.(interface{ IsStale() bool }); ok {
-		return typed.IsStale()
-	}
-	return !n.changedAt.IsZero() && n.changedAt.After(n.recomputedAt)
 }

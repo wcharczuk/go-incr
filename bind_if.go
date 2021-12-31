@@ -36,6 +36,10 @@ func (bii bindIfIncr[A]) Stabilize(ctx context.Context) error {
 	return nil
 }
 
+func (bii bindIfIncr[A]) Stale() bool {
+	return true
+}
+
 func (bii bindIfIncr[A]) getNode() *node {
 	return bii.n
 }
