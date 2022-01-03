@@ -27,12 +27,18 @@ There are a core set of orthogonal node types that are composed into computation
 Let's say that we want to compute a fibonacci sequence:
 
 ```go
-fib := Map[int](
-  fib,
-  func(a0, a1 int) int {
-    return a0 + a1
-  }
-)
-_ = incr.Stabilize(context.Background(), fib)
-fmt.Println(fib.Value())
+	output := incr.Map2[float64](
+		incr.Var(3.14),
+		incr.Map(
+			incr.Return(10.0),
+			func(a float64) float64 {
+				return a + 5
+			},
+		),
+		func(a0, a1 float64) float64 {
+			return a0 + a1
+		},
+	)
+	_ = incr.Stabilize(context.Background(), output)
+	fmt.Println(output.Value()) // prints 18.14
 ```
