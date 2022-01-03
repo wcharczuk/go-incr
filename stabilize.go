@@ -34,6 +34,7 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 	}
 	discovery.Init()
 
+	recomputeSeen := make(Set[nodeID])
 	recompute := &Heap[Stabilizer]{
 		Values: nil,
 		Less:   nodeHeightLess,
@@ -44,9 +45,11 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 	var n Stabilizer
 	for discovery.Len() > 0 {
 		n, _ = discovery.Pop()
-		tracePrintf(ctx, "stabilize discover: %T %s", n, n.getNode().id)
 		if n.Stale() {
-			recompute.Push(n)
+			if !recomputeSeen.Has(n.getNode().id) {
+				recomputeSeen.Add(n.getNode().id)
+				recompute.Push(n)
+			}
 		}
 		for _, p := range n.getNode().parents {
 			discovery.Push(p)

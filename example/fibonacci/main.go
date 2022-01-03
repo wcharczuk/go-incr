@@ -37,7 +37,7 @@ func makeFib(height int) (output incr.Incr[int]) {
 
 func main() {
 	fmt.Println("creating computation")
-	output := makeFib(10)
+	output := makeFib(32)
 	fmt.Println("stabilizing computation")
 	if err := incr.Stabilize(
 		incr.WithTracing(context.Background()),
