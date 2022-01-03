@@ -18,12 +18,11 @@ func Map2[A, B, C any](i0 Incr[A], i1 Incr[B], fn func(A, B) C) Incr[C] {
 }
 
 type map2Incr[A, B, C any] struct {
-	n           *node
-	i0          Incr[A]
-	i1          Incr[B]
-	fn          func(A, B) C
-	initialized bool
-	value       C
+	n     *node
+	i0    Incr[A]
+	i1    Incr[B]
+	fn    func(A, B) C
+	value C
 }
 
 func (m *map2Incr[A, B, C]) Value() C {
@@ -31,13 +30,8 @@ func (m *map2Incr[A, B, C]) Value() C {
 }
 
 func (m *map2Incr[A, B, C]) Stabilize(ctx context.Context) error {
-	m.initialized = true
 	m.value = m.fn(m.i0.Value(), m.i1.Value())
 	return nil
-}
-
-func (m *map2Incr[A, B, C]) Stale() bool {
-	return m.i0.Stale() || m.i1.Stale() || !m.initialized
 }
 
 func (m *map2Incr[A, B, C]) getNode() *node {

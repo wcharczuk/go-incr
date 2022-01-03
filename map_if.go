@@ -21,12 +21,11 @@ func MapIf[A any](i0, i1 Incr[A], c Incr[bool]) Incr[A] {
 }
 
 type mapIfIncr[A any] struct {
-	n           *node
-	i0          Incr[A]
-	i1          Incr[A]
-	c           Incr[bool]
-	initialized bool
-	value       A
+	n     *node
+	i0    Incr[A]
+	i1    Incr[A]
+	c     Incr[bool]
+	value A
 }
 
 func (mii *mapIfIncr[A]) Value() A {
@@ -34,17 +33,12 @@ func (mii *mapIfIncr[A]) Value() A {
 }
 
 func (mii *mapIfIncr[A]) Stabilize(ctx context.Context) error {
-	mii.initialized = true
 	if mii.c.Value() {
 		mii.value = mii.i0.Value()
 	} else {
 		mii.value = mii.i1.Value()
 	}
 	return nil
-}
-
-func (mii *mapIfIncr[A]) Stale() bool {
-	return !mii.initialized || mii.i0.Stale() || mii.i1.Stale() || mii.c.Stale()
 }
 
 func (mii *mapIfIncr[A]) getNode() *node {

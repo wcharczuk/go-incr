@@ -24,7 +24,7 @@ There are a core set of orthogonal node types that are composed into computation
 
 # Example
 
-Let's say that we want to compute a fibonacci sequence:
+Let's say that we want to make a convoluted computation that takes an input:
 
 ```go
 	output := incr.Map2[float64](

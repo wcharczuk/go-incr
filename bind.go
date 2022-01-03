@@ -24,23 +24,23 @@ func Bind[A, B any](i Incr[A], fn func(A) Incr[B]) Incr[B] {
 }
 
 type bindIncr[A, B any] struct {
-	n  *node
-	i  Incr[A]
-	fn func(A) Incr[B]
+	n     *node
+	i     Incr[A]
+	fn    func(A) Incr[B]
+	value B
 }
 
-func (bi bindIncr[A, B]) Value() B {
-	return bi.fn(bi.i.Value()).Value()
+func (bi *bindIncr[A, B]) Value() B {
+	return bi.value
 }
 
-func (bi bindIncr[A, B]) Stabilize(ctx context.Context) error {
+func (bi *bindIncr[A, B]) Stabilize(ctx context.Context) error {
+	bi.value = bi.fn(bi.i.Value()).Value()
 	return nil
 }
 
-func (bi bindIncr[A, B]) Stale() bool {
-	return true
-}
+func (bi *bindIncr[A, B]) Stale() bool { return true }
 
-func (bi bindIncr[A, B]) getNode() *node {
+func (bi *bindIncr[A, B]) getNode() *node {
 	return bi.n
 }

@@ -38,9 +38,7 @@ func (v *varIncr[A]) Value() A {
 }
 
 func (v *varIncr[A]) Stabilize(ctx context.Context) error {
-	var zero A
 	v.value = v.latest
-	v.latest = zero
 	return nil
 }
 

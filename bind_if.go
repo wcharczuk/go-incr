@@ -19,27 +19,28 @@ func BindIf[A any](i0 Incr[A], i1 Incr[A], c Incr[bool]) Incr[A] {
 }
 
 type bindIfIncr[A any] struct {
-	n  *node
-	i0 Incr[A]
-	i1 Incr[A]
-	c  Incr[bool]
+	n     *node
+	i0    Incr[A]
+	i1    Incr[A]
+	c     Incr[bool]
+	value A
 }
 
-func (bii bindIfIncr[A]) Value() A {
+func (bii *bindIfIncr[A]) Value() A {
+	return bii.value
+}
+
+func (bii *bindIfIncr[A]) Stabilize(ctx context.Context) error {
 	if bii.c.Value() {
-		return bii.i0.Value()
+		bii.value = bii.i0.Value()
+	} else {
+		bii.value = bii.i1.Value()
 	}
-	return bii.i1.Value()
-}
-
-func (bii bindIfIncr[A]) Stabilize(ctx context.Context) error {
 	return nil
 }
 
-func (bii bindIfIncr[A]) Stale() bool {
-	return true
-}
+func (bii *bindIfIncr[A]) Stale() bool { return true }
 
-func (bii bindIfIncr[A]) getNode() *node {
+func (bii *bindIfIncr[A]) getNode() *node {
 	return bii.n
 }

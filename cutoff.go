@@ -1,6 +1,8 @@
 package incr
 
-import "context"
+import (
+	"context"
+)
 
 // Cutoff returns a new wrapping cutoff incremental.
 //
@@ -26,18 +28,21 @@ type cutoffIncr[A any] struct {
 	value       A
 }
 
-func (m *cutoffIncr[A]) Value() A {
-	return m.value
+func (c *cutoffIncr[A]) Value() A {
+	return c.value
 }
 
-func (m *cutoffIncr[A]) Stabilize(ctx context.Context) error {
-	m.initialized = true
-	m.value = m.i.Value()
+func (c *cutoffIncr[A]) Stabilize(ctx context.Context) error {
+	c.initialized = true
+	c.value = c.i.Value()
 	return nil
 }
 
-func (m *cutoffIncr[A]) Stale() bool { return !m.initialized || m.fn(m.value, m.i.Value()) }
+func (c *cutoffIncr[A]) Stale() (stale bool) {
+	stale = !c.initialized || c.fn(c.value, c.i.Value())
+	return
+}
 
-func (m *cutoffIncr[A]) getNode() *node {
-	return m.n
+func (c *cutoffIncr[A]) getNode() *node {
+	return c.n
 }
