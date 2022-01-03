@@ -11,7 +11,7 @@ import (
 //
 // The implication of returning an Incr[C] is that Bind2 _always_ is stale,
 // and will cause the children of any Bind2 node to recompute each pass.
-func Bind2[A, B, C any](i0 Incr[A], i1 Incr[B], fn func(A, B) Incr[C]) Incr[C] {
+func Bind2[A, B, C comparable](i0 Incr[A], i1 Incr[B], fn func(A, B) Incr[C]) Incr[C] {
 	b := &bind2Incr[A, B, C]{
 		i0: i0,
 		i1: i1,
@@ -25,24 +25,26 @@ func Bind2[A, B, C any](i0 Incr[A], i1 Incr[B], fn func(A, B) Incr[C]) Incr[C] {
 	return b
 }
 
-type bind2Incr[A, B, C any] struct {
+type bind2Incr[A, B, C comparable] struct {
 	n     *node
 	i0    Incr[A]
 	i1    Incr[B]
 	fn    func(A, B) Incr[C]
-	value C
+	value Incr[C]
 }
 
 func (bi *bind2Incr[A, B, C]) Value() C {
-	return bi.value
+	return bi.value.Value()
 }
 
 func (bi *bind2Incr[A, B, C]) Stabilize(ctx context.Context) error {
-	bi.value = bi.fn(bi.i0.Value(), bi.i1.Value()).Value()
+	bi.value = bi.fn(bi.i0.Value(), bi.i1.Value())
 	return nil
 }
 
-func (bi *bind2Incr[A, B, C]) Stale() bool { return true }
+func (bi *bind2Incr[A, B, C]) getValue() any {
+	return bi.Value()
+}
 
 func (bi *bind2Incr[A, B, C]) getNode() *node {
 	return bi.n

@@ -5,7 +5,7 @@ import (
 )
 
 // MapIf returns one value or the other as the result of a given boolean incremental.
-func MapIf[A any](i0, i1 Incr[A], c Incr[bool]) Incr[A] {
+func MapIf[A comparable](i0, i1 Incr[A], c Incr[bool]) Incr[A] {
 	mi := &mapIfIncr[A]{
 		i0: i0,
 		i1: i1,
@@ -20,7 +20,7 @@ func MapIf[A any](i0, i1 Incr[A], c Incr[bool]) Incr[A] {
 	return mi
 }
 
-type mapIfIncr[A any] struct {
+type mapIfIncr[A comparable] struct {
 	n     *node
 	i0    Incr[A]
 	i1    Incr[A]
@@ -39,6 +39,10 @@ func (mii *mapIfIncr[A]) Stabilize(ctx context.Context) error {
 		mii.value = mii.i1.Value()
 	}
 	return nil
+}
+
+func (mii *mapIfIncr[A]) getValue() any {
+	return mii.Value()
 }
 
 func (mii *mapIfIncr[A]) getNode() *node {

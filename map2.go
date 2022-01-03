@@ -3,7 +3,7 @@ package incr
 import "context"
 
 // Map returns a new map incremental.
-func Map2[A, B, C any](i0 Incr[A], i1 Incr[B], fn func(A, B) C) Incr[C] {
+func Map2[A, B, C comparable](i0 Incr[A], i1 Incr[B], fn func(A, B) C) Incr[C] {
 	m2 := &map2Incr[A, B, C]{
 		i0: i0,
 		i1: i1,
@@ -17,7 +17,7 @@ func Map2[A, B, C any](i0 Incr[A], i1 Incr[B], fn func(A, B) C) Incr[C] {
 	return m2
 }
 
-type map2Incr[A, B, C any] struct {
+type map2Incr[A, B, C comparable] struct {
 	n     *node
 	i0    Incr[A]
 	i1    Incr[B]
@@ -32,6 +32,10 @@ func (m *map2Incr[A, B, C]) Value() C {
 func (m *map2Incr[A, B, C]) Stabilize(ctx context.Context) error {
 	m.value = m.fn(m.i0.Value(), m.i1.Value())
 	return nil
+}
+
+func (m *map2Incr[A, B, C]) getValue() any {
+	return m.Value()
 }
 
 func (m *map2Incr[A, B, C]) getNode() *node {

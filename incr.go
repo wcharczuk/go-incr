@@ -3,7 +3,7 @@ package incr
 import "context"
 
 // Incr is the base interface for any incremental node.
-type Incr[A any] interface {
+type Incr[A comparable] interface {
 	Stabilizer
 	Value() A
 }
@@ -11,10 +11,6 @@ type Incr[A any] interface {
 // Stabilizer is a type that can be stabilized.
 type Stabilizer interface {
 	Stabilize(context.Context) error
+	getValue() any
 	getNode() *node
-}
-
-// Staler lets a node opt out of stabilization.
-type Staler interface {
-	Stale() bool
 }

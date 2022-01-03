@@ -6,16 +6,14 @@ import (
 )
 
 // Dump returns a string for a given DAG.
-func Dump[A any](i Stabilizer) string {
-	return dump[A](i, 0)
+func Dump(i Stabilizer) string {
+	return dump(i, 0)
 }
 
-func dump[A any](i Stabilizer, depth int) string {
+func dump(i Stabilizer, depth int) string {
 	prefix := strings.Repeat("\t", depth)
-	valueProvider, _ := i.(Incr[A])
-
 	in := i.getNode()
-	istr := fmt.Sprintf("%T (%v)", i, valueProvider.Value())
+	istr := fmt.Sprintf("%T (%v)", i, i.getValue())
 	if len(in.parents) == 0 {
 		return prefix + istr
 	}
@@ -24,7 +22,7 @@ func dump[A any](i Stabilizer, depth int) string {
 	sb.WriteString(prefix + istr)
 	sb.WriteString(" {\n")
 	for _, p := range in.parents {
-		sb.WriteString(dump[A](p.getNode().self, depth+1))
+		sb.WriteString(dump(p.getNode().self, depth+1))
 		sb.WriteString(",\n")
 	}
 	sb.WriteString(prefix + "}")

@@ -3,7 +3,7 @@ package incr
 import "context"
 
 // Watch returns a new watch incremental that tracks values for a given incremental.
-func Watch[A any](i Incr[A]) WatchIncr[A] {
+func Watch[A comparable](i Incr[A]) WatchIncr[A] {
 	w := &watchIncr[A]{
 		incr: i,
 	}
@@ -15,12 +15,12 @@ func Watch[A any](i Incr[A]) WatchIncr[A] {
 }
 
 // WatchIncr extends incr to include Values.
-type WatchIncr[A any] interface {
+type WatchIncr[A comparable] interface {
 	Incr[A]
 	Values() []A
 }
 
-type watchIncr[A any] struct {
+type watchIncr[A comparable] struct {
 	*node
 	incr   Incr[A]
 	value  A
@@ -42,6 +42,8 @@ func (w *watchIncr[A]) Stale() bool { return false }
 func (w *watchIncr[A]) Values() []A {
 	return w.values
 }
+
+func (v *watchIncr[A]) getValue() any { return v.Value() }
 
 func (w *watchIncr[A]) getNode() *node {
 	return w.node

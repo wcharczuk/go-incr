@@ -11,7 +11,7 @@ import (
 //
 // The implication of returning an Incr[B] is that Bind _always_ is stale,
 // and will cause the children of any Bind node to recompute each pass.
-func Bind[A, B any](i Incr[A], fn func(A) Incr[B]) Incr[B] {
+func Bind[A, B comparable](i Incr[A], fn func(A) Incr[B]) Incr[B] {
 	b := &bindIncr[A, B]{
 		i:  i,
 		fn: fn,
@@ -23,23 +23,25 @@ func Bind[A, B any](i Incr[A], fn func(A) Incr[B]) Incr[B] {
 	return b
 }
 
-type bindIncr[A, B any] struct {
+type bindIncr[A, B comparable] struct {
 	n     *node
 	i     Incr[A]
 	fn    func(A) Incr[B]
-	value B
+	value Incr[B]
 }
 
 func (bi *bindIncr[A, B]) Value() B {
-	return bi.value
+	return bi.value.Value()
 }
 
 func (bi *bindIncr[A, B]) Stabilize(ctx context.Context) error {
-	bi.value = bi.fn(bi.i.Value()).Value()
+	bi.value = bi.fn(bi.i.Value())
 	return nil
 }
 
-func (bi *bindIncr[A, B]) Stale() bool { return true }
+func (bi *bindIncr[A, B]) getValue() any {
+	return bi.Value()
+}
 
 func (bi *bindIncr[A, B]) getNode() *node {
 	return bi.n

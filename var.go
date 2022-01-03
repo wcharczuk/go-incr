@@ -8,6 +8,7 @@ import (
 func Var[A comparable](value A) VarIncr[A] {
 	v := new(varIncr[A])
 	v.n = newNode(v)
+	v.n.isVariable = true
 	v.latest = value
 	return v
 }
@@ -45,5 +46,7 @@ func (v *varIncr[A]) Stabilize(ctx context.Context) error {
 func (v *varIncr[A]) Stale() bool {
 	return v.latest != v.value
 }
+
+func (v *varIncr[A]) getValue() any { return v.Value() }
 
 func (v *varIncr[A]) getNode() *node { return v.n }

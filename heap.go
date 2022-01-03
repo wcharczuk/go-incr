@@ -8,6 +8,11 @@ type Heap[A any] struct {
 	Less   func(A, A) bool
 }
 
+// OkValue returns just the value from a (A,bool) return.
+func OkValue[A any](v A, ok bool) A {
+	return v
+}
+
 // Init establishes the heap invariants required by the other routines in this package.
 // Init is idempotent with respect to the heap invariants
 // and may be called whenever the heap invariants may have been invalidated.
