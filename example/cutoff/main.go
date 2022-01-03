@@ -61,4 +61,10 @@ func main() {
 		output,
 	)
 	fmt.Printf("output: %0.2f\n", output.Value())
+
+	_ = incr.Stabilize(
+		context.Background(),
+		output,
+	)
+	fmt.Printf("output: %0.2f\n", output.Value())
 }

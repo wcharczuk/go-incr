@@ -6,17 +6,19 @@ import (
 
 // Stabilize recomputes a graph of computations rooted at a given list of outputs.
 //
-// It does this by traversing the DAG, discovering any `Var` or `Bind...` nodes
-// and marking them to be recomputed if their value has changed (referred to as being "stale").
+// It does this by traversing the DAG, working "up" from the output nodes, by iterating
+// through the parents, and then the parents of those nodes parents etc., until it
+// discovers all the Variable nodes in the graph, adding them to a recomputation heap.
 //
-// Once they're recomputed, any stale "children" of those nodes are also recomputed recursively.
+// Once all the variables are discovered, recomputation proceeds as
+// follows (until the heap is empty):
+// - a minimum-height node is popped off the recompute heap
+// - it is recomputed, if the recomputation returns an error it is returned
+//   and recomputation stops
+// - if the value of the node has changed, all of that nodes children are
+//   added to the recomputation heap
 //
-// The order of nodes to be recomputed leverages a min-heap ordered by the maximum
-// height of a given node from its inner-most parent.
-//
-// Non-dynamic (Map, Cutoff etc.) nodes are only recomputed if their inputs change.
-// If you need to have a node recompute _always_ regardless of if the inputs change,
-// you should use a bind-style node.
+// Stabilize is safe to run multiple times if the variables haven't changed.
 func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 	discovery := &Heap[Stabilizer]{
 		Values: outputs,
@@ -75,15 +77,6 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 		}
 	}
 	return nil
-}
-
-func getValue[A comparable](s Stabilizer) (output A) {
-	typed, ok := s.(Incr[A])
-	if ok {
-		output = typed.Value()
-		return
-	}
-	return
 }
 
 func isDiscoveryRecompute(s Stabilizer) bool {
