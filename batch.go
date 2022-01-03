@@ -128,7 +128,6 @@ func (bw *batchWorker[T]) Process(ctx context.Context) {
 
 func (bw *batchWorker[T]) process(ctx context.Context, w T) {
 	if err := bw.action(ctx, w); err != nil {
-		println("batch worker pushing error")
 		bw.errors <- err
 	}
 	bw.finalizer(bw)
