@@ -17,11 +17,10 @@ There are a core set of orthogonal node types that are composed into computation
 - Return : effectively a "constant" computation, or just a returned value.
 - Var : effectively a "variable" computation, these are the inputs to the computation.
 - Map : a computation that takes an input incremental of a given type and a function to modify the value of that input, returning potentially a new type of value, as an incremental of that output type.
-- Bind : similar to Map, but dynamic, in that the output of the given function should be a computation and not a value.
 - Map2 : combine two inputs into a single output.
 - MapIf : a branching computation that returns one of two inputs based on a boolean input incremental computation.
+- Bind : similar to Map, but dynamic, in that the output of the given function should be a computation and not a value, allowing the computation graph to be meaningfully changed below the bind node.
 - BindIf : similar to MapIf, but dynamic.
-
 # Example
 
 Let's say that we want to make a convoluted computation that takes an input:
