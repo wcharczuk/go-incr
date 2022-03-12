@@ -67,6 +67,15 @@ func main() {
 		fatal(err)
 	}
 	fmt.Printf("value: %d\n", output.Value())
+
+	fmt.Println("stabilizing computation (again)")
+	if err := incr.Stabilize(
+		incr.WithTracing(context.Background()),
+		output,
+	); err != nil {
+		fatal(err)
+	}
+	fmt.Printf("value: %d\n", output.Value())
 }
 
 func fatal(err error) {

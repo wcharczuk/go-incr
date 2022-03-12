@@ -53,7 +53,7 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 			continue
 		}
 		if shouldRecompute(n, latestGeneration) {
-			tracePrintf(ctx, "stabilize; recomputing; %T %v", n, id)
+			tracePrintf(ctx, "stabilize; marking to recompute; %T %v", n, id)
 			recompute.Push(n)
 		} else {
 			tracePrintf(ctx, "stabilize; skipping; %T %v", n, id)
@@ -78,6 +78,7 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 			break
 		}
 		nn = n.Node()
+		tracePrintf(ctx, "stabilize; recomputing; %T %v", n, id)
 		if err = n.Stabilize(ctx, latestGeneration); err != nil {
 			return err
 		}
