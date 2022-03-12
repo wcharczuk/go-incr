@@ -26,53 +26,69 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 	}
 	discovery.Init()
 
-	recomputeSeen := make(Set[nodeID])
+	discoverySeen := make(Set[nodeID])
 	recompute := &Heap[Stabilizer]{
-		Values: nil,
 		LessFn: nodeHeightLess,
 	}
-	recompute.Init()
 
-	// discover stale nodes; these are typically variables
-	// and bind nodes that have to recompute each pass
-
-	var latestGeneration generation
+	var generation, latestGeneration generation
 	var n Stabilizer
 	var nn *node
 	var id nodeID
-	for discovery.Len() > 0 {
-		n, _ = discovery.Pop()
+	var ok bool
+	for {
+		n, ok = discovery.Pop()
+		if !ok {
+			break
+		}
 		nn = n.getNode()
 		id = nn.id
-		if generation := nn.recomputedAt; generation > latestGeneration {
+		generation = nn.recomputedAt
+		if generation > latestGeneration {
+			tracePrintf(ctx, "stabilize; updating latest generation; %d", generation)
 			latestGeneration = generation
 		}
-		if shouldRecompute(n, latestGeneration) && !recomputeSeen.Has(id) {
-			recomputeSeen.Add(id)
-			recompute.Push(n)
+
+		if discoverySeen.Has(id) {
+			continue
 		}
+		if shouldRecompute(n, latestGeneration) {
+			tracePrintf(ctx, "stabilize; recomputing; %T %v", n, id)
+			recompute.Push(n)
+		} else {
+			tracePrintf(ctx, "stabilize; skipping; %T %v", n, id)
+		}
+
+		discoverySeen.Add(id)
 		for _, p := range nn.parents {
 			discovery.Push(p)
 		}
 	}
 
 	latestGeneration = latestGeneration + 1
-	tracePrintf(ctx, "stabilize; computation @ %d has %d stale nodes", latestGeneration, recompute.Len())
+	tracePrintf(ctx, "stabilize; computation at generation %d has %d stale nodes", latestGeneration, recompute.Len())
+
+	recomputeSeen := make(Set[nodeID])
 
 	var err error
 	var before, after any
-	for recompute.Len() > 0 {
-		n, _ = recompute.Pop()
+	var cid nodeID
+	for {
+		n, ok = recompute.Pop()
+		if !ok {
+			break
+		}
+
 		before = n.getValue()
 		nn = n.getNode()
 		if err = n.Stabilize(ctx); err != nil {
 			return err
 		}
-		after = n.getValue()
 
+		after = n.getValue()
 		if before != after || nn.recomputedAt < nn.changedAt {
 			for _, c := range nn.children {
-				cid := c.getNode().id
+				cid = c.getNode().id
 				if recomputeSeen.Has(cid) {
 					continue
 				}
@@ -80,7 +96,6 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 				recomputeSeen.Add(cid)
 			}
 		}
-
 		// this is down here to not foul up the if statement above
 		// and it should always be set
 		nn.recomputedAt = latestGeneration
@@ -89,7 +104,7 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 }
 
 func shouldRecompute(s Stabilizer, latestGeneration generation) bool {
-	return s.getNode().changedAt > latestGeneration
+	return !s.getNode().initialized || s.getNode().changedAt > latestGeneration
 }
 
 func nodeHeightLess(a, b Stabilizer) bool {

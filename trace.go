@@ -2,6 +2,7 @@ package incr
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -70,17 +71,17 @@ type tracer struct {
 }
 
 func (t *tracer) Println(args ...any) {
-	t.log.Println(args...)
+	t.log.Output(4, fmt.Sprint(args...))
 }
 
 func (t *tracer) Printf(format string, args ...any) {
-	t.log.Printf(format, args...)
+	t.log.Output(4, fmt.Sprintf(format, args...))
 }
 
 func (t *tracer) Errorln(args ...any) {
-	t.errLog.Println(args...)
+	t.errLog.Output(4, fmt.Sprint(args...))
 }
 
 func (t *tracer) Errorf(format string, args ...any) {
-	t.errLog.Printf(format, args...)
+	t.errLog.Output(4, fmt.Sprintf(format, args...))
 }

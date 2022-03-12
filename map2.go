@@ -1,6 +1,8 @@
 package incr
 
-import "context"
+import (
+	"context"
+)
 
 // Map returns a new map incremental.
 func Map2[A, B, C comparable](i0 Incr[A], i1 Incr[B], fn func(A, B) C) Incr[C] {
