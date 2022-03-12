@@ -5,11 +5,11 @@ import (
 	"encoding/hex"
 )
 
-// nodeID is effectively a uuidv4 but we don't advertise as such.
-type nodeID [16]byte
+// NodeID is effectively a uuidv4 but we don't advertise as such.
+type NodeID [16]byte
 
-// newNodeID returns a new node id, effectively a uuidv4.
-func newNodeID() (output nodeID) {
+// NewNodeID returns a new node id, effectively a uuidv4.
+func NewNodeID() (output NodeID) {
 	_, _ = rand.Read(output[:])
 	output[6] = (output[6] & 0x0f) | 0x40 // Version 4
 	output[8] = (output[8] & 0x3f) | 0x80 // Variant is 10
@@ -18,13 +18,13 @@ func newNodeID() (output nodeID) {
 
 // String returns the string form of the
 // nodeID as xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx.
-func (id nodeID) String() string {
+func (id NodeID) String() string {
 	var buf [36]byte
 	encodeHex(buf[:], id)
 	return string(buf[:])
 }
 
-func encodeHex(dst []byte, id nodeID) {
+func encodeHex(dst []byte, id NodeID) {
 	hex.Encode(dst, id[:4])
 	dst[8] = '-'
 	hex.Encode(dst[9:13], id[4:6])

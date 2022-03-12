@@ -14,14 +14,14 @@ func Map[A, B comparable](i Incr[A], fn func(A) B) Incr[B] {
 		i:  i,
 		fn: fn,
 	}
-	m.n = newNode(m, optNodeChildOf(i))
+	m.n = NewNode(m, OptNodeChildOf(i))
 	return m
 }
 
 // mapIncr is a concrete implementation of Incr for
 // the map operator.
 type mapIncr[A, B comparable] struct {
-	n     *node
+	n     *Node
 	i     Incr[A]
 	fn    func(A) B
 	value B
@@ -31,15 +31,15 @@ func (m *mapIncr[A, B]) Value() B {
 	return m.value
 }
 
-func (m *mapIncr[A, B]) Stabilize(ctx context.Context) error {
+func (m *mapIncr[A, B]) Stabilize(ctx context.Context, g Generation) error {
+	oldValue := m.value
 	m.value = m.fn(m.i.Value())
+	if oldValue != m.value {
+		m.n.changedAt = g
+	}
 	return nil
 }
 
-func (m *mapIncr[A, B]) getValue() any {
-	return m.Value()
-}
-
-func (m *mapIncr[A, B]) getNode() *node {
+func (m *mapIncr[A, B]) Node() *Node {
 	return m.n
 }

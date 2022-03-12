@@ -9,8 +9,7 @@ func Var[A comparable](value A) VarIncr[A] {
 	v := &varIncr[A]{
 		latest: value,
 	}
-	v.n = newNode(v)
-	v.n.changedAt = generation(1)
+	v.n = NewNode(v)
 	return v
 }
 
@@ -22,7 +21,7 @@ type VarIncr[A comparable] interface {
 }
 
 type varIncr[A comparable] struct {
-	n      *node
+	n      *Node
 	value  A
 	latest A
 }
@@ -32,7 +31,6 @@ func (v *varIncr[A]) Watch() WatchIncr[A] {
 }
 
 func (v *varIncr[A]) Set(value A) {
-	v.n.changedAt = v.n.recomputedAt + 1
 	v.latest = value
 }
 
@@ -40,11 +38,12 @@ func (v *varIncr[A]) Value() A {
 	return v.value
 }
 
-func (v *varIncr[A]) Stabilize(ctx context.Context) error {
+func (v *varIncr[A]) Stabilize(ctx context.Context, g Generation) error {
+	if v.value != v.latest {
+		v.n.changedAt = g
+	}
 	v.value = v.latest
 	return nil
 }
 
-func (v *varIncr[A]) getValue() any { return v.Value() }
-
-func (v *varIncr[A]) getNode() *node { return v.n }
+func (v *varIncr[A]) Node() *Node { return v.n }

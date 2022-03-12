@@ -26,22 +26,22 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 	}
 	discovery.Init()
 
-	discoverySeen := make(Set[nodeID])
+	discoverySeen := make(Set[NodeID])
 	recompute := &Heap[Stabilizer]{
 		LessFn: nodeHeightLess,
 	}
 
-	var generation, latestGeneration generation
+	var generation, latestGeneration Generation
 	var n Stabilizer
-	var nn *node
-	var id nodeID
+	var nn *Node
+	var id NodeID
 	var ok bool
 	for {
 		n, ok = discovery.Pop()
 		if !ok {
 			break
 		}
-		nn = n.getNode()
+		nn = n.Node()
 		id = nn.id
 		generation = nn.recomputedAt
 		if generation > latestGeneration {
@@ -68,27 +68,22 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 	latestGeneration = latestGeneration + 1
 	tracePrintf(ctx, "stabilize; computation at generation %d has %d stale nodes", latestGeneration, recompute.Len())
 
-	recomputeSeen := make(Set[nodeID])
+	recomputeSeen := make(Set[NodeID])
 
 	var err error
-	var before, after any
-	var cid nodeID
+	var cid NodeID
 	for {
 		n, ok = recompute.Pop()
 		if !ok {
 			break
 		}
-
-		before = n.getValue()
-		nn = n.getNode()
-		if err = n.Stabilize(ctx); err != nil {
+		nn = n.Node()
+		if err = n.Stabilize(ctx, latestGeneration); err != nil {
 			return err
 		}
-
-		after = n.getValue()
-		if before != after || nn.recomputedAt < nn.changedAt {
+		if nn.recomputedAt < nn.changedAt {
 			for _, c := range nn.children {
-				cid = c.getNode().id
+				cid = c.Node().id
 				if recomputeSeen.Has(cid) {
 					continue
 				}
@@ -96,17 +91,20 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 				recomputeSeen.Add(cid)
 			}
 		}
-		// this is down here to not foul up the if statement above
-		// and it should always be set
+		// these are down here to not foul up the if statement above
+		// and it should always be applied
+		if !nn.initialized {
+			nn.initialized = true
+		}
 		nn.recomputedAt = latestGeneration
 	}
 	return nil
 }
 
-func shouldRecompute(s Stabilizer, latestGeneration generation) bool {
-	return !s.getNode().initialized || s.getNode().changedAt > latestGeneration
+func shouldRecompute(s Stabilizer, latestGeneration Generation) bool {
+	return !s.Node().initialized || s.Node().changedAt > latestGeneration
 }
 
 func nodeHeightLess(a, b Stabilizer) bool {
-	return a.getNode().height < b.getNode().height
+	return a.Node().height < b.Node().height
 }

@@ -9,13 +9,12 @@ func Return[A comparable](value A) Incr[A] {
 	r := &returnIncr[A]{
 		value: value,
 	}
-	r.n = newNode(r)
-	r.n.changedAt = generation(1)
+	r.n = NewNode(r)
 	return r
 }
 
 type returnIncr[A comparable] struct {
-	n     *node
+	n     *Node
 	value A
 }
 
@@ -23,10 +22,8 @@ func (r *returnIncr[A]) Value() A {
 	return r.value
 }
 
-func (r *returnIncr[A]) Stabilize(_ context.Context) error {
+func (r *returnIncr[A]) Stabilize(_ context.Context, _ Generation) error {
 	return nil
 }
 
-func (r *returnIncr[A]) getValue() any { return r.Value() }
-
-func (r *returnIncr[A]) getNode() *node { return r.n }
+func (r *returnIncr[A]) Node() *Node { return r.n }

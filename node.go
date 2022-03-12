@@ -1,8 +1,9 @@
 package incr
 
-func newNode(self Stabilizer, opts ...nodeOption) *node {
-	n := &node{
-		id:   newNodeID(),
+// NewNode returns a new node.
+func NewNode(self Stabilizer, opts ...NodeOption) *Node {
+	n := &Node{
+		id:   NewNodeID(),
 		self: self,
 	}
 	for _, opt := range opts {
@@ -11,26 +12,29 @@ func newNode(self Stabilizer, opts ...nodeOption) *node {
 	return n
 }
 
-type nodeOption func(*node)
+// NodeOption mutates a node.
+type NodeOption func(*Node)
 
-func optNodeChildOf(p Stabilizer) nodeOption {
-	return func(n *node) {
-		parentNode := p.getNode()
+// OptNodeChildOf sets the node to be the child of another node.
+func OptNodeChildOf(p Stabilizer) NodeOption {
+	return func(n *Node) {
+		parentNode := p.Node()
 		parentNode.children = append(parentNode.children, n.self)
 		n.height = Max(n.height, parentNode.height+1)
 		n.parents = append(n.parents, p)
 	}
 }
 
-type generation uint64
+// Generation is a computation generation.
+type Generation uint64
 
-type node struct {
-	id     nodeID
+type Node struct {
+	id     NodeID
 	height int
 
 	initialized  bool
-	changedAt    generation
-	recomputedAt generation
+	changedAt    Generation
+	recomputedAt Generation
 
 	self     Stabilizer
 	parents  []Stabilizer

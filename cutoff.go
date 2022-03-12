@@ -14,14 +14,14 @@ func Cutoff[A comparable](i Incr[A], fn func(value A, latest A) bool) Incr[A] {
 		i:  i,
 		fn: fn,
 	}
-	co.n = newNode(co, optNodeChildOf(i))
+	co.n = NewNode(co, OptNodeChildOf(i))
 	return co
 }
 
 // cutoffIncr is a concrete implementation of Incr for
 // the cutoff operator.
 type cutoffIncr[A comparable] struct {
-	n     *node
+	n     *Node
 	i     Incr[A]
 	fn    func(A, A) bool
 	value A
@@ -31,10 +31,11 @@ func (c *cutoffIncr[A]) Value() A {
 	return c.value
 }
 
-func (c *cutoffIncr[A]) Stabilize(ctx context.Context) error {
+func (c *cutoffIncr[A]) Stabilize(ctx context.Context, g Generation) error {
 	newValue := c.i.Value()
 	if c.fn(c.value, newValue) {
 		c.value = c.i.Value()
+		c.n.changedAt = g
 	}
 	return nil
 }
@@ -43,6 +44,6 @@ func (c *cutoffIncr[A]) getValue() any {
 	return c.Value()
 }
 
-func (c *cutoffIncr[A]) getNode() *node {
+func (c *cutoffIncr[A]) Node() *Node {
 	return c.n
 }

@@ -16,9 +16,9 @@ func Bind[A, B comparable](i Incr[A], fn func(A) Incr[B]) BindIncr[B] {
 		i:  i,
 		fn: fn,
 	}
-	b.n = newNode(
+	b.n = NewNode(
 		b,
-		optNodeChildOf(i),
+		OptNodeChildOf(i),
 	)
 	return b
 }
@@ -30,7 +30,7 @@ type BindIncr[A comparable] interface {
 }
 
 type bindIncr[A, B comparable] struct {
-	n     *node
+	n     *Node
 	i     Incr[A]
 	fn    func(A) Incr[B]
 	value Incr[B]
@@ -44,18 +44,19 @@ func (bi *bindIncr[A, B]) Value() B {
 	return bi.value.Value()
 }
 
-func (bi *bindIncr[A, B]) Stabilize(ctx context.Context) error {
-	if err := bi.i.Stabilize(ctx); err != nil {
+func (bi *bindIncr[A, B]) Stabilize(ctx context.Context, g Generation) error {
+	if err := bi.i.Stabilize(ctx, g); err != nil {
 		return err
 	}
 	bi.value = bi.fn(bi.i.Value())
-	return bi.value.Stabilize(ctx)
+	if err := bi.value.Stabilize(ctx, g); err != nil {
+		return err
+	}
+	bi.n.changedAt = g
+	return nil
+
 }
 
-func (bi *bindIncr[A, B]) getValue() any {
-	return bi.value.Value()
-}
-
-func (bi *bindIncr[A, B]) getNode() *node {
+func (bi *bindIncr[A, B]) Node() *Node {
 	return bi.n
 }

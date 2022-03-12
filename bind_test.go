@@ -25,18 +25,18 @@ func Test_Bind(t *testing.T) {
 		return c0
 	})
 
-	itsEqual(t, 1, len(b.getNode().parents))
-	itsEqual(t, 1, len(a.getNode().children))
+	itsEqual(t, 1, len(b.Node().parents))
+	itsEqual(t, 1, len(a.Node().children))
 
-	itsNil(t, a.Stabilize(context.TODO()))
-	itsNil(t, b.Stabilize(context.TODO()))
+	itsNil(t, a.Stabilize(context.TODO(), 0))
+	itsNil(t, b.Stabilize(context.TODO(), 0))
 
 	itsEqual(t, 11, b.Value())
 
 	a.Set(6)
 
-	itsNil(t, a.Stabilize(context.TODO()))
-	itsNil(t, b.Stabilize(context.TODO()))
+	itsNil(t, a.Stabilize(context.TODO(), 0))
+	itsNil(t, b.Stabilize(context.TODO(), 0))
 
 	itsEqual(t, 105, b.Value())
 }

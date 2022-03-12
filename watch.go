@@ -7,9 +7,9 @@ func Watch[A comparable](i Incr[A]) WatchIncr[A] {
 	w := &watchIncr[A]{
 		incr: i,
 	}
-	w.node = newNode(
+	w.n = NewNode(
 		w,
-		optNodeChildOf(i),
+		OptNodeChildOf(i),
 	)
 	return w
 }
@@ -21,7 +21,7 @@ type WatchIncr[A comparable] interface {
 }
 
 type watchIncr[A comparable] struct {
-	*node
+	n      *Node
 	incr   Incr[A]
 	value  A
 	values []A
@@ -31,23 +31,20 @@ func (w *watchIncr[A]) Value() A {
 	return w.value
 }
 
-func (w *watchIncr[A]) Stabilize(ctx context.Context) error {
+func (w *watchIncr[A]) Stabilize(ctx context.Context, g Generation) error {
 	newValue := w.incr.Value()
 	if w.value != newValue {
+		w.n.changedAt = g
 		w.value = newValue
 		w.values = append(w.values, w.value)
 	}
 	return nil
 }
 
-func (w *watchIncr[A]) Stale() bool { return false }
-
 func (w *watchIncr[A]) Values() []A {
 	return w.values
 }
 
-func (v *watchIncr[A]) getValue() any { return v.Value() }
-
-func (w *watchIncr[A]) getNode() *node {
-	return w.node
+func (w *watchIncr[A]) Node() *Node {
+	return w.n
 }

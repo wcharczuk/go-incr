@@ -20,11 +20,9 @@ func main() {
 			return a0 + a1
 		},
 	)
-	fmt.Println(incr.Dump(output))
 	_ = incr.Stabilize(
 		incr.WithTracing(context.Background()),
 		output,
 	)
-	fmt.Println(incr.Dump(output))
 	fmt.Println(output.Value()) // prints 18.14
 }

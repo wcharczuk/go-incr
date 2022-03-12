@@ -11,16 +11,16 @@ func Map2[A, B, C comparable](i0 Incr[A], i1 Incr[B], fn func(A, B) C) Incr[C] {
 		i1: i1,
 		fn: fn,
 	}
-	m2.n = newNode(
+	m2.n = NewNode(
 		m2,
-		optNodeChildOf(i0),
-		optNodeChildOf(i1),
+		OptNodeChildOf(i0),
+		OptNodeChildOf(i1),
 	)
 	return m2
 }
 
 type map2Incr[A, B, C comparable] struct {
-	n     *node
+	n     *Node
 	i0    Incr[A]
 	i1    Incr[B]
 	fn    func(A, B) C
@@ -31,15 +31,15 @@ func (m *map2Incr[A, B, C]) Value() C {
 	return m.value
 }
 
-func (m *map2Incr[A, B, C]) Stabilize(ctx context.Context) error {
+func (m *map2Incr[A, B, C]) Stabilize(ctx context.Context, g Generation) error {
+	oldValue := m.value
 	m.value = m.fn(m.i0.Value(), m.i1.Value())
+	if oldValue != m.value {
+		m.n.changedAt = g
+	}
 	return nil
 }
 
-func (m *map2Incr[A, B, C]) getValue() any {
-	return m.Value()
-}
-
-func (m *map2Incr[A, B, C]) getNode() *node {
+func (m *map2Incr[A, B, C]) Node() *Node {
 	return m.n
 }
