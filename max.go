@@ -1,9 +1,7 @@
 package incr
 
-import "constraints"
-
 // Max returns the maximum of a given set of values.
-func Max[A constraints.Ordered](values ...A) (output A) {
+func Max[A Ordered](values ...A) (output A) {
 	if len(values) == 0 {
 		return
 	}

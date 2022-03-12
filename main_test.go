@@ -1,21 +1,77 @@
 package incr
 
 import (
+	"math"
 	"reflect"
 	"testing"
 )
 
+//
+// helpers
+//
+
+// epsilon returns a function that returns true
+// if the absolute difference of two values is greater
+// than a given delta.
+func epsilon[A int | float32 | float64](delta A) func(A, A) bool {
+	return func(v0, v1 A) bool {
+		return math.Abs(float64(v1)-float64(v0)) > float64(delta)
+	}
+}
+
+// addConst returns a map fn that adds a constant value
+// to a given input
+func addConst[A int | float32 | float64](v A) func(A) A {
+	return func(v0 A) A {
+		return v0 + v
+	}
+}
+
+// add is a map2 fn that adds two values and returns the result
+func add[A int | float32 | float64](v0, v1 A) A {
+	return v0 + v1
+}
+
+func makeFib(height int) (output Incr[int]) {
+	prev2 := Return(0) // 0
+	prev := Return(1)  // 1
+	current := Map2(   // 2
+		prev2,
+		prev,
+		add[int],
+	)
+	for x := 3; x < height; x++ {
+		prev2 = prev
+		prev = current
+		current = Map2(
+			prev2,
+			prev,
+			add[int],
+		)
+	}
+	output = Map2(
+		prev,
+		current,
+		add[int],
+	)
+	return
+}
+
+//
+// assertions
+//
+
 func itsEqual(t *testing.T, expected, actual any) {
 	t.Helper()
 	if !areEqual(expected, actual) {
-		t.Fatalf("expected %v, actual: %v", actual, expected)
+		t.Fatalf("equal; expected %v, actual: %v", actual, expected)
 	}
 }
 
 func itsNotEqual(t *testing.T, expected, actual any) {
 	t.Helper()
-	if !areEqual(expected, actual) {
-		t.Fatalf("expected: %v, actual: %v", expected, actual)
+	if areEqual(expected, actual) {
+		t.Fatalf("not equal; expected: %v, actual: %v", expected, actual)
 	}
 }
 

@@ -22,21 +22,21 @@ import (
 func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 	discovery := &Heap[Stabilizer]{
 		Values: outputs,
-		Less:   nodeHeightLess,
+		LessFn: nodeHeightLess,
 	}
 	discovery.Init()
 
 	recomputeSeen := make(Set[nodeID])
 	recompute := &Heap[Stabilizer]{
 		Values: nil,
-		Less:   nodeHeightLess,
+		LessFn: nodeHeightLess,
 	}
 	recompute.Init()
 
-	var latestGeneration generation
-
 	// discover stale nodes; these are typically variables
 	// and bind nodes that have to recompute each pass
+
+	var latestGeneration generation
 	var n Stabilizer
 	var nn *node
 	var id nodeID

@@ -49,7 +49,7 @@ func (bi *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 		return err
 	}
 	bi.value = bi.fn(bi.i.Value())
-	return nil
+	return bi.value.Stabilize(ctx)
 }
 
 func (bi *bindIncr[A, B]) getValue() any {

@@ -31,5 +31,12 @@ func Test_Bind(t *testing.T) {
 	itsNil(t, a.Stabilize(context.TODO()))
 	itsNil(t, b.Stabilize(context.TODO()))
 
-	itsEqual(t, 6, b.Value())
+	itsEqual(t, 11, b.Value())
+
+	a.Set(6)
+
+	itsNil(t, a.Stabilize(context.TODO()))
+	itsNil(t, b.Stabilize(context.TODO()))
+
+	itsEqual(t, 105, b.Value())
 }

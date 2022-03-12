@@ -25,9 +25,9 @@ func optNodeChildOf(p Stabilizer) nodeOption {
 type generation uint64
 
 type node struct {
-	id         nodeID
-	height     int
-	isVariable bool
+	id       nodeID
+	height   int
+	variable bool
 
 	changedAt    generation
 	recomputedAt generation

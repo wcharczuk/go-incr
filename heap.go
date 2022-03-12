@@ -5,7 +5,7 @@ package incr
 // You must provide a `Less(...) bool` function, but values can be omitted.
 type Heap[A any] struct {
 	Values []A
-	Less   func(A, A) bool
+	LessFn func(A, A) bool
 }
 
 // OkValue returns just the value from a (A,bool) return.
@@ -101,7 +101,7 @@ func (h *Heap[A]) swap(i, j int) {
 func (h *Heap[A]) up(j int) {
 	for {
 		i := (j - 1) / 2 // parent
-		if i == j || !h.Less(h.Values[j], h.Values[i]) {
+		if i == j || !h.LessFn(h.Values[j], h.Values[i]) {
 			break
 		}
 		h.swap(i, j)
@@ -117,10 +117,10 @@ func (h *Heap[A]) down(i0, n int) bool {
 			break
 		}
 		j := j1 // left child
-		if j2 := j1 + 1; j2 < n && h.Less(h.Values[j2], h.Values[j1]) {
+		if j2 := j1 + 1; j2 < n && h.LessFn(h.Values[j2], h.Values[j1]) {
 			j = j2 // = 2*i + 2  // right child
 		}
-		if !h.Less(h.Values[j], h.Values[i]) {
+		if !h.LessFn(h.Values[j], h.Values[i]) {
 			break
 		}
 		h.swap(i, j)
