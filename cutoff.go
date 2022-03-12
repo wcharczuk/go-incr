@@ -7,8 +7,8 @@ import (
 // Cutoff returns a new wrapping cutoff incremental.
 //
 // The goal of the cutoff incremental is to stop recomputation at a given
-// node if the difference between the current and updated values are not
-// significant.
+// node if the difference between the previous and latest values are not
+// significant enough to warrant a full recomputation of the children of this node.
 func Cutoff[A comparable](i Incr[A], fn func(value A, latest A) bool) Incr[A] {
 	co := &cutoffIncr[A]{
 		i:  i,

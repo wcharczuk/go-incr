@@ -6,10 +6,11 @@ import (
 
 // Var returns a new variable that wraps a given value.
 func Var[A comparable](value A) VarIncr[A] {
-	v := new(varIncr[A])
+	v := &varIncr[A]{
+		latest: value,
+	}
 	v.n = newNode(v)
-	v.n.isVariable = true
-	v.latest = value
+	v.n.changedAt = generation(1)
 	return v
 }
 
@@ -31,6 +32,7 @@ func (v *varIncr[A]) Watch() WatchIncr[A] {
 }
 
 func (v *varIncr[A]) Set(value A) {
+	v.n.changedAt = v.n.recomputedAt + 1
 	v.latest = value
 }
 
@@ -41,10 +43,6 @@ func (v *varIncr[A]) Value() A {
 func (v *varIncr[A]) Stabilize(ctx context.Context) error {
 	v.value = v.latest
 	return nil
-}
-
-func (v *varIncr[A]) Stale() bool {
-	return v.latest != v.value
 }
 
 func (v *varIncr[A]) getValue() any { return v.Value() }

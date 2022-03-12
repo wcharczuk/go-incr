@@ -2,6 +2,7 @@ package incr
 
 import (
 	"context"
+	"io"
 	"log"
 	"os"
 )
@@ -18,9 +19,14 @@ type tracerKey struct{}
 
 // WithTracing adds a tracer to a given context.
 func WithTracing(ctx context.Context) context.Context {
+	return WithTracingOutput(ctx, os.Stderr, os.Stderr)
+}
+
+// WithTracingOutput adds a tracer to a given context with given outputs.
+func WithTracingOutput(ctx context.Context, output, errOutput io.Writer) context.Context {
 	tracer := &tracer{
-		log:    log.New(os.Stderr, "incr.trace|", log.LUTC|log.Lshortfile|log.Ldate|log.Lmicroseconds),
-		errLog: log.New(os.Stderr, "incr.trace.err|", log.LUTC|log.Lshortfile|log.Ldate|log.Lmicroseconds),
+		log:    log.New(output, "incr.trace|", log.LUTC|log.Lshortfile|log.Ldate|log.Lmicroseconds),
+		errLog: log.New(errOutput, "incr.trace.err|", log.LUTC|log.Lshortfile|log.Ldate|log.Lmicroseconds),
 	}
 	return context.WithValue(ctx, tracerKey{}, tracer)
 }

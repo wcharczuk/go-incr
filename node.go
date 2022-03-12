@@ -28,7 +28,11 @@ type node struct {
 	id         nodeID
 	height     int
 	isVariable bool
-	self       Stabilizer
-	parents    []Stabilizer
-	children   []Stabilizer
+
+	changedAt    generation
+	recomputedAt generation
+
+	self     Stabilizer
+	parents  []Stabilizer
+	children []Stabilizer
 }

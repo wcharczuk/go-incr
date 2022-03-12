@@ -32,8 +32,11 @@ func (w *watchIncr[A]) Value() A {
 }
 
 func (w *watchIncr[A]) Stabilize(ctx context.Context) error {
-	w.value = w.incr.Value()
-	w.values = append(w.values, w.value)
+	newValue := w.incr.Value()
+	if w.value != newValue {
+		w.value = newValue
+		w.values = append(w.values, w.value)
+	}
 	return nil
 }
 
