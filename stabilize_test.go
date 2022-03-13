@@ -108,4 +108,11 @@ func Test_Stabilize_error(t *testing.T) {
 	itsEqual(t, 18.14, output.Value())
 
 	shouldError = true
+
+	err = Stabilize(
+		context.TODO(),
+		output,
+	)
+	itsNotNil(t, err)
+	itsEqual(t, 18.14, output.Value())
 }
