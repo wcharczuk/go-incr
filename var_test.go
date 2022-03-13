@@ -35,7 +35,7 @@ func Test_Var_Watch(t *testing.T) {
 	itsNil(t, v.Stabilize(context.TODO()))
 	itsNil(t, w.Stabilize(context.TODO()))
 
-	itsEqual(t, 1, len(w.Values()))
+	itsEqual(t, 2, len(w.Values()))
 	itsEqual(t, 1, w.Values()[0])
 
 	v.Set(2)
@@ -43,7 +43,8 @@ func Test_Var_Watch(t *testing.T) {
 	itsNil(t, v.Stabilize(context.TODO()))
 	itsNil(t, w.Stabilize(context.TODO()))
 
-	itsEqual(t, 2, len(w.Values()))
+	itsEqual(t, 3, len(w.Values()))
 	itsEqual(t, 1, w.Values()[0])
-	itsEqual(t, 2, w.Values()[1])
+	itsEqual(t, 1, w.Values()[1])
+	itsEqual(t, 2, w.Values()[2])
 }

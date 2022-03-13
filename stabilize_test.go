@@ -2,6 +2,7 @@ package incr
 
 import (
 	"context"
+	"fmt"
 	"testing"
 )
 
@@ -76,4 +77,35 @@ func Test_Stabilize_fibonacci(t *testing.T) {
 	)
 	itsNil(t, err)
 	itsEqual(t, 2178309, output.Value())
+}
+
+func Test_Stabilize_error(t *testing.T) {
+	var shouldError bool
+	output := Map2(
+		Func(func(_ context.Context) (v float64, err error) {
+			if shouldError {
+				err = fmt.Errorf("this is just a test")
+				return
+			}
+			v = 3.14
+			return
+		}),
+		Map(
+			Return(10.0),
+			func(a float64) float64 {
+				return a + 5
+			},
+		),
+		func(a0, a1 float64) float64 {
+			return a0 + a1
+		},
+	)
+	err := Stabilize(
+		context.TODO(),
+		output,
+	)
+	itsNil(t, err)
+	itsEqual(t, 18.14, output.Value())
+
+	shouldError = true
 }
