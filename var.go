@@ -5,7 +5,7 @@ import (
 )
 
 // Var returns a new variable that wraps a given value.
-func Var[A comparable](value A) VarIncr[A] {
+func Var[A any](value A) VarIncr[A] {
 	v := &varIncr[A]{
 		latest: value,
 	}
@@ -14,16 +14,17 @@ func Var[A comparable](value A) VarIncr[A] {
 }
 
 // VarIncr extends incr with a Watch method.
-type VarIncr[A comparable] interface {
+type VarIncr[A any] interface {
 	Incr[A]
 	Watch() WatchIncr[A]
 	Set(A)
 }
 
-type varIncr[A comparable] struct {
+type varIncr[A any] struct {
 	n      *Node
 	value  A
 	latest A
+	stale  bool
 }
 
 func (v *varIncr[A]) Watch() WatchIncr[A] {
@@ -31,18 +32,20 @@ func (v *varIncr[A]) Watch() WatchIncr[A] {
 }
 
 func (v *varIncr[A]) Set(value A) {
-	// we set the changed at here so that stabilization
-	// passes correctly pick up that the variable has changed.
-	v.n.changedAt = v.n.recomputedAt + 1
 	v.latest = value
+}
+
+func (v *varIncr[A]) Stale() bool {
+	return v.stale
 }
 
 func (v *varIncr[A]) Value() A {
 	return v.value
 }
 
-func (v *varIncr[A]) Stabilize(ctx context.Context, _ Generation) error {
+func (v *varIncr[A]) Stabilize(ctx context.Context) error {
 	v.value = v.latest
+	v.stale = false
 	return nil
 }
 

@@ -31,17 +31,14 @@ func (c *cutoffIncr[A]) Value() A {
 	return c.value
 }
 
-func (c *cutoffIncr[A]) Stabilize(ctx context.Context, g Generation) error {
+func (c *cutoffIncr[A]) Stale() bool { return false }
+
+func (c *cutoffIncr[A]) Stabilize(ctx context.Context) error {
 	newValue := c.i.Value()
 	if c.fn(c.value, newValue) {
 		c.value = c.i.Value()
-		c.n.changedAt = g
 	}
 	return nil
-}
-
-func (c *cutoffIncr[A]) getValue() any {
-	return c.Value()
 }
 
 func (c *cutoffIncr[A]) Node() *Node {

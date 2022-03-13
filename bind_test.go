@@ -6,7 +6,6 @@ import (
 )
 
 func Test_Bind(t *testing.T) {
-
 	c0 := Map(
 		Return(1),
 		addConst(10),
@@ -28,15 +27,15 @@ func Test_Bind(t *testing.T) {
 	itsEqual(t, 1, len(b.Node().parents))
 	itsEqual(t, 1, len(a.Node().children))
 
-	itsNil(t, a.Stabilize(context.TODO(), 0))
-	itsNil(t, b.Stabilize(context.TODO(), 0))
+	itsNil(t, a.Stabilize(context.TODO()))
+	itsNil(t, b.Stabilize(context.TODO()))
 
 	itsEqual(t, 11, b.Value())
 
 	a.Set(6)
 
-	itsNil(t, a.Stabilize(context.TODO(), 0))
-	itsNil(t, b.Stabilize(context.TODO(), 0))
+	itsNil(t, a.Stabilize(context.TODO()))
+	itsNil(t, b.Stabilize(context.TODO()))
 
 	itsEqual(t, 105, b.Value())
 }

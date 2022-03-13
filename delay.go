@@ -7,10 +7,11 @@ import (
 
 // Delay returns a node that will only recompute after a given
 // delay since it last recomputed expressed as a duration.
-func Delay[A comparable](i Incr[A], delay time.Duration) Incr[A] {
+func Delay[A any](i Incr[A], delay time.Duration) Incr[A] {
 	di := &delayIncr[A]{
 		i:     i,
 		delay: delay,
+		now:   time.Now,
 	}
 	di.n = NewNode(
 		di,
@@ -19,31 +20,25 @@ func Delay[A comparable](i Incr[A], delay time.Duration) Incr[A] {
 	return di
 }
 
-type delayIncr[A comparable] struct {
-	n           *Node
-	delay       time.Duration
-	last        time.Time
-	nowProvider func() time.Time
-	i           Incr[A]
-}
-
-func (di *delayIncr[A]) now() time.Time {
-	if di.nowProvider != nil {
-		return di.nowProvider()
-	}
-	return time.Now()
+type delayIncr[A any] struct {
+	n     *Node
+	delay time.Duration
+	last  time.Time
+	now   func() time.Time
+	i     Incr[A]
 }
 
 func (di *delayIncr[A]) Value() A {
 	return di.i.Value()
 }
 
-func (di *delayIncr[A]) Stabilize(ctx context.Context, g Generation) error {
+func (di *delayIncr[A]) Stale() bool { return false }
+
+func (di *delayIncr[A]) Stabilize(ctx context.Context) error {
 	now := di.now()
 	if now.Sub(di.last) > di.delay {
 		di.last = now
-		di.n.changedAt = g
-		return di.i.Stabilize(ctx, g)
+		return di.i.Stabilize(ctx)
 	}
 	return nil
 }

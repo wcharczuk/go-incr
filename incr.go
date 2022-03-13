@@ -1,7 +1,7 @@
 package incr
 
 // Incr is the base interface for any incremental node.
-type Incr[A comparable] interface {
+type Incr[A any] interface {
 	Stabilizer
 	Value() A
 }

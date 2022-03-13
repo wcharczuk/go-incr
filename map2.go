@@ -5,7 +5,7 @@ import (
 )
 
 // Map returns a new map incremental.
-func Map2[A, B, C comparable](i0 Incr[A], i1 Incr[B], fn func(A, B) C) Incr[C] {
+func Map2[A, B, C any](i0 Incr[A], i1 Incr[B], fn func(A, B) C) Incr[C] {
 	m2 := &map2Incr[A, B, C]{
 		i0: i0,
 		i1: i1,
@@ -19,7 +19,7 @@ func Map2[A, B, C comparable](i0 Incr[A], i1 Incr[B], fn func(A, B) C) Incr[C] {
 	return m2
 }
 
-type map2Incr[A, B, C comparable] struct {
+type map2Incr[A, B, C any] struct {
 	n     *Node
 	i0    Incr[A]
 	i1    Incr[B]
@@ -31,12 +31,10 @@ func (m *map2Incr[A, B, C]) Value() C {
 	return m.value
 }
 
-func (m *map2Incr[A, B, C]) Stabilize(ctx context.Context, g Generation) error {
-	oldValue := m.value
+func (m *map2Incr[A, B, C]) Stale() bool { return false }
+
+func (m *map2Incr[A, B, C]) Stabilize(ctx context.Context) error {
 	m.value = m.fn(m.i0.Value(), m.i1.Value())
-	if oldValue != m.value {
-		m.n.changedAt = g
-	}
 	return nil
 }
 

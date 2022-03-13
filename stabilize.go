@@ -79,7 +79,7 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 		}
 		nn = n.Node()
 		tracePrintf(ctx, "stabilize; recomputing; %T %v", n, id)
-		if err = n.Stabilize(ctx, latestGeneration); err != nil {
+		if err = n.Stabilize(ctx); err != nil {
 			return err
 		}
 		if nn.recomputedAt < nn.changedAt {
@@ -103,7 +103,7 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 }
 
 func shouldRecompute(s Stabilizer, latestGeneration Generation) bool {
-	return !s.Node().initialized || s.Node().changedAt > latestGeneration
+	return s.Stale() || !s.Node().initialized || s.Node().changedAt > latestGeneration
 }
 
 func nodeHeightLess(a, b Stabilizer) bool {

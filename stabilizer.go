@@ -4,6 +4,7 @@ import "context"
 
 // Stabilizer is a type that can be stabilized.
 type Stabilizer interface {
-	Stabilize(context.Context, Generation) error
+	Stabilize(context.Context) error
+	Stale() bool
 	Node() *Node
 }

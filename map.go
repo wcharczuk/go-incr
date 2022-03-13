@@ -9,7 +9,7 @@ import (
 // Map applies a given function `fn` to a given input incremental.
 //
 // Map holds the resulting value of the computation for re-use.
-func Map[A, B comparable](i Incr[A], fn func(A) B) Incr[B] {
+func Map[A, B any](i Incr[A], fn func(A) B) Incr[B] {
 	m := &mapIncr[A, B]{
 		i:  i,
 		fn: fn,
@@ -20,7 +20,7 @@ func Map[A, B comparable](i Incr[A], fn func(A) B) Incr[B] {
 
 // mapIncr is a concrete implementation of Incr for
 // the map operator.
-type mapIncr[A, B comparable] struct {
+type mapIncr[A, B any] struct {
 	n     *Node
 	i     Incr[A]
 	fn    func(A) B
@@ -31,12 +31,10 @@ func (m *mapIncr[A, B]) Value() B {
 	return m.value
 }
 
-func (m *mapIncr[A, B]) Stabilize(ctx context.Context, g Generation) error {
-	oldValue := m.value
+func (m *mapIncr[A, B]) Stale() bool { return false }
+
+func (m *mapIncr[A, B]) Stabilize(ctx context.Context) error {
 	m.value = m.fn(m.i.Value())
-	if oldValue != m.value {
-		m.n.changedAt = g
-	}
 	return nil
 }
 

@@ -13,7 +13,7 @@ func Test_Delay(t *testing.T) {
 	}
 
 	i := Var(1.0)
-	_ = i.Stabilize(context.Background(), 0)
+	_ = i.Stabilize(context.Background())
 	d := Delay(
 		Map[float64](
 			i,
@@ -23,21 +23,21 @@ func Test_Delay(t *testing.T) {
 		),
 		100*time.Millisecond,
 	)
-	d.(*delayIncr[float64]).nowProvider = nowProvider
-	err := d.Stabilize(context.Background(), 0)
+	d.(*delayIncr[float64]).now = nowProvider
+	err := d.Stabilize(context.Background())
 	itsNil(t, err)
 	itsEqual(t, 2.0, d.Value())
 
 	i.Set(2.0)
-	_ = i.Stabilize(context.Background(), 0)
+	_ = i.Stabilize(context.Background())
 
-	err = d.Stabilize(context.Background(), 0)
+	err = d.Stabilize(context.Background())
 	itsNil(t, err)
 	itsEqual(t, 2.0, d.Value())
 
 	now = now.Add(200 * time.Millisecond)
 
-	err = d.Stabilize(context.Background(), 0)
+	err = d.Stabilize(context.Background())
 	itsNil(t, err)
 	itsEqual(t, 4.0, d.Value())
 }
