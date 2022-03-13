@@ -32,44 +32,46 @@ func add(v0, v1 float64) float64 {
 
 func main() {
 	input := incr.Var(3.14)
+
+	// add two numbers
+	// - the first is stale if the input var changes by 0.1 or more
+	// - the second is a constant of 10
 	output := incr.Map2(
 		incr.Cutoff[float64](
 			input,
 			epsilon(0.1),
 		),
-		incr.Map(
-			incr.Return(10.0),
-			addConst(5),
-		),
+		incr.Return(10.0),
 		add,
 	)
 
+	ctx := incr.WithTracing(context.Background())
 	_ = incr.Stabilize(
-		context.Background(),
+		ctx,
 		output,
 	)
 	fmt.Printf("output: %0.2f\n", output.Value())
 
-	fmt.Println("input.Set(3.15)")
+	fmt.Println("input.Set(3.15), this should _not_ cause the computation to refire")
 	input.Set(3.15)
 
 	_ = incr.Stabilize(
-		context.Background(),
+		ctx,
 		output,
 	)
 	fmt.Printf("output: %0.2f\n", output.Value())
 
-	fmt.Println("input.Set(3.26)")
+	fmt.Println("input.Set(3.26), this should cause the computation to refire")
 	input.Set(3.26)
 
 	_ = incr.Stabilize(
-		incr.WithTracing(context.Background()),
+		ctx,
 		output,
 	)
 	fmt.Printf("output: %0.2f\n", output.Value())
 
 	_ = incr.Stabilize(
-		context.Background(),
+		ctx,
 		output,
 	)
 	fmt.Printf("output: %0.2f\n", output.Value())

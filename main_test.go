@@ -64,7 +64,7 @@ func makeFib(height int) (output Incr[int]) {
 func itsEqual(t *testing.T, expected, actual any) {
 	t.Helper()
 	if !areEqual(expected, actual) {
-		t.Fatalf("equal; expected %v, actual: %v", actual, expected)
+		t.Fatalf("equal; expected %v, actual: %v", expected, actual)
 	}
 }
 

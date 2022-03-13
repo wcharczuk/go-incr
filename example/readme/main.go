@@ -24,5 +24,5 @@ func main() {
 		incr.WithTracing(context.Background()),
 		output,
 	)
-	fmt.Println(output.Value()) // prints 18.14
+	fmt.Println(output.Value(), 18.14) // prints 18.14
 }

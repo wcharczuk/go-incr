@@ -8,7 +8,7 @@ import (
 func Test_Var(t *testing.T) {
 	v := Var(1)
 	itsNotNil(t, v.Node().changedAt)
-	itsEqual(t, 1, v.Node().changedAt)
+	itsEqual(t, 0, v.Node().changedAt)
 
 	err := v.Stabilize(context.TODO(), 1)
 	itsNil(t, err)

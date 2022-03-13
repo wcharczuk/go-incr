@@ -31,6 +31,9 @@ func (v *varIncr[A]) Watch() WatchIncr[A] {
 }
 
 func (v *varIncr[A]) Set(value A) {
+	// we set the changed at here so that stabilization
+	// passes correctly pick up that the variable has changed.
+	v.n.changedAt = v.n.recomputedAt + 1
 	v.latest = value
 }
 
@@ -38,10 +41,7 @@ func (v *varIncr[A]) Value() A {
 	return v.value
 }
 
-func (v *varIncr[A]) Stabilize(ctx context.Context, g Generation) error {
-	if v.value != v.latest {
-		v.n.changedAt = g
-	}
+func (v *varIncr[A]) Stabilize(ctx context.Context, _ Generation) error {
 	v.value = v.latest
 	return nil
 }
