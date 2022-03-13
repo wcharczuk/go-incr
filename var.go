@@ -33,6 +33,7 @@ func (v *varIncr[A]) Watch() WatchIncr[A] {
 
 func (v *varIncr[A]) Set(value A) {
 	v.latest = value
+	v.stale = true
 }
 
 func (v *varIncr[A]) Stale() bool {

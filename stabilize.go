@@ -2,6 +2,7 @@ package incr
 
 import (
 	"context"
+	"time"
 )
 
 // Stabilize recomputes a graph of computations rooted at a given list of outputs.
@@ -31,7 +32,6 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 		LessFn: nodeHeightLess,
 	}
 
-	var generation, latestGeneration Generation
 	var n Stabilizer
 	var nn *Node
 	var id NodeID
@@ -43,16 +43,11 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 		}
 		nn = n.Node()
 		id = nn.id
-		generation = nn.recomputedAt
-		if generation > latestGeneration {
-			tracePrintf(ctx, "stabilize; updating latest generation; %d", generation)
-			latestGeneration = generation
-		}
 
 		if discoverySeen.Has(id) {
 			continue
 		}
-		if shouldRecompute(n, latestGeneration) {
+		if shouldRecompute(n) {
 			tracePrintf(ctx, "stabilize; marking to recompute; %T %v", n, id)
 			recompute.Push(n)
 		} else {
@@ -65,24 +60,29 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 		}
 	}
 
-	latestGeneration = latestGeneration + 1
-	tracePrintf(ctx, "stabilize; computation at generation %d has %d stale nodes", latestGeneration, recompute.Len())
-
-	recomputeSeen := make(Set[NodeID])
+	tracePrintf(ctx, "stabilize; computation has %d stale nodes", recompute.Len())
 
 	var err error
 	var cid NodeID
+	var stale bool
+
+	recomputeSeen := make(Set[NodeID])
+
 	for {
 		n, ok = recompute.Pop()
 		if !ok {
 			break
 		}
 		nn = n.Node()
+		stale = n.Stale()
 		tracePrintf(ctx, "stabilize; recomputing; %T %v", n, id)
 		if err = n.Stabilize(ctx); err != nil {
 			return err
 		}
-		if nn.recomputedAt < nn.changedAt {
+
+		// we need to decide if we need to refire the graph
+		// below this node, i.e. where this node is the parent
+		if !nn.initialized || stale {
 			for _, c := range nn.children {
 				cid = c.Node().id
 				if recomputeSeen.Has(cid) {
@@ -97,13 +97,13 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 		if !nn.initialized {
 			nn.initialized = true
 		}
-		nn.recomputedAt = latestGeneration
+		nn.recomputedAt = time.Now().UTC()
 	}
 	return nil
 }
 
-func shouldRecompute(s Stabilizer, latestGeneration Generation) bool {
-	return s.Stale() || !s.Node().initialized || s.Node().changedAt > latestGeneration
+func shouldRecompute(s Stabilizer) bool {
+	return s.Stale() || !s.Node().initialized
 }
 
 func nodeHeightLess(a, b Stabilizer) bool {

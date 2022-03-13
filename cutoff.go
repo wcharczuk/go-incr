@@ -31,7 +31,9 @@ func (c *cutoffIncr[A]) Value() A {
 	return c.value
 }
 
-func (c *cutoffIncr[A]) Stale() bool { return false }
+func (c *cutoffIncr[A]) Stale() bool {
+	return true /* we have to stabilize each pass to evaluate the cutoff */
+}
 
 func (c *cutoffIncr[A]) Stabilize(ctx context.Context) error {
 	newValue := c.i.Value()

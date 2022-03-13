@@ -1,5 +1,7 @@
 package incr
 
+import "time"
+
 // NewNode returns a new node.
 func NewNode(self Stabilizer, opts ...NodeOption) *Node {
 	n := &Node{
@@ -25,16 +27,12 @@ func OptNodeChildOf(p Stabilizer) NodeOption {
 	}
 }
 
-// Generation is a computation generation.
-type Generation uint64
-
 type Node struct {
 	id     NodeID
 	height int
 
 	initialized  bool
-	changedAt    Generation
-	recomputedAt Generation
+	recomputedAt time.Time
 
 	self     Stabilizer
 	parents  []Stabilizer

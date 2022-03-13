@@ -23,11 +23,12 @@ func main() {
 		{"4", now.Add(4 * time.Second)},
 	}
 
-	output := incr.Map(
-		incr.Return(data),
+	i := incr.Var(data)
+	output := incr.Map[[]Entry](
+		i,
 		func(entries []Entry) (output []string) {
 			for _, e := range entries {
-				if e.Time.Sub(now) < 3*time.Second {
+				if e.Time.Sub(now) > 2*time.Second {
 					output = append(output, e.Entry)
 				}
 			}
@@ -35,6 +36,22 @@ func main() {
 		},
 	)
 
+	_ = incr.Stabilize(
+		incr.WithTracing(context.Background()),
+		output,
+	)
+	fmt.Println(output.Value())
+
+	data = append(data, Entry{
+		"5", now.Add(5 * time.Second),
+	})
+	_ = incr.Stabilize(
+		incr.WithTracing(context.Background()),
+		output,
+	)
+	fmt.Println(output.Value())
+
+	i.Set(data)
 	_ = incr.Stabilize(
 		incr.WithTracing(context.Background()),
 		output,
