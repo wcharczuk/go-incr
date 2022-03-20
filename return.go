@@ -26,8 +26,8 @@ func (r *returnIncr[A]) Stale() bool {
 	return false
 }
 
-func (r *returnIncr[A]) Stabilize(_ context.Context) error {
-	return nil
+func (r *returnIncr[A]) Stabilize(_ context.Context) (bool, error) {
+	return false, nil
 }
 
 func (r *returnIncr[A]) Node() *Node { return r.n }

@@ -23,7 +23,7 @@ func Test_Delay(t *testing.T) {
 		),
 		100*time.Millisecond,
 	)
-	d.(*delayIncr[float64]).now = nowProvider
+	d.(*delayIncr[float64]).n.now = nowProvider
 	err := d.Stabilize(context.Background())
 	itsNil(t, err)
 	itsEqual(t, 2.0, d.Value())

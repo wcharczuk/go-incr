@@ -64,7 +64,7 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 
 	var err error
 	var cid NodeID
-	var stale bool
+	var stale, shouldContinue bool
 
 	recomputeSeen := make(Set[NodeID])
 
@@ -76,13 +76,16 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 		nn = n.Node()
 		stale = n.Stale()
 		tracePrintf(ctx, "stabilize; recomputing; %T %v", n, id)
-		if err = n.Stabilize(ctx); err != nil {
+		if shouldContinue, err = n.Stabilize(ctx); err != nil {
 			return err
+		}
+		for _, handler := range nn.onUpdate {
+			handler(ctx)
 		}
 
 		// we need to decide if we need to refire the graph
 		// below this node, i.e. where this node is the parent
-		if !nn.initialized || stale {
+		if (!nn.initialized || stale) && shouldContinue {
 			for _, c := range nn.children {
 				cid = c.Node().id
 				if recomputeSeen.Has(cid) {
@@ -92,6 +95,7 @@ func Stabilize(ctx context.Context, outputs ...Stabilizer) error {
 				recomputeSeen.Add(cid)
 			}
 		}
+
 		// these are down here to not foul up the if statement above
 		// and it should always be applied
 		if !nn.initialized {

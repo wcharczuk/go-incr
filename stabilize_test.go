@@ -116,3 +116,30 @@ func Test_Stabilize_error(t *testing.T) {
 	itsNotNil(t, err)
 	itsEqual(t, 18.14, output.Value())
 }
+
+func Test_Stabilize_onUpdate(t *testing.T) {
+	output := Map2[float64](
+		Var(3.14),
+		Map(
+			Return(10.0),
+			func(a float64) float64 {
+				return a + 5
+			},
+		),
+		func(a0, a1 float64) float64 {
+			return a0 + a1
+		},
+	)
+
+	var didCallOnUpdate bool
+	output.Node().OnUpdate(func(_ context.Context) {
+		didCallOnUpdate = true
+	})
+
+	_ = Stabilize(
+		context.TODO(),
+		output,
+	)
+	itsEqual(t, 18.14, output.Value())
+	itsEqual(t, true, didCallOnUpdate)
+}

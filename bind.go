@@ -41,22 +41,33 @@ func (bi *bindIncr[A, B]) Incr() Incr[B] {
 }
 
 func (bi *bindIncr[A, B]) Stale() bool {
-	return true /* we always return true for bind */
+	return true
 }
 
 func (bi *bindIncr[A, B]) Value() B {
 	return bi.value.Value()
 }
 
-func (bi *bindIncr[A, B]) Stabilize(ctx context.Context) error {
-	if err := bi.i.Stabilize(ctx); err != nil {
-		return err
+func (bi *bindIncr[A, B]) Stabilize(ctx context.Context) (bool, error) {
+	if shouldContinue, err := bi.i.Stabilize(ctx); err != nil {
+		return false, err
+	} else if !shouldContinue {
+		return false, nil
 	}
+
 	bi.value = bi.fn(bi.i.Value())
-	if err := bi.value.Stabilize(ctx); err != nil {
-		return err
+	if shouldContinue, err := bi.value.Stabilize(ctx); err != nil {
+		return false, err
+	} else if !shouldContinue {
+		return false, nil
 	}
-	return nil
+
+	bi.n = ReplaceNode(
+		bi.n,
+		OptNodeChildOf(bi.value),
+	)
+
+	return true, nil
 
 }
 

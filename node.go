@@ -1,12 +1,31 @@
 package incr
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 // NewNode returns a new node.
 func NewNode(self Stabilizer, opts ...NodeOption) *Node {
 	n := &Node{
 		id:   NewNodeID(),
 		self: self,
+		now:  time.Now,
+	}
+	for _, opt := range opts {
+		opt(n)
+	}
+	return n
+}
+
+// ReplaceNode replaces a node.
+//
+// This is typically used in Bind and nowhere else.
+func ReplaceNode(old *Node, opts ...NodeOption) *Node {
+	n := &Node{
+		id:   old.id,
+		self: old.self,
+		now:  old.now,
 	}
 	for _, opt := range opts {
 		opt(n)
@@ -37,4 +56,13 @@ type Node struct {
 	self     Stabilizer
 	parents  []Stabilizer
 	children []Stabilizer
+
+	now      func() time.Time
+	onUpdate []func(context.Context)
+}
+
+// OnUpdate registers on update handlers that are called
+// when the node is stabilized.
+func (n *Node) OnUpdate(handler func(context.Context)) {
+	n.onUpdate = append(n.onUpdate, handler)
 }
