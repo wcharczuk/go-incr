@@ -1,7 +1,3 @@
-#
-# Copyright (c) 2021 - Present. Blend Labs, Inc. All rights reserved
-# Blend Confidential - Restricted
-#
 # This file contains all available configuration options
 # with their default values.
 
@@ -12,15 +8,6 @@ run:
 
   # include test files or not, default is true
   tests: true
- 
-  # which dirs to skip: issues from them won't be reported;
-  # can use regexp here: generated.*, regexp is applied on full path;
-  # default value is empty list, but default dirs are skipped independently
-  # from this option's value (see skip-dirs-use-default).
-  # "/" will be replaced by current OS file path separator to properly work
-  # on Windows.
-  skip-dirs:
-    - protogen
 
   # default is true. Enables skipping of directories:
   #   vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
@@ -42,7 +29,7 @@ linters-settings:
     # put imports beginning with prefix after 3rd-party packages;
     # only support one prefix
     # if not set, use goimports.local-prefixes
-    local-prefixes: github.com/wcharczuk/incremental
+    local-prefixes: github.com/wcharcuzk/go-incr
 
   gofmt:
     # simplify code: gofmt with `-s` option, true by default
@@ -51,39 +38,36 @@ linters-settings:
   goimports:
     # put imports beginning with prefix after 3rd-party packages;
     # it's a comma-separated list of prefixes
-    local-prefixes: github.com/wcharczuk/incremental
+    local-prefixes: github.com/wcharcuzk/go-incr
 
   golint:
     # minimal confidence for issues, default is 0.8
     min-confidence: 0.8
- 
+
   govet:
     # report about shadowed variables
-    check-shadowing: true
+    check-shadowing: false
 
   staticcheck:
-    # mirrors the check list from `repoctl lint`
-    checks: [S1000,S1008,S1023,S1035,SA4006,SA5008]
+    # checks: [S1000,S1008,S1023,S1035,SA4006,SA5008]
 
   misspell:
     # Correct spellings using locale preferences for US or UK.
     # Default is to use a neutral variety of English.
     # Setting locale to US will correct the British spelling of 'colour' to 'color'.
     locale: US
-    ignore-words:
-      - bailey
-      - daed
- 
+
 linters:
   enable:
     - gofmt
     - govet
     - golint
-    - ineffassign 
+    - ineffassign
     - staticcheck
+    - errcheck
     - misspell
   fast: true
 
 issues:
-  include:
-    - EXC0002
+  # include:
+  #   - EXC0002
