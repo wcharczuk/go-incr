@@ -36,9 +36,6 @@ type VarIncr[T any] struct {
 func (vn *VarIncr[T]) Set(v T) {
 	vn.nv = v
 	vn.n.changedAt = vn.n.recomputedAt + 1
-	for _, c := range vn.n.children {
-		vn.setChangedAt(c)
-	}
 }
 
 // Node implements Incr[A].
@@ -50,9 +47,6 @@ func (vn *VarIncr[T]) Value() T { return vn.v }
 // Initialize implements Initializer.
 func (vn *VarIncr[T]) Initialize(ctx context.Context) error {
 	vn.n.changedAt = vn.n.recomputedAt + 1
-	for _, c := range vn.n.children {
-		vn.setChangedAt(c)
-	}
 	return nil
 }
 
@@ -65,15 +59,4 @@ func (vn *VarIncr[T]) Stabilize(ctx context.Context) error {
 // String implements fmt.Striger.
 func (vn *VarIncr[T]) String() string {
 	return "var[" + vn.n.id.Short() + "]"
-}
-
-//
-// helpers
-//
-
-func (vn *VarIncr[T]) setChangedAt(s Stabilizer) {
-	s.Node().changedAt = vn.n.changedAt
-	for _, c := range s.Node().children {
-		vn.setChangedAt(c)
-	}
 }

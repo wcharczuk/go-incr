@@ -25,51 +25,69 @@ type Initializer interface {
 // each pass.
 func Stabilize(ctx context.Context, s Stabilizer) error {
 	if s.Node().initializedAt == 0 {
-		if err := initialize(ctx, s); err != nil {
+		if err := initialize(ctx, newGraphState(), s); err != nil {
 			return err
 		}
 	}
+	s.Node().gs.generation++
 
-	recomputeHeap := buildRecomputeHeap(ctx, s)
-
-	var n Stabilizer
-	var nn *Node
-	var ok bool
 	var err error
-	for {
-		n, ok = recomputeHeap.Pop()
-		if !ok {
-			break
-		}
-
-		nn = n.Node()
-		if nn.changedAt > nn.recomputedAt {
-			if err = n.Stabilize(ctx); err != nil {
+	for _, n := range s.Node().gs.recomputeHeap {
+		if n.Node().changedAt > n.Node().recomputedAt {
+			if err = stabilizeChildren(ctx, s); err != nil {
 				return err
 			}
-			nn.recomputedAt = nn.changedAt
 		}
 	}
 	return nil
 }
 
-func initialize(ctx context.Context, s Stabilizer) error {
-	sn := s.Node()
-	if len(sn.parents) == 0 && sn.initializedAt == 0 {
-		return initializeNode(ctx, s)
+func stabilizeChildren(ctx context.Context, s Stabilizer) error {
+	if err := s.Stabilize(ctx); err != nil {
+		return err
 	}
-	var err error
-	for _, p := range sn.parents {
-		if err = initialize(ctx, p); err != nil {
+	s.Node().recomputedAt = s.Node().gs.generation
+	for _, c := range s.Node().children {
+		if err := stabilizeChildren(ctx, c); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func initializeNode(ctx context.Context, s Stabilizer) error {
+func initialize(ctx context.Context, gs *graphState, s Stabilizer) error {
 	sn := s.Node()
-	sn.initializedAt = 1
+
+	// we initialize starting at "roots" or nodes without parents
+	// so that we can propagate the node neights correctly
+	// to the child nodes
+	if len(sn.parents) == 0 && sn.initializedAt == 0 {
+		return initializeRoot(ctx, gs, s)
+	}
+
+	// traverse the graph up to the roots from
+	// the initial node
+	var err error
+	for _, p := range sn.parents {
+		if err = initialize(ctx, gs, p); err != nil {
+			return err
+		}
+	}
+
+	// we may need to search down through the
+	// child nodes for other roots
+	for _, c := range sn.children {
+		if err = initialize(ctx, gs, c); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func initializeRoot(ctx context.Context, gs *graphState, s Stabilizer) error {
+	sn := s.Node()
+	sn.initializedAt = gs.generation
+	sn.gs = gs
 
 	if typed, ok := s.(Initializer); ok {
 		if err := typed.Initialize(ctx); err != nil {
@@ -85,6 +103,8 @@ func initializeNode(ctx context.Context, s Stabilizer) error {
 	}
 	sn.height = maxParentHeight + 1
 
+	gs.addNode(s)
+
 	// TODO(wc): future optimization to splice recompute heap into
 	// the node metadata to save having to do this unless a bind node
 	// redraws the graph
@@ -93,34 +113,9 @@ func initializeNode(ctx context.Context, s Stabilizer) error {
 		if c.Node().initializedAt != 0 {
 			continue
 		}
-		if err = initializeNode(ctx, c); err != nil {
+		if err = initializeRoot(ctx, gs, c); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func buildRecomputeHeap(ctx context.Context, s Stabilizer) *Heap[Stabilizer] {
-	seen := make(Set[nodeID])
-	output := &Heap[Stabilizer]{
-		LessFn: func(a, b Stabilizer) bool {
-			return a.Node().height < b.Node().height
-		},
-	}
-	buildRecomputeHeapVisit(seen, output, s)
-	return output
-}
-
-func buildRecomputeHeapVisit(seen Set[nodeID], output *Heap[Stabilizer], s Stabilizer) {
-	if seen.Has(s.Node().id) {
-		return
-	}
-	seen.Set(s.Node().id)
-	output.Push(s)
-	for _, p := range s.Node().parents {
-		buildRecomputeHeapVisit(seen, output, p)
-	}
-	for _, c := range s.Node().children {
-		buildRecomputeHeapVisit(seen, output, c)
-	}
 }

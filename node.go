@@ -8,6 +8,9 @@ func newNode() *Node {
 type Node struct {
 	// id is a unique identifier for the node.
 	id nodeID
+	// gs is a shared reference to the graph state
+	// for the computation
+	gs *graphState
 	// parents are the nodes that this node
 	// depends on, and would require this node
 	// to be recomputed if they changd.
@@ -18,7 +21,7 @@ type Node struct {
 	children      []Stabilizer
 	status        Status
 	height        int
-	initializedAt int64
-	changedAt     int64
-	recomputedAt  int64
+	initializedAt uint64
+	changedAt     uint64
+	recomputedAt  uint64
 }
