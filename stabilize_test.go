@@ -6,6 +6,46 @@ import (
 	"time"
 )
 
+func Test_initialize(t *testing.T) {
+
+	v0 := Var("foo")
+	v1 := Var("moo")
+	v2 := Var("bar")
+	v3 := Var("baz")
+
+	m0 := Map2[string, string](v0, v1, func(a, b string) (string, error) {
+		return a + " " + b, nil
+	})
+	m1 := Map2[string, string](v2, v3, func(a, b string) (string, error) {
+		return a + "/" + b, nil
+	})
+	r0 := Return("hello")
+	m2 := Map2(m0, r0, func(a, b string) (string, error) {
+		return a + "+" + b, nil
+	})
+	m3 := Map2(m1, m2, func(a, b string) (string, error) {
+		return a + "+" + b, nil
+	})
+
+	err := initialize(WithTracing(context.Background()), m3)
+	ItsNil(t, err)
+
+	ItsEqual(t, 9, len(m3.Node().gs.nodeLookup))
+	ItsEqual(t, 9, len(m3.Node().gs.recomputeHeap))
+
+	ItsEqual(t, 1, v0.Node().height)
+	ItsEqual(t, 1, v1.Node().height)
+	ItsEqual(t, 1, v2.Node().height)
+	ItsEqual(t, 1, v3.Node().height)
+	ItsEqual(t, 1, r0.Node().height)
+
+	ItsEqual(t, 2, m0.Node().height)
+	ItsEqual(t, 2, m1.Node().height)
+
+	ItsEqual(t, 3, m2.Node().height)
+	ItsEqual(t, 4, m3.Node().height)
+}
+
 func Test_Stabilize(t *testing.T) {
 	v0 := Var("foo")
 	v1 := Var("bar")
@@ -13,7 +53,7 @@ func Test_Stabilize(t *testing.T) {
 		return a + " " + b, nil
 	})
 
-	err := Stabilize(context.TODO(), m0)
+	err := Stabilize(WithTracing(context.Background()), m0)
 	ItsNil(t, err)
 
 	ItsEqual(t, 1, v0.n.initializedAt)

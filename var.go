@@ -35,7 +35,7 @@ type VarIncr[T any] struct {
 // This will invalidate any nodes that reference this variable.
 func (vn *VarIncr[T]) Set(v T) {
 	vn.nv = v
-	vn.n.changedAt = vn.n.recomputedAt + 1
+	vn.n.changedAt = vn.n.gs.generation + 1
 }
 
 // Node implements Incr[A].
@@ -46,12 +46,14 @@ func (vn *VarIncr[T]) Value() T { return vn.v }
 
 // Initialize implements Initializer.
 func (vn *VarIncr[T]) Initialize(ctx context.Context) error {
-	vn.n.changedAt = vn.n.recomputedAt + 1
+	tracePrintf(ctx, "%s initializing", vn.String())
+	vn.n.changedAt = vn.n.gs.generation + 1
 	return nil
 }
 
 // Stabilize implements Incr[A].
 func (vn *VarIncr[T]) Stabilize(ctx context.Context) error {
+	tracePrintf(ctx, "%s stabilizing", vn.String())
 	vn.v = vn.nv
 	return nil
 }

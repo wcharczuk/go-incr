@@ -7,5 +7,5 @@ type Status int
 const (
 	StatusStabilizing Status = iota
 	StatusRunningUpdateHandlers
-	SStatusNotStabilizing
+	StatusNotStabilizing
 )
