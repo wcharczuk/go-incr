@@ -26,7 +26,7 @@ type bind2Incr[A, B, C any] struct {
 	a     Incr[A]
 	b     Incr[B]
 	fn    func(A, B) Incr[C]
-	bind2 Incr[C]
+	bind  Incr[C]
 	value C
 }
 
@@ -35,15 +35,15 @@ func (b *bind2Incr[A, B, C]) Node() *Node { return b.n }
 func (b *bind2Incr[A, B, C]) Value() C { return b.value }
 
 func (b *bind2Incr[A, B, C]) SetBind(v Incr[C]) {
-	b.bind2 = v
+	b.bind = v
 }
 
 func (b *bind2Incr[A, B, C]) Bind() (oldValue, newValue Incr[C]) {
-	return b.bind2, b.fn(b.a.Value(), b.b.Value())
+	return b.bind, b.fn(b.a.Value(), b.b.Value())
 }
 
 func (b *bind2Incr[A, B, C]) Stabilize(ctx context.Context) error {
 	BindUpdate[C](ctx, b)
-	b.value = b.bind2.Value()
+	b.value = b.bind.Value()
 	return nil
 }
