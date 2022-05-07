@@ -14,7 +14,7 @@ func BindIf[A any](a Incr[A], b Incr[A], p Incr[bool]) Incr[A] {
 		b: b,
 		p: p,
 	}
-	// NOTE: a | b will be linked when this stabilizes
+	// NOTE(wc): a | b will be linked when this stabilizes
 	Link(o, p)
 	return o
 }
