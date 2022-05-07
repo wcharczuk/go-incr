@@ -108,7 +108,10 @@ func withBlueDye(ctx context.Context) context.Context {
 	return context.WithValue(ctx, blueDyeKey{}, "test")
 }
 
-func ItsBlueDye(t *testing.T, ctx context.Context) {
+// itsBlueDye asserts the context has the blue dye trace on it.
+//
+// NOTE: we have to use this whack order because of linting rules.
+func itsBlueDye(ctx context.Context, t *testing.T) {
 	t.Helper()
 	ItsNotNil(t, ctx.Value(blueDyeKey{}))
 }
