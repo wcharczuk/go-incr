@@ -9,7 +9,7 @@ func Benchmark_Stabilize_withPreInitialize(b *testing.B) {
 	// create a 2048 node, 12 level reverse tree of functions
 	size := 2048
 	nodes := make([]Incr[string], size)
-	for x := 0; x < 2048; x++ {
+	for x := 0; x < size; x++ {
 		nodes[x] = Var(fmt.Sprintf("var_%d", x))
 	}
 

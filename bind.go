@@ -1,6 +1,9 @@
 package incr
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 // Bind lets you swap out an entire subgraph of a computation based
 // on a given function and a single input.
@@ -15,9 +18,10 @@ func Bind[A, B any](a Incr[A], fn func(A) Incr[B]) Incr[B] {
 }
 
 var (
-	_ Incr[bool] = (*bindIncr[string, bool])(nil)
-	_ GraphNode  = (*bindIncr[string, string])(nil)
-	_ Stabilizer = (*bindIncr[string, string])(nil)
+	_ Incr[bool]   = (*bindIncr[string, bool])(nil)
+	_ GraphNode    = (*bindIncr[string, string])(nil)
+	_ Stabilizer   = (*bindIncr[string, string])(nil)
+	_ fmt.Stringer = (*bindIncr[string, string])(nil)
 )
 
 type bindIncr[A, B any] struct {
@@ -44,4 +48,8 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 	BindUpdate[B](ctx, b)
 	b.value = b.bind.Value()
 	return nil
+}
+
+func (b *bindIncr[A, B]) String() string {
+	return "bind[" + b.n.id.Short() + "]"
 }

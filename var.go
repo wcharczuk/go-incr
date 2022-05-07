@@ -1,27 +1,36 @@
 package incr
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 // Var returns a new var node.
 //
 // It will include an extra method `Set` above what you
 // typically find on Incr[A].
-func Var[T any](t T) *VarIncr[T] {
-	return &VarIncr[T]{
+func Var[T any](t T) VarIncr[T] {
+	return &varIncr[T]{
 		n:  NewNode(),
 		nv: t,
 	}
 }
 
+type VarIncr[T any] interface {
+	Incr[T]
+	Set(T)
+}
+
 // Assert interface implementations.
 var (
-	_ Incr[string] = (*VarIncr[string])(nil)
-	_ GraphNode    = (*VarIncr[string])(nil)
-	_ Stabilizer   = (*VarIncr[string])(nil)
+	_ Incr[string] = (*varIncr[string])(nil)
+	_ GraphNode    = (*varIncr[string])(nil)
+	_ Stabilizer   = (*varIncr[string])(nil)
+	_ fmt.Stringer = (*varIncr[string])(nil)
 )
 
 // VarIncr is a type that can represent a Var incremental.
-type VarIncr[T any] struct {
+type varIncr[T any] struct {
 	n  *Node
 	v  T
 	nv T
@@ -32,25 +41,25 @@ type VarIncr[T any] struct {
 // The value is realized on the next stabilization pass.
 //
 // This will invalidate any nodes that reference this variable.
-func (vn *VarIncr[T]) Set(v T) {
+func (vn *varIncr[T]) Set(v T) {
 	vn.nv = v
 	vn.n.setAt = vn.n.gs.sn
 	vn.n.gs.rh.add(vn)
 }
 
 // Node implements Incr[A].
-func (vn *VarIncr[T]) Node() *Node { return vn.n }
+func (vn *varIncr[T]) Node() *Node { return vn.n }
 
 // Value implements Incr[A].
-func (vn *VarIncr[T]) Value() T { return vn.v }
+func (vn *varIncr[T]) Value() T { return vn.v }
 
 // Stabilize implements Incr[A].
-func (vn *VarIncr[T]) Stabilize(ctx context.Context) error {
+func (vn *varIncr[T]) Stabilize(ctx context.Context) error {
 	vn.v = vn.nv
 	return nil
 }
 
 // String implements fmt.Striger.
-func (vn *VarIncr[T]) String() string {
+func (vn *varIncr[T]) String() string {
 	return "var[" + vn.n.id.Short() + "]"
 }
