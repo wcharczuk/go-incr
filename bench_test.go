@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func Benchmark_Stabilize_preInitialize(b *testing.B) {
+func Benchmark_Stabilize_withPreInitialize(b *testing.B) {
 	// create a 2048 node, 12 level reverse tree of functions
 	size := 2048
 	nodes := make([]Incr[string], size)

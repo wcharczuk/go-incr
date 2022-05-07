@@ -8,13 +8,11 @@ import (
 )
 
 func Custom[T any](a incr.Incr[T]) incr.Incr[T] {
-	n := incr.NewNode()
 	o := &customIncr[T]{
-		n: n,
+		n: incr.NewNode(),
 		a: a,
 	}
-	n.AddChildren(a)
-	a.Node().AddParents(o)
+	incr.Link(o, a)
 	return o
 }
 

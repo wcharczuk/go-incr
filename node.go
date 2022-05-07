@@ -81,8 +81,8 @@ type Node struct {
 	// to the interface sniff for the node for the Cutoffer interface.
 	cutoff func(context.Context) bool
 
-	// numRecompute is the number of times we recomputed the node
-	numRecompute uint64
+	// numRecomputes is the number of times we recomputed the node
+	numRecomputes uint64
 }
 
 // AddChildren adds children.
@@ -152,7 +152,7 @@ func (n *Node) detectStabilizer(gn GraphNode) {
 // maybeStabilize calls the stabilize delegate if it's set,
 // otherwise is nops.
 func (n *Node) maybeStabilize(ctx context.Context) error {
-	n.numRecompute++
+	n.numRecomputes++
 	n.recomputedAt = n.gs.sn
 	if n.stabilize != nil {
 		return n.stabilize(ctx)

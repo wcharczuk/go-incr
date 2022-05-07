@@ -120,7 +120,7 @@ func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
 
 	err := Stabilize(ctx, z)
 	ItsNil(t, err)
-	ItsEqual(t, 1, z.Node().numRecompute)
+	ItsEqual(t, 1, z.Node().numRecomputes)
 	ItsEqual(t, "a->b->c->d+a->f->e->z", z.Value())
 
 	a.Set("!a")
@@ -128,7 +128,7 @@ func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
 	err = Stabilize(ctx, z)
 	ItsNil(t, err)
 	ItsEqual(t, "!a->b->c->d+!a->f->e->z", z.Value())
-	ItsEqual(t, 2, z.Node().numRecompute)
+	ItsEqual(t, 2, z.Node().numRecomputes)
 }
 
 func Test_Stabilize_verifyPartial(t *testing.T) {
