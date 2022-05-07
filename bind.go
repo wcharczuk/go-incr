@@ -3,11 +3,7 @@ package incr
 import "context"
 
 // Bind lets you swap out an entire subgraph of a computation based
-// on a given function.
-//
-// Bind is really important in filtering large graphs of computations
-// where a Map node would recompute if _any_ of the inputs change,
-// a Bind node would only recompute if the current selection changes.
+// on a given function and a single input.
 func Bind[A, B any](a Incr[A], fn func(A) Incr[B]) Incr[B] {
 	o := &bindIncr[A, B]{
 		n:  NewNode(),
@@ -16,29 +12,6 @@ func Bind[A, B any](a Incr[A], fn func(A) Incr[B]) Incr[B] {
 	}
 	Link(o, a)
 	return o
-}
-
-// BindUpdate is a helper for dealing with bind node changes
-// specifically handling unlinking and linking bound nodes
-// when the bind changes.
-func BindUpdate[A any](ctx context.Context, b Binder[A]) {
-	oldValue, newValue := b.Bind()
-	if oldValue == nil {
-		Link(newValue, b)
-		discoverAllNodes(ctx, b.Node().gs, newValue)
-		b.SetBind(newValue)
-		return
-	}
-
-	if oldValue.Node().id != newValue.Node().id {
-		// purge old value and all parents from recompute heap
-		Unlink(oldValue)
-		undiscoverAllNodes(ctx, b.Node().gs, oldValue)
-
-		Link(newValue, b)
-		discoverAllNodes(ctx, b.Node().gs, newValue)
-		b.SetBind(newValue)
-	}
 }
 
 var (
