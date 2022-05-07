@@ -94,6 +94,43 @@ func Test_Stabilize_unevenHeights(t *testing.T) {
 	ItsEqual(t, "moo != not foo bar", m1.Value())
 }
 
+func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
+	ctx := testContext()
+
+	// a -> b -> c -> d -> z
+	//   -> f -> e -> [z]
+	// assert that [z] updates (1) time if we change [a]
+
+	edge := func(l string) func(string) string {
+		return func(v string) string {
+			return v + "->" + l
+		}
+	}
+
+	a := Var("a")
+	b := Map[string](a, edge("b"))
+	c := Map(b, edge("c"))
+	d := Map(c, edge("d"))
+	f := Map[string](a, edge("f"))
+	e := Map(f, edge("e"))
+
+	z := Map2(d, e, func(v0, v1 string) string {
+		return v0 + "+" + v1 + "->z"
+	})
+
+	err := Stabilize(ctx, z)
+	ItsNil(t, err)
+	ItsEqual(t, 1, z.Node().numRecompute)
+	ItsEqual(t, "a->b->c->d+a->f->e->z", z.Value())
+
+	a.Set("!a")
+
+	err = Stabilize(ctx, z)
+	ItsNil(t, err)
+	ItsEqual(t, "!a->b->c->d+!a->f->e->z", z.Value())
+	ItsEqual(t, 2, z.Node().numRecompute)
+}
+
 func Test_Stabilize_verifyPartial(t *testing.T) {
 	ctx := testContext()
 
