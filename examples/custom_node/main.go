@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	incr "github.com/wcharczuk/go-incremental"
+	"github.com/wcharczuk/go-incr"
 )
 
 func Custom[T any](a incr.Incr[T]) incr.Incr[T] {
