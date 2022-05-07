@@ -9,7 +9,7 @@ import (
 // The goal of the cutoff incremental is to stop recomputation at a given
 // node if the difference between the previous and latest values are not
 // significant enough to warrant a full recomputation of the children of this node.
-func Cutoff[A comparable](i Incr[A], fn func(value, latest A) bool) Incr[A] {
+func Cutoff[A any](i Incr[A], fn func(value, latest A) bool) Incr[A] {
 	o := &cutoffIncr[A]{
 		n:  NewNode(),
 		i:  i,
@@ -31,7 +31,7 @@ var (
 
 // cutoffIncr is a concrete implementation of Incr for
 // the cutoff operator.
-type cutoffIncr[A comparable] struct {
+type cutoffIncr[A any] struct {
 	n     *Node
 	i     Incr[A]
 	value A
