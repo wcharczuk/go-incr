@@ -4,8 +4,8 @@ import "context"
 
 // Map3 applies a function to given input incrementals and returns
 // a new incremental of the output type of that function.
-func Map3[A, B, C, D any](a Incr[A], b Incr[B], c Incr[C], fn func(A, B, C) (D, error)) Incr[D] {
-	n := newNode()
+func Map3[A, B, C, D any](a Incr[A], b Incr[B], c Incr[C], fn func(A, B, C) D) Incr[D] {
+	n := NewNode()
 	o := &map3Node[A, B, C, D]{
 		n:  n,
 		a:  a,
@@ -13,10 +13,10 @@ func Map3[A, B, C, D any](a Incr[A], b Incr[B], c Incr[C], fn func(A, B, C) (D, 
 		c:  c,
 		fn: fn,
 	}
-	n.children = append(n.children, a, b, c)
-	a.Node().parents = append(a.Node().parents, o)
-	b.Node().parents = append(b.Node().parents, o)
-	c.Node().parents = append(c.Node().parents, o)
+	n.AddChildren(a, b, c)
+	a.Node().AddParents(o)
+	b.Node().AddParents(o)
+	c.Node().AddParents(o)
 	return o
 }
 
@@ -31,7 +31,7 @@ type map3Node[A, B, C, D any] struct {
 	a   Incr[A]
 	b   Incr[B]
 	c   Incr[C]
-	fn  func(A, B, C) (D, error)
+	fn  func(A, B, C) D
 	val D
 }
 
@@ -40,11 +40,7 @@ func (mn *map3Node[A, B, C, D]) Node() *Node { return mn.n }
 func (mn *map3Node[A, B, C, D]) Value() D { return mn.val }
 
 func (mn *map3Node[A, B, C, D]) Stabilize(ctx context.Context) error {
-	nv, err := mn.fn(mn.a.Value(), mn.b.Value(), mn.c.Value())
-	if err != nil {
-		return err
-	}
-	mn.val = nv
+	mn.val = mn.fn(mn.a.Value(), mn.b.Value(), mn.c.Value())
 	return nil
 }
 

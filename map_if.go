@@ -3,17 +3,17 @@ package incr
 import "context"
 
 func MapIf[A any](a, b Incr[A], p Incr[bool]) Incr[A] {
-	n := newNode()
+	n := NewNode()
 	mi := &mapIfIncr[A]{
 		n: n,
 		a: a,
 		b: b,
 		p: p,
 	}
-	n.children = append(n.children, a, b, p)
-	a.Node().parents = append(a.Node().parents, mi)
-	b.Node().parents = append(b.Node().parents, mi)
-	p.Node().parents = append(p.Node().parents, mi)
+	n.AddChildren(a, b, p)
+	a.Node().AddParents(mi)
+	b.Node().AddParents(mi)
+	p.Node().AddParents(mi)
 	return mi
 }
 

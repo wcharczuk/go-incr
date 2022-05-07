@@ -6,7 +6,7 @@ package incr
 // always the same value (and treated as such).
 func Return[T any](v T) Incr[T] {
 	return &returnIncr[T]{
-		n: newNode(),
+		n: NewNode(),
 		v: v,
 	}
 }

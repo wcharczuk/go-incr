@@ -10,18 +10,18 @@ func Test_Initialize(t *testing.T) {
 	v2 := Var("bar")
 	v3 := Var("baz")
 
-	m0 := Map2[string, string](v0, v1, func(a, b string) (string, error) {
-		return a + " " + b, nil
+	m0 := Map2[string, string](v0, v1, func(a, b string) string {
+		return a + " " + b
 	})
-	m1 := Map2[string, string](v2, v3, func(a, b string) (string, error) {
-		return a + "/" + b, nil
+	m1 := Map2[string, string](v2, v3, func(a, b string) string {
+		return a + "/" + b
 	})
 	r0 := Return("hello")
-	m2 := Map2(m0, r0, func(a, b string) (string, error) {
-		return a + "+" + b, nil
+	m2 := Map2(m0, r0, func(a, b string) string {
+		return a + "+" + b
 	})
-	m3 := Map2(m1, m2, func(a, b string) (string, error) {
-		return a + "+" + b, nil
+	m3 := Map2(m1, m2, func(a, b string) string {
+		return a + "+" + b
 	})
 
 	err := Initialize(ctx, m3)

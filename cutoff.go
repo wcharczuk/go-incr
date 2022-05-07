@@ -10,15 +10,15 @@ import (
 // node if the difference between the previous and latest values are not
 // significant enough to warrant a full recomputation of the children of this node.
 func Cutoff[A comparable](i Incr[A], fn func(value, latest A) bool) Incr[A] {
-	n := newNode()
+	n := NewNode()
 	co := &cutoffIncr[A]{
 		n:  n,
 		i:  i,
 		fn: fn,
 	}
 	n.cutoff = co.Cutoff
-	n.children = append(n.children, i)
-	i.Node().parents = append(i.Node().parents, co)
+	n.AddChildren(i)
+	i.Node().AddParents(co)
 	return co
 }
 
@@ -48,9 +48,7 @@ func (c *cutoffIncr[A]) Stabilize(ctx context.Context) error {
 }
 
 func (c *cutoffIncr[A]) Cutoff(ctx context.Context) bool {
-	result := c.fn(c.value, c.i.Value())
-	tracePrintf(ctx, "stabilize; recompute; cutoff %v vs. %v => %v", c.value, c.i.Value(), result)
-	return result
+	return c.fn(c.value, c.i.Value())
 }
 
 func (c *cutoffIncr[A]) Node() *Node {

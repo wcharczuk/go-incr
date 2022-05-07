@@ -4,17 +4,17 @@ import "context"
 
 // Map2 applies a function to a given input incremental and returns
 // a new incremental of the output type of that function.
-func Map2[A, B, C any](a Incr[A], b Incr[B], fn func(A, B) (C, error)) Incr[C] {
-	n := newNode()
+func Map2[A, B, C any](a Incr[A], b Incr[B], fn func(A, B) C) Incr[C] {
+	n := NewNode()
 	o := &map2Node[A, B, C]{
 		n:  n,
 		a:  a,
 		b:  b,
 		fn: fn,
 	}
-	n.children = append(n.children, a, b)
-	a.Node().parents = append(a.Node().parents, o)
-	b.Node().parents = append(b.Node().parents, o)
+	n.AddChildren(a, b)
+	a.Node().AddParents(o)
+	b.Node().AddParents(o)
 	return o
 }
 
@@ -28,7 +28,7 @@ type map2Node[A, B, C any] struct {
 	n   *Node
 	a   Incr[A]
 	b   Incr[B]
-	fn  func(A, B) (C, error)
+	fn  func(A, B) C
 	val C
 }
 
@@ -37,11 +37,7 @@ func (mn *map2Node[A, B, C]) Node() *Node { return mn.n }
 func (mn *map2Node[A, B, C]) Value() C { return mn.val }
 
 func (mn *map2Node[A, B, C]) Stabilize(ctx context.Context) error {
-	nv, err := mn.fn(mn.a.Value(), mn.b.Value())
-	if err != nil {
-		return err
-	}
-	mn.val = nv
+	mn.val = mn.fn(mn.a.Value(), mn.b.Value())
 	return nil
 }
 

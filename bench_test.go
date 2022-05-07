@@ -27,8 +27,8 @@ func Benchmark_Stabilize_preInitialize(b *testing.B) {
 	benchStabilize(gs, b)
 }
 
-func concat(a, b string) (string, error) {
-	return a + b, nil
+func concat(a, b string) string {
+	return a + b
 }
 
 func benchStabilize(gs GraphNode, b *testing.B) {

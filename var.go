@@ -8,7 +8,7 @@ import "context"
 // typically find on Incr[A].
 func Var[T any](t T) *VarIncr[T] {
 	return &VarIncr[T]{
-		n:  newNode(),
+		n:  NewNode(),
 		nv: t,
 	}
 }

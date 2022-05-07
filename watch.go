@@ -5,13 +5,13 @@ import "context"
 // Watch returns a new watch incremental that tracks
 // values for a given incremental.
 func Watch[A any](i Incr[A]) *WatchIncr[A] {
-	n := newNode()
+	n := NewNode()
 	w := &WatchIncr[A]{
 		n:    n,
 		incr: i,
 	}
-	n.children = append(n.children, i)
-	i.Node().parents = append(i.Node().parents, w)
+	n.AddChildren(i)
+	i.Node().AddParents(w)
 	return w
 }
 

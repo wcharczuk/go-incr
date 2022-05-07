@@ -11,8 +11,8 @@ func Test_Stabilize(t *testing.T) {
 
 	v0 := Var("foo")
 	v1 := Var("bar")
-	m0 := Map2[string, string](v0, v1, func(a, b string) (string, error) {
-		return a + " " + b, nil
+	m0 := Map2[string, string](v0, v1, func(a, b string) string {
+		return a + " " + b
 	})
 
 	err := Stabilize(ctx, m0)
@@ -52,12 +52,12 @@ func Test_Stabilize_unevenHeights(t *testing.T) {
 
 	v0 := Var("foo")
 	v1 := Var("bar")
-	m0 := Map2[string, string](v0, v1, func(a, b string) (string, error) {
-		return a + " " + b, nil
+	m0 := Map2[string, string](v0, v1, func(a, b string) string {
+		return a + " " + b
 	})
 	r0 := Return("moo")
-	m1 := Map2(r0, m0, func(a, b string) (string, error) {
-		return a + " != " + b, nil
+	m1 := Map2(r0, m0, func(a, b string) string {
+		return a + " != " + b
 	})
 
 	err := Stabilize(ctx, m1)
@@ -68,6 +68,41 @@ func Test_Stabilize_unevenHeights(t *testing.T) {
 	err = Stabilize(ctx, m1)
 	ItsNil(t, err)
 	ItsEqual(t, "moo != not foo bar", m1.Value())
+}
+
+func Test_Stabilize_verifyPartial(t *testing.T) {
+	ctx := testContext()
+
+	v0 := Var("foo")
+	c0 := Return("bar")
+	v1 := Var("moo")
+	c1 := Return("baz")
+
+	m0 := Map2[string](v0, c0, func(a, b string) string {
+		return a + " " + b
+	})
+	co0 := Cutoff(m0, func(n, o string) bool {
+		return len(n) == len(o)
+	})
+	m1 := Map2[string](v1, c1, func(a, b string) string {
+		return a + " != " + b
+	})
+	co1 := Cutoff(m1, func(n, o string) bool {
+		return len(n) == len(o)
+	})
+
+	sw := Var(true)
+	mi := MapIf(co0, co1, sw)
+
+	err := Stabilize(ctx, mi)
+	ItsNil(t, err)
+	ItsEqual(t, "foo bar", mi.Value())
+
+	v0.Set("Foo")
+
+	err = Stabilize(ctx, mi)
+	ItsNil(t, err)
+	ItsEqual(t, "foo bar", mi.Value())
 }
 
 func Test_Stabilize_jsDocs(t *testing.T) {
@@ -91,7 +126,7 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 	i := Var(data)
 	output := Map[[]Entry](
 		i,
-		func(entries []Entry) (output []string, err error) {
+		func(entries []Entry) (output []string) {
 			for _, e := range entries {
 				if e.Time.Sub(now) > 2*time.Second {
 					output = append(output, e.Entry)
@@ -202,8 +237,8 @@ func Test_Stabilize_map3(t *testing.T) {
 	c0 := Return(1)
 	c1 := Return(2)
 	c2 := Return(3)
-	m3 := Map3(c0, c1, c2, func(a, b, c int) (int, error) {
-		return a + b + c, nil
+	m3 := Map3(c0, c1, c2, func(a, b, c int) int {
+		return a + b + c
 	})
 
 	_ = Stabilize(ctx, m3)

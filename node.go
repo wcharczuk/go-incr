@@ -2,8 +2,8 @@ package incr
 
 import "context"
 
-// newNode returns a new node.
-func newNode() *Node {
+// NewNode returns a new node.
+func NewNode() *Node {
 	return &Node{id: newIdentifier()}
 }
 
@@ -54,6 +54,16 @@ type Node struct {
 	// cutoff is set during initialization and is a shortcut
 	// to the interface sniff for the node for the Cutoffer interface.
 	cutoff func(context.Context) bool
+}
+
+// AddChildren adds children.
+func (n *Node) AddChildren(c ...GraphNode) {
+	n.children = append(n.children, c...)
+}
+
+// AddParents adds parents.
+func (n *Node) AddParents(p ...GraphNode) {
+	n.parents = append(n.parents, p...)
 }
 
 // OnUpdate registers an update handler.
@@ -145,8 +155,6 @@ func (n *Node) recompute(ctx context.Context) error {
 		return err
 	}
 	for _, p := range n.parents {
-		tracePrintf(ctx, "stabilize; recompute; pushing node parent %s to recompute heap", p.String())
-		// if it's not already on here ...
 		if !n.gs.rh.has(p) {
 			n.gs.rh.add(p)
 		}

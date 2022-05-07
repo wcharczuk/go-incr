@@ -21,9 +21,10 @@ func Stabilize(ctx context.Context, gn GraphNode) error {
 	defer func() {
 		gnn.gs.sn++
 		gnn.gs.s = StatusNotStabilizing
+		tracePrintf(ctx, "stabilize; stabilization %d complete", gnn.gs.sn)
 	}()
 	gnn.gs.s = StatusStabilizing
-	tracePrintf(ctx, "stabilize; beginning stabilization %d", gnn.gs.sn)
+	tracePrintf(ctx, "stabilize; stabilization %d starting", gnn.gs.sn)
 	return recomputeAll(ctx, gnn.gs)
 }
 
@@ -40,22 +41,17 @@ func recomputeAll(ctx context.Context, gs *graphState) error {
 	var err error
 	var n GraphNode
 	var nn *Node
-	tracePrintf(ctx, "stabilize; recompute; %d node(s) in recompute heap", gs.rh.len)
 	for gs.rh.len > 0 {
 		n = gs.rh.removeMin()
 		nn = n.Node()
 		if nn.stale(ctx) {
 			if nn.maybeCutoff(ctx) {
-				tracePrintf(ctx, "stabilize; recompute; skipping %s, fails cutoff", n.String())
 				continue
 			}
 			nn.changedAt = gs.sn
-			tracePrintf(ctx, "stabilize; recompute; stabilizing %s", n.String())
 			if err = nn.recompute(ctx); err != nil {
 				return err
 			}
-		} else {
-			tracePrintf(ctx, "stabilize; recompute; skipping %s, not stale", n.String())
 		}
 	}
 	return nil
