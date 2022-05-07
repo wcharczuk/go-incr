@@ -21,9 +21,10 @@ func Bind3[A, B, C, D any](a Incr[A], b Incr[B], c Incr[C], fn func(A, B, C) Inc
 
 var (
 	_ Incr[bool]   = (*bind3Incr[string, float64, uint64, bool])(nil)
-	_ GraphNode    = (*bind3Incr[string, float64, uint64, string])(nil)
-	_ Stabilizer   = (*bind3Incr[string, float64, uint64, string])(nil)
-	_ fmt.Stringer = (*bind3Incr[string, float64, uint64, string])(nil)
+	_ Binder[bool] = (*bind3Incr[string, float64, uint64, bool])(nil)
+	_ GraphNode    = (*bind3Incr[string, float64, uint64, bool])(nil)
+	_ Stabilizer   = (*bind3Incr[string, float64, uint64, bool])(nil)
+	_ fmt.Stringer = (*bind3Incr[string, float64, uint64, bool])(nil)
 )
 
 type bind3Incr[A, B, C, D any] struct {

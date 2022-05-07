@@ -20,9 +20,10 @@ func Bind2[A, B, C any](a Incr[A], b Incr[B], fn func(A, B) Incr[C]) Incr[C] {
 
 var (
 	_ Incr[bool]   = (*bind2Incr[string, float64, bool])(nil)
-	_ GraphNode    = (*bind2Incr[string, float64, string])(nil)
-	_ Stabilizer   = (*bind2Incr[string, float64, string])(nil)
-	_ fmt.Stringer = (*bind2Incr[string, float64, string])(nil)
+	_ Binder[bool] = (*bind2Incr[string, float64, bool])(nil)
+	_ GraphNode    = (*bind2Incr[string, float64, bool])(nil)
+	_ Stabilizer   = (*bind2Incr[string, float64, bool])(nil)
+	_ fmt.Stringer = (*bind2Incr[string, float64, bool])(nil)
 )
 
 type bind2Incr[A, B, C any] struct {

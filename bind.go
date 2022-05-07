@@ -19,9 +19,10 @@ func Bind[A, B any](a Incr[A], fn func(A) Incr[B]) Incr[B] {
 
 var (
 	_ Incr[bool]   = (*bindIncr[string, bool])(nil)
-	_ GraphNode    = (*bindIncr[string, string])(nil)
-	_ Stabilizer   = (*bindIncr[string, string])(nil)
-	_ fmt.Stringer = (*bindIncr[string, string])(nil)
+	_ Binder[bool] = (*bindIncr[string, bool])(nil)
+	_ GraphNode    = (*bindIncr[string, bool])(nil)
+	_ Stabilizer   = (*bindIncr[string, bool])(nil)
+	_ fmt.Stringer = (*bindIncr[string, bool])(nil)
 )
 
 type bindIncr[A, B any] struct {
