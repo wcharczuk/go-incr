@@ -4,7 +4,7 @@ import "context"
 
 // Map applies a function to a given input incremental and returns
 // a new incremental of the output type of that function.
-func Map[A, B any](a Incr[A], fn func(a A) B) Incr[B] {
+func Map[A, B any](a Incr[A], fn func(context.Context, A) (B, error)) Incr[B] {
 	m := &mapIncr[A, B]{
 		n:  NewNode(),
 		a:  a,
@@ -23,7 +23,7 @@ var (
 type mapIncr[A, B any] struct {
 	n   *Node
 	a   Incr[A]
-	fn  func(A) B
+	fn  func(context.Context, A) (B, error)
 	val B
 }
 
@@ -31,8 +31,13 @@ func (mn *mapIncr[A, B]) Node() *Node { return mn.n }
 
 func (mn *mapIncr[A, B]) Value() B { return mn.val }
 
-func (mn *mapIncr[A, B]) Stabilize(ctx context.Context) error {
-	mn.val = mn.fn(mn.a.Value())
+func (mn *mapIncr[A, B]) Stabilize(ctx context.Context) (err error) {
+	var val B
+	val, err = mn.fn(ctx, mn.a.Value())
+	if err != nil {
+		return
+	}
+	mn.val = val
 	return nil
 }
 

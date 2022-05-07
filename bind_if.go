@@ -44,15 +44,17 @@ func (b *bindIfIncr[A]) SetBind(v Incr[A]) {
 	b.bind = v
 }
 
-func (b *bindIfIncr[A]) Bind() (oldValue, newValue Incr[A]) {
+func (b *bindIfIncr[A]) Bind(_ context.Context) (oldValue, newValue Incr[A], err error) {
 	if b.p.Value() {
-		return b.bind, b.a
+		return b.bind, b.a, nil
 	}
-	return b.bind, b.b
+	return b.bind, b.b, nil
 }
 
 func (b *bindIfIncr[A]) Stabilize(ctx context.Context) error {
-	BindUpdate[A](ctx, b)
+	if err := BindUpdate[A](ctx, b); err != nil {
+		return err
+	}
 	b.value = b.bind.Value()
 	return nil
 }

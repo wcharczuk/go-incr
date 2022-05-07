@@ -7,7 +7,7 @@ import (
 
 // Bind2 lets you swap out an entire subgraph of a computation based
 // on a given function and two inputs.
-func Bind2[A, B, C any](a Incr[A], b Incr[B], fn func(A, B) Incr[C]) Incr[C] {
+func Bind2[A, B, C any](a Incr[A], b Incr[B], fn func(context.Context, A, B) (Incr[C], error)) Incr[C] {
 	o := &bind2Incr[A, B, C]{
 		n:  NewNode(),
 		a:  a,
@@ -30,7 +30,7 @@ type bind2Incr[A, B, C any] struct {
 	n     *Node
 	a     Incr[A]
 	b     Incr[B]
-	fn    func(A, B) Incr[C]
+	fn    func(context.Context, A, B) (Incr[C], error)
 	bind  Incr[C]
 	value C
 }
@@ -43,12 +43,16 @@ func (b *bind2Incr[A, B, C]) SetBind(v Incr[C]) {
 	b.bind = v
 }
 
-func (b *bind2Incr[A, B, C]) Bind() (oldValue, newValue Incr[C]) {
-	return b.bind, b.fn(b.a.Value(), b.b.Value())
+func (b *bind2Incr[A, B, C]) Bind(ctx context.Context) (oldValue, newValue Incr[C], err error) {
+	oldValue = b.bind
+	newValue, err = b.fn(ctx, b.a.Value(), b.b.Value())
+	return
 }
 
 func (b *bind2Incr[A, B, C]) Stabilize(ctx context.Context) error {
-	BindUpdate[C](ctx, b)
+	if err := BindUpdate[C](ctx, b); err != nil {
+		return err
+	}
 	b.value = b.bind.Value()
 	return nil
 }

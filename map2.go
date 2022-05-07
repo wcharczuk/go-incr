@@ -7,7 +7,7 @@ import (
 
 // Map2 applies a function to a given input incremental and returns
 // a new incremental of the output type of that function.
-func Map2[A, B, C any](a Incr[A], b Incr[B], fn func(A, B) C) Incr[C] {
+func Map2[A, B, C any](a Incr[A], b Incr[B], fn func(context.Context, A, B) (C, error)) Incr[C] {
 	o := &map2Incr[A, B, C]{
 		n:  NewNode(),
 		a:  a,
@@ -29,7 +29,7 @@ type map2Incr[A, B, C any] struct {
 	n   *Node
 	a   Incr[A]
 	b   Incr[B]
-	fn  func(A, B) C
+	fn  func(context.Context, A, B) (C, error)
 	val C
 }
 
@@ -37,8 +37,13 @@ func (mn *map2Incr[A, B, C]) Node() *Node { return mn.n }
 
 func (mn *map2Incr[A, B, C]) Value() C { return mn.val }
 
-func (mn *map2Incr[A, B, C]) Stabilize(ctx context.Context) error {
-	mn.val = mn.fn(mn.a.Value(), mn.b.Value())
+func (mn *map2Incr[A, B, C]) Stabilize(ctx context.Context) (err error) {
+	var val C
+	val, err = mn.fn(ctx, mn.a.Value(), mn.b.Value())
+	if err != nil {
+		return
+	}
+	mn.val = val
 	return nil
 }
 

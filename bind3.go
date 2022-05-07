@@ -7,7 +7,7 @@ import (
 
 // Bind3 lets you swap out an entire subgraph of a computation based
 // on a given function and two inputs.
-func Bind3[A, B, C, D any](a Incr[A], b Incr[B], c Incr[C], fn func(A, B, C) Incr[D]) Incr[D] {
+func Bind3[A, B, C, D any](a Incr[A], b Incr[B], c Incr[C], fn func(context.Context, A, B, C) (Incr[D], error)) Incr[D] {
 	o := &bind3Incr[A, B, C, D]{
 		n:  NewNode(),
 		a:  a,
@@ -32,7 +32,7 @@ type bind3Incr[A, B, C, D any] struct {
 	a     Incr[A]
 	b     Incr[B]
 	c     Incr[C]
-	fn    func(A, B, C) Incr[D]
+	fn    func(context.Context, A, B, C) (Incr[D], error)
 	bind  Incr[D]
 	value D
 }
@@ -45,12 +45,16 @@ func (b *bind3Incr[A, B, C, D]) SetBind(v Incr[D]) {
 	b.bind = v
 }
 
-func (b *bind3Incr[A, B, C, D]) Bind() (oldValue, newValue Incr[D]) {
-	return b.bind, b.fn(b.a.Value(), b.b.Value(), b.c.Value())
+func (b *bind3Incr[A, B, C, D]) Bind(ctx context.Context) (oldValue, newValue Incr[D], err error) {
+	oldValue = b.bind
+	newValue, err = b.fn(ctx, b.a.Value(), b.b.Value(), b.c.Value())
+	return
 }
 
 func (b *bind3Incr[A, B, C, D]) Stabilize(ctx context.Context) error {
-	BindUpdate[D](ctx, b)
+	if err := BindUpdate[D](ctx, b); err != nil {
+		return err
+	}
 	b.value = b.bind.Value()
 	return nil
 }

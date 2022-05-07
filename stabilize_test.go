@@ -11,8 +11,8 @@ func Test_Stabilize(t *testing.T) {
 
 	v0 := Var("foo")
 	v1 := Var("bar")
-	m0 := Map2[string, string](v0, v1, func(a, b string) string {
-		return a + " " + b
+	m0 := Map2[string, string](v0, v1, func(_ context.Context, a, b string) (string, error) {
+		return a + " " + b, nil
 	})
 
 	err := Stabilize(ctx, m0)
@@ -52,8 +52,8 @@ func Test_Stabilize_updateHandlers(t *testing.T) {
 
 	v0 := Var("foo")
 	v1 := Var("bar")
-	m0 := Map2[string, string](v0, v1, func(a, b string) string {
-		return a + " " + b
+	m0 := Map2[string, string](v0, v1, func(_ context.Context, a, b string) (string, error) {
+		return a + " " + b, nil
 	})
 
 	var updates int
@@ -76,12 +76,12 @@ func Test_Stabilize_unevenHeights(t *testing.T) {
 
 	v0 := Var("foo")
 	v1 := Var("bar")
-	m0 := Map2[string, string](v0, v1, func(a, b string) string {
-		return a + " " + b
+	m0 := Map2[string, string](v0, v1, func(_ context.Context, a, b string) (string, error) {
+		return a + " " + b, nil
 	})
 	r0 := Return("moo")
-	m1 := Map2(r0, m0, func(a, b string) string {
-		return a + " != " + b
+	m1 := Map2(r0, m0, func(_ context.Context, a, b string) (string, error) {
+		return a + " != " + b, nil
 	})
 
 	err := Stabilize(ctx, m1)
@@ -101,9 +101,9 @@ func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
 	//   -> f -> e -> [z]
 	// assert that [z] updates (1) time if we change [a]
 
-	edge := func(l string) func(string) string {
-		return func(v string) string {
-			return v + "->" + l
+	edge := func(l string) func(context.Context, string) (string, error) {
+		return func(_ context.Context, v string) (string, error) {
+			return v + "->" + l, nil
 		}
 	}
 
@@ -114,8 +114,8 @@ func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
 	f := Map[string](a, edge("f"))
 	e := Map(f, edge("e"))
 
-	z := Map2(d, e, func(v0, v1 string) string {
-		return v0 + "+" + v1 + "->z"
+	z := Map2(d, e, func(_ context.Context, v0, v1 string) (string, error) {
+		return v0 + "+" + v1 + "->z", nil
 	})
 
 	err := Stabilize(ctx, z)
@@ -139,14 +139,14 @@ func Test_Stabilize_verifyPartial(t *testing.T) {
 	v1 := Var("moo")
 	c1 := Return("baz")
 
-	m0 := Map2[string](v0, c0, func(a, b string) string {
-		return a + " " + b
+	m0 := Map2[string](v0, c0, func(_ context.Context, a, b string) (string, error) {
+		return a + " " + b, nil
 	})
 	co0 := Cutoff(m0, func(n, o string) bool {
 		return len(n) == len(o)
 	})
-	m1 := Map2[string](v1, c1, func(a, b string) string {
-		return a + " != " + b
+	m1 := Map2[string](v1, c1, func(_ context.Context, a, b string) (string, error) {
+		return a + " != " + b, nil
 	})
 	co1 := Cutoff(m1, func(n, o string) bool {
 		return len(n) == len(o)
@@ -187,7 +187,7 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 	i := Var(data)
 	output := Map[[]Entry](
 		i,
-		func(entries []Entry) (output []string) {
+		func(_ context.Context, entries []Entry) (output []string, err error) {
 			for _, e := range entries {
 				if e.Time.Sub(now) > 2*time.Second {
 					output = append(output, e.Entry)
@@ -230,11 +230,11 @@ func Test_Stabilize_bind(t *testing.T) {
 	i0 := Return("foo")
 	i1 := Return("bar")
 
-	b := Bind[bool](sw, func(swv bool) Incr[string] {
+	b := Bind[bool](sw, func(_ context.Context, swv bool) (Incr[string], error) {
 		if swv {
-			return i0
+			return i0, nil
 		}
-		return i1
+		return i1, nil
 	})
 
 	err := Stabilize(ctx, b)
@@ -263,11 +263,11 @@ func Test_Stabilize_bind2(t *testing.T) {
 	i0 := Return("foo")
 	i1 := Return("bar")
 
-	b := Bind2[bool, bool](sw0, sw1, func(swv0, swv1 bool) Incr[string] {
+	b := Bind2[bool, bool](sw0, sw1, func(_ context.Context, swv0, swv1 bool) (Incr[string], error) {
 		if swv0 && swv1 {
-			return i0
+			return i0, nil
 		}
-		return i1
+		return i1, nil
 	})
 
 	err := Stabilize(ctx, b)
@@ -307,11 +307,11 @@ func Test_Stabilize_bind3(t *testing.T) {
 	i0 := Return("foo")
 	i1 := Return("bar")
 
-	b := Bind3[bool, bool, bool](sw0, sw1, sw2, func(swv0, swv1, swv2 bool) Incr[string] {
+	b := Bind3[bool, bool, bool](sw0, sw1, sw2, func(_ context.Context, swv0, swv1, swv2 bool) (Incr[string], error) {
 		if swv0 && swv1 && swv2 {
-			return i0
+			return i0, nil
 		}
-		return i1
+		return i1, nil
 	})
 
 	err := Stabilize(ctx, b)
@@ -448,8 +448,8 @@ func Test_Stabilize_map3(t *testing.T) {
 	c0 := Return(1)
 	c1 := Return(2)
 	c2 := Return(3)
-	m3 := Map3(c0, c1, c2, func(a, b, c int) int {
-		return a + b + c
+	m3 := Map3(c0, c1, c2, func(_ context.Context, a, b, c int) (int, error) {
+		return a + b + c, nil
 	})
 
 	_ = Stabilize(ctx, m3)

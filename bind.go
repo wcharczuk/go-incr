@@ -7,7 +7,7 @@ import (
 
 // Bind lets you swap out an entire subgraph of a computation based
 // on a given function and a single input.
-func Bind[A, B any](a Incr[A], fn func(A) Incr[B]) Incr[B] {
+func Bind[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], error)) Incr[B] {
 	o := &bindIncr[A, B]{
 		n:  NewNode(),
 		a:  a,
@@ -28,7 +28,7 @@ var (
 type bindIncr[A, B any] struct {
 	n     *Node
 	a     Incr[A]
-	fn    func(A) Incr[B]
+	fn    func(context.Context, A) (Incr[B], error)
 	bind  Incr[B]
 	value B
 }
@@ -41,12 +41,16 @@ func (b *bindIncr[A, B]) SetBind(v Incr[B]) {
 	b.bind = v
 }
 
-func (b *bindIncr[A, B]) Bind() (oldValue, newValue Incr[B]) {
-	return b.bind, b.fn(b.a.Value())
+func (b *bindIncr[A, B]) Bind(ctx context.Context) (oldValue, newValue Incr[B], err error) {
+	oldValue = b.bind
+	newValue, err = b.fn(ctx, b.a.Value())
+	return
 }
 
 func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
-	BindUpdate[B](ctx, b)
+	if err := BindUpdate[B](ctx, b); err != nil {
+		return err
+	}
 	b.value = b.bind.Value()
 	return nil
 }

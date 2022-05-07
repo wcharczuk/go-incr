@@ -24,7 +24,7 @@ type Stabilizer interface {
 // based on input incrementals.
 type Binder[A any] interface {
 	GraphNode
-	Bind() (old, new Incr[A])
+	Bind(context.Context) (old, new Incr[A], err error)
 	SetBind(Incr[A])
 }
 

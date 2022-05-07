@@ -1,6 +1,7 @@
 package incr
 
 import (
+	"context"
 	"fmt"
 	"testing"
 )
@@ -27,8 +28,8 @@ func Benchmark_Stabilize_withPreInitialize(b *testing.B) {
 	benchStabilize(gs, b)
 }
 
-func concat(a, b string) string {
-	return a + b
+func concat(_ context.Context, a, b string) (string, error) {
+	return a + b, nil
 }
 
 func benchStabilize(gs GraphNode, b *testing.B) {
