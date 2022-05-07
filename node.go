@@ -22,10 +22,6 @@ type Node struct {
 	// children are the nodes that this node depends on
 	children []GraphNode
 
-	// status is unused right now but reflects
-	// if we're stabilizing the graph or not
-	status Status
-
 	// height is the topological sort height of the
 	// node and is used to order recomputation
 	// it is established when the graph is initialized
@@ -149,7 +145,11 @@ func (n *Node) recompute(ctx context.Context) error {
 		return err
 	}
 	for _, p := range n.parents {
-		n.gs.rh.add(p)
+		tracePrintf(ctx, "stabilize; recompute; pushing node parent %s to recompute heap", p.String())
+		// if it's not already on here ...
+		if !n.gs.rh.has(p) {
+			n.gs.rh.add(p)
+		}
 	}
 	return nil
 }

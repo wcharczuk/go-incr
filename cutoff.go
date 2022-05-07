@@ -12,6 +12,7 @@ import (
 func Cutoff[A comparable](i Incr[A], fn func(value, latest A) bool) Incr[A] {
 	n := newNode()
 	co := &cutoffIncr[A]{
+		n:  n,
 		i:  i,
 		fn: fn,
 	}
@@ -47,7 +48,9 @@ func (c *cutoffIncr[A]) Stabilize(ctx context.Context) error {
 }
 
 func (c *cutoffIncr[A]) Cutoff(ctx context.Context) bool {
-	return c.fn(c.value, c.i.Value())
+	result := c.fn(c.value, c.i.Value())
+	tracePrintf(ctx, "stabilize; recompute; cutoff %v vs. %v => %v", c.value, c.i.Value(), result)
+	return result
 }
 
 func (c *cutoffIncr[A]) Node() *Node {

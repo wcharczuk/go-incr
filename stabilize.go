@@ -40,7 +40,7 @@ func recomputeAll(ctx context.Context, gs *graphState) error {
 	var err error
 	var n GraphNode
 	var nn *Node
-	tracePrintf(ctx, "stabilize; recompute; %d node in heap", gs.rh.len)
+	tracePrintf(ctx, "stabilize; recompute; %d node(s) in recompute heap", gs.rh.len)
 	for gs.rh.len > 0 {
 		n = gs.rh.removeMin()
 		nn = n.Node()

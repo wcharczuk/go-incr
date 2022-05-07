@@ -126,3 +126,50 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 	ItsNil(t, err)
 	ItsEqual(t, 3, len(output.Value()))
 }
+
+func Test_Stabilize_cutoff(t *testing.T) {
+	ctx := testContext()
+	input := Var(3.14)
+
+	cutoff := Cutoff[float64](
+		input,
+		epsilon(0.1),
+	)
+
+	output := Map2(
+		cutoff,
+		Return(10.0),
+		add,
+	)
+
+	_ = Stabilize(
+		ctx,
+		output,
+	)
+	ItsEqual(t, 13.14, output.Value())
+	ItsEqual(t, 3.14, cutoff.Value())
+
+	input.Set(3.15)
+
+	_ = Stabilize(
+		ctx,
+		output,
+	)
+	ItsEqual(t, 3.14, cutoff.Value())
+	ItsEqual(t, 13.14, output.Value())
+
+	input.Set(3.26) // differs by 0.11, which is > 0.1
+
+	_ = Stabilize(
+		ctx,
+		output,
+	)
+	ItsEqual(t, 3.26, cutoff.Value())
+	ItsEqual(t, 13.26, output.Value())
+
+	_ = Stabilize(
+		ctx,
+		output,
+	)
+	ItsEqual(t, 13.26, output.Value())
+}

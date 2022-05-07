@@ -3,6 +3,7 @@ package incr
 import (
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"reflect"
 	"testing"
@@ -114,4 +115,29 @@ func withBlueDye(ctx context.Context) context.Context {
 func itsBlueDye(ctx context.Context, t *testing.T) {
 	t.Helper()
 	ItsNotNil(t, ctx.Value(blueDyeKey{}))
+}
+
+// epsilon returns a function that returns true
+// if the absolute difference of two values is less
+// than or equal to a given delta.
+//
+// this serves to implement a cutoff function, where we should
+// cutoff the computation if a difference is sufficiently small.
+func epsilon(delta float64) func(float64, float64) bool {
+	return func(v0, v1 float64) bool {
+		return math.Abs(v1-v0) <= delta
+	}
+}
+
+// addConst returs a map fn that adds a constant value
+// to a given input
+func addConst(v float64) func(float64) float64 {
+	return func(v0 float64) float64 {
+		return v0 + v
+	}
+}
+
+// add is a map2 fn that adds two values and returns the result
+func add(v0, v1 float64) (float64, error) {
+	return v0 + v1, nil
 }

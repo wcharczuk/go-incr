@@ -24,6 +24,19 @@ func (rh *recomputeHeap) add(s GraphNode) {
 	rh.len++
 }
 
+func (rh *recomputeHeap) has(s GraphNode) bool {
+	sn := s.Node()
+	if sn.height >= rh.maxHeight {
+		panic("recompute heap; cannot has node with height greater than max height")
+	}
+	for _, n := range rh.heights[sn.height] {
+		if n.Node().id == s.Node().id {
+			return true
+		}
+	}
+	return false
+}
+
 // removeMin removes the minimum node from the recompute heap.
 func (rh *recomputeHeap) removeMin() GraphNode {
 	for height := range rh.heights {
