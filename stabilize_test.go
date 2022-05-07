@@ -139,7 +139,7 @@ func Test_Stabilize_cutoff(t *testing.T) {
 	output := Map2(
 		cutoff,
 		Return(10.0),
-		add,
+		add[float64],
 	)
 
 	_ = Stabilize(
@@ -172,4 +172,26 @@ func Test_Stabilize_cutoff(t *testing.T) {
 		output,
 	)
 	ItsEqual(t, 13.26, output.Value())
+}
+
+func Test_Stabilize_watch(t *testing.T) {
+	ctx := testContext()
+
+	v0 := Var(1)
+	v1 := Var(1)
+	m0 := Map2[int, int](v0, v1, add[int])
+	w0 := Watch(m0)
+
+	_ = Stabilize(ctx, w0)
+
+	ItsEqual(t, 1, len(w0.Values()))
+	ItsEqual(t, 2, w0.Values()[0])
+
+	v0.Set(2)
+
+	_ = Stabilize(ctx, w0)
+
+	ItsEqual(t, 2, len(w0.Values()))
+	ItsEqual(t, 2, w0.Values()[0])
+	ItsEqual(t, 3, w0.Values()[1])
 }

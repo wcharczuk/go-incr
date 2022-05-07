@@ -2,17 +2,17 @@ package incr
 
 import (
 	"context"
-	"fmt"
 )
 
 // Incr is a type that can be an incremental node in a computation graph.
 type Incr[T any] interface {
-	GraphNode
+	String() string
+	Node() *Node
 	Value() T
 }
 
 type GraphNode interface {
-	fmt.Stringer
+	String() string
 	Node() *Node
 }
 
