@@ -194,8 +194,9 @@ func (n *Node) stale(ctx context.Context) bool {
 // calculateHeight calculates the height based on the
 func (n *Node) calculateHeight() int {
 	var maxChildHeight int
+	var childHeight int
 	for _, c := range n.children {
-		if childHeight := c.Node().calculateHeight(); childHeight > maxChildHeight {
+		if childHeight = c.Node().calculateHeight(); childHeight > maxChildHeight {
 			maxChildHeight = childHeight
 		}
 	}
