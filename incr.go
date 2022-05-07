@@ -6,13 +6,11 @@ import (
 
 // Incr is a type that can be an incremental node in a computation graph.
 type Incr[T any] interface {
-	String() string
 	Node() *Node
 	Value() T
 }
 
 type GraphNode interface {
-	String() string
 	Node() *Node
 }
 
