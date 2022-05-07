@@ -346,6 +346,33 @@ func Test_Stabilize_bind3(t *testing.T) {
 	ItsEqual(t, "foo", b.Value())
 }
 
+func Test_Stabilize_bindIf(t *testing.T) {
+	ctx := testContext()
+
+	sw := Var(false)
+	i0 := Return("foo")
+	i1 := Return("bar")
+
+	b := BindIf(i0, i1, sw)
+
+	err := Stabilize(ctx, b)
+	ItsNil(t, err)
+
+	ItsNil(t, i0.Node().gs, "i0 should not be in the graph after the first stabilization")
+	ItsNotNil(t, i1.Node().gs, "i1 should be in the graph after the first stabilization")
+
+	ItsEqual(t, "bar", b.Value())
+
+	sw.Set(true)
+	err = Stabilize(ctx, b)
+	ItsNil(t, err)
+
+	ItsNil(t, i1.Node().gs, "i0 should be in the graph after the third stabilization")
+	ItsNotNil(t, i0.Node().gs, "i1 should not be in the graph after the third stabilization")
+
+	ItsEqual(t, "foo", b.Value())
+}
+
 func Test_Stabilize_cutoff(t *testing.T) {
 	ctx := testContext()
 	input := Var(3.14)
