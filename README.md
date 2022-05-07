@@ -10,3 +10,20 @@ It is useful in situations where you want to compute efficiently the outputs of 
 # Inspiration
 
 The inspiration for `go-incr` is Jane Street's [incremental](https://github.com/janestreet/incremental) library.
+
+# Progress
+
+Many of the original library types are implemented, but some of the types are not still, namely:
+- Observers
+- Stepwise
+- Expert
+
+The "core" types are mostly implemented though, specifically:
+- Return
+- Var
+- Map(2,3,If)
+- Bind(2,3,If)
+- Cutoffs
+- Watch
+
+With these, you can create 90% of what I typically needed this library for, though some others would be relatively straightforward to implement given the primitives already implemented.
