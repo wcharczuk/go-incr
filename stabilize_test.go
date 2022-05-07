@@ -203,11 +203,17 @@ func Test_Stabilize_bind(t *testing.T) {
 	err := Stabilize(ctx, b)
 	ItsNil(t, err)
 
+	ItsNil(t, i0.Node().gs, "i0 should not be in the graph after the first stabilization")
+	ItsNotNil(t, i1.Node().gs, "i1 should be in the graph after the first stabilization")
+
 	ItsEqual(t, "bar", b.Value())
 
 	sw.Set(true)
 	err = Stabilize(ctx, b)
 	ItsNil(t, err)
+
+	ItsNil(t, i1.Node().gs, "i0 should be in the graph after the second stabilization")
+	ItsNotNil(t, i0.Node().gs, "i1 should not be in the graph after the second stabilization")
 
 	ItsEqual(t, "foo", b.Value())
 }
