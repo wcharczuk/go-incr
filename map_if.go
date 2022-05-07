@@ -3,18 +3,14 @@ package incr
 import "context"
 
 func MapIf[A any](a, b Incr[A], p Incr[bool]) Incr[A] {
-	n := NewNode()
-	mi := &mapIfIncr[A]{
-		n: n,
+	o := &mapIfIncr[A]{
+		n: NewNode(),
 		a: a,
 		b: b,
 		p: p,
 	}
-	n.AddChildren(a, b, p)
-	a.Node().AddParents(mi)
-	b.Node().AddParents(mi)
-	p.Node().AddParents(mi)
-	return mi
+	Link(o, a, b, p)
+	return o
 }
 
 var (

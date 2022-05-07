@@ -186,6 +186,32 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 	ItsEqual(t, 3, len(output.Value()))
 }
 
+func Test_Stabilize_bind(t *testing.T) {
+	ctx := testContext()
+
+	sw := Var(false)
+	i0 := Return("foo")
+	i1 := Return("bar")
+
+	b := Bind[bool](sw, func(swv bool) Incr[string] {
+		if swv {
+			return i0
+		}
+		return i1
+	})
+
+	err := Stabilize(ctx, b)
+	ItsNil(t, err)
+
+	ItsEqual(t, "bar", b.Value())
+
+	sw.Set(true)
+	err = Stabilize(ctx, b)
+	ItsNil(t, err)
+
+	ItsEqual(t, "foo", b.Value())
+}
+
 func Test_Stabilize_cutoff(t *testing.T) {
 	ctx := testContext()
 	input := Var(3.14)

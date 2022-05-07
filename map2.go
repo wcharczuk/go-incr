@@ -5,16 +5,13 @@ import "context"
 // Map2 applies a function to a given input incremental and returns
 // a new incremental of the output type of that function.
 func Map2[A, B, C any](a Incr[A], b Incr[B], fn func(A, B) C) Incr[C] {
-	n := NewNode()
 	o := &map2Node[A, B, C]{
-		n:  n,
+		n:  NewNode(),
 		a:  a,
 		b:  b,
 		fn: fn,
 	}
-	n.AddChildren(a, b)
-	a.Node().AddParents(o)
-	b.Node().AddParents(o)
+	Link(o, a, b)
 	return o
 }
 

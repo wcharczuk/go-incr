@@ -50,6 +50,22 @@ func (rh *recomputeHeap) removeMin() GraphNode {
 	return nil
 }
 
+// remove removes a specific node from the heap.
+func (rh *recomputeHeap) remove(s GraphNode) {
+	sn := s.Node()
+	if sn.height >= rh.maxHeight {
+		panic("recompute heap; cannot remove node with height greater than max height")
+	}
+
+	var newStack []GraphNode
+	for _, n := range rh.heights[sn.height] {
+		if n.Node().id != s.Node().id {
+			newStack = append(newStack, n)
+		}
+	}
+	rh.heights[sn.height] = newStack
+}
+
 func (rh *recomputeHeap) removeFirst(stack []GraphNode) (first GraphNode, rest []GraphNode) {
 	first = stack[0]
 	rest = stack[1:]

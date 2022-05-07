@@ -24,8 +24,7 @@ func Test_Initialize(t *testing.T) {
 		return a + "+" + b
 	})
 
-	err := Initialize(ctx, m3)
-	ItsNil(t, err)
+	Initialize(ctx, m3)
 
 	ItsEqual(t, 1, v0.Node().height)
 	ItsEqual(t, 1, v1.Node().height)

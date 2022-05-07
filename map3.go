@@ -5,18 +5,14 @@ import "context"
 // Map3 applies a function to given input incrementals and returns
 // a new incremental of the output type of that function.
 func Map3[A, B, C, D any](a Incr[A], b Incr[B], c Incr[C], fn func(A, B, C) D) Incr[D] {
-	n := NewNode()
 	o := &map3Node[A, B, C, D]{
-		n:  n,
+		n:  NewNode(),
 		a:  a,
 		b:  b,
 		c:  c,
 		fn: fn,
 	}
-	n.AddChildren(a, b, c)
-	a.Node().AddParents(o)
-	b.Node().AddParents(o)
-	c.Node().AddParents(o)
+	Link(o, a, b, c)
 	return o
 }
 

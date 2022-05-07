@@ -23,7 +23,7 @@ func Benchmark_Stabilize_preInitialize(b *testing.B) {
 	}
 
 	gs := nodes[len(nodes)-1]
-	_ = Initialize(testContext(), gs)
+	Initialize(testContext(), gs)
 	benchStabilize(gs, b)
 }
 

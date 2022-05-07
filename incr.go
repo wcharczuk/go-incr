@@ -19,6 +19,15 @@ type Stabilizer interface {
 	Stabilize(context.Context) error
 }
 
+// Binder is a node that implements Bind, which
+// dynamically swaps out entire subgraphs
+// based on input incrementals.
+type Binder[A any] interface {
+	GraphNode
+	Bind() (old, new Incr[A])
+	SetBind(Incr[A])
+}
+
 // Cutoffer is a type that determines if changes should
 // continue to propagate or not.
 type Cutoffer interface {

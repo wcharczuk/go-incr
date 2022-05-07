@@ -7,6 +7,32 @@ func NewNode() *Node {
 	return &Node{id: newIdentifier()}
 }
 
+// Link is a common helper for setting up nodes.
+//
+// Specifically it adds a given set of inputs as children
+// of a given node, and adds a given node as a parent for
+// all the input nodes.
+//
+// The reverse of this is `Unlink` on the node itself.
+func Link(gn GraphNode, inputs ...GraphNode) {
+	gn.Node().AddChildren(inputs...)
+	for _, gnp := range inputs {
+		gnp.Node().AddParents(gn)
+	}
+}
+
+// Unlink removes a node from the computation graph.
+//
+// Specifically it removes the given node from the parents
+// list of each of its children.
+func Unlink(gn GraphNode) {
+	id := gn.Node().id
+	for _, c := range gn.Node().children {
+		c.Node().RemoveParent(id)
+	}
+	gn.Node().children = nil
+}
+
 // Node is the common metadata for any node in the computation graph.
 type Node struct {
 	// id is a unique identifier for the node.
@@ -61,9 +87,31 @@ func (n *Node) AddChildren(c ...GraphNode) {
 	n.children = append(n.children, c...)
 }
 
+// RemoveChild removes a specific child from the node.
+func (n *Node) RemoveChild(id identifier) {
+	var newChildren []GraphNode
+	for _, oc := range n.children {
+		if oc.Node().id != id {
+			newChildren = append(newChildren, oc)
+		}
+	}
+	n.children = newChildren
+}
+
 // AddParents adds parents.
 func (n *Node) AddParents(p ...GraphNode) {
 	n.parents = append(n.parents, p...)
+}
+
+// RemoveParent removes a specific parent from the node.
+func (n *Node) RemoveParent(id identifier) {
+	var newParents []GraphNode
+	for _, oc := range n.parents {
+		if oc.Node().id != id {
+			newParents = append(newParents, oc)
+		}
+	}
+	n.parents = newParents
 }
 
 // OnUpdate registers an update handler.

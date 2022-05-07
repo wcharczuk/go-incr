@@ -39,6 +39,18 @@ func Test_recomputeHeap(t *testing.T) {
 		ItsNotNil(t, n.Node())
 	}
 	ItsEqual(t, 0, rh.len)
+
+	rh.add(n0)
+	rh.add(n1)
+	rh.add(n2)
+	rh.add(n3)
+
+	rh.remove(n1)
+
+	ItsEqual(t, true, rh.has(n0))
+	ItsEqual(t, false, rh.has(n1))
+	ItsEqual(t, true, rh.has(n2))
+	ItsEqual(t, true, rh.has(n3))
 }
 
 func newHeightIncr(height int) *heightIncr {

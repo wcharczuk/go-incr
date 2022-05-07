@@ -5,14 +5,12 @@ import "context"
 // Map applies a function to a given input incremental and returns
 // a new incremental of the output type of that function.
 func Map[A, B any](a Incr[A], fn func(a A) B) Incr[B] {
-	n := NewNode()
 	m := &mapNode[A, B]{
-		n:  n,
+		n:  NewNode(),
 		a:  a,
 		fn: fn,
 	}
-	n.AddChildren(a)
-	a.Node().AddParents(m)
+	Link(m, a)
 	return m
 }
 

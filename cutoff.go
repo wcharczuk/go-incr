@@ -10,16 +10,16 @@ import (
 // node if the difference between the previous and latest values are not
 // significant enough to warrant a full recomputation of the children of this node.
 func Cutoff[A comparable](i Incr[A], fn func(value, latest A) bool) Incr[A] {
-	n := NewNode()
-	co := &cutoffIncr[A]{
-		n:  n,
+	o := &cutoffIncr[A]{
+		n:  NewNode(),
 		i:  i,
 		fn: fn,
 	}
-	n.cutoff = co.Cutoff
-	n.AddChildren(i)
-	i.Node().AddParents(co)
-	return co
+	// we short circuit setup of the node cutoff reference here.
+	// this can be discovered in initialization but saves a step.
+	o.Node().cutoff = o.Cutoff
+	Link(o, i)
+	return o
 }
 
 var (

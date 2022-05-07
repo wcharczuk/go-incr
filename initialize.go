@@ -6,45 +6,61 @@ import "context"
 //
 // it creates the graph state for the graph, discovers and initialized
 // all nodes, and then establishes the recompute heap based on node heights.
-func Initialize(ctx context.Context, gn GraphNode) (err error) {
+func Initialize(ctx context.Context, gn GraphNode) {
 	gs := newGraphState()
-	err = discoverAllNodes(ctx, gs, gn)
-	if err != nil {
-		return err
-	}
-	return
+	discoverAllNodes(ctx, gs, gn)
 }
 
-func discoverAllNodes(ctx context.Context, gs *graphState, gn GraphNode) error {
-	if err := discoverNode(ctx, gs, gn); err != nil {
-		return err
-	}
+func discoverAllNodes(ctx context.Context, gs *graphState, gn GraphNode) {
+	discoverNode(ctx, gs, gn)
 	gnn := gn.Node()
 	for _, c := range gnn.children {
 		if !shouldInitialize(c.Node()) {
 			continue
 		}
-		if err := discoverAllNodes(ctx, gs, c); err != nil {
-			return err
-		}
+		discoverAllNodes(ctx, gs, c)
 	}
 	for _, p := range gnn.parents {
 		if !shouldInitialize(p.Node()) {
 			continue
 		}
-		if err := discoverAllNodes(ctx, gs, p); err != nil {
-			return err
-		}
+		discoverAllNodes(ctx, gs, p)
 	}
-	return nil
 }
 
-func discoverNode(ctx context.Context, gs *graphState, s GraphNode) (err error) {
-	sn := s.Node()
-	sn.gs = gs
-	sn.detectCutoff(s)
-	sn.detectStabilizer(s)
-	sn.height = sn.calculateHeight()
-	gs.rh.add(s)
+func discoverNode(ctx context.Context, gs *graphState, gn GraphNode) {
+	gnn := gn.Node()
+	gnn.gs = gs
+	gnn.detectCutoff(gn)
+	gnn.detectStabilizer(gn)
+	gnn.height = gnn.calculateHeight()
+	gs.rh.add(gn)
 	return
+}
+
+// undiscoverAllNodes removes a node and all its parents
+// from a given graph.
+//
+// NOTE: you _must_ unlink it first or you'll just blow away the whole graph.
+func undiscoverAllNodes(ctx context.Context, gs *graphState, gn GraphNode) {
+	undiscoverNode(ctx, gs, gn)
+	gnn := gn.Node()
+	for _, c := range gnn.children {
+		if shouldInitialize(c.Node()) {
+			continue
+		}
+		undiscoverAllNodes(ctx, gs, c)
+	}
+	for _, p := range gnn.parents {
+		if shouldInitialize(p.Node()) {
+			continue
+		}
+		undiscoverAllNodes(ctx, gs, p)
+	}
+}
+
+func undiscoverNode(ctx context.Context, gs *graphState, gn GraphNode) {
+	gnn := gn.Node()
+	gnn.gs = nil
+	gs.rh.remove(gn)
 }

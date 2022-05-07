@@ -14,9 +14,7 @@ func Stabilize(ctx context.Context, gn GraphNode) error {
 	gnn := gn.Node()
 	if shouldInitialize(gnn) {
 		tracePrintf(ctx, "stabilize; initializing graph rooted at: %v", gn)
-		if err := Initialize(ctx, gn); err != nil {
-			return err
-		}
+		Initialize(ctx, gn)
 	}
 	defer func() {
 		gnn.gs.sn++
