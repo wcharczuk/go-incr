@@ -47,6 +47,30 @@ func Test_Stabilize(t *testing.T) {
 	ItsEqual(t, "not foo bar", m0.Value())
 }
 
+func Test_Stabilize_updateHandlers(t *testing.T) {
+	ctx := testContext()
+
+	v0 := Var("foo")
+	v1 := Var("bar")
+	m0 := Map2[string, string](v0, v1, func(a, b string) string {
+		return a + " " + b
+	})
+
+	var updates int
+	m0.Node().OnUpdate(func(_ context.Context) {
+		updates++
+	})
+
+	err := Stabilize(ctx, m0)
+	ItsNil(t, err)
+	ItsEqual(t, 1, updates)
+
+	v0.Set("not foo")
+	err = Stabilize(ctx, m0)
+	ItsNil(t, err)
+	ItsEqual(t, 2, updates)
+}
+
 func Test_Stabilize_unevenHeights(t *testing.T) {
 	ctx := testContext()
 

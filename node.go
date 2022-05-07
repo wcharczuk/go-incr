@@ -154,6 +154,9 @@ func (n *Node) recompute(ctx context.Context) error {
 	if err := n.maybeStabilize(ctx); err != nil {
 		return err
 	}
+	for _, handler := range n.onUpdateHandlers {
+		handler(ctx)
+	}
 	for _, p := range n.parents {
 		if !n.gs.rh.has(p) {
 			n.gs.rh.add(p)
