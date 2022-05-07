@@ -1,7 +1,9 @@
 package incr
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"reflect"
 	"testing"
 )
@@ -89,4 +91,24 @@ func areEqual(expected, actual any) bool {
 		return reflect.DeepEqual(expectedValue.Convert(actualType).Interface(), actual)
 	}
 	return reflect.DeepEqual(expected, actual)
+}
+
+func testContext() context.Context {
+	ctx := context.Background()
+	if os.Getenv("DEBUG") != "" {
+		ctx = WithTracing(ctx)
+	}
+	ctx = withBlueDye(ctx)
+	return ctx
+}
+
+type blueDyeKey struct{}
+
+func withBlueDye(ctx context.Context) context.Context {
+	return context.WithValue(ctx, blueDyeKey{}, "test")
+}
+
+func ItsBlueDye(t *testing.T, ctx context.Context) {
+	t.Helper()
+	ItsNotNil(t, ctx.Value(blueDyeKey{}))
 }

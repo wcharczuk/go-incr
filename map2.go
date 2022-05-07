@@ -6,20 +6,22 @@ import "context"
 // a new incremental of the output type of that function.
 func Map2[A, B, C any](a Incr[A], b Incr[B], fn func(A, B) (C, error)) Incr[C] {
 	n := newNode()
-	n.parents = append(n.parents, a, b)
-	output := &map2Node[A, B, C]{
+	o := &map2Node[A, B, C]{
 		n:  n,
 		a:  a,
 		b:  b,
 		fn: fn,
 	}
-	a.Node().children = append(a.Node().children, output)
-	b.Node().children = append(b.Node().children, output)
-	return output
+	n.children = append(n.children, a, b)
+	a.Node().parents = append(a.Node().parents, o)
+	b.Node().parents = append(b.Node().parents, o)
+	return o
 }
 
 var (
 	_ Incr[string] = (*map2Node[int, int, string])(nil)
+	_ GraphNode    = (*map2Node[int, int, string])(nil)
+	_ Stabilizer   = (*map2Node[int, int, string])(nil)
 )
 
 type map2Node[A, B, C any] struct {

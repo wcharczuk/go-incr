@@ -7,6 +7,7 @@ import (
 )
 
 func Test_initialize(t *testing.T) {
+	ctx := testContext()
 
 	v0 := Var("foo")
 	v1 := Var("moo")
@@ -27,11 +28,8 @@ func Test_initialize(t *testing.T) {
 		return a + "+" + b, nil
 	})
 
-	err := initialize(WithTracing(context.Background()), m3)
+	err := initialize(ctx, m3)
 	ItsNil(t, err)
-
-	ItsEqual(t, 9, len(m3.Node().gs.nodeLookup))
-	ItsEqual(t, 9, len(m3.Node().gs.recomputeHeap))
 
 	ItsEqual(t, 1, v0.Node().height)
 	ItsEqual(t, 1, v1.Node().height)
@@ -47,50 +45,49 @@ func Test_initialize(t *testing.T) {
 }
 
 func Test_Stabilize(t *testing.T) {
+	ctx := testContext()
+
 	v0 := Var("foo")
 	v1 := Var("bar")
 	m0 := Map2[string, string](v0, v1, func(a, b string) (string, error) {
 		return a + " " + b, nil
 	})
 
-	err := Stabilize(WithTracing(context.Background()), m0)
+	err := Stabilize(ctx, m0)
 	ItsNil(t, err)
 
-	ItsEqual(t, 1, v0.n.initializedAt)
-	ItsEqual(t, 1, v1.n.initializedAt)
-	ItsEqual(t, 1, m0.(*map2Node[string, string, string]).n.initializedAt)
-
-	ItsEqual(t, 1, v0.n.changedAt)
-	ItsEqual(t, 1, v1.n.changedAt)
-	ItsEqual(t, 1, m0.(*map2Node[string, string, string]).n.changedAt)
-
-	ItsEqual(t, 1, v0.n.recomputedAt)
-	ItsEqual(t, 1, v1.n.recomputedAt)
-	ItsEqual(t, 1, m0.(*map2Node[string, string, string]).n.recomputedAt)
+	ItsEqual(t, 0, v0.n.setAt)
+	ItsEqual(t, 0, v0.n.changedAt)
+	ItsEqual(t, 0, v1.n.setAt)
+	ItsEqual(t, 0, v1.n.changedAt)
+	ItsEqual(t, 0, m0.(*map2Node[string, string, string]).n.changedAt)
+	ItsEqual(t, 0, v0.n.recomputedAt)
+	ItsEqual(t, 0, v1.n.recomputedAt)
+	ItsEqual(t, 0, m0.(*map2Node[string, string, string]).n.recomputedAt)
 
 	ItsEqual(t, "foo bar", m0.Value())
 
 	v0.Set("not foo")
+	ItsEqual(t, 1, v0.n.setAt)
+	ItsEqual(t, 0, v1.n.setAt)
 
-	err = Stabilize(context.TODO(), m0)
+	err = Stabilize(ctx, m0)
 	ItsNil(t, err)
 
-	ItsEqual(t, 1, v0.n.initializedAt)
-	ItsEqual(t, 1, v1.n.initializedAt)
-	ItsEqual(t, 1, m0.(*map2Node[string, string, string]).n.initializedAt)
+	ItsEqual(t, 1, v0.n.changedAt)
+	ItsEqual(t, 0, v1.n.changedAt)
+	ItsEqual(t, 1, m0.(*map2Node[string, string, string]).n.changedAt)
 
-	ItsEqual(t, 2, v0.n.changedAt)
-	ItsEqual(t, 1, v1.n.changedAt)
-	ItsEqual(t, 2, m0.(*map2Node[string, string, string]).n.changedAt)
-
-	ItsEqual(t, 2, v0.n.recomputedAt)
-	ItsEqual(t, 1, v1.n.recomputedAt)
-	ItsEqual(t, 2, m0.(*map2Node[string, string, string]).n.recomputedAt)
+	ItsEqual(t, 1, v0.n.recomputedAt)
+	ItsEqual(t, 0, v1.n.recomputedAt)
+	ItsEqual(t, 1, m0.(*map2Node[string, string, string]).n.recomputedAt)
 
 	ItsEqual(t, "not foo bar", m0.Value())
 }
 
 func Test_Stabilize_unevenHeights(t *testing.T) {
+	ctx := testContext()
+
 	v0 := Var("foo")
 	v1 := Var("bar")
 	m0 := Map2[string, string](v0, v1, func(a, b string) (string, error) {
@@ -101,17 +98,19 @@ func Test_Stabilize_unevenHeights(t *testing.T) {
 		return a + " != " + b, nil
 	})
 
-	err := Stabilize(context.TODO(), m1)
+	err := Stabilize(ctx, m1)
 	ItsNil(t, err)
 	ItsEqual(t, "moo != foo bar", m1.Value())
 
 	v0.Set("not foo")
-	err = Stabilize(context.TODO(), m1)
+	err = Stabilize(ctx, m1)
 	ItsNil(t, err)
 	ItsEqual(t, "moo != not foo bar", m1.Value())
 }
 
 func Test_Stabilize_jsDocs(t *testing.T) {
+	ctx := testContext()
+
 	type Entry struct {
 		Entry string
 		Time  time.Time
@@ -141,7 +140,7 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 	)
 
 	err := Stabilize(
-		context.Background(),
+		ctx,
 		output,
 	)
 	ItsNil(t, err)
@@ -151,7 +150,7 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 		"5", now.Add(5 * time.Second),
 	})
 	err = Stabilize(
-		context.Background(),
+		ctx,
 		output,
 	)
 	ItsNil(t, err)

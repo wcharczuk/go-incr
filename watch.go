@@ -2,13 +2,21 @@ package incr
 
 import "context"
 
-// Watch returns a new watch incremental that tracks values for a given incremental.
+// Watch returns a new watch incremental that tracks
+// values for a given incremental.
 func Watch[A any](i Incr[A]) *WatchIncr[A] {
 	w := &WatchIncr[A]{
+		n:    newNode(),
 		incr: i,
 	}
 	return w
 }
+
+var (
+	_ Incr[string] = (*WatchIncr[string])(nil)
+	_ GraphNode    = (*WatchIncr[string])(nil)
+	_ Stabilizer   = (*WatchIncr[string])(nil)
+)
 
 // WatchIncr is the implementation of `Watch`.
 type WatchIncr[A any] struct {

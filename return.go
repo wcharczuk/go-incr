@@ -1,14 +1,20 @@
 package incr
 
-import "context"
-
-// Return yields an incremental for a given value.
+// Return yields a constant incremental for a given value.
+//
+// Note that it does not implement `Stabilizer` and is effectively
+// always the same value (and treated as such).
 func Return[T any](v T) Incr[T] {
 	return &returnIncr[T]{
 		n: newNode(),
 		v: v,
 	}
 }
+
+var (
+	_ Incr[string] = (*returnIncr[string])(nil)
+	_ GraphNode    = (*returnIncr[string])(nil)
+)
 
 type returnIncr[T any] struct {
 	n *Node
@@ -18,7 +24,5 @@ type returnIncr[T any] struct {
 func (r returnIncr[T]) Node() *Node { return r.n }
 
 func (r returnIncr[T]) Value() T { return r.v }
-
-func (r returnIncr[T]) Stabilize(_ context.Context) error { return nil }
 
 func (r returnIncr[T]) String() string { return "return[" + r.n.id.Short() + "]" }

@@ -9,24 +9,32 @@ import (
 // The goal of the cutoff incremental is to stop recomputation at a given
 // node if the difference between the previous and latest values are not
 // significant enough to warrant a full recomputation of the children of this node.
-func Cutoff[A comparable](i Incr[A], fn func(value A, latest A) bool) Incr[A] {
+func Cutoff[A comparable](i Incr[A], fn func(value, latest A) bool) Incr[A] {
 	n := newNode()
-	n.parents = append(n.parents, i)
 	co := &cutoffIncr[A]{
 		i:  i,
 		fn: fn,
 	}
-	i.Node().children = append(i.Node().children, co)
+	n.cutoff = co.Cutoff
+	n.children = append(n.children, i)
+	i.Node().parents = append(i.Node().parents, co)
 	return co
 }
+
+var (
+	_ Incr[string] = (*cutoffIncr[string])(nil)
+	_ GraphNode    = (*cutoffIncr[string])(nil)
+	_ Stabilizer   = (*cutoffIncr[string])(nil)
+	_ Cutoffer     = (*cutoffIncr[string])(nil)
+)
 
 // cutoffIncr is a concrete implementation of Incr for
 // the cutoff operator.
 type cutoffIncr[A comparable] struct {
 	n     *Node
 	i     Incr[A]
-	fn    func(A, A) bool
 	value A
+	fn    func(A, A) bool
 }
 
 func (c *cutoffIncr[A]) Value() A {
@@ -34,11 +42,12 @@ func (c *cutoffIncr[A]) Value() A {
 }
 
 func (c *cutoffIncr[A]) Stabilize(ctx context.Context) error {
-	newValue := c.i.Value()
-	if c.fn(c.value, newValue) {
-		c.value = c.i.Value()
-	}
+	c.value = c.i.Value()
 	return nil
+}
+
+func (c *cutoffIncr[A]) Cutoff(ctx context.Context) bool {
+	return c.fn(c.value, c.i.Value())
 }
 
 func (c *cutoffIncr[A]) Node() *Node {

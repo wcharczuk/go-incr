@@ -8,9 +8,7 @@ import "context"
 // typically find on Incr[A].
 func Var[T any](t T) *VarIncr[T] {
 	return &VarIncr[T]{
-		n: &Node{
-			id: newNodeID(),
-		},
+		n:  newNode(),
 		nv: t,
 	}
 }
@@ -18,7 +16,8 @@ func Var[T any](t T) *VarIncr[T] {
 // Assert interface implementations.
 var (
 	_ Incr[string] = (*VarIncr[string])(nil)
-	_ Initializer  = (*VarIncr[string])(nil)
+	_ GraphNode    = (*VarIncr[string])(nil)
+	_ Stabilizer   = (*VarIncr[string])(nil)
 )
 
 // VarIncr is a type that can represent a Var incremental.
@@ -35,7 +34,8 @@ type VarIncr[T any] struct {
 // This will invalidate any nodes that reference this variable.
 func (vn *VarIncr[T]) Set(v T) {
 	vn.nv = v
-	vn.n.changedAt = vn.n.gs.generation + 1
+	vn.n.setAt = vn.n.gs.sn
+	vn.n.gs.rh.add(vn)
 }
 
 // Node implements Incr[A].
@@ -44,16 +44,8 @@ func (vn *VarIncr[T]) Node() *Node { return vn.n }
 // Value implements Incr[A].
 func (vn *VarIncr[T]) Value() T { return vn.v }
 
-// Initialize implements Initializer.
-func (vn *VarIncr[T]) Initialize(ctx context.Context) error {
-	tracePrintf(ctx, "%s initializing", vn.String())
-	vn.n.changedAt = vn.n.gs.generation + 1
-	return nil
-}
-
 // Stabilize implements Incr[A].
 func (vn *VarIncr[T]) Stabilize(ctx context.Context) error {
-	tracePrintf(ctx, "%s stabilizing", vn.String())
 	vn.v = vn.nv
 	return nil
 }
