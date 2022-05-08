@@ -131,6 +131,28 @@ func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
 	ItsEqual(t, 2, z.Node().numRecomputes)
 }
 
+func Test_Stabilize_doubleVarSet_singleUpdate(t *testing.T) {
+	ctx := testContext()
+
+	a := Var("a")
+	b := Var("b")
+	m := Map2(a.Read(), b.Read(), func(_ context.Context, v0, v1 string) (string, error) {
+		return v0 + " " + v1, nil
+	})
+
+	_ = Stabilize(ctx, m)
+	ItsEqual(t, "a b", m.Value())
+
+	a.Set("aa")
+	ItsEqual(t, 1, a.Node().gs.rh.len())
+
+	a.Set("aaa")
+	ItsEqual(t, 1, a.Node().gs.rh.len())
+
+	_ = Stabilize(ctx, m)
+	ItsEqual(t, "aaa b", m.Value())
+}
+
 func Test_Stabilize_verifyPartial(t *testing.T) {
 	ctx := testContext()
 
