@@ -10,15 +10,62 @@ func newRecomputeHeap(maxHeight int) *recomputeHeap {
 }
 
 // recomputeHeap is a height ordered list of lists of nodes.
-//
-// NOTE(wc): we should really switch this to a structure more similar
-// to a lru cache, where we keep a linked list of nodes per "height"
-// and a lookup map, that links to the node in its place in a height list.
 type recomputeHeap struct {
 	maxHeight int
 
 	heights []*recomputeHeapList
 	lookup  map[Identifier]*recomputeHeapListItem
+}
+
+func (rh *recomputeHeap) Len() int { return len(rh.lookup) }
+
+// Add adds a node to the recompute heap at a given height.
+func (rh *recomputeHeap) Add(s GraphNode) {
+	sn := s.Node()
+	if sn.height >= rh.maxHeight {
+		panic("recompute heap; cannot add node with height greater than max height")
+	}
+	if rh.heights[sn.height] == nil {
+		rh.heights[sn.height] = new(recomputeHeapList)
+	}
+	item := rh.heights[sn.height].push(s)
+	rh.lookup[sn.id] = item
+}
+
+// Has returns if a given node exists in the recompute heap at its height by id
+//
+// there is an opportunity here to optimize this better with a lookup.
+func (rh *recomputeHeap) Has(s GraphNode) (ok bool) {
+	sn := s.Node()
+	if sn.height >= rh.maxHeight {
+		panic("recompute heap; cannot has node with height greater than max height")
+	}
+	_, ok = rh.lookup[sn.id]
+	return
+}
+
+// RemoveMin removes the minimum node from the recompute heap.
+func (rh *recomputeHeap) RemoveMin() GraphNode {
+	for height := range rh.heights {
+		if rh.heights[height] != nil && rh.heights[height].head != nil {
+			id, node := rh.heights[height].pop()
+			delete(rh.lookup, id)
+			return node
+		}
+	}
+	return nil
+}
+
+// Remove removes a specific node from the heap.
+func (rh *recomputeHeap) Remove(s GraphNode) {
+	sn := s.Node()
+
+	item, ok := rh.lookup[sn.id]
+	if !ok {
+		return
+	}
+	delete(rh.lookup, sn.id)
+	rh.heights[sn.height].remove(item)
 }
 
 type recomputeHeapList struct {
@@ -89,55 +136,4 @@ type recomputeHeapListItem struct {
 
 	next     *recomputeHeapListItem
 	previous *recomputeHeapListItem
-}
-
-func (rh *recomputeHeap) len() int { return len(rh.lookup) }
-
-// add adds a node to the recompute heap at a given height.
-func (rh *recomputeHeap) add(s GraphNode) {
-	sn := s.Node()
-	if sn.height >= rh.maxHeight {
-		panic("recompute heap; cannot add node with height greater than max height")
-	}
-	if rh.heights[sn.height] == nil {
-		rh.heights[sn.height] = new(recomputeHeapList)
-	}
-	item := rh.heights[sn.height].push(s)
-	rh.lookup[sn.id] = item
-}
-
-// has returns if a given node exists in the recompute heap at its height by id
-//
-// there is an opportunity here to optimize this better with a lookup.
-func (rh *recomputeHeap) has(s GraphNode) (ok bool) {
-	sn := s.Node()
-	if sn.height >= rh.maxHeight {
-		panic("recompute heap; cannot has node with height greater than max height")
-	}
-	_, ok = rh.lookup[sn.id]
-	return
-}
-
-// removeMin removes the minimum node from the recompute heap.
-func (rh *recomputeHeap) removeMin() GraphNode {
-	for height := range rh.heights {
-		if rh.heights[height] != nil && rh.heights[height].head != nil {
-			id, node := rh.heights[height].pop()
-			delete(rh.lookup, id)
-			return node
-		}
-	}
-	return nil
-}
-
-// remove removes a specific node from the heap.
-func (rh *recomputeHeap) remove(s GraphNode) {
-	sn := s.Node()
-
-	item, ok := rh.lookup[sn.id]
-	if !ok {
-		return
-	}
-	delete(rh.lookup, sn.id)
-	rh.heights[sn.height].remove(item)
 }

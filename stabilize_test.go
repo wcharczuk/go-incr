@@ -144,10 +144,10 @@ func Test_Stabilize_doubleVarSet_singleUpdate(t *testing.T) {
 	ItsEqual(t, "a b", m.Value())
 
 	a.Set("aa")
-	ItsEqual(t, 1, a.Node().gs.rh.len())
+	ItsEqual(t, 1, a.Node().gs.rh.Len())
 
 	a.Set("aaa")
-	ItsEqual(t, 1, a.Node().gs.rh.len())
+	ItsEqual(t, 1, a.Node().gs.rh.Len())
 
 	_ = Stabilize(ctx, m)
 	ItsEqual(t, "aaa b", m.Value())

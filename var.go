@@ -49,8 +49,8 @@ func (vn *varIncr[T]) Set(v T) {
 	// the user can set the variable multiple times
 	// before they stabilize, so only submit
 	// it for recomputation (1) time
-	if !vn.n.gs.rh.has(vn) {
-		vn.n.gs.rh.add(vn)
+	if !vn.n.gs.rh.Has(vn) {
+		vn.n.gs.rh.Add(vn)
 	}
 }
 

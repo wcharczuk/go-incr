@@ -224,8 +224,8 @@ func (n *Node) recompute(ctx context.Context) error {
 		handler(ctx)
 	}
 	for _, p := range n.parents {
-		if !n.gs.rh.has(p) {
-			n.gs.rh.add(p)
+		if !n.gs.rh.Has(p) {
+			n.gs.rh.Add(p)
 		}
 	}
 	return nil
