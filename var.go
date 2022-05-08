@@ -19,6 +19,7 @@ func Var[T any](t T) VarIncr[T] {
 type VarIncr[T any] interface {
 	Incr[T]
 	Set(T)
+	Read() Incr[T]
 }
 
 // Assert interface implementations.
@@ -58,6 +59,11 @@ func (vn *varIncr[T]) Stabilize(ctx context.Context) error {
 	vn.v = vn.nv
 	return nil
 }
+
+// Read returns the var as a plain incr.
+//
+// This helps with some random type inference issues.
+func (vn *varIncr[T]) Read() Incr[T] { return vn }
 
 // String implements fmt.Striger.
 func (vn *varIncr[T]) String() string {

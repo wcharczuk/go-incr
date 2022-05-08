@@ -13,10 +13,10 @@ func Test_Initialize(t *testing.T) {
 	v2 := Var("bar")
 	v3 := Var("baz")
 
-	m0 := Map2[string, string](v0, v1, func(_ context.Context, a, b string) (string, error) {
+	m0 := Map2(v0.Read(), v1.Read(), func(_ context.Context, a, b string) (string, error) {
 		return a + " " + b, nil
 	})
-	m1 := Map2[string, string](v2, v3, func(_ context.Context, a, b string) (string, error) {
+	m1 := Map2(v2.Read(), v3.Read(), func(_ context.Context, a, b string) (string, error) {
 		return a + "/" + b, nil
 	})
 	r0 := Return("hello")

@@ -16,7 +16,7 @@ type Tracer interface {
 
 type tracerKey struct{}
 
-// WithTracing adds a tracer to a given context.
+// WithTracing adds a default tracer to a given context.
 func WithTracing(ctx context.Context) context.Context {
 	return WithTracingOutputs(ctx, os.Stderr, os.Stderr)
 }
@@ -27,6 +27,11 @@ func WithTracingOutputs(ctx context.Context, output, errOutput io.Writer) contex
 		log:    log.New(output, "incr.trace|", log.LUTC|log.Lshortfile|log.Ldate|log.Lmicroseconds),
 		errLog: log.New(errOutput, "incr.trace.err|", log.LUTC|log.Lshortfile|log.Ldate|log.Lmicroseconds),
 	}
+	return WithTracer(ctx, tracer)
+}
+
+// WithTracer adds a tracer to a given context.
+func WithTracer(ctx context.Context, tracer Tracer) context.Context {
 	return context.WithValue(ctx, tracerKey{}, tracer)
 }
 

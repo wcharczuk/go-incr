@@ -11,7 +11,7 @@ func Test_Stabilize(t *testing.T) {
 
 	v0 := Var("foo")
 	v1 := Var("bar")
-	m0 := Map2[string, string](v0, v1, func(_ context.Context, a, b string) (string, error) {
+	m0 := Map2(v0.Read(), v1.Read(), func(_ context.Context, a, b string) (string, error) {
 		return a + " " + b, nil
 	})
 
@@ -22,10 +22,10 @@ func Test_Stabilize(t *testing.T) {
 	ItsEqual(t, 0, v0.Node().changedAt)
 	ItsEqual(t, 0, v1.Node().setAt)
 	ItsEqual(t, 0, v1.Node().changedAt)
-	ItsEqual(t, 0, m0.(*map2Incr[string, string, string]).n.changedAt)
+	ItsEqual(t, 0, m0.Node().changedAt)
 	ItsEqual(t, 0, v0.Node().recomputedAt)
 	ItsEqual(t, 0, v1.Node().recomputedAt)
-	ItsEqual(t, 0, m0.(*map2Incr[string, string, string]).n.recomputedAt)
+	ItsEqual(t, 0, m0.Node().recomputedAt)
 
 	ItsEqual(t, "foo bar", m0.Value())
 
@@ -38,11 +38,11 @@ func Test_Stabilize(t *testing.T) {
 
 	ItsEqual(t, 1, v0.Node().changedAt)
 	ItsEqual(t, 0, v1.Node().changedAt)
-	ItsEqual(t, 1, m0.(*map2Incr[string, string, string]).n.changedAt)
+	ItsEqual(t, 1, m0.Node().changedAt)
 
 	ItsEqual(t, 1, v0.Node().recomputedAt)
 	ItsEqual(t, 0, v1.Node().recomputedAt)
-	ItsEqual(t, 1, m0.(*map2Incr[string, string, string]).n.recomputedAt)
+	ItsEqual(t, 1, m0.Node().recomputedAt)
 
 	ItsEqual(t, "not foo bar", m0.Value())
 }
@@ -52,7 +52,7 @@ func Test_Stabilize_updateHandlers(t *testing.T) {
 
 	v0 := Var("foo")
 	v1 := Var("bar")
-	m0 := Map2[string, string](v0, v1, func(_ context.Context, a, b string) (string, error) {
+	m0 := Map2(v0.Read(), v1.Read(), func(_ context.Context, a, b string) (string, error) {
 		return a + " " + b, nil
 	})
 
@@ -108,10 +108,10 @@ func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
 	}
 
 	a := Var("a")
-	b := Map[string](a, edge("b"))
+	b := Map(a.Read(), edge("b"))
 	c := Map(b, edge("c"))
 	d := Map(c, edge("d"))
-	f := Map[string](a, edge("f"))
+	f := Map(a.Read(), edge("f"))
 	e := Map(f, edge("e"))
 
 	z := Map2(d, e, func(_ context.Context, v0, v1 string) (string, error) {
@@ -139,13 +139,13 @@ func Test_Stabilize_verifyPartial(t *testing.T) {
 	v1 := Var("moo")
 	c1 := Return("baz")
 
-	m0 := Map2[string](v0, c0, func(_ context.Context, a, b string) (string, error) {
+	m0 := Map2(v0.Read(), c0, func(_ context.Context, a, b string) (string, error) {
 		return a + " " + b, nil
 	})
 	co0 := Cutoff(m0, func(n, o string) bool {
 		return len(n) == len(o)
 	})
-	m1 := Map2[string](v1, c1, func(_ context.Context, a, b string) (string, error) {
+	m1 := Map2(v1.Read(), c1, func(_ context.Context, a, b string) (string, error) {
 		return a + " != " + b, nil
 	})
 	co1 := Cutoff(m1, func(n, o string) bool {
@@ -185,8 +185,8 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 	}
 
 	i := Var(data)
-	output := Map[[]Entry](
-		i,
+	output := Map(
+		i.Read(),
 		func(_ context.Context, entries []Entry) (output []string, err error) {
 			for _, e := range entries {
 				if e.Time.Sub(now) > 2*time.Second {
@@ -230,7 +230,7 @@ func Test_Stabilize_bind(t *testing.T) {
 	i0 := Return("foo")
 	i1 := Return("bar")
 
-	b := Bind[bool](sw, func(_ context.Context, swv bool) (Incr[string], error) {
+	b := Bind(sw.Read(), func(_ context.Context, swv bool) (Incr[string], error) {
 		if swv {
 			return i0, nil
 		}
@@ -263,7 +263,7 @@ func Test_Stabilize_bind2(t *testing.T) {
 	i0 := Return("foo")
 	i1 := Return("bar")
 
-	b := Bind2[bool, bool](sw0, sw1, func(_ context.Context, swv0, swv1 bool) (Incr[string], error) {
+	b := Bind2(sw0.Read(), sw1.Read(), func(_ context.Context, swv0, swv1 bool) (Incr[string], error) {
 		if swv0 && swv1 {
 			return i0, nil
 		}
@@ -307,7 +307,7 @@ func Test_Stabilize_bind3(t *testing.T) {
 	i0 := Return("foo")
 	i1 := Return("bar")
 
-	b := Bind3[bool, bool, bool](sw0, sw1, sw2, func(_ context.Context, swv0, swv1, swv2 bool) (Incr[string], error) {
+	b := Bind3(sw0.Read(), sw1.Read(), sw2.Read(), func(_ context.Context, swv0, swv1, swv2 bool) (Incr[string], error) {
 		if swv0 && swv1 && swv2 {
 			return i0, nil
 		}
