@@ -85,11 +85,8 @@ type Node struct {
 	numRecomputes uint64
 }
 
-// String returns a string representation of the node.
-func (n *Node) String() string { return n.id.String() }
-
-// Short returns a short string representation of the node.
-func (n *Node) Short() string { return n.id.Short() }
+// ID returns the node identifier.
+func (n *Node) ID() Identifier { return n.id }
 
 // AddChildren adds children.
 func (n *Node) AddChildren(c ...GraphNode) {

@@ -148,7 +148,7 @@ type mapFoldIncr[K comparable, V any, O any] struct {
 	val  O
 }
 
-func (mfn *mapFoldIncr[K, V, O]) String() string { return "map_fold[" + mfn.Node().Short() + "]" }
+func (mfn *mapFoldIncr[K, V, O]) String() string { return "map_fold[" + mfn.Node().ID().Short() + "]" }
 
 func (mfn *mapFoldIncr[K, V, O]) Node() *incr.Node { return mfn.n }
 
