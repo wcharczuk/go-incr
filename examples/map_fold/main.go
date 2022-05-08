@@ -149,11 +149,8 @@ func (mfn *mapAddsIncr[K, V]) Stabilize(_ context.Context) error {
 }
 
 // MapFold returns an incremental that takes a map typed incremental as an
-// input, an initial value, and a combinator yielding an incremental
-// representing the result of the combinator.
-//
-// Between stabilizations only the _additions_ to the input map will be considered for subsequent folds, and as a result
-// just a subset of the computation will be processed each pass.
+// input, an initial value, and a combinator, yielding an incremental
+// representing the result of the combinator for the input and zero value.
 func MapFold[K comparable, V any, O any](
 	i incr.Incr[map[K]V],
 	v0 O,
@@ -189,7 +186,11 @@ func (mfn *mapFoldIncr[K, V, O]) Stabilize(_ context.Context) error {
 	return nil
 }
 
-func fold[K comparable, V any, O any](input map[K]V, zero O, fn func(K, V, O) O) (o O) {
+func fold[K comparable, V any, O any](
+	input map[K]V,
+	zero O,
+	fn func(K, V, O) O,
+) (o O) {
 	o = zero
 	for k, v := range input {
 		o = fn(k, v, o)
