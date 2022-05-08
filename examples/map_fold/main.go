@@ -80,24 +80,25 @@ func main() {
 
 	data := make(map[incr.Identifier]Order)
 	fillOrders(data, 1024)
-	dataInput := incr.Var(data)
 
+	dataInput := incr.Var(data)
+	dataInputAdds := MapAdds(dataInput.Read())
 	orders := MapFold(
-		dataInput.Read(),
+		dataInputAdds,
 		0,
 		func(_ incr.Identifier, o Order, v int) int {
 			return v + 1
 		},
 	)
 	shares := MapFold(
-		dataInput.Read(),
+		dataInputAdds,
 		0,
 		func(_ incr.Identifier, o Order, v int) int {
 			return v + o.Size
 		},
 	)
 	symbolCounts := MapFold(
-		dataInput.Read(),
+		dataInputAdds,
 		make(map[Symbol]int),
 		func(_ incr.Identifier, o Order, w map[Symbol]int) map[Symbol]int {
 			w[o.Sym]++
@@ -117,6 +118,34 @@ func main() {
 	fmt.Println("orders:", orders.Value())
 	fmt.Println("shares:", shares.Value())
 	fmt.Println("orders by symbol:", symbolCounts.Value())
+}
+
+func MapAdds[K comparable, V any](
+	i incr.Incr[map[K]V],
+) incr.Incr[map[K]V] {
+	o := &mapAddsIncr[K, V]{
+		n: incr.NewNode(),
+		i: i,
+	}
+	incr.Link(o, i)
+	return o
+}
+
+type mapAddsIncr[K comparable, V any] struct {
+	n   *incr.Node
+	i   incr.Incr[map[K]V]
+	val map[K]V
+}
+
+func (mfn *mapAddsIncr[K, V]) String() string { return "map_adds[" + mfn.Node().ID().Short() + "]" }
+
+func (mfn *mapAddsIncr[K, V]) Node() *incr.Node { return mfn.n }
+
+func (mfn *mapAddsIncr[K, V]) Value() map[K]V { return mfn.val }
+
+func (mfn *mapAddsIncr[K, V]) Stabilize(_ context.Context) error {
+	mfn.val = diffMapAdds(mfn.val, mfn.i.Value())
+	return nil
 }
 
 // MapFold returns an incremental that takes a map typed incremental as an
@@ -156,8 +185,7 @@ func (mfn *mapFoldIncr[K, V, O]) Value() O { return mfn.val }
 
 func (mfn *mapFoldIncr[K, V, O]) Stabilize(_ context.Context) error {
 	new := mfn.i.Value()
-	adds, _ := diffMap(mfn.last, new)
-	mfn.val = fold(adds, mfn.val, mfn.fn)
+	mfn.val = fold(new, mfn.val, mfn.fn)
 	return nil
 }
 
@@ -169,7 +197,23 @@ func fold[K comparable, V any, O any](input map[K]V, zero O, fn func(K, V, O) O)
 	return
 }
 
-// diffMap returns the additions and removals for two different "versions" of a given map.
+func diffMapAdds[K comparable, V any](m0, m1 map[K]V) (add map[K]V) {
+	add = make(map[K]V)
+	var ok bool
+	if m0 != nil {
+		for k, v := range m1 {
+			if _, ok = m0[k]; !ok {
+				add[k] = v
+			}
+		}
+		return
+	}
+	for k, v := range m1 {
+		add[k] = v
+	}
+	return
+}
+
 func diffMap[K comparable, V any](m0, m1 map[K]V) (add, rem map[K]V) {
 	add = make(map[K]V)
 	rem = make(map[K]V)
