@@ -20,9 +20,9 @@ func Bind2[A, B, C any](a Incr[A], b Incr[B], fn func(context.Context, A, B) (In
 
 var (
 	_ Incr[bool]   = (*bind2Incr[string, float64, bool])(nil)
-	_ Binder[bool] = (*bind2Incr[string, float64, bool])(nil)
-	_ GraphNode    = (*bind2Incr[string, float64, bool])(nil)
-	_ Stabilizer   = (*bind2Incr[string, float64, bool])(nil)
+	_ IBind[bool]  = (*bind2Incr[string, float64, bool])(nil)
+	_ INode        = (*bind2Incr[string, float64, bool])(nil)
+	_ IStabilize   = (*bind2Incr[string, float64, bool])(nil)
 	_ fmt.Stringer = (*bind2Incr[string, float64, bool])(nil)
 )
 
@@ -58,5 +58,5 @@ func (b *bind2Incr[A, B, C]) Stabilize(ctx context.Context) error {
 }
 
 func (b *bind2Incr[A, B, C]) String() string {
-	return "bind2[" + b.n.id.Short() + "]"
+	return FormatNode(b.n, "bind2")
 }

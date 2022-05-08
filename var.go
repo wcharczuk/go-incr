@@ -8,7 +8,8 @@ import (
 // Var returns a new var node.
 //
 // It will include an extra method `Set` above what you
-// typically find on Incr[A].
+// typically find on Incr[A], as well as a `Read` method
+// that helps integrate into subcomputations.
 func Var[T any](t T) VarIncr[T] {
 	return &varIncr[T]{
 		n:  NewNode(),
@@ -16,6 +17,7 @@ func Var[T any](t T) VarIncr[T] {
 	}
 }
 
+// VarIncr is a type that implements a variable.
 type VarIncr[T any] interface {
 	Incr[T]
 	Set(T)
@@ -24,10 +26,11 @@ type VarIncr[T any] interface {
 
 // Assert interface implementations.
 var (
-	_ Incr[string] = (*varIncr[string])(nil)
-	_ GraphNode    = (*varIncr[string])(nil)
-	_ Stabilizer   = (*varIncr[string])(nil)
-	_ fmt.Stringer = (*varIncr[string])(nil)
+	_ Incr[string]    = (*varIncr[string])(nil)
+	_ VarIncr[string] = (*varIncr[string])(nil)
+	_ INode           = (*varIncr[string])(nil)
+	_ IStabilize      = (*varIncr[string])(nil)
+	_ fmt.Stringer    = (*varIncr[string])(nil)
 )
 
 // VarIncr is a type that can represent a Var incremental.
@@ -44,14 +47,7 @@ type varIncr[T any] struct {
 // This will invalidate any nodes that reference this variable.
 func (vn *varIncr[T]) Set(v T) {
 	vn.nv = v
-	vn.n.setAt = vn.n.gs.sn
-
-	// the user can set the variable multiple times
-	// before they stabilize, so only submit
-	// it for recomputation (1) time
-	if !vn.n.gs.rh.Has(vn) {
-		vn.n.gs.rh.Add(vn)
-	}
+	SetStale(vn)
 }
 
 // Node implements Incr[A].
@@ -73,5 +69,5 @@ func (vn *varIncr[T]) Read() Incr[T] { return vn }
 
 // String implements fmt.Striger.
 func (vn *varIncr[T]) String() string {
-	return "var[" + vn.n.id.Short() + "]"
+	return FormatNode(vn.n, "var")
 }

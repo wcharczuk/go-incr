@@ -32,12 +32,12 @@ func concat(_ context.Context, a, b string) (string, error) {
 	return a + b, nil
 }
 
-func benchStabilize(gs GraphNode, b *testing.B) {
+func benchStabilize(gs INode, b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		benchStabilizeSingle(gs, n)
 	}
 }
 
-func benchStabilizeSingle(gs GraphNode, n int) {
+func benchStabilizeSingle(gs INode, n int) {
 	_ = Stabilize(testContext(), gs)
 }

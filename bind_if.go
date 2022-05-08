@@ -20,11 +20,11 @@ func BindIf[A any](a Incr[A], b Incr[A], p Incr[bool]) Incr[A] {
 }
 
 var (
-	_ Incr[string]   = (*bindIfIncr[string])(nil)
-	_ GraphNode      = (*bindIfIncr[string])(nil)
-	_ Binder[string] = (*bindIfIncr[string])(nil)
-	_ Stabilizer     = (*bindIfIncr[string])(nil)
-	_ fmt.Stringer   = (*bindIfIncr[string])(nil)
+	_ Incr[string]  = (*bindIfIncr[string])(nil)
+	_ INode         = (*bindIfIncr[string])(nil)
+	_ IBind[string] = (*bindIfIncr[string])(nil)
+	_ IStabilize    = (*bindIfIncr[string])(nil)
+	_ fmt.Stringer  = (*bindIfIncr[string])(nil)
 )
 
 type bindIfIncr[A any] struct {
@@ -60,5 +60,5 @@ func (b *bindIfIncr[A]) Stabilize(ctx context.Context) error {
 }
 
 func (b *bindIfIncr[A]) String() string {
-	return "bind_if[" + b.n.id.Short() + "]"
+	return FormatNode(b.n, "bind_if")
 }

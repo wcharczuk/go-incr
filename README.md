@@ -38,7 +38,7 @@ There is some consideration with this library on the balance between hiding muta
 
 As a result, most of the features of this library can be leveraged externally, but little of the internal state and recomputation mechanism is exposed to the user. 
 
-Specific implications of this are, the `GraphNode` interface includes a function that returns the `Node` metadata, but this `Node` struct has 0 exported members on it, and users of this library should not really concern themselves with what's on it, just that it gets supplied to `Incr` through the interface implementation.
+Specific implications of this are, the `INode` interface includes a function that returns the `Node` metadata, but this `Node` struct has 0 exported members on it, and users of this library should not really concern themselves with what's on it, just that it gets supplied to `Incr` through the interface implementation.
 
 # Progress
 

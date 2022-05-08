@@ -20,7 +20,7 @@ type recomputeHeap struct {
 func (rh *recomputeHeap) Len() int { return len(rh.lookup) }
 
 // Add adds a node to the recompute heap at a given height.
-func (rh *recomputeHeap) Add(s GraphNode) {
+func (rh *recomputeHeap) Add(s INode) {
 	sn := s.Node()
 	if sn.height >= rh.maxHeight {
 		panic("recompute heap; cannot add node with height greater than max height")
@@ -35,7 +35,7 @@ func (rh *recomputeHeap) Add(s GraphNode) {
 // Has returns if a given node exists in the recompute heap at its height by id
 //
 // there is an opportunity here to optimize this better with a lookup.
-func (rh *recomputeHeap) Has(s GraphNode) (ok bool) {
+func (rh *recomputeHeap) Has(s INode) (ok bool) {
 	sn := s.Node()
 	if sn.height >= rh.maxHeight {
 		panic("recompute heap; cannot has node with height greater than max height")
@@ -45,7 +45,7 @@ func (rh *recomputeHeap) Has(s GraphNode) (ok bool) {
 }
 
 // RemoveMin removes the minimum node from the recompute heap.
-func (rh *recomputeHeap) RemoveMin() GraphNode {
+func (rh *recomputeHeap) RemoveMin() INode {
 	for height := range rh.heights {
 		if rh.heights[height] != nil && rh.heights[height].head != nil {
 			id, node := rh.heights[height].pop()
@@ -57,7 +57,7 @@ func (rh *recomputeHeap) RemoveMin() GraphNode {
 }
 
 // Remove removes a specific node from the heap.
-func (rh *recomputeHeap) Remove(s GraphNode) {
+func (rh *recomputeHeap) Remove(s INode) {
 	sn := s.Node()
 
 	item, ok := rh.lookup[sn.id]
@@ -74,7 +74,7 @@ type recomputeHeapList struct {
 	len  int
 }
 
-func (rhl *recomputeHeapList) push(v GraphNode) *recomputeHeapListItem {
+func (rhl *recomputeHeapList) push(v INode) *recomputeHeapListItem {
 	item := &recomputeHeapListItem{
 		key:   v.Node().id,
 		value: v,
@@ -91,7 +91,7 @@ func (rhl *recomputeHeapList) push(v GraphNode) *recomputeHeapListItem {
 	return item
 }
 
-func (rhl *recomputeHeapList) pop() (k Identifier, v GraphNode) {
+func (rhl *recomputeHeapList) pop() (k Identifier, v INode) {
 	if rhl.head == nil {
 		return
 	}
@@ -132,7 +132,7 @@ func (rhl *recomputeHeapList) remove(i *recomputeHeapListItem) {
 
 type recomputeHeapListItem struct {
 	key   Identifier
-	value GraphNode
+	value INode
 
 	next     *recomputeHeapListItem
 	previous *recomputeHeapListItem

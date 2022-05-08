@@ -20,8 +20,8 @@ func Map2[A, B, C any](a Incr[A], b Incr[B], fn func(context.Context, A, B) (C, 
 
 var (
 	_ Incr[string] = (*map2Incr[int, int, string])(nil)
-	_ GraphNode    = (*map2Incr[int, int, string])(nil)
-	_ Stabilizer   = (*map2Incr[int, int, string])(nil)
+	_ INode        = (*map2Incr[int, int, string])(nil)
+	_ IStabilize   = (*map2Incr[int, int, string])(nil)
 	_ fmt.Stringer = (*map2Incr[int, int, string])(nil)
 )
 
@@ -48,5 +48,5 @@ func (mn *map2Incr[A, B, C]) Stabilize(ctx context.Context) (err error) {
 }
 
 func (mn *map2Incr[A, B, C]) String() string {
-	return "map2[" + mn.n.id.Short() + "]"
+	return FormatNode(mn.n, "map2")
 }

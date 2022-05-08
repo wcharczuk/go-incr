@@ -520,3 +520,28 @@ func Test_Stabilize_mapIf(t *testing.T) {
 	_ = Stabilize(ctx, mi0)
 	ItsEqual(t, 1, mi0.Value())
 }
+
+func Test_Stabilize_mapN(t *testing.T) {
+	ctx := testContext()
+
+	sum := func(values ...int) (output int) {
+		if len(values) == 0 {
+			return
+		}
+		output = values[0]
+		for _, value := range values[1:] {
+			output += value
+		}
+		return
+	}
+
+	c0 := Return(1)
+	c1 := Return(2)
+	c2 := Return(3)
+	mn := MapN(func(_ context.Context, inputs ...int) (int, error) {
+		return sum(inputs...), nil
+	}, c0, c1, c2)
+
+	_ = Stabilize(ctx, mn)
+	ItsEqual(t, 6, mn.Value())
+}

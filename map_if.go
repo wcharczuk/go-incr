@@ -1,6 +1,9 @@
 package incr
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 func MapIf[A any](a, b Incr[A], p Incr[bool]) Incr[A] {
 	o := &mapIfIncr[A]{
@@ -15,8 +18,9 @@ func MapIf[A any](a, b Incr[A], p Incr[bool]) Incr[A] {
 
 var (
 	_ Incr[string] = (*mapIfIncr[string])(nil)
-	_ GraphNode    = (*mapIfIncr[string])(nil)
-	_ Stabilizer   = (*mapIfIncr[string])(nil)
+	_ INode        = (*mapIfIncr[string])(nil)
+	_ IStabilize   = (*mapIfIncr[string])(nil)
+	_ fmt.Stringer = (*mapIfIncr[string])(nil)
 )
 
 type mapIfIncr[A any] struct {
@@ -42,4 +46,4 @@ func (mi *mapIfIncr[A]) Stabilize(ctx context.Context) error {
 	return nil
 }
 
-func (mi *mapIfIncr[A]) String() string { return "map_if[" + mi.n.id.Short() + "]" }
+func (mi *mapIfIncr[A]) String() string { return FormatNode(mi.n, "map_if") }

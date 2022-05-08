@@ -17,11 +17,36 @@ func Bind[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], error)) Inc
 	return o
 }
 
+// BindUpdate is a helper for dealing with bind node changes
+// specifically handling unlinking and linking bound nodes
+// when the bind changes.
+func BindUpdate[A any](ctx context.Context, b IBind[A]) error {
+	oldValue, newValue, err := b.Bind(ctx)
+	if err != nil {
+		return err
+	}
+	if oldValue == nil {
+		Link(newValue, b)
+		discoverAllNodes(ctx, b.Node().gs, newValue)
+		b.SetBind(newValue)
+		return nil
+	}
+
+	if oldValue.Node().id != newValue.Node().id {
+		Unlink(oldValue)
+		undiscoverAllNodes(ctx, b.Node().gs, oldValue)
+		Link(newValue, b)
+		discoverAllNodes(ctx, b.Node().gs, newValue)
+		b.SetBind(newValue)
+	}
+	return nil
+}
+
 var (
 	_ Incr[bool]   = (*bindIncr[string, bool])(nil)
-	_ Binder[bool] = (*bindIncr[string, bool])(nil)
-	_ GraphNode    = (*bindIncr[string, bool])(nil)
-	_ Stabilizer   = (*bindIncr[string, bool])(nil)
+	_ IBind[bool]  = (*bindIncr[string, bool])(nil)
+	_ INode        = (*bindIncr[string, bool])(nil)
+	_ IStabilize   = (*bindIncr[string, bool])(nil)
 	_ fmt.Stringer = (*bindIncr[string, bool])(nil)
 )
 
@@ -56,5 +81,5 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 }
 
 func (b *bindIncr[A, B]) String() string {
-	return "bind[" + b.n.id.Short() + "]"
+	return FormatNode(b.n, "bind")
 }

@@ -4,25 +4,33 @@ import (
 	"context"
 )
 
-// Stabilize kicks off the full stabilization pass given an initial node
-// connected to the graph.
+// Stabilize kicks off the full stabilization pass given initial nodes
+// representing graphs.
 //
-// The node does not need to be an input, outpoot, root or leaf node
-// in the graph, the full graph will be discovered, and initialized
-// on the first call to stabilize, and evaluated subsequently each pass.
-func Stabilize(ctx context.Context, gn GraphNode) error {
+// The nodes do not need to be any specific type of node in the graph
+// as the full graph will be initialized on the first call to stabilize for that graph.
+func Stabilize(ctx context.Context, nodes ...INode) error {
+	for _, gn := range nodes {
+		if err := stabilizeNode(ctx, gn); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func stabilizeNode(ctx context.Context, gn INode) error {
 	gnn := gn.Node()
 	if shouldInitialize(gnn) {
 		tracePrintf(ctx, "stabilize; initializing graph rooted at: %v", gn)
 		Initialize(ctx, gn)
 	}
 	defer func() {
-		tracePrintf(ctx, "stabilize; stabilization %d complete", gnn.gs.sn)
+		tracePrintf(ctx, "stabilize; stabilization %s.%d complete", gnn.gs.id.Short(), gnn.gs.sn)
 		gnn.gs.sn++
 		gnn.gs.s = StatusNotStabilizing
 	}()
 	gnn.gs.s = StatusStabilizing
-	tracePrintf(ctx, "stabilize; stabilization %d starting", gnn.gs.sn)
+	tracePrintf(ctx, "stabilize; stabilization %s.%d starting", gnn.gs.id.Short(), gnn.gs.sn)
 	return recomputeAll(ctx, gnn.gs)
 }
 
@@ -37,7 +45,7 @@ func shouldInitialize(n *Node) bool {
 
 func recomputeAll(ctx context.Context, gs *graphState) error {
 	var err error
-	var n GraphNode
+	var n INode
 	var nn *Node
 	for gs.rh.Len() > 0 {
 		n = gs.rh.RemoveMin()

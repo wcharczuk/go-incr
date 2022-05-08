@@ -21,9 +21,9 @@ func Bind3[A, B, C, D any](a Incr[A], b Incr[B], c Incr[C], fn func(context.Cont
 
 var (
 	_ Incr[bool]   = (*bind3Incr[string, float64, uint64, bool])(nil)
-	_ Binder[bool] = (*bind3Incr[string, float64, uint64, bool])(nil)
-	_ GraphNode    = (*bind3Incr[string, float64, uint64, bool])(nil)
-	_ Stabilizer   = (*bind3Incr[string, float64, uint64, bool])(nil)
+	_ IBind[bool]  = (*bind3Incr[string, float64, uint64, bool])(nil)
+	_ INode        = (*bind3Incr[string, float64, uint64, bool])(nil)
+	_ IStabilize   = (*bind3Incr[string, float64, uint64, bool])(nil)
 	_ fmt.Stringer = (*bind3Incr[string, float64, uint64, bool])(nil)
 )
 
@@ -60,5 +60,5 @@ func (b *bind3Incr[A, B, C, D]) Stabilize(ctx context.Context) error {
 }
 
 func (b *bind3Incr[A, B, C, D]) String() string {
-	return "bind3[" + b.n.id.Short() + "]"
+	return FormatNode(b.n, "bind3")
 }

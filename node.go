@@ -14,7 +14,7 @@ func NewNode() *Node {
 // specifically adding a set of "inputs" to a "parent" node.
 //
 // The reverse of this is `Unlink` on the parent node.
-func Link(parent GraphNode, inputs ...GraphNode) {
+func Link(parent INode, inputs ...INode) {
 	parent.Node().addChildren(inputs...)
 	for _, gnp := range inputs {
 		gnp.Node().addParents(parent)
@@ -29,7 +29,7 @@ func Link(parent GraphNode, inputs ...GraphNode) {
 //
 // NOTE: It does _not_ remove the node from the recomputation
 // heap or any other non-relationship tracking stores.
-func Unlink(gn GraphNode) {
+func Unlink(gn INode) {
 	id := gn.Node().id
 	for _, c := range gn.Node().children {
 		c.Node().removeParent(id)
@@ -42,6 +42,15 @@ func FormatNode(n *Node, nodeType string) string {
 	return fmt.Sprintf("%s[%s]", nodeType, n.id.Short())
 }
 
+// SetStale sets a node as stale.
+func SetStale(gn INode) {
+	n := gn.Node()
+	n.setAt = n.gs.sn
+	if !n.gs.rh.Has(gn) {
+		n.gs.rh.Add(gn)
+	}
+}
+
 // Node is the common metadata for any node in the computation graph.
 type Node struct {
 	// id is a unique identifier for the node.
@@ -52,10 +61,10 @@ type Node struct {
 	gs *graphState
 
 	// parents are the nodes that depend on this node
-	parents []GraphNode
+	parents []INode
 
 	// children are the nodes that this node depends on
-	children []GraphNode
+	children []INode
 
 	// height is the topological sort height of the
 	// node and is used to order recomputation
@@ -83,11 +92,11 @@ type Node struct {
 	onUpdateHandlers []func(context.Context)
 
 	// stabilize is set during initialization and is a shortcut
-	// to the interface sniff for the node for the Stabilizer interface.
+	// to the interface sniff for the node for the IStabilize interface.
 	stabilize func(context.Context) error
 
 	// cutoff is set during initialization and is a shortcut
-	// to the interface sniff for the node for the Cutoffer interface.
+	// to the interface sniff for the node for the ICutoff interface.
 	cutoff func(context.Context) bool
 
 	// numRecomputes is the number of times we recomputed the node
@@ -104,13 +113,13 @@ func (n *Node) OnUpdate(fn func(context.Context)) {
 //
 
 // addChildren adds children.
-func (n *Node) addChildren(c ...GraphNode) {
+func (n *Node) addChildren(c ...INode) {
 	n.children = append(n.children, c...)
 }
 
 // removeChild removes a specific child from the node.
 func (n *Node) removeChild(id Identifier) {
-	var newChildren []GraphNode
+	var newChildren []INode
 	for _, oc := range n.children {
 		if oc.Node().id != id {
 			newChildren = append(newChildren, oc)
@@ -120,13 +129,13 @@ func (n *Node) removeChild(id Identifier) {
 }
 
 // addParents adds parents.
-func (n *Node) addParents(p ...GraphNode) {
+func (n *Node) addParents(p ...INode) {
 	n.parents = append(n.parents, p...)
 }
 
 // removeParent removes a specific parent from the node.
 func (n *Node) removeParent(id Identifier) {
-	var newParents []GraphNode
+	var newParents []INode
 	for _, oc := range n.parents {
 		if oc.Node().id != id {
 			newParents = append(newParents, oc)
@@ -155,20 +164,20 @@ func (n *Node) maybeCutoff(ctx context.Context) bool {
 	return false
 }
 
-// detectCutoff detects if a GraphNode (which should be the same
-// as as managed by this node reference), implements Cutoffer
+// detectCutoff detects if a INode (which should be the same
+// as as managed by this node reference), implements ICutoff
 // and grabs a reference to the Cutoff delegate function.
-func (n *Node) detectCutoff(gn GraphNode) {
-	if typed, ok := gn.(Cutoffer); ok {
+func (n *Node) detectCutoff(gn INode) {
+	if typed, ok := gn.(ICutoff); ok {
 		n.cutoff = typed.Cutoff
 	}
 }
 
-// detectStabilize detects if a GraphNode (which should be the same
-// as as managed by this node reference), implements Stabilizer
+// detectStabilize detects if a INode (which should be the same
+// as as managed by this node reference), implements IStabilize
 // and grabs a reference to the Stabilize delegate function.
-func (n *Node) detectStabilize(gn GraphNode) {
-	if typed, ok := gn.(Stabilizer); ok {
+func (n *Node) detectStabilize(gn INode) {
+	if typed, ok := gn.(IStabilize); ok {
 		n.stabilize = typed.Stabilize
 	}
 }

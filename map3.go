@@ -1,6 +1,9 @@
 package incr
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 // Map3 applies a function to given input incrementals and returns
 // a new incremental of the output type of that function.
@@ -18,8 +21,9 @@ func Map3[A, B, C, D any](a Incr[A], b Incr[B], c Incr[C], fn func(context.Conte
 
 var (
 	_ Incr[string] = (*map3Incr[int, int, int, string])(nil)
-	_ GraphNode    = (*map3Incr[int, int, int, string])(nil)
-	_ Stabilizer   = (*map3Incr[int, int, int, string])(nil)
+	_ INode        = (*map3Incr[int, int, int, string])(nil)
+	_ IStabilize   = (*map3Incr[int, int, int, string])(nil)
+	_ fmt.Stringer = (*map3Incr[int, int, int, string])(nil)
 )
 
 type map3Incr[A, B, C, D any] struct {
@@ -46,5 +50,5 @@ func (mn *map3Incr[A, B, C, D]) Stabilize(ctx context.Context) (err error) {
 }
 
 func (mn *map3Incr[A, B, C, D]) String() string {
-	return "map3[" + mn.n.id.Short() + "]"
+	return FormatNode(mn.n, "map3")
 }

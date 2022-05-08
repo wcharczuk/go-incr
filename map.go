@@ -1,6 +1,9 @@
 package incr
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 // Map applies a function to a given input incremental and returns
 // a new incremental of the output type of that function.
@@ -16,8 +19,9 @@ func Map[A, B any](a Incr[A], fn func(context.Context, A) (B, error)) Incr[B] {
 
 var (
 	_ Incr[string] = (*mapIncr[int, string])(nil)
-	_ GraphNode    = (*mapIncr[int, string])(nil)
-	_ Stabilizer   = (*mapIncr[int, string])(nil)
+	_ INode        = (*mapIncr[int, string])(nil)
+	_ IStabilize   = (*mapIncr[int, string])(nil)
+	_ fmt.Stringer = (*mapIncr[int, string])(nil)
 )
 
 type mapIncr[A, B any] struct {
@@ -42,5 +46,5 @@ func (mn *mapIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 }
 
 func (mn *mapIncr[A, B]) String() string {
-	return "map[" + mn.n.id.Short() + "]"
+	return FormatNode(mn.n, "map")
 }

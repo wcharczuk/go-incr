@@ -24,9 +24,9 @@ func Cutoff[A any](i Incr[A], fn func(value, latest A) bool) Incr[A] {
 
 var (
 	_ Incr[string] = (*cutoffIncr[string])(nil)
-	_ GraphNode    = (*cutoffIncr[string])(nil)
-	_ Stabilizer   = (*cutoffIncr[string])(nil)
-	_ Cutoffer     = (*cutoffIncr[string])(nil)
+	_ INode        = (*cutoffIncr[string])(nil)
+	_ IStabilize   = (*cutoffIncr[string])(nil)
+	_ ICutoff      = (*cutoffIncr[string])(nil)
 )
 
 // cutoffIncr is a concrete implementation of Incr for
@@ -55,4 +55,4 @@ func (c *cutoffIncr[A]) Node() *Node {
 	return c.n
 }
 
-func (c *cutoffIncr[A]) String() string { return "cutoff[" + c.n.id.Short() + "]" }
+func (c *cutoffIncr[A]) String() string { return FormatNode(c.n, "cutoff") }

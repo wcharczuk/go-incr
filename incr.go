@@ -10,26 +10,27 @@ type Incr[T any] interface {
 	Value() T
 }
 
-type GraphNode interface {
+// INode is a node in the incremental graph.
+type INode interface {
 	Node() *Node
 }
 
-// Stabilizer is a type that can be stabilized.
-type Stabilizer interface {
+// IStabilize is a type that can be stabilized.
+type IStabilize interface {
 	Stabilize(context.Context) error
 }
 
-// Binder is a node that implements Bind, which
+// IBind is a node that implements Bind, which
 // dynamically swaps out entire subgraphs
 // based on input incrementals.
-type Binder[A any] interface {
-	GraphNode
+type IBind[A any] interface {
+	INode
 	Bind(context.Context) (old, new Incr[A], err error)
 	SetBind(Incr[A])
 }
 
-// Cutoffer is a type that determines if changes should
+// ICutoff is a type that determines if changes should
 // continue to propagate or not.
-type Cutoffer interface {
+type ICutoff interface {
 	Cutoff(context.Context) bool
 }

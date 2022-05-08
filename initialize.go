@@ -6,12 +6,12 @@ import "context"
 //
 // it creates the graph state for the graph, discovers and initialized
 // all nodes, and then establishes the recompute heap based on node heights.
-func Initialize(ctx context.Context, gn GraphNode) {
+func Initialize(ctx context.Context, gn INode) {
 	gs := newGraphState()
 	discoverAllNodes(ctx, gs, gn)
 }
 
-func discoverAllNodes(ctx context.Context, gs *graphState, gn GraphNode) {
+func discoverAllNodes(ctx context.Context, gs *graphState, gn INode) {
 	discoverNode(ctx, gs, gn)
 	gnn := gn.Node()
 	for _, c := range gnn.children {
@@ -28,7 +28,7 @@ func discoverAllNodes(ctx context.Context, gs *graphState, gn GraphNode) {
 	}
 }
 
-func discoverNode(ctx context.Context, gs *graphState, gn GraphNode) {
+func discoverNode(ctx context.Context, gs *graphState, gn INode) {
 	gnn := gn.Node()
 	gnn.gs = gs
 	gnn.detectCutoff(gn)
@@ -42,7 +42,7 @@ func discoverNode(ctx context.Context, gs *graphState, gn GraphNode) {
 // from a given graph.
 //
 // NOTE: you _must_ unlink it first or you'll just blow away the whole graph.
-func undiscoverAllNodes(ctx context.Context, gs *graphState, gn GraphNode) {
+func undiscoverAllNodes(ctx context.Context, gs *graphState, gn INode) {
 	undiscoverNode(ctx, gs, gn)
 	gnn := gn.Node()
 	for _, c := range gnn.children {
@@ -59,7 +59,7 @@ func undiscoverAllNodes(ctx context.Context, gs *graphState, gn GraphNode) {
 	}
 }
 
-func undiscoverNode(ctx context.Context, gs *graphState, gn GraphNode) {
+func undiscoverNode(ctx context.Context, gs *graphState, gn INode) {
 	gnn := gn.Node()
 	gnn.gs = nil
 	gs.rh.Remove(gn)
