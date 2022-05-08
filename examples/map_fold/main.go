@@ -78,16 +78,23 @@ func main() {
 
 	data := make(map[incr.Identifier]Order)
 	fillOrders(data, 1024)
-
 	dataInput := incr.Var(data)
 
-	shares := MapFold(dataInput.Read(), 0, func(_ incr.Identifier, o Order, v int) int {
-		return v + o.Size
-	})
-	symbolCounts := MapFold(dataInput.Read(), make(map[Symbol]int), func(_ incr.Identifier, o Order, w map[Symbol]int) map[Symbol]int {
-		w[o.Sym]++
-		return w
-	})
+	shares := MapFold(
+		dataInput.Read(),
+		0,
+		func(_ incr.Identifier, o Order, v int) int {
+			return v + o.Size
+		},
+	)
+	symbolCounts := MapFold(
+		dataInput.Read(),
+		make(map[Symbol]int),
+		func(_ incr.Identifier, o Order, w map[Symbol]int) map[Symbol]int {
+			w[o.Sym]++
+			return w
+		},
+	)
 
 	_ = incr.Stabilize(context.Background(), shares)
 	fmt.Println(shares.Value())
@@ -101,7 +108,17 @@ func main() {
 	fmt.Println(symbolCounts.Value())
 }
 
-func MapFold[K comparable, V any, O any](i incr.Incr[map[K]V], v0 O, fn func(K, V, O) O) incr.Incr[O] {
+// MapFold returns an incremental that takes a map typed incremental as an
+// input, an initial value, and a combinator yielding an incremental
+// representing the result of the combinator.
+//
+// Between stabilizations only the _additions_ to the input map will be considered for subsequent folds, and as a result
+// just a subset of the computation will be processed each pass.
+func MapFold[K comparable, V any, O any](
+	i incr.Incr[map[K]V],
+	v0 O,
+	fn func(K, V, O) O,
+) incr.Incr[O] {
 	o := &mapFoldIncr[K, V, O]{
 		n:   incr.NewNode(),
 		i:   i,
