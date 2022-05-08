@@ -5,28 +5,35 @@ import (
 	"encoding/hex"
 )
 
-type identifier [16]byte
+// Identifier is a unique id.
+type Identifier [16]byte
 
-func newIdentifier() (output identifier) {
+// NewIdentifier returns a new identifier.
+//
+// In practice, the underlying data looks like a uuidv4
+// but it is not advisable to rely on this.
+func NewIdentifier() (output Identifier) {
 	_, _ = rand.Read(output[:])
 	output[6] = (output[6] & 0x0f) | 0x40 // Version 4
 	output[8] = (output[8] & 0x3f) | 0x80 // Variant is 10
 	return
 }
 
-func (id identifier) String() string {
+// String returns the full hex representation of the id.
+func (id Identifier) String() string {
 	var buf [36]byte
 	encodeHex(buf[:], id)
 	return string(buf[:])
 }
 
-func (id identifier) Short() string {
+// Short returns the short hex representation of the id.
+func (id Identifier) Short() string {
 	var buf [8]byte
 	encodeHexShort(buf[:], id)
 	return string(buf[:])
 }
 
-func encodeHex(dst []byte, id identifier) {
+func encodeHex(dst []byte, id Identifier) {
 	hex.Encode(dst, id[:4])
 	dst[8] = '-'
 	hex.Encode(dst[9:13], id[4:6])
@@ -38,6 +45,6 @@ func encodeHex(dst []byte, id identifier) {
 	hex.Encode(dst[24:], id[10:])
 }
 
-func encodeHexShort(dst []byte, id identifier) {
+func encodeHexShort(dst []byte, id Identifier) {
 	hex.Encode(dst[:], id[12:])
 }

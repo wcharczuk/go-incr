@@ -4,13 +4,13 @@ const defaultRecomputeHeapMaxHeight = 255
 
 func newGraphState() *graphState {
 	return &graphState{
-		id: newIdentifier(),
+		id: NewIdentifier(),
 		rh: newRecomputeHeap(defaultRecomputeHeapMaxHeight),
 	}
 }
 
 type graphState struct {
-	id identifier
+	id Identifier
 	sn uint64
 	rh *recomputeHeap
 	s  Status

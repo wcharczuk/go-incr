@@ -4,7 +4,7 @@ import "context"
 
 // NewNode returns a new node.
 func NewNode() *Node {
-	return &Node{id: newIdentifier()}
+	return &Node{id: NewIdentifier()}
 }
 
 // Link is a common helper for setting up nodes.
@@ -36,7 +36,7 @@ func Unlink(gn GraphNode) {
 // Node is the common metadata for any node in the computation graph.
 type Node struct {
 	// id is a unique identifier for the node.
-	id identifier
+	id Identifier
 
 	// gs is a shared reference to the graph state
 	// for the computation
@@ -91,7 +91,7 @@ func (n *Node) AddChildren(c ...GraphNode) {
 }
 
 // RemoveChild removes a specific child from the node.
-func (n *Node) RemoveChild(id identifier) {
+func (n *Node) RemoveChild(id Identifier) {
 	var newChildren []GraphNode
 	for _, oc := range n.children {
 		if oc.Node().id != id {
@@ -107,7 +107,7 @@ func (n *Node) AddParents(p ...GraphNode) {
 }
 
 // RemoveParent removes a specific parent from the node.
-func (n *Node) RemoveParent(id identifier) {
+func (n *Node) RemoveParent(id Identifier) {
 	var newParents []GraphNode
 	for _, oc := range n.parents {
 		if oc.Node().id != id {

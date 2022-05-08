@@ -56,7 +56,7 @@ func Test_recomputeHeap(t *testing.T) {
 func newHeightIncr(height int) *heightIncr {
 	return &heightIncr{
 		n: &Node{
-			id:     newIdentifier(),
+			id:     NewIdentifier(),
 			height: height,
 		},
 	}
