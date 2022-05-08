@@ -5,6 +5,7 @@ const defaultRecomputeHeapMaxHeight = 255
 func newGraphState() *graphState {
 	return &graphState{
 		id: NewIdentifier(),
+		sn: 1,
 		rh: newRecomputeHeap(defaultRecomputeHeapMaxHeight),
 	}
 }

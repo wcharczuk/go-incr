@@ -19,30 +19,30 @@ func Test_Stabilize(t *testing.T) {
 	ItsNil(t, err)
 
 	ItsEqual(t, 0, v0.Node().setAt)
-	ItsEqual(t, 0, v0.Node().changedAt)
+	ItsEqual(t, 1, v0.Node().changedAt)
 	ItsEqual(t, 0, v1.Node().setAt)
-	ItsEqual(t, 0, v1.Node().changedAt)
-	ItsEqual(t, 0, m0.Node().changedAt)
-	ItsEqual(t, 0, v0.Node().recomputedAt)
-	ItsEqual(t, 0, v1.Node().recomputedAt)
-	ItsEqual(t, 0, m0.Node().recomputedAt)
+	ItsEqual(t, 1, v1.Node().changedAt)
+	ItsEqual(t, 1, m0.Node().changedAt)
+	ItsEqual(t, 1, v0.Node().recomputedAt)
+	ItsEqual(t, 1, v1.Node().recomputedAt)
+	ItsEqual(t, 1, m0.Node().recomputedAt)
 
 	ItsEqual(t, "foo bar", m0.Value())
 
 	v0.Set("not foo")
-	ItsEqual(t, 1, v0.Node().setAt)
+	ItsEqual(t, 2, v0.Node().setAt)
 	ItsEqual(t, 0, v1.Node().setAt)
 
 	err = Stabilize(ctx, m0)
 	ItsNil(t, err)
 
-	ItsEqual(t, 1, v0.Node().changedAt)
-	ItsEqual(t, 0, v1.Node().changedAt)
-	ItsEqual(t, 1, m0.Node().changedAt)
+	ItsEqual(t, 2, v0.Node().changedAt)
+	ItsEqual(t, 1, v1.Node().changedAt)
+	ItsEqual(t, 2, m0.Node().changedAt)
 
-	ItsEqual(t, 1, v0.Node().recomputedAt)
-	ItsEqual(t, 0, v1.Node().recomputedAt)
-	ItsEqual(t, 1, m0.Node().recomputedAt)
+	ItsEqual(t, 2, v0.Node().recomputedAt)
+	ItsEqual(t, 1, v1.Node().recomputedAt)
+	ItsEqual(t, 2, m0.Node().recomputedAt)
 
 	ItsEqual(t, "not foo bar", m0.Value())
 }
