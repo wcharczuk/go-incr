@@ -1,36 +1,45 @@
 package incr
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 // NewNode returns a new node.
 func NewNode() *Node {
 	return &Node{id: NewIdentifier()}
 }
 
-// Link is a common helper for setting up nodes.
+// Link is a common helper for setting up node relationships,
+// specifically adding a set of "inputs" to a "parent" node.
 //
-// Specifically it adds a given set of inputs as children
-// of a given node, and adds a given node as a parent for
-// all the input nodes.
-//
-// The reverse of this is `Unlink` on the node itself.
-func Link(gn GraphNode, inputs ...GraphNode) {
-	gn.Node().AddChildren(inputs...)
+// The reverse of this is `Unlink` on the parent node.
+func Link(parent GraphNode, inputs ...GraphNode) {
+	parent.Node().addChildren(inputs...)
 	for _, gnp := range inputs {
-		gnp.Node().AddParents(gn)
+		gnp.Node().addParents(parent)
 	}
 }
 
 // Unlink removes a node from the computation graph.
 //
 // Specifically it removes the given node from the parents
-// list of each of its children.
+// list of each of its children, and empties the children list
+// on the given node.
+//
+// NOTE: It does _not_ remove the node from the recomputation
+// heap or any other non-relationship tracking stores.
 func Unlink(gn GraphNode) {
 	id := gn.Node().id
 	for _, c := range gn.Node().children {
-		c.Node().RemoveParent(id)
+		c.Node().removeParent(id)
 	}
 	gn.Node().children = nil
+}
+
+// FormatNode formats a node given a known node type.
+func FormatNode(n *Node, nodeType string) string {
+	return fmt.Sprintf("%s[%s]", nodeType, n.id.Short())
 }
 
 // Node is the common metadata for any node in the computation graph.
@@ -85,16 +94,22 @@ type Node struct {
 	numRecomputes uint64
 }
 
-// ID returns the node identifier.
-func (n *Node) ID() Identifier { return n.id }
+// OnUpdate registers an update handler.
+func (n *Node) OnUpdate(fn func(context.Context)) {
+	n.onUpdateHandlers = append(n.onUpdateHandlers, fn)
+}
 
-// AddChildren adds children.
-func (n *Node) AddChildren(c ...GraphNode) {
+//
+// Internal Helpers
+//
+
+// addChildren adds children.
+func (n *Node) addChildren(c ...GraphNode) {
 	n.children = append(n.children, c...)
 }
 
-// RemoveChild removes a specific child from the node.
-func (n *Node) RemoveChild(id Identifier) {
+// removeChild removes a specific child from the node.
+func (n *Node) removeChild(id Identifier) {
 	var newChildren []GraphNode
 	for _, oc := range n.children {
 		if oc.Node().id != id {
@@ -104,13 +119,13 @@ func (n *Node) RemoveChild(id Identifier) {
 	n.children = newChildren
 }
 
-// AddParents adds parents.
-func (n *Node) AddParents(p ...GraphNode) {
+// addParents adds parents.
+func (n *Node) addParents(p ...GraphNode) {
 	n.parents = append(n.parents, p...)
 }
 
-// RemoveParent removes a specific parent from the node.
-func (n *Node) RemoveParent(id Identifier) {
+// removeParent removes a specific parent from the node.
+func (n *Node) removeParent(id Identifier) {
 	var newParents []GraphNode
 	for _, oc := range n.parents {
 		if oc.Node().id != id {
@@ -118,38 +133,6 @@ func (n *Node) RemoveParent(id Identifier) {
 		}
 	}
 	n.parents = newParents
-}
-
-// OnUpdate registers an update handler.
-func (n *Node) OnUpdate(fn func(context.Context)) {
-	n.onUpdateHandlers = append(n.onUpdateHandlers, fn)
-}
-
-// maybeCutoff calls the cutoff delegate if it's set, otherwise
-// just returns false (effectively _not_ cutting off the computation).
-func (n *Node) maybeCutoff(ctx context.Context) bool {
-	if n.cutoff != nil {
-		return n.cutoff(ctx)
-	}
-	return false
-}
-
-// detectCutoff detects if a stabilizer (which should be the same
-// as as managed by this node reference), implements Cutoffer
-// and grabs a reference to the Cutoff delegate function.
-func (n *Node) detectCutoff(gn GraphNode) {
-	if typed, ok := gn.(Cutoffer); ok {
-		n.cutoff = typed.Cutoff
-	}
-}
-
-// detectStabilizer detects if a stabilizer (which should be the same
-// as as managed by this node reference), implements Cutoffer
-// and grabs a reference to the Cutoff delegate function.
-func (n *Node) detectStabilizer(gn GraphNode) {
-	if typed, ok := gn.(Stabilizer); ok {
-		n.stabilize = typed.Stabilize
-	}
 }
 
 // maybeStabilize calls the stabilize delegate if it's set,
@@ -163,12 +146,39 @@ func (n *Node) maybeStabilize(ctx context.Context) error {
 	return nil
 }
 
-// stale returns whether or not a given node
+// maybeCutoff calls the cutoff delegate if it's set, otherwise
+// just returns false (effectively _not_ cutting off the computation).
+func (n *Node) maybeCutoff(ctx context.Context) bool {
+	if n.cutoff != nil {
+		return n.cutoff(ctx)
+	}
+	return false
+}
+
+// detectCutoff detects if a GraphNode (which should be the same
+// as as managed by this node reference), implements Cutoffer
+// and grabs a reference to the Cutoff delegate function.
+func (n *Node) detectCutoff(gn GraphNode) {
+	if typed, ok := gn.(Cutoffer); ok {
+		n.cutoff = typed.Cutoff
+	}
+}
+
+// detectStabilize detects if a GraphNode (which should be the same
+// as as managed by this node reference), implements Stabilizer
+// and grabs a reference to the Stabilize delegate function.
+func (n *Node) detectStabilize(gn GraphNode) {
+	if typed, ok := gn.(Stabilizer); ok {
+		n.stabilize = typed.Stabilize
+	}
+}
+
+// shouldRecompute returns whether or not a given node
 // needs to be recomputed, specifically
 // it will return true if it's uninitialized
 // or if any of its "children" or dependent nodes
 // are stale themselves.
-func (n *Node) stale(ctx context.Context) bool {
+func (n *Node) shouldRecompute(ctx context.Context) bool {
 	if n.recomputedAt == 0 {
 		return true
 	}
@@ -187,7 +197,7 @@ func (n *Node) stale(ctx context.Context) bool {
 		if cn.changedAt > n.recomputedAt {
 			return true
 		}
-		if cn.stale(ctx) {
+		if cn.shouldRecompute(ctx) {
 			return true
 		}
 	}

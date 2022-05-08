@@ -18,10 +18,8 @@ func BindUpdate[A any](ctx context.Context, b Binder[A]) error {
 	}
 
 	if oldValue.Node().id != newValue.Node().id {
-		// purge old value and all parents from recompute heap
 		Unlink(oldValue)
 		undiscoverAllNodes(ctx, b.Node().gs, oldValue)
-
 		Link(newValue, b)
 		discoverAllNodes(ctx, b.Node().gs, newValue)
 		b.SetBind(newValue)

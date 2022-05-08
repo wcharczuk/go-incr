@@ -442,6 +442,29 @@ func Test_Stabilize_watch(t *testing.T) {
 	ItsEqual(t, 3, w0.Values()[1])
 }
 
+func Test_Stabilize_map(t *testing.T) {
+	ctx := testContext()
+
+	c0 := Return(1)
+	m := Map(c0, func(_ context.Context, a int) (int, error) {
+		return a + 10, nil
+	})
+	_ = Stabilize(ctx, m)
+	ItsEqual(t, 11, m.Value())
+}
+
+func Test_Stabilize_map2(t *testing.T) {
+	ctx := testContext()
+
+	c0 := Return(1)
+	c1 := Return(2)
+	m2 := Map2(c0, c1, func(_ context.Context, a, b int) (int, error) {
+		return a + b, nil
+	})
+	_ = Stabilize(ctx, m2)
+	ItsEqual(t, 3, m2.Value())
+}
+
 func Test_Stabilize_map3(t *testing.T) {
 	ctx := testContext()
 

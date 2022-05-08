@@ -32,7 +32,7 @@ func discoverNode(ctx context.Context, gs *graphState, gn GraphNode) {
 	gnn := gn.Node()
 	gnn.gs = gs
 	gnn.detectCutoff(gn)
-	gnn.detectStabilizer(gn)
+	gnn.detectStabilize(gn)
 	gnn.height = gnn.calculateHeight()
 	gs.rh.add(gn)
 	return

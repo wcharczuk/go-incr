@@ -45,7 +45,13 @@ type varIncr[T any] struct {
 func (vn *varIncr[T]) Set(v T) {
 	vn.nv = v
 	vn.n.setAt = vn.n.gs.sn
-	vn.n.gs.rh.add(vn)
+
+	// the user can set the variable multiple times
+	// before they stabilize, so only submit
+	// it for recomputation (1) time
+	if !vn.n.gs.rh.has(vn) {
+		vn.n.gs.rh.add(vn)
+	}
 }
 
 // Node implements Incr[A].

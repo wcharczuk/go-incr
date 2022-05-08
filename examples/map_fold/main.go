@@ -79,7 +79,6 @@ func main() {
 	ctx := incr.WithTracing(context.Background())
 
 	data := make(map[incr.Identifier]Order)
-	fillOrders(data, 1024)
 
 	dataInput := incr.Var(data)
 	dataInputAdds := MapAdds(dataInput.Read())
@@ -106,18 +105,15 @@ func main() {
 		},
 	)
 
-	_ = incr.Stabilize(ctx, shares)
-	fmt.Println("orders:", orders.Value())
-	fmt.Println("shares:", shares.Value())
-	fmt.Println("orders by symbol:", symbolCounts.Value())
+	for x := 0; x < 10; x++ {
+		_ = incr.Stabilize(ctx, shares)
+		fmt.Println("orders:", orders.Value())
+		fmt.Println("shares:", shares.Value())
+		fmt.Println("orders by symbol:", symbolCounts.Value())
 
-	fillOrders(data, 256)
-	dataInput.Set(data)
-
-	_ = incr.Stabilize(ctx, shares)
-	fmt.Println("orders:", orders.Value())
-	fmt.Println("shares:", shares.Value())
-	fmt.Println("orders by symbol:", symbolCounts.Value())
+		fillOrders(data, 2048)
+		dataInput.Set(data)
+	}
 }
 
 func MapAdds[K comparable, V any](
@@ -137,7 +133,7 @@ type mapAddsIncr[K comparable, V any] struct {
 	val map[K]V
 }
 
-func (mfn *mapAddsIncr[K, V]) String() string { return "map_adds[" + mfn.Node().ID().Short() + "]" }
+func (mfn *mapAddsIncr[K, V]) String() string { return incr.FormatNode(mfn.n, "map_adds") }
 
 func (mfn *mapAddsIncr[K, V]) Node() *incr.Node { return mfn.n }
 
@@ -174,7 +170,7 @@ type mapFoldIncr[K comparable, V any, O any] struct {
 	val  O
 }
 
-func (mfn *mapFoldIncr[K, V, O]) String() string { return "map_fold[" + mfn.Node().ID().Short() + "]" }
+func (mfn *mapFoldIncr[K, V, O]) String() string { return incr.FormatNode(mfn.n, "map_fold") }
 
 func (mfn *mapFoldIncr[K, V, O]) Node() *incr.Node { return mfn.n }
 
