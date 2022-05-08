@@ -81,25 +81,32 @@ func main() {
 
 	dataInput := incr.Var(data)
 
-	shares := MapFold(dataInput.Read(), func(_ incr.Identifier, o Order, v int) int {
+	shares := MapFold(dataInput.Read(), 0, func(_ incr.Identifier, o Order, v int) int {
 		return v + o.Size
+	})
+	symbolCounts := MapFold(dataInput.Read(), make(map[Symbol]int), func(_ incr.Identifier, o Order, w map[Symbol]int) map[Symbol]int {
+		w[o.Sym]++
+		return w
 	})
 
 	_ = incr.Stabilize(context.Background(), shares)
 	fmt.Println(shares.Value())
+	fmt.Println(symbolCounts.Value())
 
 	fillOrders(data, 256)
 	dataInput.Set(data)
 
 	_ = incr.Stabilize(context.Background(), shares)
 	fmt.Println(shares.Value())
+	fmt.Println(symbolCounts.Value())
 }
 
-func MapFold[K comparable, V any, O any](i incr.Incr[map[K]V], fn func(K, V, O) O) incr.Incr[O] {
+func MapFold[K comparable, V any, O any](i incr.Incr[map[K]V], v0 O, fn func(K, V, O) O) incr.Incr[O] {
 	o := &mapFoldIncr[K, V, O]{
-		n:  incr.NewNode(),
-		i:  i,
-		fn: fn,
+		n:   incr.NewNode(),
+		i:   i,
+		fn:  fn,
+		val: v0,
 	}
 	incr.Link(o, i)
 	return o
