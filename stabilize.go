@@ -17,9 +17,9 @@ func Stabilize(ctx context.Context, gn GraphNode) error {
 		Initialize(ctx, gn)
 	}
 	defer func() {
+		tracePrintf(ctx, "stabilize; stabilization %d complete", gnn.gs.sn)
 		gnn.gs.sn++
 		gnn.gs.s = StatusNotStabilizing
-		tracePrintf(ctx, "stabilize; stabilization %d complete", gnn.gs.sn)
 	}()
 	gnn.gs.s = StatusStabilizing
 	tracePrintf(ctx, "stabilize; stabilization %d starting", gnn.gs.sn)

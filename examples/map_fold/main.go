@@ -76,10 +76,19 @@ func fillOrders(output map[incr.Identifier]Order, count int) {
 func main() {
 	rand.Seed(time.Now().Unix())
 
+	ctx := incr.WithTracing(context.Background())
+
 	data := make(map[incr.Identifier]Order)
 	fillOrders(data, 1024)
 	dataInput := incr.Var(data)
 
+	orders := MapFold(
+		dataInput.Read(),
+		0,
+		func(_ incr.Identifier, o Order, v int) int {
+			return v + 1
+		},
+	)
 	shares := MapFold(
 		dataInput.Read(),
 		0,
@@ -96,16 +105,18 @@ func main() {
 		},
 	)
 
-	_ = incr.Stabilize(context.Background(), shares)
-	fmt.Println(shares.Value())
-	fmt.Println(symbolCounts.Value())
+	_ = incr.Stabilize(ctx, shares)
+	fmt.Println("orders:", orders.Value())
+	fmt.Println("shares:", shares.Value())
+	fmt.Println("orders by symbol:", symbolCounts.Value())
 
 	fillOrders(data, 256)
 	dataInput.Set(data)
 
-	_ = incr.Stabilize(context.Background(), shares)
-	fmt.Println(shares.Value())
-	fmt.Println(symbolCounts.Value())
+	_ = incr.Stabilize(ctx, shares)
+	fmt.Println("orders:", orders.Value())
+	fmt.Println("shares:", shares.Value())
+	fmt.Println("orders by symbol:", symbolCounts.Value())
 }
 
 // MapFold returns an incremental that takes a map typed incremental as an
@@ -136,6 +147,8 @@ type mapFoldIncr[K comparable, V any, O any] struct {
 	last map[K]V
 	val  O
 }
+
+func (mfn *mapFoldIncr[K, V, O]) String() string { return "map_fold[" + mfn.Node().Short() + "]" }
 
 func (mfn *mapFoldIncr[K, V, O]) Node() *incr.Node { return mfn.n }
 
