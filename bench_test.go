@@ -24,6 +24,10 @@ func Benchmark_Stabilize_withPreInitialize_4096(b *testing.B) {
 	benchmarkSize(4096, b)
 }
 
+func Benchmark_Stabilize_withPreInitialize_8192(b *testing.B) {
+	benchmarkSize(8192, b)
+}
+
 func benchmarkSize(size int, b *testing.B) {
 	rand.Seed(time.Now().Unix())
 
