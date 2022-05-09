@@ -141,3 +141,14 @@ func addConst(v float64) func(float64) float64 {
 func add[T Ordered](_ context.Context, v0, v1 T) (T, error) {
 	return v0 + v1, nil
 }
+
+type mockBareNode struct {
+	n *Node
+}
+
+func (mn *mockBareNode) Node() *Node {
+	if mn.n == nil {
+		mn.n = NewNode()
+	}
+	return mn.n
+}

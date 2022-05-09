@@ -197,27 +197,27 @@ func (n *Node) detectStabilize(gn INode) {
 }
 
 // shouldRecompute returns whether or not a given node needs to be recomputed.
-func (n *Node) shouldRecompute(ctx context.Context) (bool, error) {
+func (n *Node) shouldRecompute() bool {
 	if n.recomputedAt == 0 {
-		return true, nil
+		return true
 	}
 	if n.stabilize == nil {
-		return false, nil
+		return false
 	}
 	if n.setAt > n.recomputedAt {
-		return true, nil
+		return true
 	}
 	if n.changedAt > n.recomputedAt {
-		return true, nil
+		return true
 	}
 	var cn *Node
 	for _, c := range n.children {
 		cn = c.Node()
 		if cn.changedAt > n.recomputedAt {
-			return true, nil
+			return true
 		}
 	}
-	return false, nil
+	return false
 }
 
 // calculateHeight calculates the height based on the
