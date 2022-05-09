@@ -47,10 +47,15 @@ func recomputeAll(ctx context.Context, gs *graphState) error {
 	var err error
 	var n INode
 	var nn *Node
+	var recompute bool
 	for gs.rh.Len() > 0 {
 		n = gs.rh.RemoveMin()
 		nn = n.Node()
-		if nn.shouldRecompute(ctx) {
+		recompute, err = nn.shouldRecompute(ctx)
+		if err != nil {
+			return err
+		}
+		if recompute {
 			if nn.maybeCutoff(ctx) {
 				continue
 			}

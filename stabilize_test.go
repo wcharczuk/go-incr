@@ -545,3 +545,31 @@ func Test_Stabilize_mapN(t *testing.T) {
 	_ = Stabilize(ctx, mn)
 	ItsEqual(t, 6, mn.Value())
 }
+
+func Test_Stabilize_func(t *testing.T) {
+	ctx := testContext()
+
+	value := "hello"
+	f := Func(func(ictx context.Context) (string, error) {
+		itsBlueDye(ictx, t)
+		return value, nil
+	})
+	m := Map(f, func(ictx context.Context, v string) (string, error) {
+		itsBlueDye(ctx, t)
+		return v + " world!", nil
+	})
+	_ = Stabilize(ctx, m)
+	ItsEqual(t, "hello world!", m.Value())
+
+	value = "not hello"
+
+	_ = Stabilize(ctx, m)
+	ItsEqual(t, "hello world!", m.Value())
+
+	// mark the func node as stale
+	// not sure a better way to do this automatically?
+	SetStale(f)
+
+	_ = Stabilize(ctx, m)
+	ItsEqual(t, "not hello world!", m.Value())
+}

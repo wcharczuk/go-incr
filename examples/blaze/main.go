@@ -55,12 +55,12 @@ type BuildResult struct {
 	Output  string
 }
 
-type PackageBuildIncr = incr.MapNIncr[BuildResult, BuildResult]
+type PackageBuildIncr = incr.MapNIncr[any, any]
 
 func createPackageIncrementalLookup(packages ...Package) (output map[string]PackageBuildIncr) {
 	output = make(map[string]PackageBuildIncr)
 	for _, p := range packages {
-		output[p.name] = incr.MapN(buildPackageFunc(p))
+		output[p.name] = createBuildPackageIncr(p)
 	}
 	for _, p := range packages {
 		for _, d := range p.dependsOn {
@@ -70,8 +70,8 @@ func createPackageIncrementalLookup(packages ...Package) (output map[string]Pack
 	return
 }
 
-func buildPackageFunc(p Package) incr.MapNFunc[BuildResult, BuildResult] {
-	return func(ctx context.Context, inputs ...BuildResult) (BuildResult, error) {
+func buildPackageFunc(p Package) incr.MapNFunc[any, any] {
+	return func(ctx context.Context, inputs ...any) (any, error) {
 		start := time.Now()
 		<-time.After(500 * time.Millisecond)
 		elapsed := time.Since(start)
@@ -83,8 +83,18 @@ func buildPackageFunc(p Package) incr.MapNFunc[BuildResult, BuildResult] {
 	}
 }
 
-func createPackageIncr(p Package) incr.INode {
-	return incr.MapN(buildPackageFunc(p))
+func createBuildPackageIncr(p Package) PackageBuildIncr {
+	output := incr.MapN(buildPackageFunc(p))
+	output.Node().OnUpdate(func(context.Context) {
+		fmt.Printf("built: %s", p.name)
+	})
+	output.Node().SetLabel(p.name)
+	output.AddInput(detectPackageStaleIncr(p))
+	return output
+}
+
+func detectPackageStaleIncr(p Package) incr.Incr[any] {
+	return nil
 }
 
 func main() {

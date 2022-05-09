@@ -39,6 +39,9 @@ func Unlink(gn INode) {
 
 // FormatNode formats a node given a known node type.
 func FormatNode(n *Node, nodeType string) string {
+	if n.label != "" {
+		return fmt.Sprintf("%s[%s]:%s", nodeType, n.id.Short(), n.label)
+	}
 	return fmt.Sprintf("%s[%s]", nodeType, n.id.Short())
 }
 
@@ -55,6 +58,11 @@ func SetStale(gn INode) {
 type Node struct {
 	// id is a unique identifier for the node.
 	id Identifier
+
+	// label is a descriptive string for the node.
+	//
+	// It is set with `SetLabel`
+	label string
 
 	// gs is a shared reference to the graph state
 	// for the computation
@@ -106,6 +114,11 @@ type Node struct {
 // OnUpdate registers an update handler.
 func (n *Node) OnUpdate(fn func(context.Context)) {
 	n.onUpdateHandlers = append(n.onUpdateHandlers, fn)
+}
+
+// SetLabel sets the descriptive label on the node.
+func (n *Node) SetLabel(label string) {
+	n.label = label
 }
 
 //
@@ -182,35 +195,28 @@ func (n *Node) detectStabilize(gn INode) {
 	}
 }
 
-// shouldRecompute returns whether or not a given node
-// needs to be recomputed, specifically
-// it will return true if it's uninitialized
-// or if any of its "children" or dependent nodes
-// are stale themselves.
-func (n *Node) shouldRecompute(ctx context.Context) bool {
+// shouldRecompute returns whether or not a given node needs to be recomputed.
+func (n *Node) shouldRecompute(ctx context.Context) (bool, error) {
 	if n.recomputedAt == 0 {
-		return true
+		return true, nil
 	}
 	if n.stabilize == nil {
-		return false
+		return false, nil
 	}
 	if n.setAt > n.recomputedAt {
-		return true
+		return true, nil
 	}
 	if n.changedAt > n.recomputedAt {
-		return true
+		return true, nil
 	}
 	var cn *Node
 	for _, c := range n.children {
 		cn = c.Node()
 		if cn.changedAt > n.recomputedAt {
-			return true
-		}
-		if cn.shouldRecompute(ctx) {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 // calculateHeight calculates the height based on the
