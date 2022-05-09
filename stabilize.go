@@ -34,15 +34,6 @@ func stabilizeNode(ctx context.Context, gn INode) error {
 	return recomputeAll(ctx, gnn.gs)
 }
 
-// shouldInitialize returns if the graph is uninitialized
-//
-// specifically if it needs to have the first pass of initialization
-// performed on it, setting up the graph state, the recompute heap,
-// and other node metadata items.
-func shouldInitialize(n *Node) bool {
-	return n.gs == nil
-}
-
 func recomputeAll(ctx context.Context, gs *graphState) error {
 	var err error
 	var n INode

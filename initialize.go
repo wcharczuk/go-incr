@@ -11,6 +11,15 @@ func Initialize(ctx context.Context, gn INode) {
 	discoverAllNodes(ctx, gs, gn)
 }
 
+// shouldInitialize returns if the graph is uninitialized
+//
+// specifically if it needs to have the first pass of initialization
+// performed on it, setting up the graph state, the recompute heap,
+// and other node metadata items.
+func shouldInitialize(n *Node) bool {
+	return n.gs == nil
+}
+
 func discoverAllNodes(ctx context.Context, gs *graphState, gn INode) {
 	discoverNode(ctx, gs, gn)
 	gnn := gn.Node()

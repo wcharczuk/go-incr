@@ -32,9 +32,7 @@ func (rh *recomputeHeap) Add(s INode) {
 	rh.lookup[sn.id] = item
 }
 
-// Has returns if a given node exists in the recompute heap at its height by id
-//
-// there is an opportunity here to optimize this better with a lookup.
+// Has returns if a given node exists in the recompute heap at its height by id.
 func (rh *recomputeHeap) Has(s INode) (ok bool) {
 	sn := s.Node()
 	if sn.height >= rh.maxHeight {
