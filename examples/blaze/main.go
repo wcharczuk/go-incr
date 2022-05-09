@@ -104,10 +104,17 @@ func main() {
 		{name: "pkg/util"},
 	}
 	nodes, lookup := createBuildGraph(packages...)
+
+	// one caveat here; we're stabilizing all the leaves
+	// but because they're connected through children, we end
+	// up doing basically no-op stabilizations after the first
+	// node is stabilized
 	if err := incr.Stabilize(ctx, nodes...); err != nil {
 		log.Printf("error: %v", err)
 	}
 
+	// in real world usage we would have some way to get fsnotify hints on files matching a
+	// glob, which we would then use to trigger this SetStale call.
 	incr.SetStale(lookup["pkg/engine"])
 
 	if err := incr.Stabilize(ctx, nodes...); err != nil {
