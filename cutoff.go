@@ -2,6 +2,7 @@ package incr
 
 import (
 	"context"
+	"fmt"
 )
 
 // Cutoff returns a new wrapping cutoff incremental.
@@ -27,6 +28,7 @@ var (
 	_ INode        = (*cutoffIncr[string])(nil)
 	_ IStabilize   = (*cutoffIncr[string])(nil)
 	_ ICutoff      = (*cutoffIncr[string])(nil)
+	_ fmt.Stringer = (*cutoffIncr[string])(nil)
 )
 
 // cutoffIncr is a concrete implementation of Incr for
