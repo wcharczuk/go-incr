@@ -4,18 +4,20 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"time"
 
 	"github.com/wcharczuk/go-incr"
 )
 
+// Package is pseudo-package metadata.
 type Package struct {
 	name       string
 	dependsOn  []string
 	dependedBy []string
 }
 
-func createBuildGraph(packages ...Package) []incr.INode {
+func createBuildGraph(packages ...Package) (leaves []incr.INode, packageIncrementals map[string]PackageBuildIncr) {
 	packageLookup := createPackageLookup(packages...)
 
 	// build "dependedBy" list(s)
@@ -28,17 +30,16 @@ func createBuildGraph(packages ...Package) []incr.INode {
 	// build package incrementals
 	// including the relationships between the
 	// packages and their dependencies.
-	packageIncrementalLookup := createPackageIncrementalLookup(packages...)
+	packageIncrementals = createPackageIncrementalLookup(packages...)
 
-	// build "output" list by filtering to
+	// build "leaves" list by filtering to
 	// nodes with zero "dependedBy" entries
-	var output []incr.INode
 	for _, p := range packageLookup {
 		if len(p.dependedBy) == 0 {
-			output = append(output, packageIncrementalLookup[p.name])
+			leaves = append(leaves, packageIncrementals[p.name])
 		}
 	}
-	return output
+	return
 }
 
 func createPackageLookup(packages ...Package) (output map[string]*Package) {
@@ -55,7 +56,7 @@ type BuildResult struct {
 	Output  string
 }
 
-type PackageBuildIncr = incr.MapNIncr[any, any]
+type PackageBuildIncr = incr.MapNIncr[BuildResult, BuildResult]
 
 func createPackageIncrementalLookup(packages ...Package) (output map[string]PackageBuildIncr) {
 	output = make(map[string]PackageBuildIncr)
@@ -70,10 +71,20 @@ func createPackageIncrementalLookup(packages ...Package) (output map[string]Pack
 	return
 }
 
-func buildPackageFunc(p Package) incr.MapNFunc[any, any] {
-	return func(ctx context.Context, inputs ...any) (any, error) {
+func createBuildPackageIncr(p Package) PackageBuildIncr {
+	output := incr.MapN(buildPackageFunc(p))
+	output.Node().OnUpdate(func(context.Context) {
+		fmt.Printf("built: %s\n", p.name)
+	})
+	output.Node().SetLabel(p.name)
+	return output
+}
+
+func buildPackageFunc(p Package) incr.MapNFunc[BuildResult, BuildResult] {
+	return func(ctx context.Context, inputs ...BuildResult) (BuildResult, error) {
 		start := time.Now()
-		<-time.After(500 * time.Millisecond)
+		var delay = time.Duration(250 + rand.Intn(1500))
+		<-time.After(delay * time.Millisecond)
 		elapsed := time.Since(start)
 		return BuildResult{
 			Package: p.name,
@@ -81,20 +92,6 @@ func buildPackageFunc(p Package) incr.MapNFunc[any, any] {
 			Output:  fmt.Sprintf("%s built in %v", p.name, elapsed),
 		}, nil
 	}
-}
-
-func createBuildPackageIncr(p Package) PackageBuildIncr {
-	output := incr.MapN(buildPackageFunc(p))
-	output.Node().OnUpdate(func(context.Context) {
-		fmt.Printf("built: %s", p.name)
-	})
-	output.Node().SetLabel(p.name)
-	output.AddInput(detectPackageStaleIncr(p))
-	return output
-}
-
-func detectPackageStaleIncr(p Package) incr.Incr[any] {
-	return nil
 }
 
 func main() {
@@ -106,7 +103,13 @@ func main() {
 		{name: "pkg/engine", dependsOn: []string{"pkg/config", "pkg/util"}},
 		{name: "pkg/util"},
 	}
-	nodes := createBuildGraph(packages...)
+	nodes, lookup := createBuildGraph(packages...)
+	if err := incr.Stabilize(ctx, nodes...); err != nil {
+		log.Printf("error: %v", err)
+	}
+
+	incr.SetStale(lookup["pkg/engine"])
+
 	if err := incr.Stabilize(ctx, nodes...); err != nil {
 		log.Printf("error: %v", err)
 	}
