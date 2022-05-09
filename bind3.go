@@ -33,7 +33,7 @@ type bind3Incr[A, B, C, D any] struct {
 	b     Incr[B]
 	c     Incr[C]
 	fn    func(context.Context, A, B, C) (Incr[D], error)
-	bind  Incr[D]
+	bound Incr[D]
 	value D
 }
 
@@ -42,20 +42,20 @@ func (b *bind3Incr[A, B, C, D]) Node() *Node { return b.n }
 func (b *bind3Incr[A, B, C, D]) Value() D { return b.value }
 
 func (b *bind3Incr[A, B, C, D]) SetBind(v Incr[D]) {
-	b.bind = v
+	b.bound = v
 }
 
 func (b *bind3Incr[A, B, C, D]) Bind(ctx context.Context) (oldValue, newValue Incr[D], err error) {
-	oldValue = b.bind
+	oldValue = b.bound
 	newValue, err = b.fn(ctx, b.a.Value(), b.b.Value(), b.c.Value())
 	return
 }
 
 func (b *bind3Incr[A, B, C, D]) Stabilize(ctx context.Context) error {
-	if err := BindUpdate[D](ctx, b); err != nil {
+	if err := bindUpdate[D](ctx, b); err != nil {
 		return err
 	}
-	b.value = b.bind.Value()
+	b.value = b.bound.Value()
 	return nil
 }
 

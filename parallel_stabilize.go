@@ -37,6 +37,7 @@ func parallelStabilizeNode(ctx context.Context, gn INode) error {
 
 func parallelRecomputeAll(ctx context.Context, gs *graphState) error {
 	processing := sync.WaitGroup{}
+
 	wp := newWorkerPool(func(ictx context.Context, nn *Node) error {
 		nn.changedAt = gs.sn
 		return nn.recompute(ictx)
@@ -44,10 +45,26 @@ func parallelRecomputeAll(ctx context.Context, gs *graphState) error {
 		processing.Done()
 		return nil
 	})
+	// this error channel will block without the errors
+	// reader routine we create below
+	wp.Errors = make(chan error)
 	if err := wp.Start(ctx); err != nil {
 		return err
 	}
 	defer func() { _ = wp.Shutdown(ctx) }()
+
+	done := make(chan struct{})
+	doneExit := make(chan struct{})
+	var workerErrors []error
+	go func() {
+		defer close(doneExit)
+		select {
+		case <-done:
+			return
+		case err := <-wp.Errors:
+			workerErrors = append(workerErrors, err)
+		}
+	}()
 
 process:
 	for gs.rh.Len() > 0 {
@@ -70,6 +87,14 @@ process:
 	if gs.rh.Len() > 0 {
 		// goto considered harmful ... kind of.
 		goto process
+	}
+
+	close(done)
+	<-doneExit
+
+	if len(workerErrors) > 0 {
+		// merge these later
+		return workerErrors[0]
 	}
 	return nil
 }

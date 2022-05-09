@@ -21,22 +21,6 @@ func Link(parent INode, inputs ...INode) {
 	}
 }
 
-// Unlink removes a node from the computation graph.
-//
-// Specifically it removes the given node from the parents
-// list of each of its children, and empties the children list
-// on the given node.
-//
-// NOTE: It does _not_ remove the node from the recomputation
-// heap or any other non-relationship tracking stores.
-func Unlink(gn INode) {
-	id := gn.Node().id
-	for _, c := range gn.Node().children {
-		c.Node().removeParent(id)
-	}
-	gn.Node().children = nil
-}
-
 // FormatNode formats a node given a known node type.
 func FormatNode(n *Node, nodeType string) string {
 	if n.label != "" {
@@ -68,10 +52,12 @@ type Node struct {
 	// for the computation
 	gs *graphState
 
-	// parents are the nodes that depend on this node
+	// parents are the nodes that depend on this node, that is
+	// parents are nodes for which this node is an input
 	parents []INode
 
-	// children are the nodes that this node depends on
+	// children are the nodes that this node depends on, that is
+	// children are inputs to this node
 	children []INode
 
 	// height is the topological sort height of the
@@ -99,6 +85,10 @@ type Node struct {
 	// they are added with `OnUpdate(...)`.
 	onUpdateHandlers []func(context.Context)
 
+	// onErrorHandlers are functions that are called when the node updates.
+	// they are added with `OnUpdate(...)`.
+	onErrorHandlers []func(context.Context, error)
+
 	// stabilize is set during initialization and is a shortcut
 	// to the interface sniff for the node for the IStabilize interface.
 	stabilize func(context.Context) error
@@ -116,6 +106,11 @@ func (n *Node) OnUpdate(fn func(context.Context)) {
 	n.onUpdateHandlers = append(n.onUpdateHandlers, fn)
 }
 
+// OnError registers an error handler.
+func (n *Node) OnError(fn func(context.Context, error)) {
+	n.onErrorHandlers = append(n.onErrorHandlers, fn)
+}
+
 // SetLabel sets the descriptive label on the node.
 func (n *Node) SetLabel(label string) {
 	n.label = label
@@ -125,12 +120,14 @@ func (n *Node) SetLabel(label string) {
 // Internal Helpers
 //
 
-// addChildren adds children.
+// addChildren adds children, or nodes that this node
+// depends on, specifically nodes that are inputs to this node.
 func (n *Node) addChildren(c ...INode) {
 	n.children = append(n.children, c...)
 }
 
-// removeChild removes a specific child from the node.
+// removeChild removes a specific child from the node, specifically
+// a node that might have been an input to this node.
 func (n *Node) removeChild(id Identifier) {
 	var newChildren []INode
 	for _, oc := range n.children {
@@ -141,12 +138,14 @@ func (n *Node) removeChild(id Identifier) {
 	n.children = newChildren
 }
 
-// addParents adds parents.
+// addParents adds parents, or nodes that depend on this node, specifically
+// nodes for which this node is an input.
 func (n *Node) addParents(p ...INode) {
 	n.parents = append(n.parents, p...)
 }
 
-// removeParent removes a specific parent from the node.
+// removeParent removes a parent from the node, specifically
+// a node for which this node is an input.
 func (n *Node) removeParent(id Identifier) {
 	var newParents []INode
 	for _, oc := range n.parents {
@@ -160,11 +159,13 @@ func (n *Node) removeParent(id Identifier) {
 // maybeStabilize calls the stabilize delegate if it's set,
 // otherwise is nops.
 func (n *Node) maybeStabilize(ctx context.Context) error {
+	if n.stabilize != nil {
+		if err := n.stabilize(ctx); err != nil {
+			return err
+		}
+	}
 	n.numRecomputes++
 	n.recomputedAt = n.gs.sn
-	if n.stabilize != nil {
-		return n.stabilize(ctx)
-	}
 	return nil
 }
 
@@ -233,6 +234,13 @@ func (n *Node) calculateHeight() int {
 
 func (n *Node) recompute(ctx context.Context) error {
 	if err := n.maybeStabilize(ctx); err != nil {
+		// if we error, do not submit the
+		// rest of the "parents" for recomputation
+		// effectively cutting off the computation on
+		// the error
+		for _, handler := range n.onErrorHandlers {
+			handler(ctx, err)
+		}
 		return err
 	}
 	for _, handler := range n.onUpdateHandlers {

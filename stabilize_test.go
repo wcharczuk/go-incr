@@ -375,7 +375,13 @@ func Test_Stabilize_bindIf(t *testing.T) {
 	i0 := Return("foo")
 	i1 := Return("bar")
 
-	b := BindIf(i0, i1, sw)
+	b := BindIf(sw, func(ctx context.Context, swv bool) (Incr[string], error) {
+		itsBlueDye(ctx, t)
+		if swv {
+			return i0, nil
+		}
+		return i1, nil
+	})
 
 	err := Stabilize(ctx, b)
 	ItsNil(t, err)
