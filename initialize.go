@@ -6,9 +6,13 @@ import "context"
 //
 // it creates the graph state for the graph, discovers and initialized
 // all nodes, and then establishes the recompute heap based on node heights.
-func Initialize(ctx context.Context, gn INode) {
-	gs := newGraphState()
-	discoverAllNodes(ctx, gs, gn)
+func Initialize(ctx context.Context, nodes ...INode) {
+	for _, n := range nodes {
+		if !shouldInitialize(n.Node()) {
+			continue
+		}
+		discoverAllNodes(ctx, newGraphState(), n)
+	}
 }
 
 // shouldInitialize returns if the graph is uninitialized

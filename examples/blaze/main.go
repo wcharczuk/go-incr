@@ -104,12 +104,13 @@ func main() {
 		{name: "pkg/util"},
 	}
 	nodes, lookup := createBuildGraph(packages...)
+	incr.Initialize(ctx, nodes...)
 
 	// one caveat here; we're stabilizing all the leaves
 	// but because they're connected through children, we end
 	// up doing basically no-op stabilizations after the first
 	// node is stabilized
-	if err := incr.Stabilize(ctx, nodes...); err != nil {
+	if err := incr.ParallelStabilize(ctx, nodes...); err != nil {
 		log.Printf("error: %v", err)
 	}
 
@@ -117,7 +118,7 @@ func main() {
 	// glob, which we would then use to trigger this SetStale call.
 	incr.SetStale(lookup["pkg/engine"])
 
-	if err := incr.Stabilize(ctx, nodes...); err != nil {
+	if err := incr.ParallelStabilize(ctx, nodes...); err != nil {
 		log.Printf("error: %v", err)
 	}
 }

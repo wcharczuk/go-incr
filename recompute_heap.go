@@ -1,5 +1,7 @@
 package incr
 
+import "sync"
+
 // newRecomputeHeap returns a new recompute heap with a given maximum height.
 func newRecomputeHeap(maxHeight int) *recomputeHeap {
 	return &recomputeHeap{
@@ -11,16 +13,26 @@ func newRecomputeHeap(maxHeight int) *recomputeHeap {
 
 // recomputeHeap is a height ordered list of lists of nodes.
 type recomputeHeap struct {
+	mu        sync.Mutex
 	maxHeight int
 
 	heights []*recomputeHeapList
 	lookup  map[Identifier]*recomputeHeapListItem
 }
 
-func (rh *recomputeHeap) Len() int { return len(rh.lookup) }
+// Len returns the length of the recompute heap.
+func (rh *recomputeHeap) Len() int {
+	rh.mu.Lock()
+	defer rh.mu.Unlock()
+
+	return len(rh.lookup)
+}
 
 // Add adds a node to the recompute heap at a given height.
 func (rh *recomputeHeap) Add(s INode) {
+	rh.mu.Lock()
+	defer rh.mu.Unlock()
+
 	sn := s.Node()
 	if sn.height >= rh.maxHeight {
 		panic("recompute heap; cannot add node with height greater than max height")
@@ -34,6 +46,9 @@ func (rh *recomputeHeap) Add(s INode) {
 
 // Has returns if a given node exists in the recompute heap at its height by id.
 func (rh *recomputeHeap) Has(s INode) (ok bool) {
+	rh.mu.Lock()
+	defer rh.mu.Unlock()
+
 	sn := s.Node()
 	if sn.height >= rh.maxHeight {
 		panic("recompute heap; cannot has node with height greater than max height")
@@ -44,6 +59,9 @@ func (rh *recomputeHeap) Has(s INode) (ok bool) {
 
 // RemoveMin removes the minimum node from the recompute heap.
 func (rh *recomputeHeap) RemoveMin() INode {
+	rh.mu.Lock()
+	defer rh.mu.Unlock()
+
 	for height := range rh.heights {
 		if rh.heights[height] != nil && rh.heights[height].head != nil {
 			id, node := rh.heights[height].pop()
@@ -56,8 +74,10 @@ func (rh *recomputeHeap) RemoveMin() INode {
 
 // Remove removes a specific node from the heap.
 func (rh *recomputeHeap) Remove(s INode) {
-	sn := s.Node()
+	rh.mu.Lock()
+	defer rh.mu.Unlock()
 
+	sn := s.Node()
 	item, ok := rh.lookup[sn.id]
 	if !ok {
 		return

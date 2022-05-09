@@ -1,5 +1,7 @@
 package incr
 
+import "sync"
+
 const defaultRecomputeHeapMaxHeight = 255
 
 func newGraphState() *graphState {
@@ -15,4 +17,5 @@ type graphState struct {
 	sn uint64
 	rh *recomputeHeap
 	s  Status
+	mu sync.Mutex
 }
