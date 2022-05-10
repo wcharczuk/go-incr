@@ -26,46 +26,6 @@ func Bind[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], error)) Inc
 	return o
 }
 
-// bindUpdate is a helper for dealing with bind node changes
-// specifically handling unlinking and linking bound nodes
-// when the bind changes.
-func bindUpdate[A any](ctx context.Context, b IBind[A]) error {
-	gs := b.Node().gs
-
-	oldValue, newValue, err := b.Bind(ctx)
-	if err != nil {
-		return err
-	}
-
-	if oldValue == nil {
-		// link the new value as the parent
-		// of the bind node, specifically
-		// that b is an input to newValue
-		Link(newValue, b)
-		discoverAllNodes(ctx, gs, newValue)
-		b.SetBind(newValue)
-		newValue.Node().changedAt = gs.sn
-		return newValue.Node().maybeStabilize(ctx)
-	}
-
-	if oldValue.Node().id != newValue.Node().id {
-		// unlink the old node from the bind node
-		b.Node().parents = nil
-		oldValue.Node().children = nil
-		undiscoverAllNodes(ctx, gs, oldValue)
-
-		// link the new value as the parent
-		// of the bind node, specifically
-		// that b is an input to newValue
-		Link(newValue, b)
-		discoverAllNodes(ctx, gs, newValue)
-		b.SetBind(newValue)
-		newValue.Node().changedAt = gs.sn
-		return newValue.Node().maybeStabilize(ctx)
-	}
-	return nil
-}
-
 var (
 	_ Incr[bool]   = (*bindIncr[string, bool])(nil)
 	_ IBind[bool]  = (*bindIncr[string, bool])(nil)
@@ -106,4 +66,44 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 
 func (b *bindIncr[A, B]) String() string {
 	return FormatNode(b.n, "bind")
+}
+
+// bindUpdate is a helper for dealing with bind node changes
+// specifically handling unlinking and linking bound nodes
+// when the bind changes.
+func bindUpdate[A any](ctx context.Context, b IBind[A]) error {
+	gs := b.Node().gs
+
+	oldValue, newValue, err := b.Bind(ctx)
+	if err != nil {
+		return err
+	}
+
+	if oldValue == nil {
+		// link the new value as the parent
+		// of the bind node, specifically
+		// that b is an input to newValue
+		Link(newValue, b)
+		discoverAllNodes(ctx, gs, newValue)
+		b.SetBind(newValue)
+		newValue.Node().changedAt = gs.sn
+		return newValue.Node().maybeStabilize(ctx)
+	}
+
+	if oldValue.Node().id != newValue.Node().id {
+		// unlink the old node from the bind node
+		b.Node().parents = nil
+		oldValue.Node().children = nil
+		undiscoverAllNodes(ctx, gs, oldValue)
+
+		// link the new value as the parent
+		// of the bind node, specifically
+		// that b is an input to newValue
+		Link(newValue, b)
+		discoverAllNodes(ctx, gs, newValue)
+		b.SetBind(newValue)
+		newValue.Node().changedAt = gs.sn
+		return newValue.Node().maybeStabilize(ctx)
+	}
+	return nil
 }
