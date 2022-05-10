@@ -14,7 +14,7 @@ import (
 //    a -> b.bind() -> ~c~ d
 //
 // As a result, (a) is a child of (b), and (c) or (d) are children of (b).
-// When the bind changes from (c)->(d), (c) is unlinked, and is removed
+// When the bind changes from (c) to (d), (c) is unlinked, and is removed
 // as a "child" of (b),
 func Bind[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], error)) Incr[B] {
 	o := &bindIncr[A, B]{
