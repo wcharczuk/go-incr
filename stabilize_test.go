@@ -662,3 +662,39 @@ func Test_Stabilize_diffMapByKeysRemoved(t *testing.T) {
 	_ = Stabilize(ctx, mf)
 	ItsEqual(t, 7, mf.Value())
 }
+
+func Test_Stabilize_diffMapByKeys(t *testing.T) {
+	ctx := testContext()
+
+	m := map[string]int{
+		"one":   1,
+		"two":   2,
+		"three": 3,
+		"four":  4,
+		"five":  5,
+		"six":   6,
+	}
+
+	mv := Var(m)
+	mda, mdr := DiffMapByKeys(mv.Read())
+	mfa := FoldMap(mda, 0, func(key string, val, accum int) int {
+		return accum + val
+	})
+	mfr := FoldMap(mdr, 0, func(key string, val, accum int) int {
+		return accum + val
+	})
+	_ = Stabilize(ctx, mfa, mfr)
+	ItsEqual(t, 21, mfa.Value())
+	ItsEqual(t, 0, mfr.Value())
+
+	delete(m, "two")
+	delete(m, "five")
+	m["seven"] = 7
+	m["eight"] = 8
+
+	mv.Set(m)
+
+	_ = Stabilize(ctx, mfa, mfr)
+	ItsEqual(t, 36, mfa.Value())
+	ItsEqual(t, 7, mfr.Value())
+}
