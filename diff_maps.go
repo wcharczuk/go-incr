@@ -18,7 +18,7 @@ func DiffMapByKeys[K comparable, V any](i Incr[map[K]V]) (add Incr[map[K]V], rem
 		n: NewNode(),
 		i: i,
 	}
-	Link(add, i)
+	Link(rem, i)
 	return
 }
 
