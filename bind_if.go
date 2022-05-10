@@ -7,7 +7,7 @@ import (
 
 // BindIf lets you swap out an entire subgraph of a computation based
 // on a given boolean incremental predicate.
-func BindIf[A any](p Incr[bool], fn func(context.Context, bool) (Incr[A], error)) Incr[A] {
+func BindIf[A any](p Incr[bool], fn func(context.Context, bool) (Incr[A], error)) BindIncr[A] {
 	o := &bindIfIncr[A]{
 		n:  NewNode(),
 		fn: fn,
@@ -20,11 +20,11 @@ func BindIf[A any](p Incr[bool], fn func(context.Context, bool) (Incr[A], error)
 }
 
 var (
-	_ Incr[string]  = (*bindIfIncr[string])(nil)
-	_ IBind[string] = (*bindIfIncr[string])(nil)
-	_ INode         = (*bindIfIncr[string])(nil)
-	_ IStabilize    = (*bindIfIncr[string])(nil)
-	_ fmt.Stringer  = (*bindIfIncr[string])(nil)
+	_ Incr[string]     = (*bindIfIncr[string])(nil)
+	_ BindIncr[string] = (*bindIfIncr[string])(nil)
+	_ INode            = (*bindIfIncr[string])(nil)
+	_ IStabilize       = (*bindIfIncr[string])(nil)
+	_ fmt.Stringer     = (*bindIfIncr[string])(nil)
 )
 
 type bindIfIncr[A any] struct {

@@ -16,7 +16,7 @@ import (
 // As a result, (a) is a child of (b), and (c) or (d) are children of (b).
 // When the bind changes from (c) to (d), (c) is unlinked, and is removed
 // as a "child" of (b),
-func Bind[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], error)) Incr[B] {
+func Bind[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], error)) BindIncr[B] {
 	o := &bindIncr[A, B]{
 		n:  NewNode(),
 		a:  a,
@@ -26,12 +26,21 @@ func Bind[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], error)) Inc
 	return o
 }
 
+// BindIncr is a node that implements Bind, which
+// dynamically swaps out entire subgraphs
+// based on input incrementals.
+type BindIncr[A any] interface {
+	Incr[A]
+	Bind(context.Context) (old, new Incr[A], err error)
+	SetBind(Incr[A])
+}
+
 var (
-	_ Incr[bool]   = (*bindIncr[string, bool])(nil)
-	_ IBind[bool]  = (*bindIncr[string, bool])(nil)
-	_ INode        = (*bindIncr[string, bool])(nil)
-	_ IStabilize   = (*bindIncr[string, bool])(nil)
-	_ fmt.Stringer = (*bindIncr[string, bool])(nil)
+	_ Incr[bool]     = (*bindIncr[string, bool])(nil)
+	_ BindIncr[bool] = (*bindIncr[string, bool])(nil)
+	_ INode          = (*bindIncr[string, bool])(nil)
+	_ IStabilize     = (*bindIncr[string, bool])(nil)
+	_ fmt.Stringer   = (*bindIncr[string, bool])(nil)
 )
 
 type bindIncr[A, B any] struct {
@@ -71,7 +80,7 @@ func (b *bindIncr[A, B]) String() string {
 // bindUpdate is a helper for dealing with bind node changes
 // specifically handling unlinking and linking bound nodes
 // when the bind changes.
-func bindUpdate[A any](ctx context.Context, b IBind[A]) error {
+func bindUpdate[A any](ctx context.Context, b BindIncr[A]) error {
 	gs := b.Node().gs
 
 	oldValue, newValue, err := b.Bind(ctx)

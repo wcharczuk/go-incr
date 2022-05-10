@@ -7,7 +7,7 @@ import (
 
 // Bind3 lets you swap out an entire subgraph of a computation based
 // on a given function and two inputs.
-func Bind3[A, B, C, D any](a Incr[A], b Incr[B], c Incr[C], fn func(context.Context, A, B, C) (Incr[D], error)) Incr[D] {
+func Bind3[A, B, C, D any](a Incr[A], b Incr[B], c Incr[C], fn func(context.Context, A, B, C) (Incr[D], error)) BindIncr[D] {
 	o := &bind3Incr[A, B, C, D]{
 		n:  NewNode(),
 		a:  a,
@@ -20,11 +20,11 @@ func Bind3[A, B, C, D any](a Incr[A], b Incr[B], c Incr[C], fn func(context.Cont
 }
 
 var (
-	_ Incr[bool]   = (*bind3Incr[string, float64, uint64, bool])(nil)
-	_ IBind[bool]  = (*bind3Incr[string, float64, uint64, bool])(nil)
-	_ INode        = (*bind3Incr[string, float64, uint64, bool])(nil)
-	_ IStabilize   = (*bind3Incr[string, float64, uint64, bool])(nil)
-	_ fmt.Stringer = (*bind3Incr[string, float64, uint64, bool])(nil)
+	_ Incr[bool]     = (*bind3Incr[string, float64, uint64, bool])(nil)
+	_ BindIncr[bool] = (*bind3Incr[string, float64, uint64, bool])(nil)
+	_ INode          = (*bind3Incr[string, float64, uint64, bool])(nil)
+	_ IStabilize     = (*bind3Incr[string, float64, uint64, bool])(nil)
+	_ fmt.Stringer   = (*bind3Incr[string, float64, uint64, bool])(nil)
 )
 
 type bind3Incr[A, B, C, D any] struct {

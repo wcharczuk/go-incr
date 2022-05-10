@@ -7,7 +7,7 @@ import (
 
 // Bind2 lets you swap out an entire subgraph of a computation based
 // on a given function and two inputs.
-func Bind2[A, B, C any](a Incr[A], b Incr[B], fn func(context.Context, A, B) (Incr[C], error)) Incr[C] {
+func Bind2[A, B, C any](a Incr[A], b Incr[B], fn func(context.Context, A, B) (Incr[C], error)) BindIncr[C] {
 	o := &bind2Incr[A, B, C]{
 		n:  NewNode(),
 		a:  a,
@@ -19,11 +19,11 @@ func Bind2[A, B, C any](a Incr[A], b Incr[B], fn func(context.Context, A, B) (In
 }
 
 var (
-	_ Incr[bool]   = (*bind2Incr[string, float64, bool])(nil)
-	_ IBind[bool]  = (*bind2Incr[string, float64, bool])(nil)
-	_ INode        = (*bind2Incr[string, float64, bool])(nil)
-	_ IStabilize   = (*bind2Incr[string, float64, bool])(nil)
-	_ fmt.Stringer = (*bind2Incr[string, float64, bool])(nil)
+	_ Incr[bool]     = (*bind2Incr[string, float64, bool])(nil)
+	_ BindIncr[bool] = (*bind2Incr[string, float64, bool])(nil)
+	_ INode          = (*bind2Incr[string, float64, bool])(nil)
+	_ IStabilize     = (*bind2Incr[string, float64, bool])(nil)
+	_ fmt.Stringer   = (*bind2Incr[string, float64, bool])(nil)
 )
 
 type bind2Incr[A, B, C any] struct {

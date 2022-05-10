@@ -6,7 +6,7 @@ import (
 
 // Incr is a type that can be an incremental node in a computation graph.
 type Incr[T any] interface {
-	Node() *Node
+	INode
 	Value() T
 }
 
@@ -18,15 +18,6 @@ type INode interface {
 // IStabilize is a type that can be stabilized.
 type IStabilize interface {
 	Stabilize(context.Context) error
-}
-
-// IBind is a node that implements Bind, which
-// dynamically swaps out entire subgraphs
-// based on input incrementals.
-type IBind[A any] interface {
-	INode
-	Bind(context.Context) (old, new Incr[A], err error)
-	SetBind(Incr[A])
 }
 
 // ICutoff is a type that determines if changes should
