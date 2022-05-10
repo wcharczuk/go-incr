@@ -25,6 +25,7 @@ func stabilizeNode(ctx context.Context, gn INode) error {
 		tracePrintf(ctx, "stabilize; already stabilizing, cannot continue")
 		return fmt.Errorf("stabilize; already stabilizing, cannot continue")
 	}
+
 	if shouldInitialize(gnn) {
 		tracePrintf(ctx, "stabilize; initializing graph rooted at: %v", gn)
 		Initialize(ctx, gn)

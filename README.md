@@ -19,7 +19,7 @@ Given an exmaple computation:
 v0 := incr.Var("foo")
 v1 := incr.Var("bar")
 
-output := incr.Map2(v0.Read(), v1.Read(), func(a, b string) string { return a + " and " + b})
+output := incr.Apply2(v0.Read(), v1.Read(), func(a, b string) string { return a + " and " + b})
 ```
 
 In order to realize the values, we need to call `Stabilize` on it:
@@ -50,7 +50,7 @@ Many of the original library types are implemented, but some of the types are no
 The "core" types are mostly implemented though, specifically:
 - Return
 - Var
-- Map(2,3,If)
+- Apply(2,3,If)
 - Bind(2,3,If)
 - Cutoffs
 - Watch

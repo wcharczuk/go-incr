@@ -54,13 +54,14 @@ var (
 )
 
 type diffMapByKeysAddedIncr[K comparable, V any] struct {
-	n   *Node
-	i   Incr[map[K]V]
-	val map[K]V
+	n    *Node
+	i    Incr[map[K]V]
+	last map[K]V
+	val  map[K]V
 }
 
 func (mfn *diffMapByKeysAddedIncr[K, V]) String() string {
-	return FormatNode(mfn.n, "map_diff_key_adds")
+	return FormatNode(mfn.n, "diff_map_by_keys_added")
 }
 
 func (mfn *diffMapByKeysAddedIncr[K, V]) Node() *Node { return mfn.n }
@@ -68,7 +69,8 @@ func (mfn *diffMapByKeysAddedIncr[K, V]) Node() *Node { return mfn.n }
 func (mfn *diffMapByKeysAddedIncr[K, V]) Value() map[K]V { return mfn.val }
 
 func (mfn *diffMapByKeysAddedIncr[K, V]) Stabilize(_ context.Context) error {
-	mfn.val = diffMapByKeysAdded(mfn.val, mfn.i.Value())
+	newVal := mfn.i.Value()
+	mfn.val, mfn.last = diffMapByKeysAdded(mfn.last, newVal)
 	return nil
 }
 
@@ -80,9 +82,10 @@ var (
 )
 
 type diffMapByKeysRemovedIncr[K comparable, V any] struct {
-	n   *Node
-	i   Incr[map[K]V]
-	val map[K]V
+	n    *Node
+	i    Incr[map[K]V]
+	last map[K]V
+	val  map[K]V
 }
 
 func (mfn *diffMapByKeysRemovedIncr[K, V]) String() string {
@@ -94,43 +97,51 @@ func (mfn *diffMapByKeysRemovedIncr[K, V]) Node() *Node { return mfn.n }
 func (mfn *diffMapByKeysRemovedIncr[K, V]) Value() map[K]V { return mfn.val }
 
 func (mfn *diffMapByKeysRemovedIncr[K, V]) Stabilize(_ context.Context) error {
-	mfn.val = diffMapByKeysRemoved(mfn.val, mfn.i.Value())
+	newVal := mfn.i.Value()
+	mfn.val, mfn.last = diffMapByKeysRemoved(mfn.last, newVal)
 	return nil
 }
 
-func diffMapByKeysAdded[K comparable, V any](m0, m1 map[K]V) (add map[K]V) {
+func diffMapByKeysAdded[K comparable, V any](m0, m1 map[K]V) (add, orig map[K]V) {
 	add = make(map[K]V)
+	orig = make(map[K]V)
 	var ok bool
-	if m0 != nil {
+	if len(m0) > 0 {
 		for k, v := range m1 {
 			if _, ok = m0[k]; !ok {
 				add[k] = v
 			}
+			orig[k] = v
 		}
 		return
 	}
 	for k, v := range m1 {
 		add[k] = v
+		orig[k] = v
 	}
 	return
 }
 
-func diffMapByKeysRemoved[K comparable, V any](m0, m1 map[K]V) (rem map[K]V) {
+func diffMapByKeysRemoved[K comparable, V any](m0, m1 map[K]V) (rem, orig map[K]V) {
 	rem = make(map[K]V)
+	orig = make(map[K]V)
 	var ok bool
-	if m1 != nil {
+	if len(m1) > 0 {
 		for k, v := range m0 {
 			if _, ok = m1[k]; !ok {
 				rem[k] = v
 			}
 		}
-		return
-	}
-	if m0 != nil {
-		for k, v := range m0 {
-			rem[k] = v
+		for k, v := range m1 {
+			orig[k] = v
 		}
 		return
+	}
+	for k, v := range m0 {
+		rem[k] = v
+	}
+	for k, v := range m1 {
+		orig[k] = v
 	}
 	return
 }

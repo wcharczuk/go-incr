@@ -597,3 +597,68 @@ func Test_Stabilize_foldMap(t *testing.T) {
 	_ = Stabilize(ctx, mf)
 	ItsEqual(t, 21, mf.Value())
 }
+
+func Test_Stabilize_diffMapByKeysAdded(t *testing.T) {
+	ctx := testContext()
+
+	m := map[string]int{
+		"one":   1,
+		"two":   2,
+		"three": 3,
+		"four":  4,
+		"five":  5,
+		"six":   6,
+	}
+
+	mv := Var(m)
+	mda := DiffMapByKeysAdded(mv.Read())
+	mf := FoldMap(mda, 0, func(key string, val, accum int) int {
+		return accum + val
+	})
+	_ = Stabilize(ctx, mf)
+	ItsEqual(t, 21, mf.Value())
+
+	m["seven"] = 7
+	m["eight"] = 8
+
+	mv.Set(m)
+
+	_ = Stabilize(ctx, mf)
+	ItsEqual(t, 36, mf.Value())
+
+	m["nine"] = 9
+
+	mv.Set(m)
+
+	_ = Stabilize(ctx, mf)
+	ItsEqual(t, 45, mf.Value())
+}
+
+func Test_Stabilize_diffMapByKeysRemoved(t *testing.T) {
+	ctx := testContext()
+
+	m := map[string]int{
+		"one":   1,
+		"two":   2,
+		"three": 3,
+		"four":  4,
+		"five":  5,
+		"six":   6,
+	}
+
+	mv := Var(m)
+	mdr := DiffMapByKeysRemoved(mv.Read())
+	mf := FoldMap(mdr, 0, func(key string, val, accum int) int {
+		return accum + val
+	})
+	_ = Stabilize(ctx, mf)
+	ItsEqual(t, 0, mf.Value())
+
+	delete(m, "two")
+	delete(m, "five")
+
+	mv.Set(m)
+
+	_ = Stabilize(ctx, mf)
+	ItsEqual(t, 7, mf.Value())
+}
