@@ -13,17 +13,17 @@ func Test_Initialize(t *testing.T) {
 	v2 := Var("bar")
 	v3 := Var("baz")
 
-	m0 := Map2(v0.Read(), v1.Read(), func(_ context.Context, a, b string) (string, error) {
+	m0 := Apply2(v0.Read(), v1.Read(), func(_ context.Context, a, b string) (string, error) {
 		return a + " " + b, nil
 	})
-	m1 := Map2(v2.Read(), v3.Read(), func(_ context.Context, a, b string) (string, error) {
+	m1 := Apply2(v2.Read(), v3.Read(), func(_ context.Context, a, b string) (string, error) {
 		return a + "/" + b, nil
 	})
 	r0 := Return("hello")
-	m2 := Map2(m0, r0, func(_ context.Context, a, b string) (string, error) {
+	m2 := Apply2(m0, r0, func(_ context.Context, a, b string) (string, error) {
 		return a + "+" + b, nil
 	})
-	m3 := Map2(m1, m2, func(_ context.Context, a, b string) (string, error) {
+	m3 := Apply2(m1, m2, func(_ context.Context, a, b string) (string, error) {
 		return a + "+" + b, nil
 	})
 

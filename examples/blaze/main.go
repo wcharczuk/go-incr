@@ -56,7 +56,7 @@ type BuildResult struct {
 	Output  string
 }
 
-type PackageBuildIncr = incr.MapNIncr[BuildResult, BuildResult]
+type PackageBuildIncr = incr.ApplyNIncr[BuildResult, BuildResult]
 
 func createPackageIncrementalLookup(packages ...Package) (output map[string]PackageBuildIncr) {
 	output = make(map[string]PackageBuildIncr)
@@ -72,7 +72,7 @@ func createPackageIncrementalLookup(packages ...Package) (output map[string]Pack
 }
 
 func createBuildPackageIncr(p Package) PackageBuildIncr {
-	output := incr.MapN(buildPackageFunc(p))
+	output := incr.ApplyN(buildPackageFunc(p))
 	output.Node().OnUpdate(func(context.Context) {
 		fmt.Printf("built: %s\n", p.name)
 	})
@@ -80,7 +80,7 @@ func createBuildPackageIncr(p Package) PackageBuildIncr {
 	return output
 }
 
-func buildPackageFunc(p Package) incr.MapNFunc[BuildResult, BuildResult] {
+func buildPackageFunc(p Package) incr.ApplyNFunc[BuildResult, BuildResult] {
 	return func(ctx context.Context, inputs ...BuildResult) (BuildResult, error) {
 		start := time.Now()
 		var delay = time.Duration(250 + rand.Intn(1500))

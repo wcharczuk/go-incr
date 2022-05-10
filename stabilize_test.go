@@ -11,7 +11,7 @@ func Test_Stabilize(t *testing.T) {
 
 	v0 := Var("foo")
 	v1 := Var("bar")
-	m0 := Map2(v0.Read(), v1.Read(), func(_ context.Context, a, b string) (string, error) {
+	m0 := Apply2(v0.Read(), v1.Read(), func(_ context.Context, a, b string) (string, error) {
 		return a + " " + b, nil
 	})
 
@@ -52,7 +52,7 @@ func Test_Stabilize_updateHandlers(t *testing.T) {
 
 	v0 := Var("foo")
 	v1 := Var("bar")
-	m0 := Map2(v0.Read(), v1.Read(), func(_ context.Context, a, b string) (string, error) {
+	m0 := Apply2(v0.Read(), v1.Read(), func(_ context.Context, a, b string) (string, error) {
 		return a + " " + b, nil
 	})
 
@@ -76,11 +76,11 @@ func Test_Stabilize_unevenHeights(t *testing.T) {
 
 	v0 := Var("foo")
 	v1 := Var("bar")
-	m0 := Map2[string, string](v0, v1, func(_ context.Context, a, b string) (string, error) {
+	m0 := Apply2[string, string](v0, v1, func(_ context.Context, a, b string) (string, error) {
 		return a + " " + b, nil
 	})
 	r0 := Return("moo")
-	m1 := Map2(r0, m0, func(_ context.Context, a, b string) (string, error) {
+	m1 := Apply2(r0, m0, func(_ context.Context, a, b string) (string, error) {
 		return a + " != " + b, nil
 	})
 
@@ -108,13 +108,13 @@ func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
 	}
 
 	a := Var("a")
-	b := Map(a.Read(), edge("b"))
-	c := Map(b, edge("c"))
-	d := Map(c, edge("d"))
-	f := Map(a.Read(), edge("f"))
-	e := Map(f, edge("e"))
+	b := Apply(a.Read(), edge("b"))
+	c := Apply(b, edge("c"))
+	d := Apply(c, edge("d"))
+	f := Apply(a.Read(), edge("f"))
+	e := Apply(f, edge("e"))
 
-	z := Map2(d, e, func(_ context.Context, v0, v1 string) (string, error) {
+	z := Apply2(d, e, func(_ context.Context, v0, v1 string) (string, error) {
 		return v0 + "+" + v1 + "->z", nil
 	})
 
@@ -136,7 +136,7 @@ func Test_Stabilize_doubleVarSet_singleUpdate(t *testing.T) {
 
 	a := Var("a")
 	b := Var("b")
-	m := Map2(a.Read(), b.Read(), func(_ context.Context, v0, v1 string) (string, error) {
+	m := Apply2(a.Read(), b.Read(), func(_ context.Context, v0, v1 string) (string, error) {
 		return v0 + " " + v1, nil
 	})
 
@@ -161,13 +161,13 @@ func Test_Stabilize_verifyPartial(t *testing.T) {
 	v1 := Var("moo")
 	c1 := Return("baz")
 
-	m0 := Map2(v0.Read(), c0, func(_ context.Context, a, b string) (string, error) {
+	m0 := Apply2(v0.Read(), c0, func(_ context.Context, a, b string) (string, error) {
 		return a + " " + b, nil
 	})
 	co0 := Cutoff(m0, func(n, o string) bool {
 		return len(n) == len(o)
 	})
-	m1 := Map2(v1.Read(), c1, func(_ context.Context, a, b string) (string, error) {
+	m1 := Apply2(v1.Read(), c1, func(_ context.Context, a, b string) (string, error) {
 		return a + " != " + b, nil
 	})
 	co1 := Cutoff(m1, func(n, o string) bool {
@@ -175,7 +175,7 @@ func Test_Stabilize_verifyPartial(t *testing.T) {
 	})
 
 	sw := Var(true)
-	mi := MapIf(co0, co1, sw)
+	mi := ApplyIf(co0, co1, sw)
 
 	err := Stabilize(ctx, mi)
 	ItsNil(t, err)
@@ -207,7 +207,7 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 	}
 
 	i := Var(data)
-	output := Map(
+	output := Apply(
 		i.Read(),
 		func(_ context.Context, entries []Entry) (output []string, err error) {
 			for _, e := range entries {
@@ -410,7 +410,7 @@ func Test_Stabilize_cutoff(t *testing.T) {
 		epsilon(0.1),
 	)
 
-	output := Map2(
+	output := Apply2(
 		cutoff,
 		Return(10.0),
 		add[float64],
@@ -453,7 +453,7 @@ func Test_Stabilize_watch(t *testing.T) {
 
 	v0 := Var(1)
 	v1 := Var(1)
-	m0 := Map2[int, int](v0, v1, add[int])
+	m0 := Apply2[int, int](v0, v1, add[int])
 	w0 := Watch(m0)
 
 	_ = Stabilize(ctx, w0)
@@ -474,7 +474,7 @@ func Test_Stabilize_map(t *testing.T) {
 	ctx := testContext()
 
 	c0 := Return(1)
-	m := Map(c0, func(_ context.Context, a int) (int, error) {
+	m := Apply(c0, func(_ context.Context, a int) (int, error) {
 		return a + 10, nil
 	})
 	_ = Stabilize(ctx, m)
@@ -486,7 +486,7 @@ func Test_Stabilize_map2(t *testing.T) {
 
 	c0 := Return(1)
 	c1 := Return(2)
-	m2 := Map2(c0, c1, func(_ context.Context, a, b int) (int, error) {
+	m2 := Apply2(c0, c1, func(_ context.Context, a, b int) (int, error) {
 		return a + b, nil
 	})
 	_ = Stabilize(ctx, m2)
@@ -499,7 +499,7 @@ func Test_Stabilize_map3(t *testing.T) {
 	c0 := Return(1)
 	c1 := Return(2)
 	c2 := Return(3)
-	m3 := Map3(c0, c1, c2, func(_ context.Context, a, b, c int) (int, error) {
+	m3 := Apply3(c0, c1, c2, func(_ context.Context, a, b, c int) (int, error) {
 		return a + b + c, nil
 	})
 
@@ -513,7 +513,7 @@ func Test_Stabilize_mapIf(t *testing.T) {
 	c0 := Return(1)
 	c1 := Return(2)
 	v0 := Var(false)
-	mi0 := MapIf(c0, c1, v0)
+	mi0 := ApplyIf(c0, c1, v0)
 
 	_ = Stabilize(ctx, mi0)
 	ItsEqual(t, 2, mi0.Value())
@@ -544,7 +544,7 @@ func Test_Stabilize_mapN(t *testing.T) {
 	c0 := Return(1)
 	c1 := Return(2)
 	c2 := Return(3)
-	mn := MapN(func(_ context.Context, inputs ...int) (int, error) {
+	mn := ApplyN(func(_ context.Context, inputs ...int) (int, error) {
 		return sum(inputs...), nil
 	}, c0, c1, c2)
 
@@ -560,7 +560,7 @@ func Test_Stabilize_func(t *testing.T) {
 		itsBlueDye(ictx, t)
 		return value, nil
 	})
-	m := Map(f, func(ictx context.Context, v string) (string, error) {
+	m := Apply(f, func(ictx context.Context, v string) (string, error) {
 		itsBlueDye(ctx, t)
 		return v + " world!", nil
 	})
@@ -578,4 +578,22 @@ func Test_Stabilize_func(t *testing.T) {
 
 	_ = Stabilize(ctx, m)
 	ItsEqual(t, "not hello world!", m.Value())
+}
+
+func Test_Stabilize_foldMap(t *testing.T) {
+	ctx := testContext()
+
+	m := map[string]int{
+		"one":   1,
+		"two":   2,
+		"three": 3,
+		"four":  4,
+		"five":  5,
+		"six":   6,
+	}
+	mf := FoldMap(Return(m), 0, func(key string, val, accum int) int {
+		return accum + val
+	})
+	_ = Stabilize(ctx, mf)
+	ItsEqual(t, 21, mf.Value())
 }

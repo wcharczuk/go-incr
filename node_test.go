@@ -286,7 +286,7 @@ func Test_Node_detectCutoff(t *testing.T) {
 
 func Test_Node_detectStabilize(t *testing.T) {
 	yes := NewNode()
-	yes.detectStabilize(new(mapIncr[string, string]))
+	yes.detectStabilize(new(applyIncr[string, string]))
 	ItsNotNil(t, yes.stabilize)
 
 	no := NewNode()
@@ -458,10 +458,10 @@ func Test_nodeFormatters(t *testing.T) {
 		{BindIf[string](Return(false), nil), "bind_if"},
 		{Cutoff(Return(""), nil), "cutoff"},
 		{Func[string](nil), "func"},
-		{Map[string, bool](Return(""), nil), "map"},
-		{Map2[string, int, bool](Return(""), Return(0), nil), "map2"},
-		{Map3[string, int, float64, bool](Return(""), Return(0), Return(1.0), nil), "map3"},
-		{MapIf(Return(""), Return(""), Return(false)), "map_if"},
+		{Apply[string, bool](Return(""), nil), "apply"},
+		{Apply2[string, int, bool](Return(""), Return(0), nil), "apply2"},
+		{Apply3[string, int, float64, bool](Return(""), Return(0), Return(1.0), nil), "apply3"},
+		{ApplyIf(Return(""), Return(""), Return(false)), "apply_if"},
 		{Return(""), "return"},
 		{Watch(Return("")), "watch"},
 		{Var(""), "var"},

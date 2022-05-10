@@ -39,7 +39,7 @@ func benchmarkSize(size int, b *testing.B) {
 	var cursor int
 	for x := size; x > 0; x >>= 1 {
 		for y := 0; y < x-1; y += 2 {
-			n := Map2(nodes[cursor+y], nodes[cursor+y+1], concat)
+			n := Apply2(nodes[cursor+y], nodes[cursor+y+1], concat)
 			nodes = append(nodes, n)
 		}
 		cursor += x
