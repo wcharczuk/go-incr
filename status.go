@@ -5,7 +5,7 @@ type Status int
 
 // Status constants
 const (
-	StatusStabilizing Status = iota
-	StatusRunningUpdateHandlers
-	StatusNotStabilizing
+	StatusNotStabilizing        Status = 0
+	StatusStabilizing                  = 1
+	StatusRunningUpdateHandlers        = 2
 )

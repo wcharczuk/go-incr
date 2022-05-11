@@ -70,3 +70,51 @@ type heightIncr struct {
 func (hi heightIncr) Node() *Node {
 	return hi.n
 }
+
+func Test_recomputeHeap_removeMinHeight(t *testing.T) {
+	n00 := newHeightIncr(0)
+	n01 := newHeightIncr(0)
+	n02 := newHeightIncr(0)
+
+	n10 := newHeightIncr(1)
+	n11 := newHeightIncr(1)
+	n12 := newHeightIncr(1)
+	n13 := newHeightIncr(1)
+
+	rh := newRecomputeHeap(2)
+	rh.Add(n00)
+	rh.Add(n01)
+	rh.Add(n02)
+
+	rh.Add(n10)
+	rh.Add(n11)
+	rh.Add(n12)
+	rh.Add(n13)
+
+	output := rh.RemoveMinHeight()
+	ItsEqual(t, 3, len(output))
+	ItsNil(t, rh.heights[0].head)
+	ItsNil(t, rh.heights[0].tail)
+	ItsEqual(t, 0, rh.heights[0].len)
+}
+
+func Test_recomputeHeapList_popAll(t *testing.T) {
+	n0 := newHeightIncr(0)
+	n1 := newHeightIncr(0)
+	n2 := newHeightIncr(0)
+
+	rhl := new(recomputeHeapList)
+	rhl.push(n0)
+	rhl.push(n1)
+	rhl.push(n2)
+
+	ItsNotNil(t, rhl.head)
+	ItsNotNil(t, rhl.tail)
+	ItsEqual(t, 3, rhl.len)
+
+	output := rhl.popAll()
+	ItsEqual(t, 3, len(output))
+	ItsEqual(t, 0, rhl.len)
+	ItsNil(t, rhl.head)
+	ItsNil(t, rhl.tail)
+}

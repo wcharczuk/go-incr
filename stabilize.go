@@ -21,17 +21,16 @@ func Stabilize(ctx context.Context, nodes ...INode) error {
 
 func stabilizeNode(ctx context.Context, gn INode) error {
 	gnn := gn.Node()
-	if gnn.gs != nil && gnn.gs.s != StatusNotStabilizing {
-		tracePrintf(ctx, "stabilize; already stabilizing, cannot continue")
-		return fmt.Errorf("stabilize; already stabilizing, cannot continue")
-	}
-
 	if shouldInitialize(gnn) {
 		tracePrintf(ctx, "stabilize; initializing graph rooted at: %v", gn)
 		Initialize(ctx, gn)
 	}
 	gnn.gs.mu.Lock()
 	defer gnn.gs.mu.Unlock()
+	if gnn.gs.s != StatusNotStabilizing {
+		tracePrintf(ctx, "stabilize; already stabilizing, cannot continue")
+		return fmt.Errorf("stabilize; already stabilizing, cannot continue")
+	}
 	defer func() {
 		tracePrintf(ctx, "stabilize; stabilization %s.%d complete", gnn.gs.id.Short(), gnn.gs.sn)
 		gnn.gs.sn++

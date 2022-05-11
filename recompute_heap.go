@@ -1,5 +1,7 @@
 package incr
 
+import "sync"
+
 // newRecomputeHeap returns a new recompute heap with a given maximum height.
 func newRecomputeHeap(maxHeight int) *recomputeHeap {
 	return &recomputeHeap{
@@ -12,6 +14,7 @@ func newRecomputeHeap(maxHeight int) *recomputeHeap {
 // recomputeHeap is a height ordered list of lists of nodes.
 type recomputeHeap struct {
 	maxHeight int
+	mu        sync.Mutex
 
 	heights []*recomputeHeapList
 	lookup  map[Identifier]*recomputeHeapListItem
@@ -19,11 +22,17 @@ type recomputeHeap struct {
 
 // Len returns the length of the recompute heap.
 func (rh *recomputeHeap) Len() int {
+	rh.mu.Lock()
+	defer rh.mu.Unlock()
+
 	return len(rh.lookup)
 }
 
 // Add adds a node to the recompute heap at a given height.
 func (rh *recomputeHeap) Add(s INode) {
+	rh.mu.Lock()
+	defer rh.mu.Unlock()
+
 	sn := s.Node()
 	if sn.height >= rh.maxHeight {
 		panic("recompute heap; cannot add node with height greater than max height")
@@ -37,6 +46,9 @@ func (rh *recomputeHeap) Add(s INode) {
 
 // Has returns if a given node exists in the recompute heap at its height by id.
 func (rh *recomputeHeap) Has(s INode) (ok bool) {
+	rh.mu.Lock()
+	defer rh.mu.Unlock()
+
 	sn := s.Node()
 	if sn.height >= rh.maxHeight {
 		panic("recompute heap; cannot has node with height greater than max height")
@@ -47,6 +59,9 @@ func (rh *recomputeHeap) Has(s INode) (ok bool) {
 
 // RemoveMin removes the minimum node from the recompute heap.
 func (rh *recomputeHeap) RemoveMin() INode {
+	rh.mu.Lock()
+	defer rh.mu.Unlock()
+
 	for height := range rh.heights {
 		if rh.heights[height] != nil && rh.heights[height].head != nil {
 			id, node := rh.heights[height].pop()
@@ -57,8 +72,29 @@ func (rh *recomputeHeap) RemoveMin() INode {
 	return nil
 }
 
+// RemoveMinHeight removes the minimum height nodes from
+// the recompute heap all at once.
+func (rh *recomputeHeap) RemoveMinHeight() (nodes []INode) {
+	rh.mu.Lock()
+	defer rh.mu.Unlock()
+
+	for height := range rh.heights {
+		if rh.heights[height] != nil && rh.heights[height].head != nil {
+			nodes = rh.heights[height].popAll()
+			for _, n := range nodes {
+				delete(rh.lookup, n.Node().id)
+			}
+			return
+		}
+	}
+	return nil
+}
+
 // Remove removes a specific node from the heap.
 func (rh *recomputeHeap) Remove(s INode) {
+	rh.mu.Lock()
+	defer rh.mu.Unlock()
+
 	sn := s.Node()
 	item, ok := rh.lookup[sn.id]
 	if !ok {
@@ -109,6 +145,18 @@ func (rhl *recomputeHeapList) pop() (k Identifier, v INode) {
 		after.next = nil
 	}
 	rhl.head = after
+	return
+}
+
+func (rhl *recomputeHeapList) popAll() (output []INode) {
+	for rhl.head != nil {
+		output = append(output, rhl.head.value)
+		rhl.head = rhl.head.previous
+		rhl.len--
+	}
+	if rhl.head == nil {
+		rhl.tail = nil
+	}
 	return
 }
 
