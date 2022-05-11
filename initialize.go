@@ -2,7 +2,7 @@ package incr
 
 import "context"
 
-// initialize starts the initialization cycle.
+// Initialize starts the initialization cycle.
 //
 // it creates the graph state for the graph, discovers and initialized
 // all nodes, and then establishes the recompute heap based on node heights.
