@@ -11,7 +11,15 @@ import (
 // The nodes do not need to be any specific type of node in the graph
 // as the full graph will be initialized on the first call to stabilize for that graph.
 func Stabilize(ctx context.Context, nodes ...INode) error {
+	seenGraphs := make(set[Identifier])
 	for _, gn := range nodes {
+		if shouldInitialize(gn.Node()) {
+			tracePrintf(ctx, "stabilize; initializing graph rooted at: %v", gn)
+			Initialize(ctx, gn)
+		}
+		if seenGraphs.has(gn.Node().gs.id) {
+			continue
+		}
 		if err := stabilizeNode(ctx, gn); err != nil {
 			return err
 		}
@@ -21,10 +29,6 @@ func Stabilize(ctx context.Context, nodes ...INode) error {
 
 func stabilizeNode(ctx context.Context, gn INode) error {
 	gnn := gn.Node()
-	if shouldInitialize(gnn) {
-		tracePrintf(ctx, "stabilize; initializing graph rooted at: %v", gn)
-		Initialize(ctx, gn)
-	}
 	gnn.gs.mu.Lock()
 	defer gnn.gs.mu.Unlock()
 	if gnn.gs.s != StatusNotStabilizing {

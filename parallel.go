@@ -26,17 +26,6 @@ func ParallelStabilize(ctx context.Context, nodes ...INode) error {
 	return nil
 }
 
-type set[T comparable] map[T]struct{}
-
-func (s set[T]) has(t T) (ok bool) {
-	_, ok = s[t]
-	return
-}
-
-func (s set[T]) add(t T) {
-	s[t] = struct{}{}
-}
-
 func parallelStabilizeNode(ctx context.Context, gn INode) error {
 	gnn := gn.Node()
 
@@ -98,6 +87,17 @@ func parallelRecomputeAll(ctx context.Context, gs *graphState) error {
 		wg.Wait()
 	}
 	return nil
+}
+
+type set[T comparable] map[T]struct{}
+
+func (s set[T]) has(t T) (ok bool) {
+	_, ok = s[t]
+	return
+}
+
+func (s set[T]) add(t T) {
+	s[t] = struct{}{}
 }
 
 var (
@@ -224,7 +224,10 @@ type parallelWorker[T any] struct {
 }
 
 func (p *parallelWorker[T]) dispatch() {
-	defer close(p.stopped)
+	defer func() {
+		close(p.stopped)
+	}()
+
 	var workItem T
 	var err error
 	for {
