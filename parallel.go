@@ -69,6 +69,7 @@ func parallelRecomputeAll(ctx context.Context, gs *graphState) error {
 
 	var minHeight []INode
 	var nn *Node
+	var err error
 	for gs.rh.Len() > 0 {
 		minHeight = gs.rh.RemoveMinHeight()
 		tracePrintf(ctx, "parallel stabilize[%d]; stabilizing %d node block", gs.sn, len(minHeight))
@@ -81,7 +82,9 @@ func parallelRecomputeAll(ctx context.Context, gs *graphState) error {
 				nn.changedAt = gs.sn
 				wg.Add(1)
 				tracePrintf(ctx, "parallel stabilize[%d]; submitting %v", gs.sn, n)
-				workerPool.Submit(ctx, nn)
+				if err = workerPool.Submit(ctx, nn); err != nil {
+					return err
+				}
 			}
 		}
 		wg.Wait()
@@ -117,45 +120,45 @@ type parallelWorkerPool[T any] struct {
 }
 
 // Submit process a work item by dispatching it to a ready worker.
-func (pwp *parallelWorkerPool[T]) Submit(ctx context.Context, t T) error {
+func (p *parallelWorkerPool[T]) Submit(ctx context.Context, t T) error {
 	select {
 	case <-ctx.Done():
 		return context.Canceled
-	case <-pwp.stop:
+	case <-p.stop:
 		return errParallelWorkerPoolStopping
-	case pwp.work <- t:
+	case p.work <- t:
 		return nil
 	}
 }
 
-func (pwp *parallelWorkerPool[T]) Start(ctx context.Context) error {
-	effectiveNumWorkers := pwp.numWorkers
+func (p *parallelWorkerPool[T]) Start(ctx context.Context) error {
+	effectiveNumWorkers := p.numWorkers
 	if effectiveNumWorkers == 0 {
 		effectiveNumWorkers = runtime.NumCPU()
 	}
-	pwp.readyWorkers = make(chan *parallelWorker[T], effectiveNumWorkers)
+	p.readyWorkers = make(chan *parallelWorker[T], effectiveNumWorkers)
 	workerErrors := make(chan error, effectiveNumWorkers)
 	for x := 0; x < effectiveNumWorkers; x++ {
 		w := &parallelWorker[T]{
 			work:      make(chan T),
 			ctx:       ctx,
-			action:    pwp.action,
-			finalizer: pwp.finalizer,
+			action:    p.action,
+			finalizer: parallelWorkerPoolFinalizer(p.readyWorkers),
 			errors:    workerErrors,
 			stop:      make(chan struct{}),
 			stopped:   make(chan struct{}),
 		}
 		go w.dispatch()
-		pwp.workers = append(pwp.workers, w)
-		pwp.readyWorkers <- w
+		p.workers = append(p.workers, w)
+		p.readyWorkers <- w
 	}
 
-	pwp.stop = make(chan struct{})
-	pwp.stopped = make(chan struct{})
+	p.stop = make(chan struct{})
+	p.stopped = make(chan struct{})
 
-	close(pwp.started)
+	close(p.started)
 
-	defer close(pwp.stopped)
+	defer close(p.stopped)
 	var workItem T
 	var readyWorker *parallelWorker[T]
 	for {
@@ -164,7 +167,7 @@ func (pwp *parallelWorkerPool[T]) Start(ctx context.Context) error {
 			return nil
 		case err := <-workerErrors:
 			return err
-		case <-pwp.stop:
+		case <-p.stop:
 			return nil
 		default:
 		}
@@ -174,23 +177,23 @@ func (pwp *parallelWorkerPool[T]) Start(ctx context.Context) error {
 			return nil
 		case err := <-workerErrors:
 			return err
-		case <-pwp.stop:
+		case <-p.stop:
 			return nil
-		case workItem = <-pwp.work:
+		case workItem = <-p.work:
 			select {
 			case <-ctx.Done():
 				return nil
 			case err := <-workerErrors:
 				return err
-			case <-pwp.stop:
+			case <-p.stop:
 				return nil
-			case readyWorker = <-pwp.readyWorkers:
+			case readyWorker = <-p.readyWorkers:
 				select {
 				case <-ctx.Done():
 					return nil
 				case err := <-workerErrors:
 					return err
-				case <-pwp.stop:
+				case <-p.stop:
 					return nil
 				case readyWorker.work <- workItem:
 					continue
@@ -200,17 +203,19 @@ func (pwp *parallelWorkerPool[T]) Start(ctx context.Context) error {
 	}
 }
 
-func (pwp *parallelWorkerPool[T]) Stop() {
-	close(pwp.stop)
-	<-pwp.stopped
-	for _, w := range pwp.workers {
+func (p *parallelWorkerPool[T]) Stop() {
+	close(p.stop)
+	<-p.stopped
+	for _, w := range p.workers {
 		close(w.stop)
 		<-w.stopped
 	}
 }
 
-func (pwp *parallelWorkerPool[T]) finalizer(ctx context.Context, w *parallelWorker[T]) {
-	pwp.readyWorkers <- w
+func parallelWorkerPoolFinalizer[T any](readyWorkers chan *parallelWorker[T]) func(context.Context, *parallelWorker[T]) {
+	return func(ctx context.Context, w *parallelWorker[T]) {
+		readyWorkers <- w
+	}
 }
 
 type parallelWorker[T any] struct {
@@ -224,9 +229,7 @@ type parallelWorker[T any] struct {
 }
 
 func (p *parallelWorker[T]) dispatch() {
-	defer func() {
-		close(p.stopped)
-	}()
+	defer close(p.stopped)
 
 	var workItem T
 	var err error

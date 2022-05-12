@@ -53,6 +53,7 @@ func Test_parallelWorker(t *testing.T) {
 
 	gotValues := make(chan string)
 	var didCallFinalizer bool
+	calledFinalizer := make(chan struct{})
 	pw := parallelWorker[string]{
 		work:    make(chan string),
 		errors:  make(chan error, 1),
@@ -68,32 +69,28 @@ func Test_parallelWorker(t *testing.T) {
 			return nil
 		},
 		finalizer: func(ictx context.Context, ipw *parallelWorker[string]) {
+			defer close(calledFinalizer)
 			itsBlueDye(ictx, t)
 			didCallFinalizer = true
 		},
 	}
 
-	go func() { pw.work <- "test-value-00" }()
-	started := make(chan struct{})
-	go func() {
-		close(started)
-		pw.dispatch()
-	}()
-	<-started
-	close(pw.stop)
-	<-pw.stopped
+	go pw.dispatch()
+
+	pw.work <- "test-value-00"
+
 	ItsEqual(t, "test-value-00", <-gotValues)
+	<-calledFinalizer
 	ItsEqual(t, true, didCallFinalizer)
 
-	pw.stop = make(chan struct{})
-	pw.stopped = make(chan struct{})
+	//
+	// assert how the worker handles errors
+	// specifically that it returns out of the dispatch loop
+	//
 
-	go func() { pw.work <- "not-test-value-00" }()
-	go func() { pw.dispatch() }()
-	pw.dispatch()
-	close(pw.stop)
+	pw.work <- "not-test-value-00"
+	ItsEqual(t, "not-test-value-00", <-gotValues)
 	<-pw.stopped
 
-	ItsEqual(t, 1, len(pw.errors))
-	ItsEqual(t, 0, len(gotValues))
+	ItsEqual(t, "invalid value", (<-pw.errors).Error())
 }

@@ -40,9 +40,8 @@ linters-settings:
     # it's a comma-separated list of prefixes
     local-prefixes: github.com/wcharcuzk/go-incr
 
-  golint:
-    # minimal confidence for issues, default is 0.8
-    min-confidence: 0.8
+  revive:
+    severity: warning
 
   govet:
     # report about shadowed variables
@@ -61,13 +60,9 @@ linters:
   enable:
     - gofmt
     - govet
-    - golint
+    - revive
     - ineffassign
     - staticcheck
     - errcheck
     - misspell
   fast: true
-
-issues:
-  # include:
-  #   - EXC0002
