@@ -43,19 +43,19 @@ func ParallelStabilize(ctx context.Context, nodes ...INode) error {
 
 func parallelStabilizeNode(ctx context.Context, gn INode) error {
 	gnn := gn.Node()
-	if gnn.gs.s != StatusNotStabilizing {
+	if gnn.gs.status != StatusNotStabilizing {
 		tracePrintf(ctx, "parallel stabilize; already stabilizing, cannot continue")
 		return errors.New("parallel stabilize; already stabilizing, cannot continue")
 	}
 	gnn.gs.mu.Lock()
 	defer gnn.gs.mu.Unlock()
 	defer func() {
-		tracePrintf(ctx, "parallel stabilize; stabilization %s.%d complete", gnn.gs.id.Short(), gnn.gs.sn)
-		gnn.gs.sn++
-		gnn.gs.s = StatusNotStabilizing
+		tracePrintf(ctx, "parallel stabilize[%d]; stabilization complete", gnn.gs.stabilizationNum)
+		gnn.gs.stabilizationNum++
+		gnn.gs.status = StatusNotStabilizing
 	}()
-	gnn.gs.s = StatusStabilizing
-	tracePrintf(ctx, "parallel stabilize; stabilization %s.%d starting", gnn.gs.id.Short(), gnn.gs.sn)
+	gnn.gs.status = StatusStabilizing
+	tracePrintf(ctx, "parallel stabilize[%d]; stabilization starting", gnn.gs.stabilizationNum)
 	return parallelRecomputeAll(ctx, gnn.gs)
 }
 
@@ -65,7 +65,7 @@ func parallelRecomputeAll(ctx context.Context, gs *graphState) error {
 		work: make(chan *Node),
 		action: func(ictx context.Context, n *Node) error {
 			defer wg.Done()
-			tracePrintf(ctx, "parallel stabilize[%d]; recomputing %s", gs.sn, n.id.Short())
+			tracePrintf(ctx, "parallel stabilize[%d]; recomputing %s", gs.stabilizationNum, n.id.Short())
 			return n.recompute(ctx)
 		},
 		started: make(chan struct{}),
@@ -75,7 +75,7 @@ func parallelRecomputeAll(ctx context.Context, gs *graphState) error {
 	}
 
 	go func() {
-		tracePrintf(ctx, "parallel stabilize[%d]; worker pool starting", gs.sn)
+		tracePrintf(ctx, "parallel stabilize[%d]; worker pool starting", gs.stabilizationNum)
 		_ = workerPool.Start(ctx)
 	}()
 	<-workerPool.started
@@ -86,14 +86,14 @@ func parallelRecomputeAll(ctx context.Context, gs *graphState) error {
 	var err error
 	for gs.rh.Len() > 0 {
 		minHeightBlock = gs.rh.RemoveMinHeight()
-		tracePrintf(ctx, "parallel stabilize[%d]; stabilizing %d node block", gs.sn, len(minHeightBlock))
+		tracePrintf(ctx, "parallel stabilize[%d]; stabilizing %d node block", gs.stabilizationNum, len(minHeightBlock))
 		for _, n := range minHeightBlock {
 			nn = n.Node()
 			if nn.shouldRecompute() {
 				if nn.maybeCutoff(ctx) {
 					continue
 				}
-				nn.changedAt = gs.sn
+				nn.changedAt = gs.stabilizationNum
 				wg.Add(1)
 				if err = workerPool.Submit(ctx, nn); err != nil {
 					return err

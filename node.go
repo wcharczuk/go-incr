@@ -32,7 +32,7 @@ func FormatNode(n *Node, nodeType string) string {
 // SetStale sets a node as stale.
 func SetStale(gn INode) {
 	n := gn.Node()
-	n.setAt = n.gs.sn
+	n.setAt = n.gs.stabilizationNum
 	if !n.gs.rh.Has(gn) {
 		n.gs.rh.Add(gn)
 	}
@@ -40,63 +40,49 @@ func SetStale(gn INode) {
 
 // Node is the common metadata for any node in the computation graph.
 type Node struct {
-	// id is a unique identifier for the node.
+	// id is a unique identifier for the node
 	id Identifier
-
-	// label is a descriptive string for the node.
-	//
-	// It is set with `SetLabel`
+	// label is a descriptive string for the
+	// node, and is set with `SetLabel`
 	label string
-
 	// gs is a shared reference to the graph state
 	// for the computation
 	gs *graphState
-
 	// parents are the nodes that depend on this node, that is
 	// parents are nodes for which this node is an input
 	parents []INode
-
 	// children are the nodes that this node depends on, that is
 	// children are inputs to this node
 	children []INode
-
 	// height is the topological sort height of the
 	// node and is used to order recomputation
 	// it is established when the graph is initialized
 	// - we may want to switch that to when the node is
 	//   strictly added to the graph.
 	height int
-
 	// changedAt connotes when the node was changed last,
 	// and is a function of the stabilization_num on the
 	// graph state
 	changedAt uint64
-
 	// setAt connotes when the node was set last, specifically
 	// for var nodes so that we can track their changed state separately
 	// from their set state, and is a function of the
 	// stabilization_num (sn) on the graph state
 	setAt uint64
-
 	// recomputedAt connotes when the node was last stabilized
 	recomputedAt uint64
-
 	// onUpdateHandlers are functions that are called when the node updates.
 	// they are added with `OnUpdate(...)`.
 	onUpdateHandlers []func(context.Context)
-
 	// onErrorHandlers are functions that are called when the node updates.
 	// they are added with `OnUpdate(...)`.
 	onErrorHandlers []func(context.Context, error)
-
 	// stabilize is set during initialization and is a shortcut
 	// to the interface sniff for the node for the IStabilize interface.
 	stabilize func(context.Context) error
-
 	// cutoff is set during initialization and is a shortcut
 	// to the interface sniff for the node for the ICutoff interface.
 	cutoff func(context.Context) bool
-
 	// numRecomputes is the number of times we recomputed the node
 	numRecomputes uint64
 }
@@ -165,7 +151,8 @@ func (n *Node) maybeStabilize(ctx context.Context) error {
 		}
 	}
 	n.numRecomputes++
-	n.recomputedAt = n.gs.sn
+	n.gs.numNodesRecomputed++
+	n.recomputedAt = n.gs.stabilizationNum
 	return nil
 }
 

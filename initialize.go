@@ -47,6 +47,7 @@ func discoverNode(ctx context.Context, gs *graphState, gn INode) {
 	gnn.detectCutoff(gn)
 	gnn.detectStabilize(gn)
 	gnn.height = gnn.calculateHeight()
+	gs.numNodes++
 	gs.rh.Add(gn)
 	return
 }
@@ -75,5 +76,6 @@ func undiscoverAllNodes(ctx context.Context, gs *graphState, gn INode) {
 func undiscoverNode(ctx context.Context, gs *graphState, gn INode) {
 	gnn := gn.Node()
 	gnn.gs = nil
+	gs.numNodes--
 	gs.rh.Remove(gn)
 }

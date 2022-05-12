@@ -95,7 +95,7 @@ func bindUpdate[A any](ctx context.Context, b BindIncr[A]) error {
 		Link(newValue, b)
 		discoverAllNodes(ctx, gs, newValue)
 		b.SetBind(newValue)
-		newValue.Node().changedAt = gs.sn
+		newValue.Node().changedAt = gs.stabilizationNum
 		return newValue.Node().maybeStabilize(ctx)
 	}
 
@@ -111,7 +111,7 @@ func bindUpdate[A any](ctx context.Context, b BindIncr[A]) error {
 		Link(newValue, b)
 		discoverAllNodes(ctx, gs, newValue)
 		b.SetBind(newValue)
-		newValue.Node().changedAt = gs.sn
+		newValue.Node().changedAt = gs.stabilizationNum
 		return newValue.Node().maybeStabilize(ctx)
 	}
 	return nil

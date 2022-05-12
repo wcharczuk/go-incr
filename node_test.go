@@ -220,7 +220,7 @@ func Test_Node_maybeStabilize(t *testing.T) {
 	ctx := testContext()
 	n := new(mockBareNode)
 	n.Node().gs = newGraphState()
-	n.Node().gs.sn = 5
+	n.Node().gs.stabilizationNum = 5
 
 	var calledStabilize bool
 	n.n.stabilize = func(ictx context.Context) error {
@@ -243,7 +243,7 @@ func Test_Node_maybeStabilize_error(t *testing.T) {
 	ctx := testContext()
 	n := NewNode()
 	n.gs = newGraphState()
-	n.gs.sn = 5
+	n.gs.stabilizationNum = 5
 
 	n.stabilize = func(ictx context.Context) error {
 		itsBlueDye(ictx, t)

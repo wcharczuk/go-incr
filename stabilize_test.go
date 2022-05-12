@@ -245,6 +245,22 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 	ItsEqual(t, 3, len(output.Value()))
 }
 
+func Test_Stabilize_js_test_232(t *testing.T) {
+	v := Var(1)
+	o := Apply2(
+		Apply2(v.Read(), Return(1), add[int]),
+		Apply2(Return(2), Return(3), add[int]),
+		add[int],
+	)
+	_ = Stabilize(testContext(), o)
+
+	stat1 := o.Node().gs.numNodesRecomputed
+	v.Set(2)
+	_ = Stabilize(testContext(), o)
+	stat2 := o.Node().gs.numNodesRecomputed
+	ItsEqual(t, 2, stat2-stat1)
+}
+
 func Test_Stabilize_bind(t *testing.T) {
 	ctx := testContext()
 
@@ -539,7 +555,7 @@ func Test_Stabilize_apply3Context(t *testing.T) {
 	c1 := Return(2)
 	c2 := Return(3)
 	m3 := Apply3Context(c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
-		itsBlueDye(ictx, nil)
+		itsBlueDye(ictx, t)
 		return a + b + c, nil
 	})
 

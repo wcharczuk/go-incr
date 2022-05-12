@@ -29,19 +29,19 @@ func Stabilize(ctx context.Context, nodes ...INode) error {
 
 func stabilizeNode(ctx context.Context, gn INode) error {
 	gnn := gn.Node()
-	if gnn.gs.s != StatusNotStabilizing {
+	if gnn.gs.status != StatusNotStabilizing {
 		tracePrintf(ctx, "stabilize; already stabilizing, cannot continue")
 		return fmt.Errorf("stabilize; already stabilizing, cannot continue")
 	}
 	gnn.gs.mu.Lock()
 	defer gnn.gs.mu.Unlock()
 	defer func() {
-		tracePrintf(ctx, "stabilize; stabilization %s.%d complete", gnn.gs.id.Short(), gnn.gs.sn)
-		gnn.gs.sn++
-		gnn.gs.s = StatusNotStabilizing
+		tracePrintf(ctx, "stabilize[%d]; stabilization complete", gnn.gs.stabilizationNum)
+		gnn.gs.stabilizationNum++
+		gnn.gs.status = StatusNotStabilizing
 	}()
-	gnn.gs.s = StatusStabilizing
-	tracePrintf(ctx, "stabilize; stabilization %s.%d starting", gnn.gs.id.Short(), gnn.gs.sn)
+	gnn.gs.status = StatusStabilizing
+	tracePrintf(ctx, "stabilize[%d]; stabilization starting", gnn.gs.stabilizationNum)
 	return recomputeAll(ctx, gnn.gs)
 }
 
@@ -56,7 +56,7 @@ func recomputeAll(ctx context.Context, gs *graphState) error {
 			if nn.maybeCutoff(ctx) {
 				continue
 			}
-			nn.changedAt = gs.sn
+			nn.changedAt = gs.stabilizationNum
 			if err = nn.recompute(ctx); err != nil {
 				return err
 			}

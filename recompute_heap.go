@@ -5,26 +5,30 @@ import "sync"
 // newRecomputeHeap returns a new recompute heap with a given maximum height.
 func newRecomputeHeap(maxHeight int) *recomputeHeap {
 	return &recomputeHeap{
-		maxHeight: maxHeight,
-		heights:   make([]*recomputeHeapList, maxHeight),
-		lookup:    make(map[Identifier]*recomputeHeapListItem),
+		heights: make([]*recomputeHeapList, maxHeight),
+		lookup:  make(map[Identifier]*recomputeHeapListItem),
 	}
 }
 
 // recomputeHeap is a height ordered list of lists of nodes.
 type recomputeHeap struct {
-	maxHeight int
-	mu        sync.Mutex
+	mu sync.Mutex
 
-	heights []*recomputeHeapList
-	lookup  map[Identifier]*recomputeHeapListItem
+	minHeight int
+	maxHeight int
+	heights   []*recomputeHeapList
+	lookup    map[Identifier]*recomputeHeapListItem
+}
+
+// MinHeight is the minimum height in the heap with nodes.
+func (rh *recomputeHeap) MinHeight() int {
+	return rh.minHeight
 }
 
 // Len returns the length of the recompute heap.
 func (rh *recomputeHeap) Len() int {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
-
 	return len(rh.lookup)
 }
 
@@ -34,7 +38,7 @@ func (rh *recomputeHeap) Add(s INode) {
 	defer rh.mu.Unlock()
 
 	sn := s.Node()
-	if sn.height >= rh.maxHeight {
+	if sn.height >= len(rh.heights) {
 		panic("recompute heap; cannot add node with height greater than max height")
 	}
 	if rh.heights[sn.height] == nil {
@@ -42,6 +46,15 @@ func (rh *recomputeHeap) Add(s INode) {
 	}
 	item := rh.heights[sn.height].push(s)
 	rh.lookup[sn.id] = item
+
+	// when we add nodes, make sure to note if we
+	// need to change the min or max height
+	if rh.minHeight > sn.height {
+		rh.minHeight = sn.height
+	}
+	if rh.maxHeight < sn.height {
+		rh.maxHeight = sn.height
+	}
 }
 
 // Has returns if a given node exists in the recompute heap at its height by id.
@@ -50,7 +63,7 @@ func (rh *recomputeHeap) Has(s INode) (ok bool) {
 	defer rh.mu.Unlock()
 
 	sn := s.Node()
-	if sn.height >= rh.maxHeight {
+	if sn.height >= len(rh.heights) {
 		panic("recompute heap; cannot has node with height greater than max height")
 	}
 	_, ok = rh.lookup[sn.id]
@@ -62,12 +75,13 @@ func (rh *recomputeHeap) RemoveMin() INode {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
 
-	for height := range rh.heights {
-		if rh.heights[height] != nil && rh.heights[height].head != nil {
-			id, node := rh.heights[height].pop()
-			delete(rh.lookup, id)
-			return node
+	if rh.heights[rh.minHeight] != nil && rh.heights[rh.minHeight].head != nil {
+		id, node := rh.heights[rh.minHeight].pop()
+		delete(rh.lookup, id)
+		if rh.heights[rh.minHeight].head == nil {
+			rh.minHeight = rh.nextMinHeight()
 		}
+		return node
 	}
 	return nil
 }
@@ -77,17 +91,14 @@ func (rh *recomputeHeap) RemoveMin() INode {
 func (rh *recomputeHeap) RemoveMinHeight() (nodes []INode) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
-
-	for height := range rh.heights {
-		if rh.heights[height] != nil && rh.heights[height].head != nil {
-			nodes = rh.heights[height].popAll()
-			for _, n := range nodes {
-				delete(rh.lookup, n.Node().id)
-			}
-			return
+	if rh.heights[rh.minHeight] != nil && rh.heights[rh.minHeight].head != nil {
+		nodes = rh.heights[rh.minHeight].popAll()
+		for _, n := range nodes {
+			delete(rh.lookup, n.Node().id)
 		}
+		rh.minHeight = rh.nextMinHeight()
 	}
-	return nil
+	return
 }
 
 // Remove removes a specific node from the heap.
@@ -102,6 +113,21 @@ func (rh *recomputeHeap) Remove(s INode) {
 	}
 	delete(rh.lookup, sn.id)
 	rh.heights[sn.height].remove(item)
+
+	if sn.height == rh.minHeight && rh.heights[sn.height].head == nil {
+		rh.minHeight = rh.nextMinHeight()
+	}
+}
+
+// nextMinHeight finds the next smallest height in the heap that has nodes.
+func (rh *recomputeHeap) nextMinHeight() (next int) {
+	for x := rh.minHeight; x < rh.maxHeight; x++ {
+		if rh.heights[x] != nil && rh.heights[x].head != nil {
+			next = x
+			return
+		}
+	}
+	return
 }
 
 type recomputeHeapList struct {
