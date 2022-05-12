@@ -9,7 +9,7 @@ import "context"
 // Usage Note: there is no concept of "left" or "right" with maps in go
 // because the order is pseudo-random. As a result, the key order will
 // be what it will be and there is no way to know ahead of time what
-// "left" or "right" would even be.
+// "left" or "right" would even mean in practice.
 func FoldMap[K comparable, V any, O any](
 	i Incr[map[K]V],
 	v0 O,
