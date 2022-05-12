@@ -43,13 +43,12 @@ func ParallelStabilize(ctx context.Context, nodes ...INode) error {
 
 func parallelStabilizeNode(ctx context.Context, gn INode) error {
 	gnn := gn.Node()
-
-	gnn.gs.mu.Lock()
-	defer gnn.gs.mu.Unlock()
 	if gnn.gs.s != StatusNotStabilizing {
 		tracePrintf(ctx, "parallel stabilize; already stabilizing, cannot continue")
 		return errors.New("parallel stabilize; already stabilizing, cannot continue")
 	}
+	gnn.gs.mu.Lock()
+	defer gnn.gs.mu.Unlock()
 	defer func() {
 		tracePrintf(ctx, "parallel stabilize; stabilization %s.%d complete", gnn.gs.id.Short(), gnn.gs.sn)
 		gnn.gs.sn++
