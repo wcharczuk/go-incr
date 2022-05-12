@@ -7,7 +7,22 @@ import (
 	"sync"
 )
 
-// ParallelStabilize stabilizes a graph in parallel.
+// ParallelStabilize stabilizes graphs in parallel as entered
+// through representative nodes.
+//
+// For each input node, if the node is not attached to a graph, the full
+// graph is discovered from the relationships on that given input node.
+//
+// If multiple nodes are supplied that are actually connected, initialization
+// will skip the already connected (and as a result, initialized) graph.
+//
+// ParallelStabilize differs from Stabilize in that it reads the current
+// recompute heap in pseudo-height chunks, processing each pseudo-height in
+// parallel before moving on to the next, smallest height chunk.
+//
+// Each parallel recompute cycle may produce new nodes to process, and as a result
+// parallel stabilization can move up and down in height before fully recomputing
+// the graph.
 func ParallelStabilize(ctx context.Context, nodes ...INode) error {
 	seenGraphs := make(set[Identifier])
 	for _, gn := range nodes {
@@ -67,13 +82,13 @@ func parallelRecomputeAll(ctx context.Context, gs *graphState) error {
 	<-workerPool.started
 	defer workerPool.Stop()
 
-	var minHeight []INode
+	var minHeightBlock []INode
 	var nn *Node
 	var err error
 	for gs.rh.Len() > 0 {
-		minHeight = gs.rh.RemoveMinHeight()
-		tracePrintf(ctx, "parallel stabilize[%d]; stabilizing %d node block", gs.sn, len(minHeight))
-		for _, n := range minHeight {
+		minHeightBlock = gs.rh.RemoveMinHeight()
+		tracePrintf(ctx, "parallel stabilize[%d]; stabilizing %d node block", gs.sn, len(minHeightBlock))
+		for _, n := range minHeightBlock {
 			nn = n.Node()
 			if nn.shouldRecompute() {
 				if nn.maybeCutoff(ctx) {
@@ -81,7 +96,6 @@ func parallelRecomputeAll(ctx context.Context, gs *graphState) error {
 				}
 				nn.changedAt = gs.sn
 				wg.Add(1)
-				tracePrintf(ctx, "parallel stabilize[%d]; submitting %v", gs.sn, n)
 				if err = workerPool.Submit(ctx, nn); err != nil {
 					return err
 				}

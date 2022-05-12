@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 )
 
 func Test_ParallelStabilize(t *testing.T) {
@@ -46,6 +47,63 @@ func Test_ParallelStabilize(t *testing.T) {
 	ItsEqual(t, 2, m0.Node().recomputedAt)
 
 	ItsEqual(t, "not foo bar", m0.Value())
+}
+
+func Test_ParallelStabilize_jsDocs(t *testing.T) {
+	ctx := testContext()
+
+	type Entry struct {
+		Entry string
+		Time  time.Time
+	}
+
+	now := time.Date(2022, 05, 04, 12, 11, 10, 9, time.UTC)
+
+	data := []Entry{
+		{"0", now},
+		{"1", now.Add(time.Second)},
+		{"2", now.Add(2 * time.Second)},
+		{"3", now.Add(3 * time.Second)},
+		{"4", now.Add(4 * time.Second)},
+	}
+
+	i := Var(data)
+	output := Apply(
+		i.Read(),
+		func(_ context.Context, entries []Entry) (output []string, err error) {
+			for _, e := range entries {
+				if e.Time.Sub(now) > 2*time.Second {
+					output = append(output, e.Entry)
+				}
+			}
+			return
+		},
+	)
+
+	err := ParallelStabilize(
+		ctx,
+		output,
+	)
+	ItsNil(t, err)
+	ItsEqual(t, 2, len(output.Value()))
+
+	data = append(data, Entry{
+		"5", now.Add(5 * time.Second),
+	})
+	err = ParallelStabilize(
+		ctx,
+		output,
+	)
+	ItsNil(t, err)
+	ItsEqual(t, 2, len(output.Value()))
+
+	i.Set(data)
+	err = ParallelStabilize(
+		context.Background(),
+		output,
+	)
+	ItsNil(t, err)
+	ItsEqual(t, 3, len(output.Value()))
 }
 
 func Test_parallelWorker(t *testing.T) {
