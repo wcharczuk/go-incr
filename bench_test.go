@@ -28,6 +28,10 @@ func Benchmark_Stabilize_withPreInitialize_8192(b *testing.B) {
 	benchmarkSize(8192, b)
 }
 
+func Benchmark_Stabilize_withPreInitialize_16384(b *testing.B) {
+	benchmarkSize(16384, b)
+}
+
 func Benchmark_ParallelStabilize_withPreInitialize_512(b *testing.B) {
 	benchmarkParallelSize(512, b)
 }
@@ -46,6 +50,10 @@ func Benchmark_ParallelStabilize_withPreInitialize_4096(b *testing.B) {
 
 func Benchmark_ParallelStabilize_withPreInitialize_8192(b *testing.B) {
 	benchmarkParallelSize(8192, b)
+}
+
+func Benchmark_ParallelStabilize_withPreInitialize_16384(b *testing.B) {
+	benchmarkParallelSize(16384, b)
 }
 
 func benchmarkSize(size int, b *testing.B) {
