@@ -73,18 +73,20 @@ func benchmarkSize(size int, b *testing.B) {
 		cursor += x
 	}
 
+	ctx := testContext()
+
 	gs := nodes[len(nodes)-1]
-	Initialize(testContext(), gs)
+	Initialize(ctx, gs)
 	for n := 0; n < b.N; n++ {
-		_ = Stabilize(testContext(), gs)
+		_ = Stabilize(ctx, gs)
 		for x := 0; x < size>>2; x++ {
 			SetStale(nodes[rand.Intn(size)])
 		}
-		_ = Stabilize(testContext(), gs)
+		_ = Stabilize(ctx, gs)
 		for x := 0; x < size>>2; x++ {
 			SetStale(nodes[rand.Intn(size)])
 		}
-		_ = Stabilize(testContext(), gs)
+		_ = Stabilize(ctx, gs)
 	}
 }
 
@@ -106,17 +108,18 @@ func benchmarkParallelSize(size int, b *testing.B) {
 	}
 
 	gs := nodes[len(nodes)-1]
-	Initialize(testContext(), gs)
+	ctx := testContext()
+	Initialize(ctx, gs)
 	for n := 0; n < b.N; n++ {
-		_ = ParallelStabilize(testContext(), gs)
+		_ = ParallelStabilize(ctx, gs)
 		for x := 0; x < size>>2; x++ {
 			SetStale(nodes[rand.Intn(size)])
 		}
-		_ = ParallelStabilize(testContext(), gs)
+		_ = ParallelStabilize(ctx, gs)
 		for x := 0; x < size>>2; x++ {
 			SetStale(nodes[rand.Intn(size)])
 		}
-		_ = ParallelStabilize(testContext(), gs)
+		_ = ParallelStabilize(ctx, gs)
 	}
 }
 
