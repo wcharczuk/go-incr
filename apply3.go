@@ -7,7 +7,23 @@ import (
 
 // Apply3 applies a function to given input incrementals and returns
 // a new incremental of the output type of that function.
-func Apply3[A, B, C, D any](a Incr[A], b Incr[B], c Incr[C], fn func(context.Context, A, B, C) (D, error)) Incr[D] {
+func Apply3[A, B, C, D any](a Incr[A], b Incr[B], c Incr[C], fn func(A, B, C) D) Incr[D] {
+	o := &apply3Incr[A, B, C, D]{
+		n: NewNode(),
+		a: a,
+		b: b,
+		c: c,
+		fn: func(_ context.Context, a A, b B, c C) (D, error) {
+			return fn(a, b, c), nil
+		},
+	}
+	Link(o, a, b, c)
+	return o
+}
+
+// Apply3Context applies a function to given input incrementals and returns
+// a new incremental of the output type of that function.
+func Apply3Context[A, B, C, D any](a Incr[A], b Incr[B], c Incr[C], fn func(context.Context, A, B, C) (D, error)) Incr[D] {
 	o := &apply3Incr[A, B, C, D]{
 		n:  NewNode(),
 		a:  a,

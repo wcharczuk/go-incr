@@ -13,8 +13,8 @@ func Test_ParallelStabilize(t *testing.T) {
 
 	v0 := Var("foo")
 	v1 := Var("bar")
-	m0 := Apply2(v0.Read(), v1.Read(), func(_ context.Context, a, b string) (string, error) {
-		return a + " " + b, nil
+	m0 := Apply2(v0.Read(), v1.Read(), func(a, b string) string {
+		return a + " " + b
 	})
 
 	err := ParallelStabilize(ctx, m0)
@@ -70,7 +70,7 @@ func Test_ParallelStabilize_jsDocs(t *testing.T) {
 	i := Var(data)
 	output := Apply(
 		i.Read(),
-		func(_ context.Context, entries []Entry) (output []string, err error) {
+		func(entries []Entry) (output []string) {
 			for _, e := range entries {
 				if e.Time.Sub(now) > 2*time.Second {
 					output = append(output, e.Entry)

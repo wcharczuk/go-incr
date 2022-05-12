@@ -1,7 +1,6 @@
 package incr
 
 import (
-	"context"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -123,6 +122,6 @@ func benchmarkParallelSize(size int, b *testing.B) {
 	}
 }
 
-func concat(_ context.Context, a, b string) (string, error) {
-	return a + b, nil
+func concat(a, b string) string {
+	return a + b
 }

@@ -11,8 +11,8 @@ func Test_Stabilize(t *testing.T) {
 
 	v0 := Var("foo")
 	v1 := Var("bar")
-	m0 := Apply2(v0.Read(), v1.Read(), func(_ context.Context, a, b string) (string, error) {
-		return a + " " + b, nil
+	m0 := Apply2(v0.Read(), v1.Read(), func(a, b string) string {
+		return a + " " + b
 	})
 
 	err := Stabilize(ctx, m0)
@@ -52,8 +52,8 @@ func Test_Stabilize_updateHandlers(t *testing.T) {
 
 	v0 := Var("foo")
 	v1 := Var("bar")
-	m0 := Apply2(v0.Read(), v1.Read(), func(_ context.Context, a, b string) (string, error) {
-		return a + " " + b, nil
+	m0 := Apply2(v0.Read(), v1.Read(), func(a, b string) string {
+		return a + " " + b
 	})
 
 	var updates int
@@ -76,12 +76,12 @@ func Test_Stabilize_unevenHeights(t *testing.T) {
 
 	v0 := Var("foo")
 	v1 := Var("bar")
-	m0 := Apply2[string, string](v0, v1, func(_ context.Context, a, b string) (string, error) {
-		return a + " " + b, nil
+	m0 := Apply2[string, string](v0, v1, func(a, b string) string {
+		return a + " " + b
 	})
 	r0 := Return("moo")
-	m1 := Apply2(r0, m0, func(_ context.Context, a, b string) (string, error) {
-		return a + " != " + b, nil
+	m1 := Apply2(r0, m0, func(a, b string) string {
+		return a + " != " + b
 	})
 
 	err := Stabilize(ctx, m1)
@@ -101,9 +101,9 @@ func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
 	//   -> f -> e -> [z]
 	// assert that [z] updates (1) time if we change [a]
 
-	edge := func(l string) func(context.Context, string) (string, error) {
-		return func(_ context.Context, v string) (string, error) {
-			return v + "->" + l, nil
+	edge := func(l string) func(string) string {
+		return func(v string) string {
+			return v + "->" + l
 		}
 	}
 
@@ -114,8 +114,8 @@ func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
 	f := Apply(a.Read(), edge("f"))
 	e := Apply(f, edge("e"))
 
-	z := Apply2(d, e, func(_ context.Context, v0, v1 string) (string, error) {
-		return v0 + "+" + v1 + "->z", nil
+	z := Apply2(d, e, func(v0, v1 string) string {
+		return v0 + "+" + v1 + "->z"
 	})
 
 	err := Stabilize(ctx, z)
@@ -136,8 +136,8 @@ func Test_Stabilize_doubleVarSet_singleUpdate(t *testing.T) {
 
 	a := Var("a")
 	b := Var("b")
-	m := Apply2(a.Read(), b.Read(), func(_ context.Context, v0, v1 string) (string, error) {
-		return v0 + " " + v1, nil
+	m := Apply2(a.Read(), b.Read(), func(v0, v1 string) string {
+		return v0 + " " + v1
 	})
 
 	_ = Stabilize(ctx, m)
@@ -161,14 +161,14 @@ func Test_Stabilize_verifyPartial(t *testing.T) {
 	v1 := Var("moo")
 	c1 := Return("baz")
 
-	m0 := Apply2(v0.Read(), c0, func(_ context.Context, a, b string) (string, error) {
-		return a + " " + b, nil
+	m0 := Apply2(v0.Read(), c0, func(a, b string) string {
+		return a + " " + b
 	})
 	co0 := Cutoff(m0, func(n, o string) bool {
 		return len(n) == len(o)
 	})
-	m1 := Apply2(v1.Read(), c1, func(_ context.Context, a, b string) (string, error) {
-		return a + " != " + b, nil
+	m1 := Apply2(v1.Read(), c1, func(a, b string) string {
+		return a + " != " + b
 	})
 	co1 := Cutoff(m1, func(n, o string) bool {
 		return len(n) == len(o)
@@ -209,7 +209,7 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 	i := Var(data)
 	output := Apply(
 		i.Read(),
-		func(_ context.Context, entries []Entry) (output []string, err error) {
+		func(entries []Entry) (output []string) {
 			for _, e := range entries {
 				if e.Time.Sub(now) > 2*time.Second {
 					output = append(output, e.Entry)
@@ -470,36 +470,76 @@ func Test_Stabilize_watch(t *testing.T) {
 	ItsEqual(t, 3, w0.Values()[1])
 }
 
-func Test_Stabilize_map(t *testing.T) {
+func Test_Stabilize_apply(t *testing.T) {
 	ctx := testContext()
 
 	c0 := Return(1)
-	m := Apply(c0, func(_ context.Context, a int) (int, error) {
+	m := Apply(c0, func(a int) int {
+		return a + 10
+	})
+	_ = Stabilize(ctx, m)
+	ItsEqual(t, 11, m.Value())
+}
+
+func Test_Stabilize_applyContext(t *testing.T) {
+	ctx := testContext()
+
+	c0 := Return(1)
+	m := ApplyContext(c0, func(ictx context.Context, a int) (int, error) {
+		itsBlueDye(ictx, t)
 		return a + 10, nil
 	})
 	_ = Stabilize(ctx, m)
 	ItsEqual(t, 11, m.Value())
 }
 
-func Test_Stabilize_map2(t *testing.T) {
+func Test_Stabilize_apply2(t *testing.T) {
 	ctx := testContext()
 
 	c0 := Return(1)
 	c1 := Return(2)
-	m2 := Apply2(c0, c1, func(_ context.Context, a, b int) (int, error) {
+	m2 := Apply2(c0, c1, func(a, b int) int {
+		return a + b
+	})
+	_ = Stabilize(ctx, m2)
+	ItsEqual(t, 3, m2.Value())
+}
+
+func Test_Stabilize_apply2Context(t *testing.T) {
+	ctx := testContext()
+
+	c0 := Return(1)
+	c1 := Return(2)
+	m2 := Apply2Context(c0, c1, func(ictx context.Context, a, b int) (int, error) {
+		itsBlueDye(ctx, t)
 		return a + b, nil
 	})
 	_ = Stabilize(ctx, m2)
 	ItsEqual(t, 3, m2.Value())
 }
 
-func Test_Stabilize_map3(t *testing.T) {
+func Test_Stabilize_apply3(t *testing.T) {
 	ctx := testContext()
 
 	c0 := Return(1)
 	c1 := Return(2)
 	c2 := Return(3)
-	m3 := Apply3(c0, c1, c2, func(_ context.Context, a, b, c int) (int, error) {
+	m3 := Apply3(c0, c1, c2, func(a, b, c int) int {
+		return a + b + c
+	})
+
+	_ = Stabilize(ctx, m3)
+	ItsEqual(t, 6, m3.Value())
+}
+
+func Test_Stabilize_apply3Context(t *testing.T) {
+	ctx := testContext()
+
+	c0 := Return(1)
+	c1 := Return(2)
+	c2 := Return(3)
+	m3 := Apply3Context(c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
+		itsBlueDye(ictx, nil)
 		return a + b + c, nil
 	})
 
@@ -507,7 +547,7 @@ func Test_Stabilize_map3(t *testing.T) {
 	ItsEqual(t, 6, m3.Value())
 }
 
-func Test_Stabilize_mapIf(t *testing.T) {
+func Test_Stabilize_applyIf(t *testing.T) {
 	ctx := testContext()
 
 	c0 := Return(1)
@@ -527,7 +567,7 @@ func Test_Stabilize_mapIf(t *testing.T) {
 	ItsEqual(t, 1, mi0.Value())
 }
 
-func Test_Stabilize_mapN(t *testing.T) {
+func Test_Stabilize_applyN(t *testing.T) {
 	ctx := testContext()
 
 	sum := func(values ...int) (output int) {
@@ -560,7 +600,7 @@ func Test_Stabilize_func(t *testing.T) {
 		itsBlueDye(ictx, t)
 		return value, nil
 	})
-	m := Apply(f, func(ictx context.Context, v string) (string, error) {
+	m := ApplyContext(f, func(ictx context.Context, v string) (string, error) {
 		itsBlueDye(ctx, t)
 		return v + " world!", nil
 	})

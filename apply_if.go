@@ -7,6 +7,9 @@ import (
 
 // ApplyIf returns an incremental that yields one of two values
 // based on the boolean condition returned from a third.
+//
+// Specifically, we term this _Apply_If because the nodes are all
+// linked in the graph, but the value changes during stabilization.
 func ApplyIf[A any](a, b Incr[A], p Incr[bool]) Incr[A] {
 	o := &applyIfIncr[A]{
 		n: NewNode(),

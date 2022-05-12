@@ -19,7 +19,9 @@ Given an exmaple computation:
 v0 := incr.Var("foo")
 v1 := incr.Var("bar")
 
-output := incr.Apply2(v0.Read(), v1.Read(), func(a, b string) string { return a + " and " + b})
+// caveat, the context and returned error are required for more involved use cases
+// i may refactor this later to differentiate simple vs. expert delegate types.
+output := incr.Apply2(v0.Read(), v1.Read(), func(_ context.Context, a, b string) (string, error) { return a + " and " + b, nil })
 ```
 
 In order to realize the values, we need to call `Stabilize` on it:

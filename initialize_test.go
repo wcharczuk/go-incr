@@ -1,7 +1,6 @@
 package incr
 
 import (
-	"context"
 	"testing"
 )
 
@@ -13,18 +12,18 @@ func Test_Initialize(t *testing.T) {
 	v2 := Var("bar")
 	v3 := Var("baz")
 
-	m0 := Apply2(v0.Read(), v1.Read(), func(_ context.Context, a, b string) (string, error) {
-		return a + " " + b, nil
+	m0 := Apply2(v0.Read(), v1.Read(), func(a, b string) string {
+		return a + " " + b
 	})
-	m1 := Apply2(v2.Read(), v3.Read(), func(_ context.Context, a, b string) (string, error) {
-		return a + "/" + b, nil
+	m1 := Apply2(v2.Read(), v3.Read(), func(a, b string) string {
+		return a + "/" + b
 	})
 	r0 := Return("hello")
-	m2 := Apply2(m0, r0, func(_ context.Context, a, b string) (string, error) {
-		return a + "+" + b, nil
+	m2 := Apply2(m0, r0, func(a, b string) string {
+		return a + "+" + b
 	})
-	m3 := Apply2(m1, m2, func(_ context.Context, a, b string) (string, error) {
-		return a + "+" + b, nil
+	m3 := Apply2(m1, m2, func(a, b string) string {
+		return a + "+" + b
 	})
 
 	Initialize(ctx, m3)

@@ -7,7 +7,21 @@ import (
 
 // Apply applies a function to a given input incremental and returns
 // a new incremental of the output type of that function.
-func Apply[A, B any](a Incr[A], fn func(context.Context, A) (B, error)) Incr[B] {
+func Apply[A, B any](a Incr[A], fn func(A) B) Incr[B] {
+	m := &applyIncr[A, B]{
+		n: NewNode(),
+		a: a,
+		fn: func(_ context.Context, a A) (B, error) {
+			return fn(a), nil
+		},
+	}
+	Link(m, a)
+	return m
+}
+
+// ApplyContext applies a function to a given input incremental and returns
+// a new incremental of the output type of that function.
+func ApplyContext[A, B any](a Incr[A], fn func(context.Context, A) (B, error)) Incr[B] {
 	m := &applyIncr[A, B]{
 		n:  NewNode(),
 		a:  a,
