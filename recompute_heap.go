@@ -162,11 +162,15 @@ func (rh *recomputeHeap) nextMinHeight() (next int) {
 }
 
 type recomputeHeapList struct {
+	// head is the "first" element in the list
 	head *recomputeHeapListItem
+	// head is the "last" element in the list
 	tail *recomputeHeapListItem
-	len  int
+	// len is the overall length of the list
+	len int
 }
 
+// push appends a node to the end, or tail, of the recompute heap list
 func (rhl *recomputeHeapList) push(v INode) *recomputeHeapListItem {
 	item := &recomputeHeapListItem{
 		key:   v.Node().id,
@@ -178,12 +182,14 @@ func (rhl *recomputeHeapList) push(v INode) *recomputeHeapListItem {
 		rhl.tail = item
 		return item
 	}
-	rhl.tail.previous = item
-	item.next = rhl.tail
+	// rhl.tail here may be the head
+	rhl.tail.next = item
+	item.previous = rhl.tail
 	rhl.tail = item
 	return item
 }
 
+// pop removes the first, or head, of the recompute list
 func (rhl *recomputeHeapList) pop() (k Identifier, v INode) {
 	if rhl.head == nil {
 		return
@@ -192,53 +198,88 @@ func (rhl *recomputeHeapList) pop() (k Identifier, v INode) {
 	k = rhl.head.key
 	v = rhl.head.value
 
+	// specific case when we have (1) element left
 	if rhl.head == rhl.tail {
 		rhl.head = nil
 		rhl.tail = nil
 		return
 	}
-	after := rhl.head.previous
-	if after != nil {
-		after.next = nil
-	}
-	rhl.head = after
+
+	// set the head to whatever the element after the head is
+	next := rhl.head.next
+	next.previous = nil
+	rhl.head = next
 	return
 }
 
 func (rhl *recomputeHeapList) popAll() (output []INode) {
-	for rhl.head != nil {
-		output = append(output, rhl.head.value)
-		rhl.head = rhl.head.previous
-		rhl.len--
+	ptr := rhl.head
+	for ptr != nil {
+		output = append(output, ptr.value)
+		ptr = rhl.head.next
 	}
-	if rhl.head == nil {
-		rhl.tail = nil
-	}
+	rhl.head = nil
+	rhl.tail = nil
+	rhl.len = 0
 	return
+}
+
+func (rhl *recomputeHeapList) find(n INode) *recomputeHeapListItem {
+	nodeID := n.Node().id
+	ptr := rhl.head
+	for ptr != nil {
+		if ptr.key == nodeID {
+			return ptr
+		}
+		ptr = ptr.next
+	}
+	return nil
 }
 
 func (rhl *recomputeHeapList) remove(i *recomputeHeapListItem) {
 	rhl.len--
-	after := i.previous
-	before := i.next
-	if after != nil {
-		after.next = before
+
+	// three possibilities
+	// - i is both the head and the tail
+	// 		- nil out both
+	// - i is the head
+	// 		- set the head to i's next
+	// - i is the tail
+	//		- set the tail to i's previous
+	// - i is neither
+	//		- if i has a next, set its previous to i's previous
+	//		- if i has a previous, set its previous to i's next
+
+	if rhl.head == i && rhl.tail == i {
+		rhl.head = nil
+		rhl.tail = nil
+		return
 	}
-	if before != nil {
-		before.previous = after
+	if rhl.head == i {
+		rhl.head = i.next
+		return
 	}
 	if rhl.tail == i {
-		rhl.tail = i.next
-		if rhl.tail != nil {
-			rhl.tail.previous = nil
-		}
+		rhl.tail = i.previous
+		return
+	}
+	next := i.next
+	if next != nil {
+		next.previous = i.previous
+	}
+	previous := i.previous
+	if previous != nil {
+		previous.next = i.next
 	}
 }
 
 type recomputeHeapListItem struct {
-	key   Identifier
+	// key is the INode identifier
+	key Identifier
+	// value is the INode
 	value INode
-
-	next     *recomputeHeapListItem
+	// next is the pointer towards the tail
+	next *recomputeHeapListItem
+	// previous is the pointer towards the head
 	previous *recomputeHeapListItem
 }
