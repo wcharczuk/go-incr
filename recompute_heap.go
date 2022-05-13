@@ -1,6 +1,10 @@
 package incr
 
-import "sync"
+import (
+	"fmt"
+	"strings"
+	"sync"
+)
 
 // newRecomputeHeap returns a new recompute heap with a given maximum height.
 func newRecomputeHeap(heightLimit int) *recomputeHeap {
@@ -170,6 +174,17 @@ type recomputeHeapList struct {
 	len int
 }
 
+// String implements fmt.Stringer.
+func (rhl *recomputeHeapList) String() string {
+	var nodes []string
+	ptr := rhl.head
+	for ptr != nil {
+		nodes = append(nodes, fmt.Sprint(ptr.key.Short()))
+		ptr = ptr.next
+	}
+	return strings.Join(nodes, "->")
+}
+
 // push appends a node to the end, or tail, of the recompute heap list
 func (rhl *recomputeHeapList) push(v INode) *recomputeHeapListItem {
 	item := &recomputeHeapListItem{
@@ -182,9 +197,11 @@ func (rhl *recomputeHeapList) push(v INode) *recomputeHeapListItem {
 		rhl.tail = item
 		return item
 	}
+
 	// rhl.tail here may be the head
 	rhl.tail.next = item
 	item.previous = rhl.tail
+	item.next = nil
 	rhl.tail = item
 	return item
 }
@@ -216,7 +233,7 @@ func (rhl *recomputeHeapList) popAll() (output []INode) {
 	ptr := rhl.head
 	for ptr != nil {
 		output = append(output, ptr.value)
-		ptr = rhl.head.next
+		ptr = ptr.next
 	}
 	rhl.head = nil
 	rhl.tail = nil
@@ -263,6 +280,7 @@ func (rhl *recomputeHeapList) remove(i *recomputeHeapListItem) {
 		rhl.tail = i.previous
 		return
 	}
+
 	next := i.next
 	if next != nil {
 		next.previous = i.previous
