@@ -4,16 +4,19 @@ import (
 	"testing"
 )
 
-func Test_recomputeHeap(t *testing.T) {
+func Test_recomputeHeap_RemoveMin(t *testing.T) {
 	rh := newRecomputeHeap(32)
 
-	n0 := newHeightIncr(0)
-	n1 := newHeightIncr(0)
-	rh.Add(n0)
+	n00 := newHeightIncr(0)
+	n01 := newHeightIncr(0)
+	n10 := newHeightIncr(1)
+	n100 := newHeightIncr(10)
+
+	rh.Add(n00)
 	ItsEqual(t, 1, rh.Len())
 	ItsEqual(t, 32, len(rh.heights))
 	ItsEqual(t, 1, rh.heights[0].len)
-	rh.Add(n1)
+	rh.Add(n01)
 	ItsEqual(t, 2, rh.Len())
 	ItsEqual(t, 32, len(rh.heights))
 	ItsEqual(t, 2, rh.heights[0].len)
@@ -21,8 +24,7 @@ func Test_recomputeHeap(t *testing.T) {
 	ItsEqual(t, 0, rh.minHeight)
 	ItsEqual(t, 0, rh.maxHeight)
 
-	n2 := newHeightIncr(1)
-	rh.Add(n2)
+	rh.Add(n10)
 	ItsEqual(t, 3, rh.Len())
 	ItsEqual(t, 32, len(rh.heights))
 	ItsEqual(t, 2, rh.heights[0].len)
@@ -30,8 +32,7 @@ func Test_recomputeHeap(t *testing.T) {
 	ItsEqual(t, 0, rh.minHeight)
 	ItsEqual(t, 1, rh.maxHeight)
 
-	n3 := newHeightIncr(10)
-	rh.Add(n3)
+	rh.Add(n100)
 	ItsEqual(t, 4, rh.Len())
 	ItsEqual(t, 32, len(rh.heights))
 	ItsEqual(t, 2, rh.heights[0].len)
@@ -40,80 +41,70 @@ func Test_recomputeHeap(t *testing.T) {
 	ItsEqual(t, 0, rh.minHeight)
 	ItsEqual(t, 10, rh.maxHeight)
 
-	r0 := rh.RemoveMin()
-	ItsNotNil(t, r0)
-	ItsNotNil(t, r0.Node())
-	ItsEqual(t, n0.n.id, r0.Node().id)
-	ItsEqual(t, false, rh.Has(n0))
-	ItsEqual(t, true, rh.Has(n1))
-	ItsEqual(t, true, rh.Has(n2))
-	ItsEqual(t, true, rh.Has(n3))
+	r00 := rh.RemoveMin()
+	ItsNotNil(t, r00)
+	ItsNotNil(t, r00.Node())
+	ItsEqual(t, n00.n.id, r00.Node().id)
+	ItsEqual(t, 3, rh.Len())
+	ItsEqual(t, false, rh.Has(n00))
+	ItsEqual(t, true, rh.Has(n01))
+	ItsEqual(t, true, rh.Has(n10))
+	ItsEqual(t, true, rh.Has(n100))
 	ItsEqual(t, 1, rh.heights[0].len)
 	ItsEqual(t, 1, rh.heights[1].len)
 	ItsEqual(t, 1, rh.heights[10].len)
 	ItsEqual(t, 0, rh.minHeight)
 	ItsEqual(t, 10, rh.maxHeight)
 
-	r1 := rh.RemoveMin()
-	ItsNotNil(t, r1)
-	ItsNotNil(t, r1.Node())
-	ItsEqual(t, n1.n.id, r1.Node().id)
-	ItsEqual(t, false, rh.Has(n0))
-	ItsEqual(t, false, rh.Has(n1))
-	ItsEqual(t, true, rh.Has(n2))
-	ItsEqual(t, true, rh.Has(n3))
+	r01 := rh.RemoveMin()
+	ItsNotNil(t, r01)
+	ItsNotNil(t, r01.Node())
+	ItsEqual(t, n01.n.id, r01.Node().id)
+	ItsEqual(t, 2, rh.Len())
+	ItsEqual(t, false, rh.Has(n00))
+	ItsEqual(t, false, rh.Has(n01))
+	ItsEqual(t, true, rh.Has(n10))
+	ItsEqual(t, true, rh.Has(n100))
 	ItsEqual(t, 0, rh.heights[0].len)
 	ItsEqual(t, 1, rh.heights[1].len)
 	ItsEqual(t, 1, rh.heights[10].len)
 	ItsEqual(t, 1, rh.minHeight)
 	ItsEqual(t, 10, rh.maxHeight)
 
-	r2 := rh.RemoveMin()
-	ItsNotNil(t, r2)
-	ItsNotNil(t, r2.Node())
-	ItsEqual(t, n2.n.id, r2.Node().id)
-	ItsEqual(t, false, rh.Has(n0))
-	ItsEqual(t, false, rh.Has(n1))
-	ItsEqual(t, false, rh.Has(n2))
-	ItsEqual(t, true, rh.Has(n3))
+	r10 := rh.RemoveMin()
+	ItsNotNil(t, r10)
+	ItsNotNil(t, r10.Node())
+	ItsEqual(t, n10.n.id, r10.Node().id)
+	ItsEqual(t, 1, rh.Len())
+	ItsEqual(t, false, rh.Has(n00))
+	ItsEqual(t, false, rh.Has(n01))
+	ItsEqual(t, false, rh.Has(n10))
+	ItsEqual(t, true, rh.Has(n100))
 	ItsEqual(t, 0, rh.heights[0].len)
 	ItsEqual(t, 0, rh.heights[1].len)
 	ItsEqual(t, 1, rh.heights[10].len)
 	ItsEqual(t, 10, rh.minHeight)
 	ItsEqual(t, 10, rh.maxHeight)
 
-	rh.Add(n0)
-	rh.Add(n1)
-	rh.Add(n2)
-	rh.Add(n3)
-
-	rh.Remove(n1)
-
-	ItsEqual(t, true, rh.Has(n0))
-	ItsEqual(t, false, rh.Has(n1))
-	ItsEqual(t, true, rh.Has(n2))
-	ItsEqual(t, true, rh.Has(n3))
+	r100 := rh.RemoveMin()
+	ItsNotNil(t, r100)
+	ItsNotNil(t, r100.Node())
+	ItsEqual(t, n100.n.id, r100.Node().id)
+	ItsEqual(t, 0, rh.Len())
+	ItsEqual(t, false, rh.Has(n00))
+	ItsEqual(t, false, rh.Has(n01))
+	ItsEqual(t, false, rh.Has(n10))
+	ItsEqual(t, false, rh.Has(n100))
+	ItsEqual(t, 0, rh.heights[0].len)
+	ItsEqual(t, 0, rh.heights[1].len)
+	ItsEqual(t, 0, rh.heights[10].len)
+	ItsEqual(t, 0, rh.minHeight)
+	ItsEqual(t, 10, rh.maxHeight)
 }
 
-func newHeightIncr(height int) *heightIncr {
-	return &heightIncr{
-		n: &Node{
-			id:     NewIdentifier(),
-			height: height,
-		},
-	}
-}
+func Test_recomputeHeap_RemoveMinHeight(t *testing.T) {
+	rh := newRecomputeHeap(10)
 
-type heightIncr struct {
-	Incr[struct{}]
-	n *Node
-}
-
-func (hi heightIncr) Node() *Node {
-	return hi.n
-}
-
-func Test_recomputeHeap_removeMinHeight(t *testing.T) {
 	n00 := newHeightIncr(0)
 	n01 := newHeightIncr(0)
 	n02 := newHeightIncr(0)
@@ -123,21 +114,93 @@ func Test_recomputeHeap_removeMinHeight(t *testing.T) {
 	n12 := newHeightIncr(1)
 	n13 := newHeightIncr(1)
 
-	rh := newRecomputeHeap(2)
+	n50 := newHeightIncr(5)
+	n51 := newHeightIncr(5)
+	n52 := newHeightIncr(5)
+	n53 := newHeightIncr(5)
+	n54 := newHeightIncr(5)
+
 	rh.Add(n00)
 	rh.Add(n01)
 	rh.Add(n02)
-
 	rh.Add(n10)
 	rh.Add(n11)
 	rh.Add(n12)
 	rh.Add(n13)
+	rh.Add(n50)
+	rh.Add(n51)
+	rh.Add(n52)
+	rh.Add(n53)
+	rh.Add(n54)
+
+	ItsEqual(t, 12, rh.Len())
+	ItsEqual(t, 0, rh.MinHeight())
+	ItsEqual(t, 5, rh.MaxHeight())
 
 	output := rh.RemoveMinHeight()
+	ItsEqual(t, 9, rh.Len())
 	ItsEqual(t, 3, len(output))
 	ItsNil(t, rh.heights[0].head)
 	ItsNil(t, rh.heights[0].tail)
 	ItsEqual(t, 0, rh.heights[0].len)
+	ItsNotNil(t, rh.heights[1].head)
+	ItsNotNil(t, rh.heights[1].tail)
+	ItsEqual(t, 4, rh.heights[1].len)
+	ItsNotNil(t, rh.heights[5].head)
+	ItsNotNil(t, rh.heights[5].tail)
+	ItsEqual(t, 5, rh.heights[5].len)
+
+	ItsEqual(t, 1, rh.MinHeight())
+	ItsEqual(t, 5, rh.MaxHeight())
+
+	output = rh.RemoveMinHeight()
+	ItsEqual(t, 5, rh.Len())
+	ItsEqual(t, 4, len(output))
+	ItsNil(t, rh.heights[0].head)
+	ItsNil(t, rh.heights[0].tail)
+	ItsEqual(t, 0, rh.heights[0].len)
+	ItsNil(t, rh.heights[1].head)
+	ItsNil(t, rh.heights[1].tail)
+	ItsEqual(t, 0, rh.heights[1].len)
+	ItsNotNil(t, rh.heights[5].head)
+	ItsNotNil(t, rh.heights[5].tail)
+	ItsEqual(t, 5, rh.heights[5].len)
+
+	output = rh.RemoveMinHeight()
+	ItsEqual(t, 0, rh.Len())
+	ItsEqual(t, 5, len(output))
+	ItsNil(t, rh.heights[0].head)
+	ItsNil(t, rh.heights[0].tail)
+	ItsEqual(t, 0, rh.heights[0].len)
+	ItsNil(t, rh.heights[1].head)
+	ItsNil(t, rh.heights[1].tail)
+	ItsEqual(t, 0, rh.heights[1].len)
+	ItsNil(t, rh.heights[5].head)
+	ItsNil(t, rh.heights[5].tail)
+	ItsEqual(t, 0, rh.heights[5].len)
+
+	rh.Add(n50)
+	rh.Add(n51)
+	rh.Add(n52)
+	rh.Add(n53)
+	rh.Add(n54)
+
+	ItsEqual(t, 5, rh.Len())
+	ItsEqual(t, 5, rh.MinHeight())
+	ItsEqual(t, 5, rh.MaxHeight())
+
+	output = rh.RemoveMinHeight()
+	ItsEqual(t, 0, rh.Len())
+	ItsEqual(t, 5, len(output))
+	ItsNil(t, rh.heights[0].head)
+	ItsNil(t, rh.heights[0].tail)
+	ItsEqual(t, 0, rh.heights[0].len)
+	ItsNil(t, rh.heights[1].head)
+	ItsNil(t, rh.heights[1].tail)
+	ItsEqual(t, 0, rh.heights[1].len)
+	ItsNil(t, rh.heights[5].head)
+	ItsNil(t, rh.heights[5].tail)
+	ItsEqual(t, 0, rh.heights[5].len)
 }
 
 func Test_recomputeHeapList_popAll(t *testing.T) {

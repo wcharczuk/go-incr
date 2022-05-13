@@ -152,3 +152,21 @@ func (mn *mockBareNode) Node() *Node {
 	}
 	return mn.n
 }
+
+func newHeightIncr(height int) *heightIncr {
+	return &heightIncr{
+		n: &Node{
+			id:     NewIdentifier(),
+			height: height,
+		},
+	}
+}
+
+type heightIncr struct {
+	Incr[struct{}]
+	n *Node
+}
+
+func (hi heightIncr) Node() *Node {
+	return hi.n
+}

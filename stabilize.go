@@ -20,14 +20,14 @@ func Stabilize(ctx context.Context, nodes ...INode) error {
 		if seenGraphs.has(gn.Node().gs.id) {
 			continue
 		}
-		if err := stabilizeNode(ctx, gn); err != nil {
+		if err := stabilizeNodeGraph(ctx, gn); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func stabilizeNode(ctx context.Context, gn INode) error {
+func stabilizeNodeGraph(ctx context.Context, gn INode) error {
 	gnn := gn.Node()
 	if gnn.gs.status != StatusNotStabilizing {
 		tracePrintf(ctx, "stabilize; already stabilizing, cannot continue")
@@ -42,24 +42,20 @@ func stabilizeNode(ctx context.Context, gn INode) error {
 	}()
 	gnn.gs.status = StatusStabilizing
 	tracePrintf(ctx, "stabilize[%d]; stabilization starting", gnn.gs.stabilizationNum)
-	return recomputeAll(ctx, gnn.gs)
+	return recomputeAll(ctx, gnn.gs, recomputeOptions{
+		recomputeIfParentMinHeight: true,
+	})
 }
 
-func recomputeAll(ctx context.Context, gs *graphState) error {
+func recomputeAll(ctx context.Context, gs *graphState, opts recomputeOptions) error {
 	var err error
 	var n INode
 	var nn *Node
 	for gs.rh.Len() > 0 {
 		n = gs.rh.RemoveMin()
 		nn = n.Node()
-		if nn.shouldRecompute() {
-			if nn.maybeCutoff(ctx) {
-				continue
-			}
-			nn.changedAt = gs.stabilizationNum
-			if err = nn.recompute(ctx); err != nil {
-				return err
-			}
+		if err = nn.maybeChange(ctx, opts); err != nil {
+			return err
 		}
 	}
 	return nil

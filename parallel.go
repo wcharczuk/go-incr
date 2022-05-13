@@ -66,7 +66,9 @@ func parallelRecomputeAll(ctx context.Context, gs *graphState) error {
 		action: func(ictx context.Context, n *Node) error {
 			defer wg.Done()
 			tracePrintf(ctx, "parallel stabilize[%d]; recomputing %s", gs.stabilizationNum, n.id.Short())
-			return n.recompute(ctx)
+			return n.recompute(ctx, recomputeOptions{
+				recomputeIfParentMinHeight: false,
+			})
 		},
 		started: make(chan struct{}),
 	}
@@ -103,17 +105,6 @@ func parallelRecomputeAll(ctx context.Context, gs *graphState) error {
 		wg.Wait()
 	}
 	return nil
-}
-
-type set[T comparable] map[T]struct{}
-
-func (s set[T]) has(t T) (ok bool) {
-	_, ok = s[t]
-	return
-}
-
-func (s set[T]) add(t T) {
-	s[t] = struct{}{}
 }
 
 var (

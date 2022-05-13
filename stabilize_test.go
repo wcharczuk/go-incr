@@ -253,11 +253,10 @@ func Test_Stabilize_js_test_232(t *testing.T) {
 		add[int],
 	)
 	_ = Stabilize(testContext(), o)
-
-	stat1 := o.Node().gs.numNodesRecomputed
+	stat1 := o.Node().gs.numNodesRecomputedMinHeight
 	v.Set(2)
 	_ = Stabilize(testContext(), o)
-	stat2 := o.Node().gs.numNodesRecomputed
+	stat2 := o.Node().gs.numNodesRecomputedMinHeight
 	ItsEqual(t, 2, stat2-stat1)
 }
 
