@@ -238,10 +238,6 @@ func (n *Node) maybeChange(ctx context.Context, opts recomputeOptions) error {
 
 func (n *Node) recompute(ctx context.Context, opts recomputeOptions) error {
 	if err := n.maybeStabilize(ctx); err != nil {
-		// if we error, do not submit the
-		// rest of the "parents" for recomputation
-		// effectively cutting off the computation on
-		// the error.
 		for _, handler := range n.onErrorHandlers {
 			handler(ctx, err)
 		}

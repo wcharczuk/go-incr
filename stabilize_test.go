@@ -248,7 +248,7 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 func Test_Stabilize_js_test_232(t *testing.T) {
 	v := Var(1)
 	o := Apply2(
-		Apply2(v.Read(), Return(1), add[int]),
+		Apply2(Watch(v.Read()).Read(), Return(1), add[int]),
 		Apply2(Return(2), Return(3), add[int]),
 		add[int],
 	)

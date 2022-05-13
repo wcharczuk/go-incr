@@ -20,6 +20,7 @@ func Watch[A any](i Incr[A]) WatchIncr[A] {
 type WatchIncr[A any] interface {
 	Incr[A]
 	Values() []A
+	Read() Incr[A]
 }
 
 var (
@@ -40,6 +41,9 @@ type watchIncr[A any] struct {
 func (w *watchIncr[A]) Value() A {
 	return w.value
 }
+
+// Read returns an incremental for the watch.
+func (w *watchIncr[A]) Read() Incr[A] { return w }
 
 // Stabilize implements Incr[A].
 func (w *watchIncr[A]) Stabilize(ctx context.Context) error {

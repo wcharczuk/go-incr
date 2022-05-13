@@ -50,11 +50,9 @@ func stabilizeNodeGraph(ctx context.Context, gn INode) error {
 func recomputeAll(ctx context.Context, gs *graphState, opts recomputeOptions) error {
 	var err error
 	var n INode
-	var nn *Node
 	for gs.rh.Len() > 0 {
 		n = gs.rh.RemoveMin()
-		nn = n.Node()
-		if err = nn.maybeChange(ctx, opts); err != nil {
+		if err = n.Node().maybeChange(ctx, opts); err != nil {
 			return err
 		}
 	}
