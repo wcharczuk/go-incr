@@ -48,7 +48,7 @@ linters-settings:
     check-shadowing: false
 
   staticcheck:
-    # checks: [S1000,S1008,S1023,S1035,SA4006,SA5008]
+    checks: [S1000,S1008,S1023,S1035,SA4006,SA5008]
 
   misspell:
     # Correct spellings using locale preferences for US or UK.
@@ -62,7 +62,6 @@ linters:
     - govet
     - revive
     - ineffassign
-    - staticcheck
     - errcheck
     - misspell
   fast: true
