@@ -5,8 +5,11 @@ ensure-reflex:
 ensure-pprof:
 	@go install github.com/google/pprof@latest
 
-bench-profile:
+bench:
+	@go test -run=XXX -bench=.
+
+bench-profile-cpu:
 	@go test -run=XXX -bench=. -cpuprofile bench-cpu.out
 
-watch:
+watch-test:
 	@reflex -g *.go -- go test -timeout 1s

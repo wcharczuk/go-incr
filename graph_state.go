@@ -43,6 +43,10 @@ type graphState struct {
 	// that have been recomputed in the graph's history
 	// and is typically used in testing
 	numNodesRecomputed uint64
+	// numNodesChanged is the total number of nodes
+	// that have been changed in the graph's history
+	// and is typically used in testing
+	numNodesChanged uint64
 	// numNodesRecomputedMinHeight is the total number of nodes
 	// that have been recomputed immediately in the graph's
 	// history because the parent's height was less than the

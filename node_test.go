@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func Test_Node_NewNode(t *testing.T) {
+func Test_NewNode(t *testing.T) {
 	n := NewNode()
 	ItsNotNil(t, n.id)
 	ItsNil(t, n.gs)
@@ -218,40 +218,32 @@ func Test_Node_removeParent(t *testing.T) {
 
 func Test_Node_maybeStabilize(t *testing.T) {
 	ctx := testContext()
-	n := new(mockBareNode)
-	n.Node().gs = newGraphState()
-	n.Node().gs.stabilizationNum = 5
+	n := NewNode()
+
+	// assert it doesn't panic
+	err := n.maybeStabilize(ctx)
+	ItsNil(t, err)
 
 	var calledStabilize bool
-	n.n.stabilize = func(ictx context.Context) error {
+	n.stabilize = func(ictx context.Context) error {
 		calledStabilize = true
 		itsBlueDye(ictx, t)
 		return nil
 	}
 
-	ItsEqual(t, 0, n.n.numRecomputes)
-	ItsEqual(t, 0, n.n.recomputedAt)
-
-	err := n.n.maybeStabilize(ctx)
+	err = n.maybeStabilize(ctx)
 	ItsNil(t, err)
 	ItsEqual(t, true, calledStabilize)
-	ItsEqual(t, 1, n.n.numRecomputes)
-	ItsEqual(t, 5, n.n.recomputedAt)
 }
 
 func Test_Node_maybeStabilize_error(t *testing.T) {
 	ctx := testContext()
 	n := NewNode()
-	n.gs = newGraphState()
-	n.gs.stabilizationNum = 5
 
 	n.stabilize = func(ictx context.Context) error {
 		itsBlueDye(ictx, t)
 		return fmt.Errorf("just a test")
 	}
-
-	ItsEqual(t, 0, n.numRecomputes)
-	ItsEqual(t, 0, n.recomputedAt)
 
 	err := n.maybeStabilize(ctx)
 	ItsNotNil(t, err)

@@ -83,6 +83,8 @@ type Node struct {
 	cutoff func(context.Context) bool
 	// numRecomputes is the number of times we recomputed the node
 	numRecomputes uint64
+	// numChanges is the number of times we changed the node
+	numChanges uint64
 }
 
 // OnUpdate registers an update handler.
@@ -140,20 +142,6 @@ func (n *Node) removeParent(id Identifier) {
 	n.parents = newParents
 }
 
-// maybeStabilize calls the stabilize delegate if it's set,
-// otherwise is nops.
-func (n *Node) maybeStabilize(ctx context.Context) (err error) {
-	if n.stabilize != nil {
-		if err = n.stabilize(ctx); err != nil {
-			return
-		}
-	}
-	n.numRecomputes++
-	n.gs.numNodesRecomputed++
-	n.recomputedAt = n.gs.stabilizationNum
-	return
-}
-
 // maybeCutoff calls the cutoff delegate if it's set, otherwise
 // just returns false (effectively _not_ cutting off the computation).
 func (n *Node) maybeCutoff(ctx context.Context) bool {
@@ -203,7 +191,10 @@ func (n *Node) shouldRecompute() bool {
 	return false
 }
 
-// calculateHeight calculates the height based on the
+// calculateHeight calculates the nodes height in respect to its children
+//
+// it is only called during discovery, for subsequent uses the height field
+// should be referenced.
 func (n *Node) calculateHeight() int {
 	var maxChildHeight int
 	var childHeight int
@@ -215,29 +206,54 @@ func (n *Node) calculateHeight() int {
 	return maxChildHeight + 1
 }
 
-func (n *Node) maybeChange(ctx context.Context) error {
-	if n.shouldRecompute() {
-		if n.maybeCutoff(ctx) {
-			return nil
-		}
-		n.changedAt = n.gs.stabilizationNum
-		if err := n.recompute(ctx); err != nil {
-			return err
-		}
-	}
-	return nil
+// recompute starts the recompute cycle for the node
+// setting the recomputedAt field and possibly changing the value.
+func (n *Node) recompute(ctx context.Context) error {
+	n.gs.numNodesRecomputed++
+	n.numRecomputes++
+	n.recomputedAt = n.gs.stabilizationNum
+	return n.maybeChangeValue(ctx)
 }
 
-func (n *Node) recompute(ctx context.Context) error {
-	if err := n.maybeStabilize(ctx); err != nil {
-		for _, handler := range n.onErrorHandlers {
-			handler(ctx, err)
+// maybeChangeValue checks the cutoff, and calls the stabilization
+// delegate if one is set, adding the nodes parents to the recompute heap
+// if there are changes.
+func (n *Node) maybeChangeValue(ctx context.Context) (err error) {
+	if n.maybeCutoff(ctx) {
+		return
+	}
+	n.gs.numNodesChanged++
+	n.numChanges++
+	n.changedAt = n.gs.stabilizationNum
+	if err = n.maybeStabilize(ctx); err != nil {
+		for _, eh := range n.onErrorHandlers {
+			eh(ctx, err)
 		}
-		return err
+		return
 	}
-	for _, handler := range n.onUpdateHandlers {
-		handler(ctx)
+	for _, h := range n.onUpdateHandlers {
+		h(ctx)
 	}
-	n.gs.rh.addUnsafe(n.parents...)
-	return nil
+	for _, p := range n.parents {
+		if n.gs.rh.Has(p) {
+			continue
+		}
+		if p.Node().shouldRecompute() {
+			// NOTE(wc): we have an opportunity here
+			// to short circuit in serial stabilzation
+			// to avoid pushing onto the recompute heap
+			n.gs.rh.Add(p)
+		}
+	}
+	return
+}
+
+// maybeStabilize calls the stabilize delegate if one is set.
+func (n *Node) maybeStabilize(ctx context.Context) (err error) {
+	if n.stabilize != nil {
+		if err = n.stabilize(ctx); err != nil {
+			return
+		}
+	}
+	return
 }

@@ -76,6 +76,9 @@ func benchmarkSize(size int, b *testing.B) {
 
 	gs := nodes[len(nodes)-1]
 	Initialize(ctx, gs)
+
+	// this is what we care about
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		_ = Stabilize(ctx, gs)
 		for x := 0; x < size>>2; x++ {
@@ -109,6 +112,9 @@ func benchmarkParallelSize(size int, b *testing.B) {
 	gs := nodes[len(nodes)-1]
 	ctx := testContext()
 	Initialize(ctx, gs)
+
+	// this is what we care about
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		_ = ParallelStabilize(ctx, gs)
 		for x := 0; x < size>>2; x++ {
