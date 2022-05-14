@@ -85,7 +85,7 @@ func benchmarkSize(size int, b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		for x := 0; x < size>>2; x++ {
+		for x := 0; x < size>>1; x++ {
 			SetStale(nodes[rand.Intn(size)])
 		}
 		err = Stabilize(ctx, gs)
@@ -131,7 +131,7 @@ func benchmarkParallelSize(size int, b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		for x := 0; x < size>>2; x++ {
+		for x := 0; x < size>>1; x++ {
 			SetStale(nodes[rand.Intn(size)])
 		}
 		err = ParallelStabilize(ctx, gs)
