@@ -49,7 +49,7 @@ func recomputeAll(ctx context.Context, gs *graphState) error {
 	var err error
 	var n INode
 	var nn *Node
-	for gs.rh.Len() > 0 {
+	for len(gs.rh.lookup) > 0 {
 		n = gs.rh.RemoveMin()
 		nn = n.Node()
 		if nn.shouldRecompute() {

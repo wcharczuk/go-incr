@@ -142,16 +142,16 @@ func (n *Node) removeParent(id Identifier) {
 
 // maybeStabilize calls the stabilize delegate if it's set,
 // otherwise is nops.
-func (n *Node) maybeStabilize(ctx context.Context) error {
+func (n *Node) maybeStabilize(ctx context.Context) (err error) {
 	if n.stabilize != nil {
-		if err := n.stabilize(ctx); err != nil {
-			return err
+		if err = n.stabilize(ctx); err != nil {
+			return
 		}
 	}
 	n.numRecomputes++
 	n.gs.numNodesRecomputed++
 	n.recomputedAt = n.gs.stabilizationNum
-	return nil
+	return
 }
 
 // maybeCutoff calls the cutoff delegate if it's set, otherwise
@@ -238,6 +238,6 @@ func (n *Node) recompute(ctx context.Context) error {
 	for _, handler := range n.onUpdateHandlers {
 		handler(ctx)
 	}
-	n.gs.rh.Add(n.parents...)
+	n.gs.rh.addUnsafe(n.parents...)
 	return nil
 }

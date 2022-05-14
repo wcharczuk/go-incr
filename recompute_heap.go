@@ -64,7 +64,10 @@ func (rh *recomputeHeap) Len() int {
 func (rh *recomputeHeap) Add(nodes ...INode) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
+	rh.addUnsafe(nodes...)
+}
 
+func (rh *recomputeHeap) addUnsafe(nodes ...INode) {
 	for _, s := range nodes {
 		sn := s.Node()
 		if sn.height >= rh.heightLimit {
