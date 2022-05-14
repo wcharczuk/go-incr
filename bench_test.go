@@ -79,16 +79,26 @@ func benchmarkSize(size int, b *testing.B) {
 
 	// this is what we care about
 	b.ResetTimer()
+	var err error
 	for n := 0; n < b.N; n++ {
-		_ = Stabilize(ctx, gs)
+		err = Stabilize(ctx, gs)
+		if err != nil {
+			b.Fatal(err)
+		}
 		for x := 0; x < size>>2; x++ {
 			SetStale(nodes[rand.Intn(size)])
 		}
-		_ = Stabilize(ctx, gs)
+		err = Stabilize(ctx, gs)
+		if err != nil {
+			b.Fatal(err)
+		}
 		for x := 0; x < size>>2; x++ {
 			SetStale(nodes[rand.Intn(size)])
 		}
-		_ = Stabilize(ctx, gs)
+		err = Stabilize(ctx, gs)
+		if err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
@@ -115,16 +125,26 @@ func benchmarkParallelSize(size int, b *testing.B) {
 
 	// this is what we care about
 	b.ResetTimer()
+	var err error
 	for n := 0; n < b.N; n++ {
-		_ = ParallelStabilize(ctx, gs)
+		err = ParallelStabilize(ctx, gs)
+		if err != nil {
+			b.Fatal(err)
+		}
 		for x := 0; x < size>>2; x++ {
 			SetStale(nodes[rand.Intn(size)])
 		}
-		_ = ParallelStabilize(ctx, gs)
+		err = ParallelStabilize(ctx, gs)
+		if err != nil {
+			b.Fatal(err)
+		}
 		for x := 0; x < size>>2; x++ {
 			SetStale(nodes[rand.Intn(size)])
 		}
-		_ = ParallelStabilize(ctx, gs)
+		err = ParallelStabilize(ctx, gs)
+		if err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
