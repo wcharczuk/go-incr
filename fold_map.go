@@ -1,6 +1,9 @@
 package incr
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 // FoldMap returns an incremental that takes a map typed incremental as an
 // input, an initial value, and a combinator, yielding an incremental
@@ -25,12 +28,18 @@ func FoldMap[K comparable, V any, O any](
 	return o
 }
 
+var (
+	_ Incr[int]    = (*foldMapIncr[string, float64, int])(nil)
+	_ INode        = (*foldMapIncr[string, float64, int])(nil)
+	_ IStabilize   = (*foldMapIncr[string, float64, int])(nil)
+	_ fmt.Stringer = (*foldMapIncr[string, float64, int])(nil)
+)
+
 type foldMapIncr[K comparable, V any, O any] struct {
-	n    *Node
-	i    Incr[map[K]V]
-	fn   func(K, V, O) O
-	last map[K]V
-	val  O
+	n   *Node
+	i   Incr[map[K]V]
+	fn  func(K, V, O) O
+	val O
 }
 
 func (fmi *foldMapIncr[K, V, O]) String() string { return FormatNode(fmi.n, "fold_map") }

@@ -2,6 +2,7 @@ package incr
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 )
@@ -737,4 +738,63 @@ func Test_Stabilize_diffMapByKeys(t *testing.T) {
 	_ = Stabilize(ctx, mfa, mfr)
 	ItsEqual(t, 36, mfa.Value())
 	ItsEqual(t, 7, mfr.Value())
+}
+
+func Test_Stabilize_foldLeft(t *testing.T) {
+	ctx := testContext()
+
+	m := []int{
+		1,
+		2,
+		3,
+		4,
+		5,
+		6,
+	}
+	mf := FoldLeft(Return(m), "", func(accum string, val int) string {
+		return accum + fmt.Sprint(val)
+	})
+	_ = Stabilize(ctx, mf)
+	ItsEqual(t, "123456", mf.Value())
+}
+
+func Test_Stabilize_diffSlice(t *testing.T) {
+	ctx := testContext()
+
+	m := []int{
+		1,
+		2,
+		3,
+		4,
+		5,
+		6,
+	}
+	mf := FoldRight(Return(m), "", func(val int, accum string) string {
+		return accum + fmt.Sprint(val)
+	})
+	_ = Stabilize(ctx, mf)
+	ItsEqual(t, "654321", mf.Value())
+}
+
+func Test_Stabilize_foldRight(t *testing.T) {
+	ctx := testContext()
+
+	m := []int{
+		1,
+		2,
+		3,
+		4,
+		5,
+		6,
+	}
+	mv := Var(m)
+	mf := FoldRight(DiffSlice(mv.Read()), "", func(val int, accum string) string {
+		return accum + fmt.Sprint(val)
+	})
+	_ = Stabilize(ctx, mf)
+
+	m = append(m, 7, 8, 9)
+	mv.Set(m)
+	_ = Stabilize(ctx, mf)
+	ItsEqual(t, "654321987", mf.Value())
 }
