@@ -788,13 +788,14 @@ func Test_Stabilize_foldRight(t *testing.T) {
 		6,
 	}
 	mv := Var(m)
-	mf := FoldRight(DiffSlice(mv.Read()), "", func(val int, accum string) string {
+	mf := FoldLeft(DiffSlice(mv.Read()), "", func(accum string, val int) string {
 		return accum + fmt.Sprint(val)
 	})
 	_ = Stabilize(ctx, mf)
+	ItsEqual(t, "123456", mf.Value())
 
 	m = append(m, 7, 8, 9)
 	mv.Set(m)
 	_ = Stabilize(ctx, mf)
-	ItsEqual(t, "654321987", mf.Value())
+	ItsEqual(t, "123456789", mf.Value())
 }
