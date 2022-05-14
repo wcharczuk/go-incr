@@ -3,6 +3,7 @@ package incr
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 )
 
 // Var returns a new var node.
@@ -38,6 +39,7 @@ type varIncr[T any] struct {
 	n  *Node
 	v  T
 	nv T
+	uv T
 }
 
 // Set sets the var value.
@@ -46,6 +48,13 @@ type varIncr[T any] struct {
 //
 // This will invalidate any nodes that reference this variable.
 func (vn *varIncr[T]) Set(v T) {
+	// if the node is "stabilizing"
+	// what should we do? just hold the new value
+	// until stabilization is done?
+	if atomic.LoadInt32(&vn.n.g.status) != StatusNotStabilizing {
+		vn.uv = v
+		return
+	}
 	vn.nv = v
 	SetStale(vn)
 }

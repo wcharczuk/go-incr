@@ -3,6 +3,7 @@ package incr
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 )
 
 // Stabilize kicks off the full stabilization pass given initial nodes
@@ -29,18 +30,16 @@ func Stabilize(ctx context.Context, nodes ...INode) error {
 
 func stabilizeNodeGraph(ctx context.Context, gn INode) error {
 	gnn := gn.Node()
-	if gnn.g.status != StatusNotStabilizing {
+	if atomic.LoadInt32(&gnn.g.status) != StatusNotStabilizing {
 		tracePrintf(ctx, "stabilize; already stabilizing, cannot continue")
 		return fmt.Errorf("stabilize; already stabilizing, cannot continue")
 	}
-	gnn.g.mu.Lock()
-	defer gnn.g.mu.Unlock()
 	defer func() {
 		tracePrintf(ctx, "stabilize[%d]; stabilization complete", gnn.g.stabilizationNum)
 		gnn.g.stabilizationNum++
-		gnn.g.status = StatusNotStabilizing
+		atomic.StoreInt32(&gnn.g.status, StatusNotStabilizing)
 	}()
-	gnn.g.status = StatusStabilizing
+	atomic.StoreInt32(&gnn.g.status, StatusStabilizing)
 	tracePrintf(ctx, "stabilize[%d]; stabilization starting", gnn.g.stabilizationNum)
 	return stabilize(ctx, gnn.g)
 }

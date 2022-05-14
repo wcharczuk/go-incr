@@ -35,7 +35,7 @@ type graph struct {
 	// - NotStabilizing
 	// - Stabilizing
 	// - RunningUpdateHandlers
-	status Status
+	status int32
 	// numNodes are the total number of nodes found during
 	// discovery and is typically used for testing
 	numNodes uint64
