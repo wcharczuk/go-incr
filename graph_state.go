@@ -12,6 +12,7 @@ func newGraphState() *graphState {
 	return &graphState{
 		id:               NewIdentifier(),
 		stabilizationNum: 1,
+		status:           StatusNotStabilizing,
 		rh:               newRecomputeHeap(defaultRecomputeHeapMaxHeight),
 	}
 }
