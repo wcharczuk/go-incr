@@ -219,24 +219,20 @@ func (n *Node) calculateHeight() int {
 	return maxChildHeight + 1
 }
 
-type recomputeOptions struct {
-	recomputeIfParentMinHeight bool
-}
-
-func (n *Node) maybeChange(ctx context.Context, opts recomputeOptions) error {
+func (n *Node) maybeChange(ctx context.Context) error {
 	if n.shouldRecompute() {
 		if n.maybeCutoff(ctx) {
 			return nil
 		}
 		n.changedAt = n.gs.stabilizationNum
-		if err := n.recompute(ctx, opts); err != nil {
+		if err := n.recompute(ctx); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (n *Node) recompute(ctx context.Context, opts recomputeOptions) error {
+func (n *Node) recompute(ctx context.Context) error {
 	if err := n.maybeStabilize(ctx); err != nil {
 		for _, handler := range n.onErrorHandlers {
 			handler(ctx, err)
@@ -247,15 +243,6 @@ func (n *Node) recompute(ctx context.Context, opts recomputeOptions) error {
 		handler(ctx)
 	}
 	for _, p := range n.parents {
-		if opts.recomputeIfParentMinHeight {
-			if p.Node().height <= n.gs.rh.MinHeight() {
-				n.gs.numNodesRecomputedMinHeight++
-				if err := p.Node().maybeChange(ctx, opts); err != nil {
-					return err
-				}
-				continue
-			}
-		}
 		if !n.gs.rh.Has(p) {
 			n.gs.rh.Add(p)
 		}

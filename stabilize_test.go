@@ -245,21 +245,6 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 	ItsEqual(t, 3, len(output.Value()))
 }
 
-func Test_Stabilize_js_test_232(t *testing.T) {
-	v := Var(1)
-	o := Apply2(
-		Apply2(Watch(v.Read()).Read(), Return(1), add[int]),
-		Apply2(Return(2), Return(3), add[int]),
-		add[int],
-	)
-	_ = Stabilize(testContext(), o)
-	stat1 := o.Node().gs.numNodesRecomputedMinHeight
-	v.Set(2)
-	_ = Stabilize(testContext(), o)
-	stat2 := o.Node().gs.numNodesRecomputedMinHeight
-	ItsEqual(t, 2, stat2-stat1)
-}
-
 func Test_Stabilize_bind(t *testing.T) {
 	ctx := testContext()
 

@@ -42,18 +42,24 @@ func stabilizeNodeGraph(ctx context.Context, gn INode) error {
 	}()
 	gnn.gs.status = StatusStabilizing
 	tracePrintf(ctx, "stabilize[%d]; stabilization starting", gnn.gs.stabilizationNum)
-	return recomputeAll(ctx, gnn.gs, recomputeOptions{
-		recomputeIfParentMinHeight: true,
-	})
+	return recomputeAll(ctx, gnn.gs)
 }
 
-func recomputeAll(ctx context.Context, gs *graphState, opts recomputeOptions) error {
+func recomputeAll(ctx context.Context, gs *graphState) error {
 	var err error
 	var n INode
+	var nn *Node
 	for gs.rh.Len() > 0 {
 		n = gs.rh.RemoveMin()
-		if err = n.Node().maybeChange(ctx, opts); err != nil {
-			return err
+		nn = n.Node()
+		if nn.shouldRecompute() {
+			if nn.maybeCutoff(ctx) {
+				return nil
+			}
+			nn.changedAt = nn.gs.stabilizationNum
+			if err = nn.recompute(ctx); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

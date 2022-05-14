@@ -378,9 +378,7 @@ func Test_Node_recompute(t *testing.T) {
 		calledErrorHandler1 = true
 	})
 
-	err := n.recompute(ctx, recomputeOptions{
-		recomputeIfParentMinHeight: false,
-	})
+	err := n.recompute(ctx)
 	ItsNil(t, err)
 
 	// find the node in the recompute heap layer
@@ -434,9 +432,7 @@ func Test_Node_recompute_error(t *testing.T) {
 		ItsEqual(t, "test error", err.Error())
 	})
 
-	err := n.recompute(ctx, recomputeOptions{
-		recomputeIfParentMinHeight: false,
-	})
+	err := n.recompute(ctx)
 	ItsNotNil(t, err)
 	ItsNotNil(t, "test error", err.Error())
 

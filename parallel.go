@@ -65,10 +65,7 @@ func parallelRecomputeAll(ctx context.Context, gs *graphState) error {
 		work: make(chan *Node),
 		action: func(ictx context.Context, n *Node) error {
 			defer wg.Done()
-			tracePrintf(ctx, "parallel stabilize[%d]; recomputing %s", gs.stabilizationNum, n.id.Short())
-			return n.recompute(ctx, recomputeOptions{
-				recomputeIfParentMinHeight: false,
-			})
+			return n.recompute(ctx)
 		},
 		started: make(chan struct{}),
 	}
@@ -77,7 +74,6 @@ func parallelRecomputeAll(ctx context.Context, gs *graphState) error {
 	}
 
 	go func() {
-		tracePrintf(ctx, "parallel stabilize[%d]; worker pool starting", gs.stabilizationNum)
 		_ = workerPool.Start(ctx)
 	}()
 	<-workerPool.started
@@ -88,7 +84,6 @@ func parallelRecomputeAll(ctx context.Context, gs *graphState) error {
 	var err error
 	for gs.rh.Len() > 0 {
 		minHeightBlock = gs.rh.RemoveMinHeight()
-		tracePrintf(ctx, "parallel stabilize[%d]; stabilizing %d node block", gs.stabilizationNum, len(minHeightBlock))
 		for _, n := range minHeightBlock {
 			nn = n.Node()
 			if nn.shouldRecompute() {

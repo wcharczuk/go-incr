@@ -136,8 +136,8 @@ func Test_parallelWorker(t *testing.T) {
 	go pw.dispatch()
 
 	pw.work <- "test-value-00"
-
 	ItsEqual(t, "test-value-00", <-gotValues)
+
 	<-calledFinalizer
 	ItsEqual(t, true, didCallFinalizer)
 
