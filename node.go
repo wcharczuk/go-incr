@@ -33,9 +33,7 @@ func FormatNode(n *Node, nodeType string) string {
 func SetStale(gn INode) {
 	n := gn.Node()
 	n.setAt = n.gs.stabilizationNum
-	if !n.gs.rh.Has(gn) {
-		n.gs.rh.Add(gn)
-	}
+	n.gs.rh.Add(gn)
 }
 
 // Node is the common metadata for any node in the computation graph.
@@ -197,10 +195,8 @@ func (n *Node) shouldRecompute() bool {
 	if n.changedAt > n.recomputedAt {
 		return true
 	}
-	var cn *Node
 	for _, c := range n.children {
-		cn = c.Node()
-		if cn.changedAt > n.recomputedAt {
+		if c.Node().changedAt > n.recomputedAt {
 			return true
 		}
 	}
@@ -242,10 +238,6 @@ func (n *Node) recompute(ctx context.Context) error {
 	for _, handler := range n.onUpdateHandlers {
 		handler(ctx)
 	}
-	for _, p := range n.parents {
-		if !n.gs.rh.Has(p) {
-			n.gs.rh.Add(p)
-		}
-	}
+	n.gs.rh.Add(n.parents...)
 	return nil
 }
