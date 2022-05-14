@@ -8,8 +8,8 @@ const defaultRecomputeHeapMaxHeight = 255
 
 // newGraphState returns a new graph state, which is the type that
 // represents the shared state of a computation graph.
-func newGraphState() *graphState {
-	return &graphState{
+func newGraph() *graph {
+	return &graph{
 		id:               NewIdentifier(),
 		stabilizationNum: 1,
 		status:           StatusNotStabilizing,
@@ -17,7 +17,7 @@ func newGraphState() *graphState {
 	}
 }
 
-type graphState struct {
+type graph struct {
 	// id is a unique identifier for the graph state.
 	id Identifier
 	// mu is a synchronizing mutex
@@ -47,9 +47,4 @@ type graphState struct {
 	// that have been changed in the graph's history
 	// and is typically used in testing
 	numNodesChanged uint64
-	// numNodesRecomputedMinHeight is the total number of nodes
-	// that have been recomputed immediately in the graph's
-	// history because the parent's height was less than the
-	// recompute heap's min height
-	numNodesRecomputedMinHeight uint64
 }

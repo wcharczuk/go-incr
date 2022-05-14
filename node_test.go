@@ -9,7 +9,7 @@ import (
 func Test_NewNode(t *testing.T) {
 	n := NewNode()
 	ItsNotNil(t, n.id)
-	ItsNil(t, n.gs)
+	ItsNil(t, n.g)
 	ItsNil(t, n.parents)
 	ItsNil(t, n.children)
 	ItsEqual(t, "", n.label)
@@ -66,7 +66,7 @@ func Test_FormatNode(t *testing.T) {
 func Test_SetStale(t *testing.T) {
 	n := new(mockBareNode)
 	n.n = NewNode()
-	n.n.gs = newGraphState()
+	n.n.g = newGraph()
 
 	SetStale(n)
 
@@ -74,11 +74,11 @@ func Test_SetStale(t *testing.T) {
 	ItsEqual(t, 0, n.n.recomputedAt)
 	ItsEqual(t, 1, n.n.setAt)
 
-	ItsEqual(t, true, n.n.gs.rh.Has(n))
+	ItsEqual(t, true, n.n.g.rh.Has(n))
 
 	// find the node in the recompute heap layer
-	ItsEqual(t, 1, n.n.gs.rh.heights[0].len)
-	ItsEqual(t, n.n.id, n.n.gs.rh.heights[0].head.key)
+	ItsEqual(t, 1, n.n.g.rh.heights[0].len)
+	ItsEqual(t, n.n.id, n.n.g.rh.heights[0].head.key)
 
 	SetStale(n)
 
@@ -86,10 +86,10 @@ func Test_SetStale(t *testing.T) {
 	ItsEqual(t, 0, n.n.recomputedAt)
 	ItsEqual(t, 1, n.n.setAt)
 
-	ItsEqual(t, true, n.n.gs.rh.Has(n))
+	ItsEqual(t, true, n.n.g.rh.Has(n))
 
-	ItsEqual(t, 1, n.n.gs.rh.heights[0].len)
-	ItsEqual(t, n.n.id, n.n.gs.rh.heights[0].head.key)
+	ItsEqual(t, 1, n.n.g.rh.heights[0].len)
+	ItsEqual(t, n.n.id, n.n.g.rh.heights[0].head.key)
 }
 
 func Test_Node_OnUpdate(t *testing.T) {
@@ -336,9 +336,9 @@ func Test_Node_recompute(t *testing.T) {
 	ctx := testContext()
 
 	n := NewNode()
-	n.gs = newGraphState()
+	n.g = newGraph()
 
-	ItsNotNil(t, n.gs.rh)
+	ItsNotNil(t, n.g.rh)
 
 	var calledStabilize bool
 	n.stabilize = func(ictx context.Context) error {
@@ -374,7 +374,7 @@ func Test_Node_recompute(t *testing.T) {
 	ItsNil(t, err)
 
 	// find the node in the recompute heap layer
-	ItsEqual(t, true, n.gs.rh.Has(p))
+	ItsEqual(t, true, n.g.rh.Has(p))
 	ItsEqual(t, true, calledStabilize)
 	ItsEqual(t, true, calledUpdateHandler0)
 	ItsEqual(t, true, calledUpdateHandler1)
@@ -386,9 +386,9 @@ func Test_Node_recompute_error(t *testing.T) {
 	ctx := testContext()
 
 	n := NewNode()
-	n.gs = newGraphState()
+	n.g = newGraph()
 
-	ItsNotNil(t, n.gs.rh)
+	ItsNotNil(t, n.g.rh)
 
 	var calledStabilize bool
 	n.stabilize = func(ictx context.Context) error {
@@ -429,7 +429,7 @@ func Test_Node_recompute_error(t *testing.T) {
 	ItsNotNil(t, "test error", err.Error())
 
 	// find the node in the recompute heap layer
-	ItsEqual(t, false, n.gs.rh.Has(p))
+	ItsEqual(t, false, n.g.rh.Has(p))
 	ItsEqual(t, true, calledStabilize)
 	ItsEqual(t, false, calledUpdateHandler0)
 	ItsEqual(t, false, calledUpdateHandler1)

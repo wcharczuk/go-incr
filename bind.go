@@ -81,7 +81,7 @@ func (b *bindIncr[A, B]) String() string {
 // specifically handling unlinking and linking bound nodes
 // when the bind changes.
 func bindUpdate[A any](ctx context.Context, b BindIncr[A]) error {
-	gs := b.Node().gs
+	g := b.Node().g
 
 	oldValue, newValue, err := b.Bind(ctx)
 	if err != nil {
@@ -93,9 +93,9 @@ func bindUpdate[A any](ctx context.Context, b BindIncr[A]) error {
 		// of the bind node, specifically
 		// that b is an input to newValue
 		Link(newValue, b)
-		discoverAllNodes(ctx, gs, newValue)
+		discoverAllNodes(ctx, g, newValue)
 		b.SetBind(newValue)
-		newValue.Node().changedAt = gs.stabilizationNum
+		newValue.Node().changedAt = g.stabilizationNum
 		return newValue.Node().maybeStabilize(ctx)
 	}
 
@@ -103,15 +103,15 @@ func bindUpdate[A any](ctx context.Context, b BindIncr[A]) error {
 		// unlink the old node from the bind node
 		b.Node().parents = nil
 		oldValue.Node().children = nil
-		undiscoverAllNodes(ctx, gs, oldValue)
+		undiscoverAllNodes(ctx, g, oldValue)
 
 		// link the new value as the parent
 		// of the bind node, specifically
 		// that b is an input to newValue
 		Link(newValue, b)
-		discoverAllNodes(ctx, gs, newValue)
+		discoverAllNodes(ctx, g, newValue)
 		b.SetBind(newValue)
-		newValue.Node().changedAt = gs.stabilizationNum
+		newValue.Node().changedAt = g.stabilizationNum
 		return newValue.Node().maybeStabilize(ctx)
 	}
 	return nil

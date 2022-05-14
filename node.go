@@ -32,8 +32,8 @@ func FormatNode(n *Node, nodeType string) string {
 // SetStale sets a node as stale.
 func SetStale(gn INode) {
 	n := gn.Node()
-	n.setAt = n.gs.stabilizationNum
-	n.gs.rh.Add(gn)
+	n.setAt = n.g.stabilizationNum
+	n.g.rh.Add(gn)
 }
 
 // Node is the common metadata for any node in the computation graph.
@@ -45,7 +45,7 @@ type Node struct {
 	label string
 	// gs is a shared reference to the graph state
 	// for the computation
-	gs *graphState
+	g *graph
 	// parents are the nodes that depend on this node, that is
 	// parents are nodes for which this node is an input
 	parents []INode
@@ -209,9 +209,9 @@ func (n *Node) calculateHeight() int {
 // recompute starts the recompute cycle for the node
 // setting the recomputedAt field and possibly changing the value.
 func (n *Node) recompute(ctx context.Context) error {
-	n.gs.numNodesRecomputed++
+	n.g.numNodesRecomputed++
 	n.numRecomputes++
-	n.recomputedAt = n.gs.stabilizationNum
+	n.recomputedAt = n.g.stabilizationNum
 	return n.maybeChangeValue(ctx)
 }
 
@@ -222,9 +222,9 @@ func (n *Node) maybeChangeValue(ctx context.Context) (err error) {
 	if n.maybeCutoff(ctx) {
 		return
 	}
-	n.gs.numNodesChanged++
+	n.g.numNodesChanged++
 	n.numChanges++
-	n.changedAt = n.gs.stabilizationNum
+	n.changedAt = n.g.stabilizationNum
 	if err = n.maybeStabilize(ctx); err != nil {
 		for _, eh := range n.onErrorHandlers {
 			eh(ctx, err)
@@ -235,14 +235,14 @@ func (n *Node) maybeChangeValue(ctx context.Context) (err error) {
 		h(ctx)
 	}
 	for _, p := range n.parents {
-		if n.gs.rh.Has(p) {
+		if n.g.rh.Has(p) {
 			continue
 		}
 		if p.Node().shouldRecompute() {
 			// NOTE(wc): we have an opportunity here
 			// to short circuit in serial stabilzation
 			// to avoid pushing onto the recompute heap
-			n.gs.rh.Add(p)
+			n.g.rh.Add(p)
 		}
 	}
 	return

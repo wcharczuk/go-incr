@@ -2,10 +2,10 @@ package incr
 
 import "context"
 
-// DiffSlice diffs a slice between stabilizations, yielding an
+// DiffSliceByIndicesAdded diffs a slice between stabilizations, yielding an
 // incremental that is just the added elements per pass.
-func DiffSlice[T any](i Incr[[]T]) Incr[[]T] {
-	o := &diffSliceIncr[T]{
+func DiffSliceByIndicesAdded[T any](i Incr[[]T]) Incr[[]T] {
+	o := &diffSliceByIndicesAddedIncr[T]{
 		n: NewNode(),
 		i: i,
 	}
@@ -13,28 +13,28 @@ func DiffSlice[T any](i Incr[[]T]) Incr[[]T] {
 	return o
 }
 
-type diffSliceIncr[T any] struct {
+type diffSliceByIndicesAddedIncr[T any] struct {
 	n    *Node
 	i    Incr[[]T]
 	last int
 	val  []T
 }
 
-func (dsi *diffSliceIncr[T]) String() string {
+func (dsi *diffSliceByIndicesAddedIncr[T]) String() string {
 	return FormatNode(dsi.n, "diff_slice")
 }
 
-func (dsi *diffSliceIncr[T]) Node() *Node { return dsi.n }
+func (dsi *diffSliceByIndicesAddedIncr[T]) Node() *Node { return dsi.n }
 
-func (dsi *diffSliceIncr[T]) Value() []T { return dsi.val }
+func (dsi *diffSliceByIndicesAddedIncr[T]) Value() []T { return dsi.val }
 
-func (dsi *diffSliceIncr[T]) Stabilize(_ context.Context) error {
+func (dsi *diffSliceByIndicesAddedIncr[T]) Stabilize(_ context.Context) error {
 	newVal := dsi.i.Value()
-	dsi.val, dsi.last = diffSlice(dsi.last, newVal)
+	dsi.val, dsi.last = diffSliceByIndicesAdded(dsi.last, newVal)
 	return nil
 }
 
-func diffSlice[T any](previousLast int, value []T) (output []T, last int) {
+func diffSliceByIndicesAdded[T any](previousLast int, value []T) (output []T, last int) {
 	if len(value) == 0 {
 		return
 	}

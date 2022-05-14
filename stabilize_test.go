@@ -145,10 +145,10 @@ func Test_Stabilize_doubleVarSet_singleUpdate(t *testing.T) {
 	ItsEqual(t, "a b", m.Value())
 
 	a.Set("aa")
-	ItsEqual(t, 1, a.Node().gs.rh.Len())
+	ItsEqual(t, 1, a.Node().g.rh.Len())
 
 	a.Set("aaa")
-	ItsEqual(t, 1, a.Node().gs.rh.Len())
+	ItsEqual(t, 1, a.Node().g.rh.Len())
 
 	_ = Stabilize(ctx, m)
 	ItsEqual(t, "aaa b", m.Value())
@@ -263,8 +263,8 @@ func Test_Stabilize_bind(t *testing.T) {
 	err := Stabilize(ctx, b)
 	ItsNil(t, err)
 
-	ItsNil(t, i0.Node().gs, "i0 should not be in the graph after the first stabilization")
-	ItsNotNil(t, i1.Node().gs, "i1 should be in the graph after the first stabilization")
+	ItsNil(t, i0.Node().g, "i0 should not be in the graph after the first stabilization")
+	ItsNotNil(t, i1.Node().g, "i1 should be in the graph after the first stabilization")
 
 	ItsEqual(t, "bar", b.Value())
 
@@ -272,8 +272,8 @@ func Test_Stabilize_bind(t *testing.T) {
 	err = Stabilize(ctx, b)
 	ItsNil(t, err)
 
-	ItsNil(t, i1.Node().gs, "i0 should be in the graph after the second stabilization")
-	ItsNotNil(t, i0.Node().gs, "i1 should not be in the graph after the second stabilization")
+	ItsNil(t, i1.Node().g, "i0 should be in the graph after the second stabilization")
+	ItsNotNil(t, i0.Node().g, "i1 should not be in the graph after the second stabilization")
 
 	ItsEqual(t, "foo", b.Value())
 }
@@ -296,8 +296,8 @@ func Test_Stabilize_bind2(t *testing.T) {
 	err := Stabilize(ctx, b)
 	ItsNil(t, err)
 
-	ItsNil(t, i0.Node().gs, "i0 should not be in the graph after the first stabilization")
-	ItsNotNil(t, i1.Node().gs, "i1 should be in the graph after the first stabilization")
+	ItsNil(t, i0.Node().g, "i0 should not be in the graph after the first stabilization")
+	ItsNotNil(t, i1.Node().g, "i1 should be in the graph after the first stabilization")
 
 	ItsEqual(t, "bar", b.Value())
 
@@ -305,8 +305,8 @@ func Test_Stabilize_bind2(t *testing.T) {
 	err = Stabilize(ctx, b)
 	ItsNil(t, err)
 
-	ItsNil(t, i0.Node().gs, "i0 should not be in the graph after the second stabilization")
-	ItsNotNil(t, i1.Node().gs, "i1 should be in the graph after the second stabilization")
+	ItsNil(t, i0.Node().g, "i0 should not be in the graph after the second stabilization")
+	ItsNotNil(t, i1.Node().g, "i1 should be in the graph after the second stabilization")
 
 	ItsEqual(t, "bar", b.Value())
 
@@ -314,8 +314,8 @@ func Test_Stabilize_bind2(t *testing.T) {
 	err = Stabilize(ctx, b)
 	ItsNil(t, err)
 
-	ItsNil(t, i1.Node().gs, "i0 should be in the graph after the third stabilization")
-	ItsNotNil(t, i0.Node().gs, "i1 should not be in the graph after the third stabilization")
+	ItsNil(t, i1.Node().g, "i0 should be in the graph after the third stabilization")
+	ItsNotNil(t, i0.Node().g, "i1 should not be in the graph after the third stabilization")
 
 	ItsEqual(t, "foo", b.Value())
 }
@@ -339,24 +339,24 @@ func Test_Stabilize_bind3(t *testing.T) {
 
 	err := Stabilize(ctx, b)
 	ItsNil(t, err)
-	ItsNil(t, i0.Node().gs, "i0 should not be in the graph after the first stabilization")
-	ItsNotNil(t, i1.Node().gs, "i1 should be in the graph after the first stabilization")
+	ItsNil(t, i0.Node().g, "i0 should not be in the graph after the first stabilization")
+	ItsNotNil(t, i1.Node().g, "i1 should be in the graph after the first stabilization")
 	ItsEqual(t, "bar", b.Value())
 
 	sw0.Set(true)
 
 	err = Stabilize(ctx, b)
 	ItsNil(t, err)
-	ItsNil(t, i0.Node().gs, "i0 should not be in the graph after the second stabilization")
-	ItsNotNil(t, i1.Node().gs, "i1 should be in the graph after the second stabilization")
+	ItsNil(t, i0.Node().g, "i0 should not be in the graph after the second stabilization")
+	ItsNotNil(t, i1.Node().g, "i1 should be in the graph after the second stabilization")
 	ItsEqual(t, "bar", b.Value())
 
 	sw1.Set(true)
 
 	err = Stabilize(ctx, b)
 	ItsNil(t, err)
-	ItsNil(t, i0.Node().gs, "i0 should not be in the graph after the third stabilization")
-	ItsNotNil(t, i1.Node().gs, "i1 should be in the graph after the third stabilization")
+	ItsNil(t, i0.Node().g, "i0 should not be in the graph after the third stabilization")
+	ItsNotNil(t, i1.Node().g, "i1 should be in the graph after the third stabilization")
 	ItsEqual(t, "bar", b.Value())
 	ItsNil(t, err)
 
@@ -364,8 +364,8 @@ func Test_Stabilize_bind3(t *testing.T) {
 
 	err = Stabilize(ctx, b)
 	ItsNil(t, err)
-	ItsNil(t, i1.Node().gs, "i0 should be in the graph after the fourth stabilization")
-	ItsNotNil(t, i0.Node().gs, "i1 should not be in the graph after the fourth stabilization")
+	ItsNil(t, i1.Node().g, "i0 should be in the graph after the fourth stabilization")
+	ItsNotNil(t, i0.Node().g, "i1 should not be in the graph after the fourth stabilization")
 	ItsEqual(t, "foo", b.Value())
 }
 
@@ -387,8 +387,8 @@ func Test_Stabilize_bindIf(t *testing.T) {
 	err := Stabilize(ctx, b)
 	ItsNil(t, err)
 
-	ItsNil(t, i0.Node().gs, "i0 should not be in the graph after the first stabilization")
-	ItsNotNil(t, i1.Node().gs, "i1 should be in the graph after the first stabilization")
+	ItsNil(t, i0.Node().g, "i0 should not be in the graph after the first stabilization")
+	ItsNotNil(t, i1.Node().g, "i1 should be in the graph after the first stabilization")
 
 	ItsEqual(t, "bar", b.Value())
 
@@ -396,8 +396,8 @@ func Test_Stabilize_bindIf(t *testing.T) {
 	err = Stabilize(ctx, b)
 	ItsNil(t, err)
 
-	ItsNil(t, i1.Node().gs, "i0 should be in the graph after the third stabilization")
-	ItsNotNil(t, i0.Node().gs, "i1 should not be in the graph after the third stabilization")
+	ItsNil(t, i1.Node().g, "i0 should be in the graph after the third stabilization")
+	ItsNotNil(t, i0.Node().g, "i1 should not be in the graph after the third stabilization")
 
 	ItsEqual(t, "foo", b.Value())
 }
@@ -758,7 +758,7 @@ func Test_Stabilize_foldLeft(t *testing.T) {
 	ItsEqual(t, "123456", mf.Value())
 }
 
-func Test_Stabilize_diffSlice(t *testing.T) {
+func Test_Stabilize_foldRight(t *testing.T) {
 	ctx := testContext()
 
 	m := []int{
@@ -774,9 +774,14 @@ func Test_Stabilize_diffSlice(t *testing.T) {
 	})
 	_ = Stabilize(ctx, mf)
 	ItsEqual(t, "654321", mf.Value())
+
+	SetStale(mf)
+
+	_ = Stabilize(ctx, mf)
+	ItsEqual(t, "654321654321", mf.Value())
 }
 
-func Test_Stabilize_foldRight(t *testing.T) {
+func Test_Stabilize_diffSlice(t *testing.T) {
 	ctx := testContext()
 
 	m := []int{
@@ -788,7 +793,7 @@ func Test_Stabilize_foldRight(t *testing.T) {
 		6,
 	}
 	mv := Var(m)
-	mf := FoldLeft(DiffSlice(mv.Read()), "", func(accum string, val int) string {
+	mf := FoldLeft(DiffSliceByIndicesAdded(mv.Read()), "", func(accum string, val int) string {
 		return accum + fmt.Sprint(val)
 	})
 

@@ -67,34 +67,6 @@ func (rh *recomputeHeap) Add(nodes ...INode) {
 	rh.addUnsafe(nodes...)
 }
 
-func (rh *recomputeHeap) addUnsafe(nodes ...INode) {
-	for _, s := range nodes {
-		sn := s.Node()
-		if sn.height >= rh.heightLimit {
-			panic("recompute heap; cannot add node with height greater than max height")
-		}
-		if _, ok := rh.lookup[sn.id]; ok {
-			continue
-		}
-		// when we add nodes, make sure to note if we
-		// need to change the min or max height
-		if len(rh.lookup) == 0 {
-			rh.minHeight = sn.height
-			rh.maxHeight = sn.height
-		} else if rh.minHeight > sn.height {
-			rh.minHeight = sn.height
-		} else if rh.maxHeight < sn.height {
-			rh.maxHeight = sn.height
-		}
-
-		if rh.heights[sn.height] == nil {
-			rh.heights[sn.height] = new(recomputeHeapList)
-		}
-		item := rh.heights[sn.height].push(s)
-		rh.lookup[sn.id] = item
-	}
-}
-
 // Has returns if a given node exists in the recompute heap at its height by id.
 func (rh *recomputeHeap) Has(s INode) (ok bool) {
 	rh.mu.Lock()
@@ -155,6 +127,39 @@ func (rh *recomputeHeap) Remove(s INode) {
 
 	if sn.height == rh.minHeight && rh.heights[sn.height].head == nil {
 		rh.minHeight = rh.nextMinHeight()
+	}
+}
+
+//
+// utils
+//
+
+func (rh *recomputeHeap) addUnsafe(nodes ...INode) {
+	for _, s := range nodes {
+		sn := s.Node()
+		if sn.height >= rh.heightLimit {
+			panic("recompute heap; cannot add node with height greater than max height")
+		}
+		if _, ok := rh.lookup[sn.id]; ok {
+			continue
+		}
+
+		// when we add nodes, make sure to note if we
+		// need to change the min or max height
+		if len(rh.lookup) == 0 {
+			rh.minHeight = sn.height
+			rh.maxHeight = sn.height
+		} else if rh.minHeight > sn.height {
+			rh.minHeight = sn.height
+		} else if rh.maxHeight < sn.height {
+			rh.maxHeight = sn.height
+		}
+
+		if rh.heights[sn.height] == nil {
+			rh.heights[sn.height] = new(recomputeHeapList)
+		}
+		item := rh.heights[sn.height].push(s)
+		rh.lookup[sn.id] = item
 	}
 }
 

@@ -11,7 +11,7 @@ func Initialize(ctx context.Context, nodes ...INode) {
 		if !shouldInitialize(n.Node()) {
 			continue
 		}
-		discoverAllNodes(ctx, newGraphState(), n)
+		discoverAllNodes(ctx, newGraph(), n)
 	}
 }
 
@@ -21,34 +21,34 @@ func Initialize(ctx context.Context, nodes ...INode) {
 // performed on it, setting up the graph state, the recompute heap,
 // and other node metadata items.
 func shouldInitialize(n *Node) bool {
-	return n.gs == nil
+	return n.g == nil
 }
 
-func discoverAllNodes(ctx context.Context, gs *graphState, gn INode) {
-	discoverNode(ctx, gs, gn)
+func discoverAllNodes(ctx context.Context, g *graph, gn INode) {
+	discoverNode(ctx, g, gn)
 	gnn := gn.Node()
 	for _, c := range gnn.children {
 		if !shouldInitialize(c.Node()) {
 			continue
 		}
-		discoverAllNodes(ctx, gs, c)
+		discoverAllNodes(ctx, g, c)
 	}
 	for _, p := range gnn.parents {
 		if !shouldInitialize(p.Node()) {
 			continue
 		}
-		discoverAllNodes(ctx, gs, p)
+		discoverAllNodes(ctx, g, p)
 	}
 }
 
-func discoverNode(ctx context.Context, gs *graphState, gn INode) {
+func discoverNode(ctx context.Context, g *graph, gn INode) {
 	gnn := gn.Node()
-	gnn.gs = gs
+	gnn.g = g
 	gnn.detectCutoff(gn)
 	gnn.detectStabilize(gn)
 	gnn.height = gnn.calculateHeight()
-	gs.numNodes++
-	gs.rh.Add(gn)
+	g.numNodes++
+	g.rh.Add(gn)
 	return
 }
 
@@ -56,26 +56,26 @@ func discoverNode(ctx context.Context, gs *graphState, gn INode) {
 // from a given graph.
 //
 // NOTE: you _must_ unlink it first or you'll just blow away the whole graph.
-func undiscoverAllNodes(ctx context.Context, gs *graphState, gn INode) {
-	undiscoverNode(ctx, gs, gn)
+func undiscoverAllNodes(ctx context.Context, g *graph, gn INode) {
+	undiscoverNode(ctx, g, gn)
 	gnn := gn.Node()
 	for _, c := range gnn.children {
 		if shouldInitialize(c.Node()) {
 			continue
 		}
-		undiscoverAllNodes(ctx, gs, c)
+		undiscoverAllNodes(ctx, g, c)
 	}
 	for _, p := range gnn.parents {
 		if shouldInitialize(p.Node()) {
 			continue
 		}
-		undiscoverAllNodes(ctx, gs, p)
+		undiscoverAllNodes(ctx, g, p)
 	}
 }
 
-func undiscoverNode(ctx context.Context, gs *graphState, gn INode) {
+func undiscoverNode(ctx context.Context, g *graph, gn INode) {
 	gnn := gn.Node()
-	gnn.gs = nil
-	gs.numNodes--
-	gs.rh.Remove(gn)
+	gnn.g = nil
+	g.numNodes--
+	g.rh.Remove(gn)
 }

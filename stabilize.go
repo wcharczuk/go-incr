@@ -17,7 +17,7 @@ func Stabilize(ctx context.Context, nodes ...INode) error {
 			tracePrintf(ctx, "stabilize; initializing graph rooted at: %v", gn)
 			Initialize(ctx, gn)
 		}
-		if seenGraphs.has(gn.Node().gs.id) {
+		if seenGraphs.has(gn.Node().g.id) {
 			continue
 		}
 		if err := stabilizeNodeGraph(ctx, gn); err != nil {
@@ -29,27 +29,27 @@ func Stabilize(ctx context.Context, nodes ...INode) error {
 
 func stabilizeNodeGraph(ctx context.Context, gn INode) error {
 	gnn := gn.Node()
-	if gnn.gs.status != StatusNotStabilizing {
+	if gnn.g.status != StatusNotStabilizing {
 		tracePrintf(ctx, "stabilize; already stabilizing, cannot continue")
 		return fmt.Errorf("stabilize; already stabilizing, cannot continue")
 	}
-	gnn.gs.mu.Lock()
-	defer gnn.gs.mu.Unlock()
+	gnn.g.mu.Lock()
+	defer gnn.g.mu.Unlock()
 	defer func() {
-		tracePrintf(ctx, "stabilize[%d]; stabilization complete", gnn.gs.stabilizationNum)
-		gnn.gs.stabilizationNum++
-		gnn.gs.status = StatusNotStabilizing
+		tracePrintf(ctx, "stabilize[%d]; stabilization complete", gnn.g.stabilizationNum)
+		gnn.g.stabilizationNum++
+		gnn.g.status = StatusNotStabilizing
 	}()
-	gnn.gs.status = StatusStabilizing
-	tracePrintf(ctx, "stabilize[%d]; stabilization starting", gnn.gs.stabilizationNum)
-	return stabilize(ctx, gnn.gs)
+	gnn.g.status = StatusStabilizing
+	tracePrintf(ctx, "stabilize[%d]; stabilization starting", gnn.g.stabilizationNum)
+	return stabilize(ctx, gnn.g)
 }
 
-func stabilize(ctx context.Context, gs *graphState) error {
+func stabilize(ctx context.Context, g *graph) error {
 	var err error
 	var n INode
-	for len(gs.rh.lookup) > 0 {
-		n = gs.rh.RemoveMin()
+	for len(g.rh.lookup) > 0 {
+		n = g.rh.RemoveMin()
 		if err = n.Node().recompute(ctx); err != nil {
 			return err
 		}

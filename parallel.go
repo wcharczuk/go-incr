@@ -30,10 +30,10 @@ func ParallelStabilize(ctx context.Context, nodes ...INode) error {
 			tracePrintf(ctx, "parallel stabilize; initializing graph rooted at: %v", gn)
 			Initialize(ctx, gn)
 		}
-		if seenGraphs.has(gn.Node().gs.id) {
+		if seenGraphs.has(gn.Node().g.id) {
 			continue
 		}
-		seenGraphs.add(gn.Node().gs.id)
+		seenGraphs.add(gn.Node().g.id)
 		if err := parallelStabilizeNode(ctx, gn); err != nil {
 			return err
 		}
@@ -43,23 +43,23 @@ func ParallelStabilize(ctx context.Context, nodes ...INode) error {
 
 func parallelStabilizeNode(ctx context.Context, gn INode) error {
 	gnn := gn.Node()
-	if gnn.gs.status != StatusNotStabilizing {
+	if gnn.g.status != StatusNotStabilizing {
 		tracePrintf(ctx, "parallel stabilize; already stabilizing, cannot continue")
 		return errors.New("parallel stabilize; already stabilizing, cannot continue")
 	}
-	gnn.gs.mu.Lock()
-	defer gnn.gs.mu.Unlock()
+	gnn.g.mu.Lock()
+	defer gnn.g.mu.Unlock()
 	defer func() {
-		tracePrintf(ctx, "parallel stabilize[%d]; stabilization complete", gnn.gs.stabilizationNum)
-		gnn.gs.stabilizationNum++
-		gnn.gs.status = StatusNotStabilizing
+		tracePrintf(ctx, "parallel stabilize[%d]; stabilization complete", gnn.g.stabilizationNum)
+		gnn.g.stabilizationNum++
+		gnn.g.status = StatusNotStabilizing
 	}()
-	gnn.gs.status = StatusStabilizing
-	tracePrintf(ctx, "parallel stabilize[%d]; stabilization starting", gnn.gs.stabilizationNum)
-	return parallelRecomputeAll(ctx, gnn.gs)
+	gnn.g.status = StatusStabilizing
+	tracePrintf(ctx, "parallel stabilize[%d]; stabilization starting", gnn.g.stabilizationNum)
+	return parallelRecomputeAll(ctx, gnn.g)
 }
 
-func parallelRecomputeAll(ctx context.Context, gs *graphState) error {
+func parallelRecomputeAll(ctx context.Context, g *graph) error {
 	wg := sync.WaitGroup{}
 	workerPool := &parallelWorkerPool[*Node]{
 		work: make(chan *Node),
@@ -69,7 +69,7 @@ func parallelRecomputeAll(ctx context.Context, gs *graphState) error {
 		},
 		started: make(chan struct{}),
 	}
-	if gs.rh.Len() == 0 {
+	if g.rh.Len() == 0 {
 		return nil
 	}
 
@@ -80,21 +80,13 @@ func parallelRecomputeAll(ctx context.Context, gs *graphState) error {
 	defer workerPool.Stop()
 
 	var minHeightBlock []INode
-	var nn *Node
 	var err error
-	for gs.rh.Len() > 0 {
-		minHeightBlock = gs.rh.RemoveMinHeight()
+	for g.rh.Len() > 0 {
+		minHeightBlock = g.rh.RemoveMinHeight()
 		for _, n := range minHeightBlock {
-			nn = n.Node()
-			if nn.shouldRecompute() {
-				if nn.maybeCutoff(ctx) {
-					continue
-				}
-				nn.changedAt = gs.stabilizationNum
-				wg.Add(1)
-				if err = workerPool.Submit(ctx, nn); err != nil {
-					return err
-				}
+			wg.Add(1)
+			if err = workerPool.Submit(ctx, n.Node()); err != nil {
+				return err
 			}
 		}
 		wg.Wait()
