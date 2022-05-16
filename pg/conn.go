@@ -9,5 +9,5 @@ import (
 // as a single target for operations.
 type Conn interface {
 	ExecContext(context.Context, string, ...any) (sql.Result, error)
-	QueryContext(context.Context, string, ...any) (sql.Rows, error)
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
 }

@@ -5,6 +5,8 @@ func NodeStats(n INode) INodeStats {
 	return nodeStats{
 		numRecomputes: n.Node().numRecomputes,
 		numChanges:    n.Node().numChanges,
+		numParents:    len(n.Node().parents),
+		numChildren:   len(n.Node().children),
 	}
 }
 
@@ -21,6 +23,8 @@ func GraphStats(n INode) IGraphStats {
 type INodeStats interface {
 	Recomputes() uint64
 	Changes() uint64
+	Children() int
+	Parents() int
 }
 
 // IGraphStats are stats for a given node's graph.
@@ -33,10 +37,14 @@ type IGraphStats interface {
 type nodeStats struct {
 	numRecomputes uint64
 	numChanges    uint64
+	numChildren   int
+	numParents    int
 }
 
 func (n nodeStats) Recomputes() uint64 { return n.numRecomputes }
 func (n nodeStats) Changes() uint64    { return n.numChanges }
+func (n nodeStats) Children() int      { return n.numChildren }
+func (n nodeStats) Parents() int       { return n.numParents }
 
 type graphStats struct {
 	numNodes           uint64
