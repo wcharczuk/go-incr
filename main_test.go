@@ -162,6 +162,16 @@ func newHeightIncr(height int) *heightIncr {
 	}
 }
 
+func newHeightIncrLabel(height int, label string) *heightIncr {
+	return &heightIncr{
+		n: &Node{
+			id:     NewIdentifier(),
+			height: height,
+			label:  label,
+		},
+	}
+}
+
 type heightIncr struct {
 	Incr[struct{}]
 	n *Node

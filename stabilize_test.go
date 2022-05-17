@@ -3,6 +3,7 @@ package incr
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
@@ -93,6 +94,30 @@ func Test_Stabilize_unevenHeights(t *testing.T) {
 	err = Stabilize(ctx, m1)
 	ItsNil(t, err)
 	ItsEqual(t, "moo != not foo bar", m1.Value())
+}
+
+func Test_Stabilize_chain(t *testing.T) {
+	ctx := testContext()
+
+	v0 := Var(".")
+
+	var maps []Incr[string]
+	var previous Incr[string] = v0.Read()
+	for x := 0; x < 100; x++ {
+		m := Apply(previous, func(v0 string) string {
+			return v0 + "."
+		})
+		maps = append(maps, m)
+		previous = m
+	}
+
+	err := Stabilize(ctx, maps[len(maps)-1])
+	ItsNil(t, err)
+	ItsEqual(t, strings.Repeat(".", 101), maps[len(maps)-1].Value())
+
+	ItsEqual(t, 101, v0.Node().g.numNodes)
+	ItsEqual(t, 101, v0.Node().g.numNodesChanged)
+	ItsEqual(t, 101, v0.Node().g.numNodesRecomputed)
 }
 
 func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
