@@ -74,11 +74,11 @@ func Test_SetStale(t *testing.T) {
 	ItsEqual(t, 0, n.n.recomputedAt)
 	ItsEqual(t, 1, n.n.setAt)
 
-	ItsEqual(t, true, n.n.g.rh.Has(n))
+	ItsEqual(t, true, n.n.g.recomputeHeap.Has(n))
 
 	// find the node in the recompute heap layer
-	ItsEqual(t, 1, n.n.g.rh.heights[0].len)
-	ItsEqual(t, n.n.id, n.n.g.rh.heights[0].head.key)
+	ItsEqual(t, 1, n.n.g.recomputeHeap.heights[0].len)
+	ItsEqual(t, n.n.id, n.n.g.recomputeHeap.heights[0].head.key)
 
 	SetStale(n)
 
@@ -86,10 +86,10 @@ func Test_SetStale(t *testing.T) {
 	ItsEqual(t, 0, n.n.recomputedAt)
 	ItsEqual(t, 1, n.n.setAt)
 
-	ItsEqual(t, true, n.n.g.rh.Has(n))
+	ItsEqual(t, true, n.n.g.recomputeHeap.Has(n))
 
-	ItsEqual(t, 1, n.n.g.rh.heights[0].len)
-	ItsEqual(t, n.n.id, n.n.g.rh.heights[0].head.key)
+	ItsEqual(t, 1, n.n.g.recomputeHeap.heights[0].len)
+	ItsEqual(t, n.n.id, n.n.g.recomputeHeap.heights[0].head.key)
 }
 
 func Test_Node_OnUpdate(t *testing.T) {
@@ -338,7 +338,7 @@ func Test_Node_recompute(t *testing.T) {
 	n := NewNode()
 	n.g = newGraph()
 
-	ItsNotNil(t, n.g.rh)
+	ItsNotNil(t, n.g.recomputeHeap)
 
 	var calledStabilize bool
 	n.stabilize = func(ictx context.Context) error {
@@ -374,7 +374,7 @@ func Test_Node_recompute(t *testing.T) {
 	ItsNil(t, err)
 
 	// find the node in the recompute heap layer
-	ItsEqual(t, true, n.g.rh.Has(p))
+	ItsEqual(t, true, n.g.recomputeHeap.Has(p))
 	ItsEqual(t, true, calledStabilize)
 	ItsEqual(t, true, calledUpdateHandler0)
 	ItsEqual(t, true, calledUpdateHandler1)
@@ -388,7 +388,7 @@ func Test_Node_recompute_error(t *testing.T) {
 	n := NewNode()
 	n.g = newGraph()
 
-	ItsNotNil(t, n.g.rh)
+	ItsNotNil(t, n.g.recomputeHeap)
 
 	var calledStabilize bool
 	n.stabilize = func(ictx context.Context) error {
@@ -429,7 +429,7 @@ func Test_Node_recompute_error(t *testing.T) {
 	ItsNotNil(t, "test error", err.Error())
 
 	// find the node in the recompute heap layer
-	ItsEqual(t, false, n.g.rh.Has(p))
+	ItsEqual(t, false, n.g.recomputeHeap.Has(p))
 	ItsEqual(t, true, calledStabilize)
 	ItsEqual(t, false, calledUpdateHandler0)
 	ItsEqual(t, false, calledUpdateHandler1)
@@ -450,6 +450,7 @@ func Test_nodeFormatters(t *testing.T) {
 		{BindIf[string](Return(false), nil), "bind_if"},
 		{Cutoff(Return(""), nil), "cutoff"},
 		{Func[string](nil), "func"},
+		{ApplyN[string, bool](nil), "apply_n"},
 		{Apply[string, bool](Return(""), nil), "apply"},
 		{Apply2[string, int, bool](Return(""), Return(0), nil), "apply2"},
 		{Apply3[string, int, float64, bool](Return(""), Return(0), Return(1.0), nil), "apply3"},
@@ -457,6 +458,13 @@ func Test_nodeFormatters(t *testing.T) {
 		{Return(""), "return"},
 		{Watch(Return("")), "watch"},
 		{Var(""), "var"},
+
+		{FoldLeft(Return([]string{}), "", nil), "fold_left"},
+		{FoldRight(Return([]string{}), "", nil), "fold_right"},
+		{FoldMap(Return(map[string]int{}), "", nil), "fold_map"},
+		{DiffMapByKeysAdded(Return(map[string]int{})), "diff_map_by_keys_added"},
+		{DiffMapByKeysRemoved(Return(map[string]int{})), "diff_map_by_keys_removed"},
+		{DiffSliceByIndicesAdded(Return([]string{})), "diff_slice_by_indices_added"},
 	}
 
 	for _, tc := range testCases {

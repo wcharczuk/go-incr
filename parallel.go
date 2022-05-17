@@ -69,7 +69,7 @@ func parallelRecomputeAll(ctx context.Context, g *graph) error {
 		},
 		started: make(chan struct{}),
 	}
-	if g.rh.Len() == 0 {
+	if g.recomputeHeap.Len() == 0 {
 		return nil
 	}
 
@@ -81,8 +81,8 @@ func parallelRecomputeAll(ctx context.Context, g *graph) error {
 
 	var minHeightBlock []INode
 	var err error
-	for g.rh.Len() > 0 {
-		minHeightBlock = g.rh.RemoveMinHeight()
+	for g.recomputeHeap.Len() > 0 {
+		minHeightBlock = g.recomputeHeap.RemoveMinHeight()
 		for _, n := range minHeightBlock {
 			wg.Add(1)
 			if err = workerPool.Submit(ctx, n.Node()); err != nil {

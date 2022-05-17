@@ -33,7 +33,7 @@ func FormatNode(n *Node, nodeType string) string {
 func SetStale(gn INode) {
 	n := gn.Node()
 	n.setAt = n.g.stabilizationNum
-	n.g.rh.Add(gn)
+	n.g.recomputeHeap.Add(gn)
 }
 
 // Node is the common metadata for any node in the computation graph.
@@ -235,14 +235,14 @@ func (n *Node) maybeChangeValue(ctx context.Context) (err error) {
 		h(ctx)
 	}
 	for _, p := range n.parents {
-		if n.g.rh.Has(p) {
+		if n.g.recomputeHeap.Has(p) {
 			continue
 		}
 		if p.Node().shouldRecompute() {
 			// NOTE(wc): we have an opportunity here
 			// to short circuit in serial stabilzation
 			// to avoid pushing onto the recompute heap
-			n.g.rh.Add(p)
+			n.g.recomputeHeap.Add(p)
 		}
 	}
 	return

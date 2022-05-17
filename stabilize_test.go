@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -47,6 +48,63 @@ func Test_Stabilize(t *testing.T) {
 	ItsEqual(t, 2, m0.Node().recomputedAt)
 
 	ItsEqual(t, "not foo bar", m0.Value())
+}
+
+func Test_Stabilize_many(t *testing.T) {
+	ctx := testContext()
+
+	v0 := Var("foo")
+	v1 := Var("bar")
+	m0 := Apply2(v0.Read(), v1.Read(), func(a, b string) string {
+		return a + " " + b
+	})
+
+	err := Stabilize(ctx, m0, v0, v1)
+	ItsNil(t, err)
+	ItsEqual(t, "foo bar", m0.Value())
+}
+
+func Test_Stabilize_error(t *testing.T) {
+	ctx := testContext()
+
+	m0 := Func(func(_ context.Context) (string, error) {
+		return "", fmt.Errorf("this is just a test")
+	})
+	err := Stabilize(ctx, m0)
+	ItsNotNil(t, err)
+	ItsEqual(t, "this is just a test", err.Error())
+}
+
+func Test_Stabilize_alreadyStabilizing(t *testing.T) {
+	ctx := testContext()
+
+	// deadlocks. deadlocks everywhere.
+	hold := make(chan struct{})
+	errs := make(chan error)
+	m0 := Func(func(_ context.Context) (string, error) {
+		<-hold
+		return "ok!", nil
+	})
+
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		if err := Stabilize(ctx, m0); err != nil {
+			errs <- err
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		if err := Stabilize(ctx, m0); err != nil {
+			errs <- err
+		}
+	}()
+	err := <-errs
+	ItsEqual(t, errAlreadyStabilizing, err)
+	close(hold)
+	wg.Wait()
+	ItsEqual(t, "ok!", m0.Value())
 }
 
 func Test_Stabilize_updateHandlers(t *testing.T) {
@@ -170,10 +228,10 @@ func Test_Stabilize_doubleVarSet_singleUpdate(t *testing.T) {
 	ItsEqual(t, "a b", m.Value())
 
 	a.Set("aa")
-	ItsEqual(t, 1, a.Node().g.rh.Len())
+	ItsEqual(t, 1, a.Node().g.recomputeHeap.Len())
 
 	a.Set("aaa")
-	ItsEqual(t, 1, a.Node().g.rh.Len())
+	ItsEqual(t, 1, a.Node().g.recomputeHeap.Len())
 
 	_ = Stabilize(ctx, m)
 	ItsEqual(t, "aaa b", m.Value())

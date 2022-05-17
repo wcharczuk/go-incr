@@ -8,7 +8,7 @@ import (
 // Func wraps a given function as an incremental.
 //
 // You can mark this for recomputation with the `SetStale` helper.
-func Func[T comparable](fn func(context.Context) (T, error)) Incr[T] {
+func Func[T any](fn func(context.Context) (T, error)) Incr[T] {
 	return &funcIncr[T]{
 		n:  NewNode(),
 		fn: fn,
@@ -22,7 +22,7 @@ var (
 	_ fmt.Stringer = (*funcIncr[string])(nil)
 )
 
-type funcIncr[T comparable] struct {
+type funcIncr[T any] struct {
 	n   *Node
 	fn  func(context.Context) (T, error)
 	val T

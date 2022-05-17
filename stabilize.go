@@ -2,7 +2,7 @@ package incr
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"sync/atomic"
 )
 
@@ -21,6 +21,7 @@ func Stabilize(ctx context.Context, nodes ...INode) error {
 		if seenGraphs.has(gn.Node().g.id) {
 			continue
 		}
+		seenGraphs.add(gn.Node().g.id)
 		if err := stabilizeNodeGraph(ctx, gn); err != nil {
 			return err
 		}
@@ -28,11 +29,15 @@ func Stabilize(ctx context.Context, nodes ...INode) error {
 	return nil
 }
 
+var (
+	errAlreadyStabilizing = errors.New("stabilize; already stabilizing, cannot continue")
+)
+
 func stabilizeNodeGraph(ctx context.Context, gn INode) error {
 	gnn := gn.Node()
 	if atomic.LoadInt32(&gnn.g.status) != StatusNotStabilizing {
 		tracePrintf(ctx, "stabilize; already stabilizing, cannot continue")
-		return fmt.Errorf("stabilize; already stabilizing, cannot continue")
+		return errAlreadyStabilizing
 	}
 	defer func() {
 		tracePrintf(ctx, "stabilize[%d]; stabilization complete", gnn.g.stabilizationNum)
@@ -47,8 +52,8 @@ func stabilizeNodeGraph(ctx context.Context, gn INode) error {
 func stabilize(ctx context.Context, g *graph) error {
 	var err error
 	var n INode
-	for len(g.rh.lookup) > 0 {
-		n = g.rh.RemoveMin()
+	for len(g.recomputeHeap.lookup) > 0 {
+		n = g.recomputeHeap.RemoveMin()
 		if err = n.Node().recompute(ctx); err != nil {
 			return err
 		}

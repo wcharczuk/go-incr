@@ -21,7 +21,7 @@ type diffSliceByIndicesAddedIncr[T any] struct {
 }
 
 func (dsi *diffSliceByIndicesAddedIncr[T]) String() string {
-	return FormatNode(dsi.n, "diff_slice")
+	return FormatNode(dsi.n, "diff_slice_by_indices_added")
 }
 
 func (dsi *diffSliceByIndicesAddedIncr[T]) Node() *Node { return dsi.n }

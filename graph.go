@@ -13,28 +13,30 @@ func newGraph() *graph {
 		id:               NewIdentifier(),
 		stabilizationNum: 1,
 		status:           StatusNotStabilizing,
-		rh:               newRecomputeHeap(defaultRecomputeHeapMaxHeight),
+		recomputeHeap:    newRecomputeHeap(defaultRecomputeHeapMaxHeight),
 	}
 }
 
 type graph struct {
-	// id is a unique identifier for the graph state.
+	// id is a unique identifier for the graph
 	id Identifier
-	// mu is a synchronizing mutex
-	// for stabilizations
+	// mu is a synchronizing mutex for the graph
 	mu sync.Mutex
 	// recomputeHeap is the heap of nodes to be processed
 	// organized by pseudo-height
-	rh *recomputeHeap
+	recomputeHeap *recomputeHeap
+	// setDuringStabilization is a list of nodes that were
+	// set during stabilization
+	setDuringStabilization *list[Identifier, INode]
 	// stabilizationNum is the version
 	// of the graph in respect to when
 	// nodes are considered stale or changed
 	stabilizationNum uint64
 	// status is the general status of the graph where
 	// the possible states are:
-	// - NotStabilizing
-	// - Stabilizing
-	// - RunningUpdateHandlers
+	// - StatusNotStabilizing (default)
+	// - StatusStabilizing
+	// - StatusRunningUpdateHandlers
 	status int32
 	// numNodes are the total number of nodes found during
 	// discovery and is typically used for testing
