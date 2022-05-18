@@ -13,8 +13,8 @@ import (
 // that helps integrate into subcomputations.
 func Var[T any](t T) VarIncr[T] {
 	return &varIncr[T]{
-		n:  NewNode(),
-		nv: t,
+		n:        NewNode(),
+		setValue: t,
 	}
 }
 
@@ -36,10 +36,11 @@ var (
 
 // VarIncr is a type that can represent a Var incremental.
 type varIncr[T any] struct {
-	n  *Node
-	v  T
-	nv T
-	uv T
+	n                           *Node
+	value                       T
+	setValue                    T
+	setDuringStabilizationValue T
+	setDuringStabilization      bool
 }
 
 // Set sets the var value.
@@ -52,11 +53,12 @@ func (vn *varIncr[T]) Set(v T) {
 	// what should we do? just hold the new value
 	// until stabilization is done?
 	if atomic.LoadInt32(&vn.n.g.status) == StatusStabilizing {
-		vn.uv = v
+		vn.setDuringStabilizationValue = v
+		vn.setDuringStabilization = true
 		vn.n.g.setDuringStabilization.Push(vn.n.id, vn)
 		return
 	}
-	vn.nv = v
+	vn.setValue = v
 	SetStale(vn)
 }
 
@@ -64,11 +66,16 @@ func (vn *varIncr[T]) Set(v T) {
 func (vn *varIncr[T]) Node() *Node { return vn.n }
 
 // Value implements Incr[A].
-func (vn *varIncr[T]) Value() T { return vn.v }
+func (vn *varIncr[T]) Value() T { return vn.value }
 
 // Stabilize implements Incr[A].
 func (vn *varIncr[T]) Stabilize(ctx context.Context) error {
-	vn.v = vn.nv
+	if vn.setDuringStabilization {
+		vn.value = vn.setDuringStabilizationValue
+		vn.setDuringStabilization = false
+		return nil
+	}
+	vn.value = vn.setValue
 	return nil
 }
 

@@ -178,7 +178,32 @@ func Test_Stabilize_chain(t *testing.T) {
 	ItsEqual(t, 101, v0.Node().g.numNodesRecomputed)
 }
 
-func Test_Stabilize_OnUpdate(t *testing.T) {
+func Test_Stabilize_setDuringStabilization(t *testing.T) {
+	ctx := testContext()
+	v0 := Var("foo")
+
+	called := make(chan struct{})
+	wait := make(chan struct{})
+	m0 := Apply(v0.Read(), func(v string) string {
+		close(called)
+		<-wait
+		return v
+	})
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_ = Stabilize(ctx, m0)
+	}()
+	<-called
+	v0.Set("not-foo")
+	ItsEqual(t, "foo", v0.Value())
+	close(wait)
+	<-done
+	ItsEqual(t, "not-foo", v0.Value())
+}
+
+func Test_Stabilize_onUpdate(t *testing.T) {
 	ctx := testContext()
 
 	var didCallUpdateHandler0, didCallUpdateHandler1 bool
