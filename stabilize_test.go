@@ -201,6 +201,8 @@ func Test_Stabilize_setDuringStabilization(t *testing.T) {
 	close(wait)
 	<-done
 	ItsEqual(t, "not-foo", v0.Value())
+	ItsEqual(t, m0.Node().g.stabilizationNum, v0.Node().setAt)
+	ItsEqual(t, 1, len(m0.Node().g.recomputeHeap.lookup))
 }
 
 func Test_Stabilize_onUpdate(t *testing.T) {
