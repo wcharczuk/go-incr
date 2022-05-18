@@ -196,6 +196,9 @@ func (n *Node) shouldRecompute() bool {
 // it is only called during discovery, for subsequent uses the height field
 // should be referenced.
 func (n *Node) calculateHeight() int {
+	if n.height > 0 {
+		return n.height
+	}
 	var maxChildHeight int
 	var childHeight int
 	for _, c := range n.children {
