@@ -42,17 +42,14 @@ Specific implications of this are, the `INode` interface includes a function tha
 
 # Progress
 
-Many of the original library types are implemented, but some of the types are not still, namely:
-- Observers
-- Stepwise
-- Expert
-
-The "core" types are mostly implemented though, specifically:
+Many of the original library types are implemented, including:
 - Return
 - Var
-- Apply(2,3,If)
+- Apply(2,3,If,N)
 - Bind(2,3,If)
-- Cutoffs
+- Cutoff
 - Watch
 
 With these, you can create 90% of what I typically needed this library for, though some others would be relatively straightforward to implement given the primitives already implemented.
+
+Some concepts I just didn't implement to start, namely the observer pattern.

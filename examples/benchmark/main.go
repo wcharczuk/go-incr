@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"math/rand"
@@ -69,12 +70,9 @@ func main() {
 		}
 	}
 
-	stats := incr.GraphStats(nodes[0])
-	fmt.Println("nodes            :", stats.Nodes())
-	fmt.Println("rounds           :", ROUNDS)
-	fmt.Println("nodes set stale  :", setStale)
-	fmt.Println("nodes recomputed :", stats.NodesRecomputed())
-	fmt.Println("nodes changed    :", stats.NodesChanged())
+	buf := new(bytes.Buffer)
+	_ = incr.Dot(buf, nodes[0])
+	fmt.Print(buf.String())
 }
 
 func fatal(err error) {

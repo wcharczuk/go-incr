@@ -238,10 +238,10 @@ func (n *Node) maybeChangeValue(ctx context.Context) (err error) {
 		n.g.handleAfterStabilization.Push(n.id, n.onUpdateHandlers)
 	}
 	for _, p := range n.parents {
-		if n.g.recomputeHeap.Has(p) {
-			continue
-		}
 		if p.Node().shouldRecompute() {
+			if n.g.recomputeHeap.Has(p) {
+				continue
+			}
 			n.g.recomputeHeap.Add(p)
 		}
 	}
