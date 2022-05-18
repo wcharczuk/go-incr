@@ -34,29 +34,20 @@ func ParallelStabilize(ctx context.Context, nodes ...INode) error {
 			continue
 		}
 		seenGraphs.add(gn.Node().g.id)
-		if err := parallelStabilizeNode(ctx, gn); err != nil {
+		if err := parallelStabilize(ctx, gn.Node().g); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func parallelStabilizeNode(ctx context.Context, gn INode) error {
-	gnn := gn.Node()
-	if gnn.g.status != StatusNotStabilizing {
-		tracePrintf(ctx, "parallel stabilize; already stabilizing, cannot continue")
-		return errors.New("parallel stabilize; already stabilizing, cannot continue")
+func parallelStabilize(ctx context.Context, g *graph) (err error) {
+	if err = ensureNotStabilizing(ctx, g); err != nil {
+		return
 	}
-	gnn.g.mu.Lock()
-	defer gnn.g.mu.Unlock()
-	defer func() {
-		tracePrintf(ctx, "parallel stabilize[%d]; stabilization complete", gnn.g.stabilizationNum)
-		gnn.g.stabilizationNum++
-		gnn.g.status = StatusNotStabilizing
-	}()
-	gnn.g.status = StatusStabilizing
-	tracePrintf(ctx, "parallel stabilize[%d]; stabilization starting", gnn.g.stabilizationNum)
-	return parallelRecomputeAll(ctx, gnn.g)
+	stabilizeStart(ctx, g)
+	defer stabilizeEnd(ctx, g)
+	return parallelRecomputeAll(ctx, g)
 }
 
 func parallelRecomputeAll(ctx context.Context, g *graph) error {
