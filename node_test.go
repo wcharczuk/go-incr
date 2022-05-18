@@ -376,10 +376,26 @@ func Test_Node_recompute(t *testing.T) {
 	// find the node in the recompute heap layer
 	ItsEqual(t, true, n.g.recomputeHeap.Has(p))
 	ItsEqual(t, true, calledStabilize)
-	ItsEqual(t, true, calledUpdateHandler0)
-	ItsEqual(t, true, calledUpdateHandler1)
+
+	// we don't call these handlers directly
+	ItsEqual(t, false, calledUpdateHandler0)
+	ItsEqual(t, false, calledUpdateHandler1)
+	// we don't call these handlers at all b/c no error
 	ItsEqual(t, false, calledErrorHandler0)
 	ItsEqual(t, false, calledErrorHandler1)
+
+	ItsEqual(t, 1, n.g.handleAfterStabilization.len)
+	ItsEqual(t, 2, len(n.g.handleAfterStabilization.head.value))
+
+	var handlers []func(context.Context)
+	for n.g.handleAfterStabilization.len > 0 {
+		_, handlers, _ = n.g.handleAfterStabilization.Pop()
+		for _, h := range handlers {
+			h(ctx)
+		}
+	}
+	ItsEqual(t, true, calledUpdateHandler0)
+	ItsEqual(t, true, calledUpdateHandler1)
 }
 
 func Test_Node_recompute_error(t *testing.T) {

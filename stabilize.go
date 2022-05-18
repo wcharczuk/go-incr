@@ -22,7 +22,7 @@ func Stabilize(ctx context.Context, nodes ...INode) error {
 			continue
 		}
 		seenGraphs.add(gn.Node().g.id)
-		if err := stabilizeNodeGraph(ctx, gn); err != nil {
+		if err := stabilize(ctx, gn.Node().g); err != nil {
 			return err
 		}
 	}
@@ -33,24 +33,12 @@ var (
 	errAlreadyStabilizing = errors.New("stabilize; already stabilizing, cannot continue")
 )
 
-func stabilizeNodeGraph(ctx context.Context, gn INode) error {
-	gnn := gn.Node()
-	if atomic.LoadInt32(&gnn.g.status) != StatusNotStabilizing {
-		tracePrintf(ctx, "stabilize; already stabilizing, cannot continue")
-		return errAlreadyStabilizing
+func stabilize(ctx context.Context, g *graph) (err error) {
+	if err = ensureNotStabilizing(ctx, g); err != nil {
+		return
 	}
-	defer func() {
-		tracePrintf(ctx, "stabilize[%d]; stabilization complete", gnn.g.stabilizationNum)
-		gnn.g.stabilizationNum++
-		atomic.StoreInt32(&gnn.g.status, StatusNotStabilizing)
-	}()
-	atomic.StoreInt32(&gnn.g.status, StatusStabilizing)
-	tracePrintf(ctx, "stabilize[%d]; stabilization starting", gnn.g.stabilizationNum)
-	return stabilize(ctx, gnn.g)
-}
-
-func stabilize(ctx context.Context, g *graph) error {
-	var err error
+	stabilizeStart(ctx, g)
+	defer stabilizeEnd(ctx, g)
 	var n INode
 	for len(g.recomputeHeap.lookup) > 0 {
 		n = g.recomputeHeap.RemoveMin()
@@ -59,4 +47,39 @@ func stabilize(ctx context.Context, g *graph) error {
 		}
 	}
 	return nil
+}
+
+func ensureNotStabilizing(ctx context.Context, g *graph) error {
+	if atomic.LoadInt32(&g.status) != StatusNotStabilizing {
+		tracePrintf(ctx, "stabilize; already stabilizing, cannot continue")
+		return errAlreadyStabilizing
+	}
+	return nil
+}
+
+func stabilizeStart(ctx context.Context, g *graph) {
+	atomic.StoreInt32(&g.status, StatusStabilizing)
+	tracePrintf(ctx, "stabilize[%d]; stabilization starting", g.stabilizationNum)
+}
+
+func stabilizeEnd(ctx context.Context, g *graph) {
+	defer func() {
+		atomic.StoreInt32(&g.status, StatusNotStabilizing)
+	}()
+	tracePrintf(ctx, "stabilize[%d]; stabilization complete", g.stabilizationNum)
+	g.stabilizationNum++
+	var n INode
+	for g.setDuringStabilization.len > 0 {
+		_, n, _ = g.setDuringStabilization.Pop()
+		_ = n.Node().maybeStabilize(ctx)
+	}
+	atomic.StoreInt32(&g.status, StatusRunningUpdateHandlers)
+	var updateHandlers []func(context.Context)
+	for g.handleAfterStabilization.len > 0 {
+		_, updateHandlers, _ = g.handleAfterStabilization.Pop()
+		for _, uh := range updateHandlers {
+			uh(ctx)
+		}
+	}
+	return
 }

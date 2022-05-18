@@ -1,6 +1,9 @@
 package incr
 
-import "sync"
+import (
+	"context"
+	"sync"
+)
 
 // defaultRecomputeHeapMaxHeight is the default
 // maximum recompute heap height when we create graph states.
@@ -10,11 +13,12 @@ const defaultRecomputeHeapMaxHeight = 255
 // represents the shared state of a computation graph.
 func newGraph() *graph {
 	return &graph{
-		id:                     NewIdentifier(),
-		stabilizationNum:       1,
-		status:                 StatusNotStabilizing,
-		setDuringStabilization: new(list[Identifier, INode]),
-		recomputeHeap:          newRecomputeHeap(defaultRecomputeHeapMaxHeight),
+		id:                       NewIdentifier(),
+		stabilizationNum:         1,
+		status:                   StatusNotStabilizing,
+		setDuringStabilization:   new(list[Identifier, INode]),
+		handleAfterStabilization: new(list[Identifier, []func(context.Context)]),
+		recomputeHeap:            newRecomputeHeap(defaultRecomputeHeapMaxHeight),
 	}
 }
 
@@ -29,6 +33,9 @@ type graph struct {
 	// setDuringStabilization is a list of nodes that were
 	// set during stabilization
 	setDuringStabilization *list[Identifier, INode]
+	// handleAfterStabilization is a list of update
+	// handlers that need to run after stabilization is done.
+	handleAfterStabilization *list[Identifier, []func(context.Context)]
 	// stabilizationNum is the version
 	// of the graph in respect to when
 	// nodes are considered stale or changed

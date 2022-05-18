@@ -231,17 +231,14 @@ func (n *Node) maybeChangeValue(ctx context.Context) (err error) {
 		}
 		return
 	}
-	for _, h := range n.onUpdateHandlers {
-		h(ctx)
+	if len(n.onUpdateHandlers) > 0 {
+		n.g.handleAfterStabilization.Push(n.id, n.onUpdateHandlers)
 	}
 	for _, p := range n.parents {
 		if n.g.recomputeHeap.Has(p) {
 			continue
 		}
 		if p.Node().shouldRecompute() {
-			// NOTE(wc): we have an opportunity here
-			// to short circuit in serial stabilzation
-			// to avoid pushing onto the recompute heap
 			n.g.recomputeHeap.Add(p)
 		}
 	}
