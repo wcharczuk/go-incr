@@ -178,6 +178,27 @@ func Test_Stabilize_chain(t *testing.T) {
 	ItsEqual(t, 101, v0.Node().g.numNodesRecomputed)
 }
 
+func Test_Stabilize_OnUpdate(t *testing.T) {
+	ctx := testContext()
+
+	var didCallUpdateHandler0, didCallUpdateHandler1 bool
+	v0 := Var("hello")
+	v1 := Var("world")
+	m0 := Apply2(v0.Read(), v1.Read(), concat)
+	m0.Node().OnUpdate(func(context.Context) {
+		didCallUpdateHandler0 = true
+	})
+	m0.Node().OnUpdate(func(context.Context) {
+		didCallUpdateHandler1 = true
+	})
+
+	err := Stabilize(ctx, m0)
+	ItsNil(t, err)
+	ItsEqual(t, "helloworld", m0.Value())
+	ItsEqual(t, true, didCallUpdateHandler0)
+	ItsEqual(t, true, didCallUpdateHandler1)
+}
+
 func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
 	ctx := testContext()
 
