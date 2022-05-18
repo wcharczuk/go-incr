@@ -72,6 +72,7 @@ func stabilizeEnd(ctx context.Context, g *graph) {
 	for g.setDuringStabilization.len > 0 {
 		_, n, _ = g.setDuringStabilization.Pop()
 		_ = n.Node().maybeStabilize(ctx)
+		SetStale(n)
 	}
 	atomic.StoreInt32(&g.status, StatusRunningUpdateHandlers)
 	var updateHandlers []func(context.Context)
