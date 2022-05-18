@@ -10,10 +10,11 @@ const defaultRecomputeHeapMaxHeight = 255
 // represents the shared state of a computation graph.
 func newGraph() *graph {
 	return &graph{
-		id:               NewIdentifier(),
-		stabilizationNum: 1,
-		status:           StatusNotStabilizing,
-		recomputeHeap:    newRecomputeHeap(defaultRecomputeHeapMaxHeight),
+		id:                     NewIdentifier(),
+		stabilizationNum:       1,
+		status:                 StatusNotStabilizing,
+		setDuringStabilization: new(list[Identifier, INode]),
+		recomputeHeap:          newRecomputeHeap(defaultRecomputeHeapMaxHeight),
 	}
 }
 

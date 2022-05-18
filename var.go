@@ -51,8 +51,9 @@ func (vn *varIncr[T]) Set(v T) {
 	// if the node is "stabilizing"
 	// what should we do? just hold the new value
 	// until stabilization is done?
-	if atomic.LoadInt32(&vn.n.g.status) != StatusNotStabilizing {
+	if atomic.LoadInt32(&vn.n.g.status) == StatusStabilizing {
 		vn.uv = v
+		vn.n.g.setDuringStabilization.Push(vn.n.id, vn)
 		return
 	}
 	vn.nv = v
