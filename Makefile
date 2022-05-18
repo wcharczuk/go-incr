@@ -9,7 +9,7 @@ bench:
 	@go test -run=XXX -bench=.
 
 bench-profile-cpu:
-	@go test -run=XXX -bench=. -cpuprofile bench-cpu.out
+	@go test -run=XXX -bench=Benchmark_Stabilize_withPreInitialize_16384 -cpuprofile bench-cpu.out
 
 watch-test:
 	@reflex -g *.go -- go test -timeout 1s
