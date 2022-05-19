@@ -13,7 +13,7 @@ import (
 
 const (
 	SIZE   = 128
-	ROUNDS = 1000
+	ROUNDS = 32
 )
 
 func concat(a, b string) string {
@@ -46,24 +46,12 @@ func main() {
 	incr.Initialize(ctx, gs)
 
 	var err error
-	var setStale int
 	for n := 0; n < ROUNDS; n++ {
 		err = incr.Stabilize(ctx, gs)
 		if err != nil {
 			fatal(err)
 		}
-		for x := 0; x < SIZE>>1; x++ {
-			setStale++
-			incr.SetStale(nodes[rand.Intn(SIZE)])
-		}
-		err = incr.Stabilize(ctx, gs)
-		if err != nil {
-			fatal(err)
-		}
-		for x := 0; x < SIZE>>2; x++ {
-			setStale++
-			incr.SetStale(nodes[rand.Intn(SIZE)])
-		}
+		incr.SetStale(nodes[rand.Intn(len(nodes))])
 		err = incr.Stabilize(ctx, gs)
 		if err != nil {
 			fatal(err)

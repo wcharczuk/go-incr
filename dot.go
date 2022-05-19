@@ -32,9 +32,16 @@ func Dot(wr io.Writer, node INode) (err error) {
 	nodes := dotDiscoverNodes(node)
 	nodeLabels := make(map[Identifier]string)
 	for index, n := range nodes {
-		label := fmt.Sprintf("n%d", index+1)
-		writeln(1, "node [label=\"%v\"]; %s", n, label)
-		nodeLabels[n.Node().id] = label
+		nodeLabel := fmt.Sprintf("n%d", index+1)
+		label := fmt.Sprintf(`label="%v"`, n)
+		color := ` fillcolor = "white" style="filled" fontcolor="black"`
+		if n.Node().setAt > 0 {
+			color = ` fillcolor = "red" style="filled" fontcolor="white"`
+		} else if n.Node().changedAt > 1 {
+			color = ` fillcolor = "pink" style="filled" fontcolor="white"`
+		}
+		writeln(1, "node [%s%s]; %s", label, color, nodeLabel)
+		nodeLabels[n.Node().id] = nodeLabel
 	}
 	for _, n := range nodes {
 		nodeLabel := nodeLabels[n.Node().id]
