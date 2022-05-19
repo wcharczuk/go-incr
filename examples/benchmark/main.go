@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	SIZE   = 32
+	SIZE   = 16
 	ROUNDS = 4
 )
 
