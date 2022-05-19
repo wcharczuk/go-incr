@@ -1,4 +1,4 @@
-go-incremental
+go-incr
 ==============
 
 [![Continuous Integration](https://github.com/wcharczuk/go-incr/actions/workflows/ci.yml/badge.svg)](https://github.com/wcharczuk/go-incr/actions/workflows/ci.yml)
