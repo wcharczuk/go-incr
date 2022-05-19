@@ -1,0 +1,32 @@
+name: "Continuous Integration"
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  ci:
+    name: "Tests"
+    runs-on: ubuntu-latest
+
+    env:
+      GOOS: "linux"
+      GOARCH: "amd64"
+      GO111MODULE: "on"
+      CGO_ENABLED: "0"
+
+    steps:
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.18
+
+    - name: Check out go-incr
+      uses: actions/checkout@v2
+
+    - name: Run all tests
+      run: go test ./...
+

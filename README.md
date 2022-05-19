@@ -1,6 +1,11 @@
 go-incremental
 ==============
 
+[![Continuous Integration](https://github.com/wcharczuk/go-incr/actions/workflows/ci.yml/badge.svg)](https://github.com/wcharczuk/go-incr/actions/workflows/ci.yml)
+
+
+[![Graph](https://github.com/wcharczuk/go-incr/blob/main/_assets/graph.png)]
+
 _CAVEAT:_ this library is "pre-release", that is, it is not ready for production, it's not really ready to be used seriously yet.
 
 `go-incr` is an incremental computation library designed for partial computation of large graphs of operations.
