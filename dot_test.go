@@ -7,9 +7,9 @@ import (
 
 func Test_Dot(t *testing.T) {
 	golden := `digraph {
-	node [label="apply2[563b29ae]"]; n1
-	node [label="var[884f9774]"]; n2
-	node [label="var[7f8a4e21]"]; n3
+	node [label="apply2[563b29ae]" fillcolor = "white" style="filled" fontcolor="black"]; n1
+	node [label="var[884f9774]" fillcolor = "white" style="filled" fontcolor="black"]; n2
+	node [label="var[7f8a4e21]" fillcolor = "white" style="filled" fontcolor="black"]; n3
 	n2 -> n1;
 	n3 -> n1;
 }

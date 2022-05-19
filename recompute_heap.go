@@ -167,7 +167,7 @@ func (rh *recomputeHeap) nextMinHeight() (next int) {
 	if len(rh.lookup) == 0 {
 		return
 	}
-	for x := 0; x <= rh.maxHeight; x++ {
+	for x := rh.minHeight; x <= rh.maxHeight; x++ {
 		if rh.heights[x] != nil && rh.heights[x].head != nil {
 			next = x
 			return
