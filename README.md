@@ -48,11 +48,12 @@ Specific implications of this are, the `INode` interface includes a function tha
 # Progress
 
 Many of the original library types are implemented, including:
-- Return
-- Var
-- Map(2,3,If,N)
 - Bind(2,3,If)
 - Cutoff
+- Freeze
+- Map(2,3,If,N)
+- Return
+- Var
 - Watch
 
 With these, you can create 90% of what I typically needed this library for, though some others would be relatively straightforward to implement given the primitives already implemented.
