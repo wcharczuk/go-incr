@@ -21,14 +21,14 @@ func Dot(wr io.Writer, node INode) (err error) {
 		err, _ = recover().(error)
 	}()
 
-	writeln := func(indent int, format string, args ...any) {
+	writef := func(indent int, format string, args ...any) {
 		_, writeErr := io.WriteString(wr, strings.Repeat("\t", indent)+fmt.Sprintf(format, args...)+"\n")
 		if writeErr != nil {
 			panic(writeErr)
 		}
 	}
 
-	writeln(0, "digraph {")
+	writef(0, "digraph {")
 	nodes := dotDiscoverNodes(node)
 	nodeLabels := make(map[Identifier]string)
 	for index, n := range nodes {
@@ -40,17 +40,17 @@ func Dot(wr io.Writer, node INode) (err error) {
 		} else if n.Node().changedAt > 1 {
 			color = ` fillcolor = "pink" style="filled" fontcolor="white"`
 		}
-		writeln(1, "node [%s%s]; %s", label, color, nodeLabel)
+		writef(1, "node [%s%s]; %s", label, color, nodeLabel)
 		nodeLabels[n.Node().id] = nodeLabel
 	}
 	for _, n := range nodes {
 		nodeLabel := nodeLabels[n.Node().id]
 		for _, p := range n.Node().parents {
 			parentLabel := nodeLabels[p.Node().id]
-			writeln(1, "%s -> %s;", nodeLabel, parentLabel)
+			writef(1, "%s -> %s;", nodeLabel, parentLabel)
 		}
 	}
-	writeln(0, "}")
+	writef(0, "}")
 	return
 }
 
