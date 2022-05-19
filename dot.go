@@ -6,6 +6,16 @@ import (
 	"strings"
 )
 
+// Dot formats a graph from a given node in the dot format
+// so that you can export the graph as an image.
+//
+// To do so, you'll want to make sure you have `graphviz` installed
+// locally, and then you'll want to run:
+//
+//    > go run ??? | dot -Tpng > /home/foo/graph.png
+//
+// As an for an example of a program that renders a graph with `Dot`,
+// look at `examples/benchmark/main.go`.
 func Dot(wr io.Writer, node INode) (err error) {
 	defer func() {
 		err, _ = recover().(error)
