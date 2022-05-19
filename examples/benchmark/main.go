@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	SIZE   = 16
-	ROUNDS = 4
+	SIZE   = 8
+	ROUNDS = 3
 )
 
 func concat(a, b string) string {
