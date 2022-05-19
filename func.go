@@ -40,5 +40,5 @@ func (f *funcIncr[T]) Stabilize(ctx context.Context) error {
 }
 
 func (f *funcIncr[T]) String() string {
-	return FormatNode(f.n, "func")
+	return Label(f.n, "func")
 }

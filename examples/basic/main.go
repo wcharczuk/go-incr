@@ -12,7 +12,7 @@ func main() {
 	v0 := incr.Var("foo")
 	v1 := incr.Var("bar")
 
-	output := incr.Apply2(v0.Read(), v1.Read(), func(a, b string) string { return a + " and " + b })
+	output := incr.Map2(v0.Read(), v1.Read(), func(a, b string) string { return a + " and " + b })
 
 	if err := incr.Stabilize(context.Background(), output); err != nil {
 		fmt.Fprintf(os.Stderr, "%+v\n", err)

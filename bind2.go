@@ -58,5 +58,5 @@ func (b *bind2Incr[A, B, C]) Stabilize(ctx context.Context) error {
 }
 
 func (b *bind2Incr[A, B, C]) String() string {
-	return FormatNode(b.n, "bind2")
+	return Label(b.n, "bind2")
 }

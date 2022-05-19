@@ -57,10 +57,10 @@ func Test_FormatNode(t *testing.T) {
 	n := new(mockBareNode)
 	_ = n.Node()
 
-	ItsEqual(t, "test["+n.n.id.Short()+"]", FormatNode(n.Node(), "test"))
+	ItsEqual(t, "test["+n.n.id.Short()+"]", Label(n.Node(), "test"))
 
 	n.Node().SetLabel("test_label")
-	ItsEqual(t, "test["+n.n.id.Short()+"]:test_label", FormatNode(n.Node(), "test"))
+	ItsEqual(t, "test["+n.n.id.Short()+"]:test_label", Label(n.Node(), "test"))
 }
 
 func Test_SetStale(t *testing.T) {
@@ -278,7 +278,7 @@ func Test_Node_detectCutoff(t *testing.T) {
 
 func Test_Node_detectStabilize(t *testing.T) {
 	yes := NewNode()
-	yes.detectStabilize(new(applyIncr[string, string]))
+	yes.detectStabilize(new(mapIncr[string, string]))
 	ItsNotNil(t, yes.stabilize)
 
 	no := NewNode()
@@ -466,13 +466,14 @@ func Test_nodeFormatters(t *testing.T) {
 		{BindIf[string](Return(false), nil), "bind_if"},
 		{Cutoff(Return(""), nil), "cutoff"},
 		{Func[string](nil), "func"},
-		{ApplyN[string, bool](nil), "apply_n"},
-		{Apply[string, bool](Return(""), nil), "apply"},
-		{Apply2[string, int, bool](Return(""), Return(0), nil), "apply2"},
-		{Apply3[string, int, float64, bool](Return(""), Return(0), Return(1.0), nil), "apply3"},
-		{ApplyIf(Return(""), Return(""), Return(false)), "apply_if"},
+		{MapN[string, bool](nil), "map_n"},
+		{Map[string, bool](Return(""), nil), "map"},
+		{Map2[string, int, bool](Return(""), Return(0), nil), "map2"},
+		{Map3[string, int, float64, bool](Return(""), Return(0), Return(1.0), nil), "map3"},
+		{MapIf(Return(""), Return(""), Return(false)), "map_if"},
 		{Return(""), "return"},
 		{Watch(Return("")), "watch"},
+		{Freeze(Return("")), "freeze"},
 		{Var(""), "var"},
 
 		{FoldLeft(Return([]string{}), "", nil), "fold_left"},

@@ -86,5 +86,5 @@ func (vn *varIncr[T]) Read() Incr[T] { return vn }
 
 // String implements fmt.Striger.
 func (vn *varIncr[T]) String() string {
-	return FormatNode(vn.n, "var")
+	return Label(vn.n, "var")
 }

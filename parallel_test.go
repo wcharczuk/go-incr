@@ -13,7 +13,7 @@ func Test_ParallelStabilize(t *testing.T) {
 
 	v0 := Var("foo")
 	v1 := Var("bar")
-	m0 := Apply2(v0.Read(), v1.Read(), func(a, b string) string {
+	m0 := Map2(v0.Read(), v1.Read(), func(a, b string) string {
 		return a + " " + b
 	})
 
@@ -68,7 +68,7 @@ func Test_ParallelStabilize_jsDocs(t *testing.T) {
 	}
 
 	i := Var(data)
-	output := Apply(
+	output := Map(
 		i.Read(),
 		func(entries []Entry) (output []string) {
 			for _, e := range entries {

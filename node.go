@@ -21,8 +21,8 @@ func Link(parent INode, inputs ...INode) {
 	}
 }
 
-// FormatNode formats a node given a known node type.
-func FormatNode(n *Node, nodeType string) string {
+// Label returns a standard node label.
+func Label(n *Node, nodeType string) string {
 	if n.label != "" {
 		return fmt.Sprintf("%s[%s]:%s", nodeType, n.id.Short(), n.label)
 	}

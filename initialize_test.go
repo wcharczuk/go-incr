@@ -12,17 +12,17 @@ func Test_Initialize(t *testing.T) {
 	v2 := Var("bar")
 	v3 := Var("baz")
 
-	m0 := Apply2(v0.Read(), v1.Read(), func(a, b string) string {
+	m0 := Map2(v0.Read(), v1.Read(), func(a, b string) string {
 		return a + " " + b
 	})
-	m1 := Apply2(v2.Read(), v3.Read(), func(a, b string) string {
+	m1 := Map2(v2.Read(), v3.Read(), func(a, b string) string {
 		return a + "/" + b
 	})
 	r0 := Return("hello")
-	m2 := Apply2(m0, r0, func(a, b string) string {
+	m2 := Map2(m0, r0, func(a, b string) string {
 		return a + "+" + b
 	})
-	m3 := Apply2(m1, m2, func(a, b string) string {
+	m3 := Map2(m1, m2, func(a, b string) string {
 		return a + "+" + b
 	})
 

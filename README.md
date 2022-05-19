@@ -19,7 +19,7 @@ Given an exmaple computation:
 v0 := incr.Var("foo")
 v1 := incr.Var("bar")
 
-output := incr.Apply2(v0.Read(), v1.Read(), func(a, b string) string { return a + " and " + b, nil })
+output := incr.Map2(v0.Read(), v1.Read(), func(a, b string) string { return a + " and " + b, nil })
 ```
 
 In order to realize the values, we need to call `Stabilize` on it:
@@ -45,7 +45,7 @@ Specific implications of this are, the `INode` interface includes a function tha
 Many of the original library types are implemented, including:
 - Return
 - Var
-- Apply(2,3,If,N)
+- Map(2,3,If,N)
 - Bind(2,3,If)
 - Cutoff
 - Watch
