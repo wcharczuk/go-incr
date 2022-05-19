@@ -129,6 +129,21 @@ func epsilon(delta float64) func(float64, float64) bool {
 	}
 }
 
+// epsilon returns a function that returns true
+// if the absolute difference of two values is less
+// than or equal to a given delta.
+//
+// this serves to implement a cutoff function, where we should
+// cutoff the computation if a difference is sufficiently small.
+func epsilonContext(t *testing.T, delta float64) func(context.Context, float64, float64) bool {
+	t.Helper()
+	return func(ctx context.Context, v0, v1 float64) bool {
+		t.Helper()
+		itsBlueDye(ctx, t)
+		return math.Abs(v1-v0) <= delta
+	}
+}
+
 // addConst returs a map fn that adds a constant value
 // to a given input
 func addConst(v float64) func(float64) float64 {
