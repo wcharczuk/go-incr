@@ -3,6 +3,7 @@ package incr
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 )
 
 // Identifier is a unique id.
@@ -19,32 +20,34 @@ func NewIdentifier() (output Identifier) {
 	return
 }
 
+// ParseIdentifier is the reverse of `.String()`.
+func ParseIdentifier(raw string) (output Identifier, err error) {
+	if raw == "" {
+		return
+	}
+	var parsed []byte
+	parsed, err = hex.DecodeString(raw)
+	if err != nil {
+		return
+	}
+	if len(parsed) != 16 {
+		err = fmt.Errorf("invalid identifier; must be 16 bytes")
+		return
+	}
+	copy(output[:], parsed)
+	return
+}
+
 // String returns the full hex representation of the id.
 func (id Identifier) String() string {
-	var buf [36]byte
-	encodeHex(buf[:], id)
+	var buf [32]byte
+	hex.Encode(buf[:], id[:])
 	return string(buf[:])
 }
 
 // Short returns the short hex representation of the id.
 func (id Identifier) Short() string {
 	var buf [8]byte
-	encodeHexShort(buf[:], id)
+	hex.Encode(buf[:], id[12:])
 	return string(buf[:])
-}
-
-func encodeHex(dst []byte, id Identifier) {
-	hex.Encode(dst, id[:4])
-	dst[8] = '-'
-	hex.Encode(dst[9:13], id[4:6])
-	dst[13] = '-'
-	hex.Encode(dst[14:18], id[6:8])
-	dst[18] = '-'
-	hex.Encode(dst[19:23], id[8:10])
-	dst[23] = '-'
-	hex.Encode(dst[24:], id[10:])
-}
-
-func encodeHexShort(dst []byte, id Identifier) {
-	hex.Encode(dst[:], id[12:])
 }

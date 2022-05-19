@@ -138,11 +138,11 @@ func (rh *recomputeHeap) addUnsafe(nodes ...INode) {
 		if sn.height >= rh.heightLimit {
 			panic("recompute heap; cannot add node with height greater than max height")
 		}
-		/*
-			if _, ok := rh.lookup[sn.id]; ok {
-				continue
-			}
-		*/
+		// this needs to be here for
+		// `SetStale` to work correctly.
+		if _, ok := rh.lookup[sn.id]; ok {
+			continue
+		}
 
 		// when we add nodes, make sure to note if we
 		// need to change the min or max height
