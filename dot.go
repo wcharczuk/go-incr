@@ -33,7 +33,7 @@ func Dot(wr io.Writer, node INode) (err error) {
 	nodeLabels := make(map[Identifier]string)
 	for index, n := range nodes {
 		nodeLabel := fmt.Sprintf("n%d", index+1)
-		label := fmt.Sprintf(`label="%v"`, n)
+		label := fmt.Sprintf(`label="%v" shape="rect"`, n)
 		color := ` fillcolor = "white" style="filled" fontcolor="black"`
 		if n.Node().setAt > 0 {
 			color = ` fillcolor = "red" style="filled" fontcolor="white"`
