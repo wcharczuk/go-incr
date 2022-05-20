@@ -50,20 +50,6 @@ func Test_Stabilize(t *testing.T) {
 	ItsEqual(t, "not foo bar", m0.Value())
 }
 
-func Test_Stabilize_many(t *testing.T) {
-	ctx := testContext()
-
-	v0 := Var("foo")
-	v1 := Var("bar")
-	m0 := Map2(v0.Read(), v1.Read(), func(a, b string) string {
-		return a + " " + b
-	})
-
-	err := Stabilize(ctx, m0, v0, v1)
-	ItsNil(t, err)
-	ItsEqual(t, "foo bar", m0.Value())
-}
-
 func Test_Stabilize_error(t *testing.T) {
 	ctx := testContext()
 
@@ -101,7 +87,7 @@ func Test_Stabilize_alreadyStabilizing(t *testing.T) {
 		}
 	}()
 	err := <-errs
-	ItsEqual(t, errAlreadyStabilizing, err)
+	ItsEqual(t, ErrAlreadyStabilizing, err)
 	close(hold)
 	wg.Wait()
 	ItsEqual(t, "ok!", m0.Value())
@@ -902,7 +888,8 @@ func Test_Stabilize_diffMapByKeys(t *testing.T) {
 	mfr := FoldMap(mdr, 0, func(key string, val, accum int) int {
 		return accum + val
 	})
-	_ = Stabilize(ctx, mfa, mfr)
+	_ = Stabilize(ctx, mfa)
+	_ = Stabilize(ctx, mfr)
 	ItsEqual(t, 21, mfa.Value())
 	ItsEqual(t, 0, mfr.Value())
 
@@ -913,7 +900,8 @@ func Test_Stabilize_diffMapByKeys(t *testing.T) {
 
 	mv.Set(m)
 
-	_ = Stabilize(ctx, mfa, mfr)
+	_ = Stabilize(ctx, mfa)
+	_ = Stabilize(ctx, mfr)
 	ItsEqual(t, 36, mfa.Value())
 	ItsEqual(t, 7, mfr.Value())
 }

@@ -2,7 +2,6 @@ package incr
 
 import (
 	"context"
-	"errors"
 	"sync/atomic"
 )
 
@@ -11,27 +10,16 @@ import (
 //
 // The nodes do not need to be any specific type of node in the graph
 // as the full graph will be initialized on the first call to stabilize for that graph.
-func Stabilize(ctx context.Context, nodes ...INode) error {
-	seenGraphs := make(set[Identifier])
-	for _, gn := range nodes {
-		if shouldInitialize(gn.Node()) {
-			tracePrintf(ctx, "stabilize; initializing graph rooted at: %v", gn)
-			Initialize(ctx, gn)
-		}
-		if seenGraphs.has(gn.Node().g.id) {
-			continue
-		}
-		seenGraphs.add(gn.Node().g.id)
-		if err := stabilize(ctx, gn.Node().g); err != nil {
-			return err
-		}
+func Stabilize(ctx context.Context, n INode) error {
+	if shouldInitialize(n.Node()) {
+		tracePrintf(ctx, "stabilize; initializing graph rooted at: %v", n)
+		Initialize(ctx, n)
+	}
+	if err := stabilize(ctx, n.Node().g); err != nil {
+		return err
 	}
 	return nil
 }
-
-var (
-	errAlreadyStabilizing = errors.New("stabilize; already stabilizing, cannot continue")
-)
 
 func stabilize(ctx context.Context, g *graph) (err error) {
 	if err = ensureNotStabilizing(ctx, g); err != nil {
@@ -52,7 +40,7 @@ func stabilize(ctx context.Context, g *graph) (err error) {
 func ensureNotStabilizing(ctx context.Context, g *graph) error {
 	if atomic.LoadInt32(&g.status) != StatusNotStabilizing {
 		tracePrintf(ctx, "stabilize; already stabilizing, cannot continue")
-		return errAlreadyStabilizing
+		return ErrAlreadyStabilizing
 	}
 	return nil
 }

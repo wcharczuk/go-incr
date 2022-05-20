@@ -25,7 +25,7 @@ type recomputeHeap struct {
 
 	// minHeight is the smallest heights index that has nodes
 	minHeight int
-	// minHeight is the largest heights index that has nodes
+	// maxHeight is the largest heights index that has nodes
 	maxHeight int
 
 	// heights is an array of linked lists corresponding
