@@ -113,7 +113,7 @@ func main() {
 	// but because they're connected through children, we end
 	// up doing basically no-op stabilizations after the first
 	// node is stabilized
-	if err := incr.ParallelStabilize(ctx, nodes...); err != nil {
+	if err := incr.ParallelStabilize(ctx, nodes[0]); err != nil {
 		log.Printf("error: %v", err)
 	}
 
@@ -122,7 +122,7 @@ func main() {
 	incr.SetStale(lookup["pkg/engine"])
 	fmt.Println("pkg/engine now invalid")
 
-	if err := incr.ParallelStabilize(ctx, nodes...); err != nil {
+	if err := incr.ParallelStabilize(ctx, nodes[0]); err != nil {
 		log.Printf("error: %v", err)
 	}
 }
