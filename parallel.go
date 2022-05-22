@@ -23,20 +23,13 @@ import (
 // Each parallel recompute cycle may produce new nodes to process, and as a result
 // parallel stabilization can move up and down in height before fully recomputing
 // the graph.
-func ParallelStabilize(ctx context.Context, nodes ...INode) error {
-	seenGraphs := make(set[Identifier])
-	for _, gn := range nodes {
-		if shouldInitialize(gn.Node()) {
-			tracePrintf(ctx, "parallel stabilize; initializing graph rooted at: %v", gn)
-			Initialize(ctx, gn)
-		}
-		if seenGraphs.has(gn.Node().g.id) {
-			continue
-		}
-		seenGraphs.add(gn.Node().g.id)
-		if err := parallelStabilize(ctx, gn.Node().g); err != nil {
-			return err
-		}
+func ParallelStabilize(ctx context.Context, n INode) error {
+	if shouldInitialize(n.Node()) {
+		tracePrintf(ctx, "parallel stabilize; initializing graph rooted at: %v", n)
+		Initialize(ctx, n)
+	}
+	if err := parallelStabilize(ctx, n.Node().g); err != nil {
+		return err
 	}
 	return nil
 }
