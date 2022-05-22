@@ -16,7 +16,21 @@ import (
 // As a result, (a) is a child of (b), and (c) or (d) are children of (b).
 // When the bind changes from (c) to (d), (c) is unlinked, and is removed
 // as a "child" of (b),
-func Bind[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], error)) BindIncr[B] {
+func Bind[A, B any](a Incr[A], fn func(A) Incr[B]) BindIncr[B] {
+	o := &bindIncr[A, B]{
+		n: NewNode(),
+		a: a,
+		fn: func(_ context.Context, va A) (Incr[B], error) {
+			return fn(va), nil
+		},
+	}
+	Link(o, a)
+	return o
+}
+
+// BindContext is like Bind but takes a context and returns an error for
+// the bind delegate itself.
+func BindContext[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], error)) BindIncr[B] {
 	o := &bindIncr[A, B]{
 		n:  NewNode(),
 		a:  a,
@@ -83,36 +97,36 @@ func (b *bindIncr[A, B]) String() string {
 func bindUpdate[A any](ctx context.Context, b BindIncr[A]) error {
 	g := b.Node().g
 
-	oldValue, newValue, err := b.Bind(ctx)
+	oldIncr, newIncr, err := b.Bind(ctx)
 	if err != nil {
 		return err
 	}
 
-	if oldValue == nil {
+	if oldIncr == nil {
 		// link the new value as the parent
 		// of the bind node, specifically
 		// that b is an input to newValue
-		Link(newValue, b)
-		discoverAllNodes(ctx, g, newValue)
-		b.SetBind(newValue)
-		newValue.Node().changedAt = g.stabilizationNum
-		return newValue.Node().maybeStabilize(ctx)
+		Link(newIncr, b)
+		discoverAllNodes(ctx, g, newIncr)
+		b.SetBind(newIncr)
+		newIncr.Node().changedAt = g.stabilizationNum
+		return newIncr.Node().maybeStabilize(ctx)
 	}
 
-	if oldValue.Node().id != newValue.Node().id {
+	if oldIncr.Node().id != newIncr.Node().id {
 		// unlink the old node from the bind node
 		b.Node().parents = nil
-		oldValue.Node().children = nil
-		undiscoverAllNodes(ctx, g, oldValue)
+		oldIncr.Node().children = nil
+		undiscoverAllNodes(ctx, g, oldIncr)
 
 		// link the new value as the parent
 		// of the bind node, specifically
 		// that b is an input to newValue
-		Link(newValue, b)
-		discoverAllNodes(ctx, g, newValue)
-		b.SetBind(newValue)
-		newValue.Node().changedAt = g.stabilizationNum
-		return newValue.Node().maybeStabilize(ctx)
+		Link(newIncr, b)
+		discoverAllNodes(ctx, g, newIncr)
+		b.SetBind(newIncr)
+		newIncr.Node().changedAt = g.stabilizationNum
+		return newIncr.Node().maybeStabilize(ctx)
 	}
 	return nil
 }

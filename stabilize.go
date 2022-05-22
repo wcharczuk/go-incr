@@ -11,7 +11,7 @@ import (
 // The nodes do not need to be any specific type of node in the graph
 // as the full graph will be initialized on the first call to stabilize for that graph.
 func Stabilize(ctx context.Context, n INode) error {
-	if shouldInitialize(n.Node()) {
+	if n.Node().g == nil {
 		tracePrintf(ctx, "stabilize; initializing graph rooted at: %v", n)
 		Initialize(ctx, n)
 	}

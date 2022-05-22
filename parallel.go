@@ -24,7 +24,7 @@ import (
 // parallel stabilization can move up and down in height before fully recomputing
 // the graph.
 func ParallelStabilize(ctx context.Context, n INode) error {
-	if shouldInitialize(n.Node()) {
+	if n.Node().g == nil {
 		tracePrintf(ctx, "parallel stabilize; initializing graph rooted at: %v", n)
 		Initialize(ctx, n)
 	}

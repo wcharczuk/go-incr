@@ -368,31 +368,39 @@ func Test_Stabilize_bind(t *testing.T) {
 
 	sw := Var(false)
 	i0 := Return("foo")
+	m0 := Map(i0, func(v0 string) string { return v0 + "-moo" })
 	i1 := Return("bar")
-
-	b := Bind(sw.Read(), func(_ context.Context, swv bool) (Incr[string], error) {
+	m1 := Map(i1, func(v0 string) string { return v0 + "-loo" })
+	b := Bind(sw.Read(), func(swv bool) Incr[string] {
 		if swv {
-			return i0, nil
+			return m0
 		}
-		return i1, nil
+		return m1
+	})
+	mb := Map[string](b, func(v string) string {
+		return v + "-baz"
 	})
 
-	err := Stabilize(ctx, b)
+	err := Stabilize(ctx, mb)
 	ItsNil(t, err)
 
 	ItsNil(t, i0.Node().g, "i0 should not be in the graph after the first stabilization")
+	ItsNil(t, m0.Node().g, "m0 should not be in the graph after the first stabilization")
 	ItsNotNil(t, i1.Node().g, "i1 should be in the graph after the first stabilization")
+	ItsNotNil(t, m1.Node().g, "m1 should be in the graph after the first stabilization")
 
-	ItsEqual(t, "bar", b.Value())
+	ItsEqual(t, "bar-loo-baz", mb.Value())
 
 	sw.Set(true)
 	err = Stabilize(ctx, b)
 	ItsNil(t, err)
 
-	ItsNil(t, i1.Node().g, "i0 should be in the graph after the second stabilization")
-	ItsNotNil(t, i0.Node().g, "i1 should not be in the graph after the second stabilization")
+	ItsNotNil(t, i0.Node().g, "i0 should be in the graph after the second stabilization")
+	ItsNotNil(t, m0.Node().g, "m0 should be in the graph after the second stabilization")
+	ItsNil(t, i1.Node().g, "i1 should not be in the graph after the second stabilization")
+	ItsNil(t, m1.Node().g, "m1 should not be in the graph after the second stabilization")
 
-	ItsEqual(t, "foo", b.Value())
+	ItsEqual(t, "foo-moo-baz", mb.Value())
 }
 
 func Test_Stabilize_bind2(t *testing.T) {

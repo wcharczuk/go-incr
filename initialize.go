@@ -1,6 +1,9 @@
 package incr
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 // Initialize starts the initialization cycle.
 //
@@ -8,33 +11,24 @@ import "context"
 // all nodes, and then establishes the recompute heap based on node heights.
 func Initialize(ctx context.Context, nodes ...INode) {
 	for _, n := range nodes {
-		if !shouldInitialize(n.Node()) {
+		if n.Node().g != nil {
 			continue
 		}
 		discoverAllNodes(ctx, newGraph(), n)
 	}
 }
 
-// shouldInitialize returns if the graph is uninitialized
-//
-// specifically if it needs to have the first pass of initialization
-// performed on it, setting up the graph state, the recompute heap,
-// and other node metadata items.
-func shouldInitialize(n *Node) bool {
-	return n.g == nil
-}
-
 func discoverAllNodes(ctx context.Context, g *graph, gn INode) {
 	discoverNode(ctx, g, gn)
 	gnn := gn.Node()
 	for _, c := range gnn.children {
-		if !shouldInitialize(c.Node()) {
+		if c.Node().g != nil {
 			continue
 		}
 		discoverAllNodes(ctx, g, c)
 	}
 	for _, p := range gnn.parents {
-		if !shouldInitialize(p.Node()) {
+		if p.Node().g != nil {
 			continue
 		}
 		discoverAllNodes(ctx, g, p)
@@ -60,13 +54,13 @@ func undiscoverAllNodes(ctx context.Context, g *graph, gn INode) {
 	undiscoverNode(ctx, g, gn)
 	gnn := gn.Node()
 	for _, c := range gnn.children {
-		if shouldInitialize(c.Node()) {
+		if c.Node().g == nil {
 			continue
 		}
 		undiscoverAllNodes(ctx, g, c)
 	}
 	for _, p := range gnn.parents {
-		if shouldInitialize(p.Node()) {
+		if p.Node().g == nil {
 			continue
 		}
 		undiscoverAllNodes(ctx, g, p)
@@ -74,6 +68,7 @@ func undiscoverAllNodes(ctx context.Context, g *graph, gn INode) {
 }
 
 func undiscoverNode(ctx context.Context, g *graph, gn INode) {
+	println("undiscover", fmt.Sprint(gn))
 	gnn := gn.Node()
 	gnn.g = nil
 	g.numNodes--
