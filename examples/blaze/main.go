@@ -109,20 +109,23 @@ func main() {
 	}
 	nodes, lookup := createBuildGraph(packages...)
 
+	graph := incr.New()
+	graph.Observe(nodes...)
+
 	// one caveat here; we're stabilizing all the leaves
 	// but because they're connected through children, we end
 	// up doing basically no-op stabilizations after the first
 	// node is stabilized
-	if err := incr.ParallelStabilize(ctx, nodes[0]); err != nil {
+	if err := graph.ParallelStabilize(ctx); err != nil {
 		log.Printf("error: %v", err)
 	}
 
 	// in real world usage we would have some way to get fsnotify hints on files matching a
 	// glob, which we would then use to trigger this SetStale call.
-	incr.SetStale(lookup["pkg/engine"])
+	graph.SetStale(lookup["pkg/engine"])
 	fmt.Println("pkg/engine now invalid")
 
-	if err := incr.ParallelStabilize(ctx, nodes[0]); err != nil {
+	if err := graph.ParallelStabilize(ctx); err != nil {
 		log.Printf("error: %v", err)
 	}
 }

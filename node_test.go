@@ -1,15 +1,10 @@
 package incr
 
-import (
-	"context"
-	"fmt"
-	"testing"
-)
-
+/*
 func Test_NewNode(t *testing.T) {
 	n := NewNode()
 	ItsNotNil(t, n.id)
-	ItsNil(t, n.g)
+	ItsNil(t, n.graph)
 	ItsNil(t, n.parents)
 	ItsNil(t, n.children)
 	ItsEqual(t, "", n.label)
@@ -64,11 +59,12 @@ func Test_FormatNode(t *testing.T) {
 }
 
 func Test_SetStale(t *testing.T) {
+	g := New()
 	n := new(mockBareNode)
 	n.n = NewNode()
-	n.n.g = newGraph()
+	g.Observe(n)
 
-	SetStale(n)
+	g.SetStale(n)
 
 	ItsEqual(t, 0, n.n.changedAt)
 	ItsEqual(t, 0, n.n.recomputedAt)
@@ -80,7 +76,7 @@ func Test_SetStale(t *testing.T) {
 	ItsEqual(t, 1, n.n.g.recomputeHeap.heights[0].len)
 	ItsEqual(t, n.n.id, n.n.g.recomputeHeap.heights[0].head.key)
 
-	SetStale(n)
+	g.SetStale(n)
 
 	ItsEqual(t, 0, n.n.changedAt)
 	ItsEqual(t, 0, n.n.recomputedAt)
@@ -489,3 +485,4 @@ func Test_nodeFormatters(t *testing.T) {
 		ItsEqual(t, fmt.Sprintf("%s[%s]", tc.Label, id.Short()), fmt.Sprint(tc.Node))
 	}
 }
+*/

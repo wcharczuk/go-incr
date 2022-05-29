@@ -2,7 +2,7 @@ package incr
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"runtime"
 	"sync"
 )
@@ -23,219 +23,126 @@ import (
 // Each parallel recompute cycle may produce new nodes to process, and as a result
 // parallel stabilization can move up and down in height before fully recomputing
 // the graph.
-func ParallelStabilize(ctx context.Context, n INode) error {
-	if n.Node().g == nil {
-		tracePrintf(ctx, "parallel stabilize; initializing graph rooted at: %v", n)
-		Initialize(ctx, n)
-	}
-	if err := parallelStabilize(ctx, n.Node().g); err != nil {
+func (graph *Graph) ParallelStabilize(ctx context.Context) error {
+	if err := graph.parallelStabilize(ctx); err != nil {
 		return err
 	}
 	return nil
 }
 
-func parallelStabilize(ctx context.Context, g *graph) (err error) {
-	if err = ensureNotStabilizing(ctx, g); err != nil {
+func (graph *Graph) parallelStabilize(ctx context.Context) (err error) {
+	if err = graph.ensureNotStabilizing(ctx); err != nil {
 		return
 	}
-	stabilizeStart(ctx, g)
-	defer stabilizeEnd(ctx, g)
-	return parallelRecomputeAll(ctx, g)
+	graph.stabilizeStart(ctx)
+	defer graph.stabilizeEnd(ctx)
+	return graph.parallelRecomputeAll(ctx)
 }
 
-func parallelRecomputeAll(ctx context.Context, g *graph) error {
-	wg := sync.WaitGroup{}
-	workerPool := &parallelWorkerPool[*Node]{
-		work: make(chan *Node),
-		action: func(ictx context.Context, n *Node) error {
-			defer wg.Done()
-			return n.recompute(ctx)
-		},
-		started: make(chan struct{}),
-	}
-	if g.recomputeHeap.Len() == 0 {
+func (graph *Graph) parallelRecomputeAll(ctx context.Context) error {
+	if graph.recomputeHeap.Len() == 0 {
 		return nil
 	}
-
-	go func() {
-		_ = workerPool.Start(ctx)
-	}()
-	<-workerPool.started
-	defer workerPool.Stop()
-
 	var minHeightBlock []INode
 	var err error
-	for g.recomputeHeap.Len() > 0 {
-		minHeightBlock = g.recomputeHeap.RemoveMinHeight()
+	for graph.recomputeHeap.Len() > 0 {
+		workerPool, _ := parallelBatchWithContext(ctx)
+		workerPool.SetLimit(runtime.NumCPU())
+		minHeightBlock = graph.recomputeHeap.RemoveMinHeight()
 		for _, n := range minHeightBlock {
-			wg.Add(1)
-			if err = workerPool.Submit(ctx, n.Node()); err != nil {
-				return err
-			}
+			workerPool.Go(func() error {
+				return graph.recompute(ctx, n.Node())
+			})
 		}
-		wg.Wait()
+		if err = workerPool.Wait(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-var (
-	errParallelWorkerPoolStopping = errors.New("parallel worker pool; stopping")
-)
-
-type parallelWorkerPool[T any] struct {
-	work       chan T
-	action     func(context.Context, T) error
-	numWorkers int
-
-	started      chan struct{}
-	stop         chan struct{}
-	stopped      chan struct{}
-	workers      []*parallelWorker[T]
-	readyWorkers chan *parallelWorker[T]
+// parallelBatchWithContext returns a new Group and an associated Context derived from ctx.
+//
+// The derived Context is canceled the first time a function passed to Go
+// returns a non-nil error or the first time Wait returns, whichever occurs
+// first.
+func parallelBatchWithContext(ctx context.Context) (*parallelBatch, context.Context) {
+	ctx, cancel := context.WithCancel(ctx)
+	return &parallelBatch{cancel: cancel}, ctx
 }
 
-// Submit process a work item by dispatching it to a ready worker.
-func (p *parallelWorkerPool[T]) Submit(ctx context.Context, t T) error {
-	select {
-	case <-ctx.Done():
-		return context.Canceled
-	case <-p.stop:
-		return errParallelWorkerPoolStopping
-	case p.work <- t:
-		return nil
-	}
+// parallelBatch is a collection of goroutines working on subtasks that are part of
+// the same overall task.
+//
+// A zero Group is valid and does not cancel on error.
+type parallelBatch struct {
+	cancel  func()
+	wg      sync.WaitGroup
+	sem     chan parallelBatchToken
+	errOnce sync.Once
+	err     error
 }
 
-func (p *parallelWorkerPool[T]) Start(ctx context.Context) error {
-	effectiveNumWorkers := p.numWorkers
-	if effectiveNumWorkers == 0 {
-		effectiveNumWorkers = runtime.NumCPU()
+// parallelBatchToken is a token within the parallel batch system
+type parallelBatchToken struct{}
+
+func (pb *parallelBatch) done() {
+	if pb.sem != nil {
+		<-pb.sem
 	}
-	p.readyWorkers = make(chan *parallelWorker[T], effectiveNumWorkers)
-	workerErrors := make(chan error, effectiveNumWorkers)
-	for x := 0; x < effectiveNumWorkers; x++ {
-		w := &parallelWorker[T]{
-			work:      make(chan T),
-			ctx:       ctx,
-			action:    p.action,
-			finalizer: parallelWorkerPoolFinalizer(p.readyWorkers),
-			errors:    workerErrors,
-			stop:      make(chan struct{}),
-			stopped:   make(chan struct{}),
-		}
-		go w.dispatch()
-		p.workers = append(p.workers, w)
-		p.readyWorkers <- w
+	pb.wg.Done()
+}
+
+// Wait blocks until all function calls from the Go method have returned, then
+// returns the first non-nil error (if any) from them.
+func (pb *parallelBatch) Wait() error {
+	pb.wg.Wait()
+	if pb.cancel != nil {
+		pb.cancel()
+	}
+	return pb.err
+}
+
+// Go calls the given function in a new goroutine.
+// It blocks until the new goroutine can be added without the number of
+// active goroutines in the group exceeding the configured limit.
+//
+// The first call to return a non-nil error cancels the group; its error will be
+// returned by Wait.
+func (pb *parallelBatch) Go(f func() error) {
+	if pb.sem != nil {
+		pb.sem <- parallelBatchToken{}
 	}
 
-	p.stop = make(chan struct{})
-	p.stopped = make(chan struct{})
+	pb.wg.Add(1)
+	go func() {
+		defer pb.done()
 
-	close(p.started)
-
-	defer close(p.stopped)
-	var workItem T
-	var readyWorker *parallelWorker[T]
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case err := <-workerErrors:
-			return err
-		case <-p.stop:
-			return nil
-		default:
-		}
-
-		select {
-		case <-ctx.Done():
-			return nil
-		case err := <-workerErrors:
-			return err
-		case <-p.stop:
-			return nil
-		case workItem = <-p.work:
-			select {
-			case <-ctx.Done():
-				return nil
-			case err := <-workerErrors:
-				return err
-			case <-p.stop:
-				return nil
-			case readyWorker = <-p.readyWorkers:
-				select {
-				case <-ctx.Done():
-					return nil
-				case err := <-workerErrors:
-					return err
-				case <-p.stop:
-					return nil
-				case readyWorker.work <- workItem:
-					continue
+		if err := f(); err != nil {
+			pb.errOnce.Do(func() {
+				pb.err = err
+				if pb.cancel != nil {
+					pb.cancel()
 				}
-			}
+			})
 		}
-	}
+	}()
 }
 
-func (p *parallelWorkerPool[T]) Stop() {
-	close(p.stop)
-	<-p.stopped
-	for _, w := range p.workers {
-		close(w.stop)
-		<-w.stopped
+// SetLimit limits the number of active goroutines in this group to at most n.
+// A negative value indicates no limit.
+//
+// Any subsequent call to the Go method will block until it can add an active
+// goroutine without exceeding the configured limit.
+//
+// The limit must not be modified while any goroutines in the group are active.
+func (pb *parallelBatch) SetLimit(n int) {
+	if n < 0 {
+		pb.sem = nil
+		return
 	}
-}
-
-func parallelWorkerPoolFinalizer[T any](readyWorkers chan *parallelWorker[T]) func(context.Context, *parallelWorker[T]) {
-	return func(ctx context.Context, w *parallelWorker[T]) {
-		readyWorkers <- w
+	if len(pb.sem) != 0 {
+		panic(fmt.Errorf("errgroup: modify limit while %v goroutines in the group are still active", len(pb.sem)))
 	}
-}
-
-type parallelWorker[T any] struct {
-	work      chan T
-	errors    chan error
-	action    func(context.Context, T) error
-	finalizer func(context.Context, *parallelWorker[T])
-	ctx       context.Context
-	stop      chan struct{}
-	stopped   chan struct{}
-}
-
-func (p *parallelWorker[T]) dispatch() {
-	defer close(p.stopped)
-
-	var workItem T
-	var err error
-	for {
-		select {
-		case <-p.stop:
-			return
-		case <-p.ctx.Done():
-			return
-		default:
-		}
-
-		select {
-		case <-p.stop:
-			return
-		case <-p.ctx.Done():
-			return
-		case workItem = <-p.work:
-			if err = p.action(p.ctx, workItem); err != nil {
-				select {
-				case <-p.stop:
-					return
-				case <-p.ctx.Done():
-					return
-				case p.errors <- err:
-					return
-				}
-			}
-			if p.finalizer != nil {
-				p.finalizer(p.ctx, p)
-			}
-		}
-	}
+	pb.sem = make(chan parallelBatchToken, n)
 }

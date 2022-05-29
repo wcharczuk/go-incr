@@ -3,30 +3,41 @@ package incr
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 )
 
-// defaultRecomputeHeapMaxHeight is the default
-// maximum recompute heap height when we create graph states.
-const defaultRecomputeHeapMaxHeight = 255
-
-// newGraphState returns a new graph state, which is the type that
+// New returns a new graph state, which is the type that
 // represents the shared state of a computation graph.
-func newGraph() *graph {
-	return &graph{
+//
+// This is the entrypoint for all stabilization and computation
+// operations, and you must "observe" nodes you want to be computed.
+func New() *Graph {
+	return &Graph{
 		id:                       NewIdentifier(),
 		stabilizationNum:         1,
 		status:                   StatusNotStabilizing,
+		observed:                 make(map[Identifier]INode),
 		setDuringStabilization:   new(list[Identifier, INode]),
 		handleAfterStabilization: new(list[Identifier, []func(context.Context)]),
 		recomputeHeap:            newRecomputeHeap(defaultRecomputeHeapMaxHeight),
 	}
 }
 
-type graph struct {
+// defaultRecomputeHeapMaxHeight is the default
+// maximum recompute heap height when we create graph states.
+const defaultRecomputeHeapMaxHeight = 255
+
+// Graph is the state that is shared across nodes.
+//
+// You should instantiate this type with `New()`.
+type Graph struct {
 	// id is a unique identifier for the graph
 	id Identifier
 	// mu is a synchronizing mutex for the graph
 	mu sync.Mutex
+	// observed are the nodes that the graph currently observes
+	// organized by node id.
+	observed map[Identifier]INode
 	// recomputeHeap is the heap of nodes to be processed
 	// organized by pseudo-height
 	recomputeHeap *recomputeHeap
@@ -57,4 +68,164 @@ type graph struct {
 	// that have been changed in the graph's history
 	// and is typically used in testing
 	numNodesChanged uint64
+}
+
+// Observe observes a given list of nodes.
+//
+// we should likely _discover_ all the children at this point.
+func (graph *Graph) Observe(nodes ...INode) {
+	graph.mu.Lock()
+	for _, n := range nodes {
+		graph.discoverAllNodes(n)
+	}
+	graph.mu.Unlock()
+}
+
+// SetStale sets a node as stale.
+func (graph *Graph) SetStale(gn INode) {
+	n := gn.Node()
+	n.setAt = graph.stabilizationNum
+	graph.recomputeHeap.Add(gn)
+}
+
+//
+// internal methods
+//
+
+func (graph *Graph) isObserving(gn INode) (ok bool) {
+	_, ok = graph.observed[gn.Node().id]
+	return
+}
+
+func (graph *Graph) discoverAllNodes(gn INode) {
+	graph.discoverNode(gn)
+	gnn := gn.Node()
+	for _, c := range gnn.children {
+		if graph.isObserving(c) {
+			continue
+		}
+		graph.discoverAllNodes(c)
+	}
+	for _, p := range gnn.parents {
+		if graph.isObserving(p) {
+			continue
+		}
+		graph.discoverAllNodes(p)
+	}
+}
+
+func (graph *Graph) discoverNode(gn INode) {
+	graph.observed[gn.Node().id] = gn
+	gnn := gn.Node()
+	gnn.graph = graph
+	gnn.detectCutoff(gn)
+	gnn.detectStabilize(gn)
+	gnn.height = gnn.calculateHeight()
+	graph.numNodes++
+	graph.recomputeHeap.Add(gn)
+	return
+}
+
+// undiscoverAllNodes removes a node and all its parents
+// from a given graph.
+//
+// NOTE: you _must_ unlink it first or you'll just blow away the whole graph.
+func (graph *Graph) undiscoverAllNodes(gn INode) {
+	graph.undiscoverNode(gn)
+	gnn := gn.Node()
+	for _, c := range gnn.children {
+		if !graph.isObserving(c) {
+			continue
+		}
+		graph.undiscoverAllNodes(c)
+	}
+	for _, p := range gnn.parents {
+		if !graph.isObserving(p) {
+			continue
+		}
+		graph.undiscoverAllNodes(p)
+	}
+}
+
+func (graph *Graph) undiscoverNode(gn INode) {
+	delete(graph.observed, gn.Node().id)
+	graph.numNodes--
+	graph.recomputeHeap.Remove(gn)
+	graph.handleAfterStabilization.Remove(graph.handleAfterStabilization.Find(gn.Node().id))
+}
+
+//
+// stabilization methods
+//
+
+func (graph *Graph) ensureNotStabilizing(ctx context.Context) error {
+	if atomic.LoadInt32(&graph.status) != StatusNotStabilizing {
+		tracePrintf(ctx, "stabilize; already stabilizing, cannot continue")
+		return ErrAlreadyStabilizing
+	}
+	return nil
+}
+
+func (graph *Graph) stabilizeStart(ctx context.Context) {
+	atomic.StoreInt32(&graph.status, StatusStabilizing)
+	tracePrintf(ctx, "stabilize[%d]; stabilization starting", graph.stabilizationNum)
+}
+
+func (graph *Graph) stabilizeEnd(ctx context.Context) {
+	defer func() {
+		atomic.StoreInt32(&graph.status, StatusNotStabilizing)
+	}()
+	tracePrintf(ctx, "stabilize[%d]; stabilization complete", graph.stabilizationNum)
+	graph.stabilizationNum++
+	var n INode
+	for graph.setDuringStabilization.len > 0 {
+		_, n, _ = graph.setDuringStabilization.Pop()
+		_ = n.Node().maybeStabilize(ctx)
+		graph.SetStale(n)
+	}
+	atomic.StoreInt32(&graph.status, StatusRunningUpdateHandlers)
+	var updateHandlers []func(context.Context)
+	for graph.handleAfterStabilization.len > 0 {
+		_, updateHandlers, _ = graph.handleAfterStabilization.Pop()
+		for _, uh := range updateHandlers {
+			uh(ctx)
+		}
+	}
+	return
+}
+
+// recompute starts the recompute cycle for the node
+// setting the recomputedAt field and possibly changing the value.
+func (graph *Graph) recompute(ctx context.Context, n *Node) error {
+	graph.numNodesRecomputed++
+	n.numRecomputes++
+	n.recomputedAt = graph.stabilizationNum
+	return graph.maybeChangeValue(ctx, n)
+}
+
+// maybeChangeValue checks the cutoff, and calls the stabilization
+// delegate if one is set, adding the nodes parents to the recompute heap
+// if there are changes.
+func (graph *Graph) maybeChangeValue(ctx context.Context, n *Node) (err error) {
+	if n.maybeCutoff(ctx) {
+		return
+	}
+	graph.numNodesChanged++
+	n.numChanges++
+	n.changedAt = graph.stabilizationNum
+	if err = n.maybeStabilize(ctx); err != nil {
+		for _, eh := range n.onErrorHandlers {
+			eh(ctx, err)
+		}
+		return
+	}
+	if len(n.onUpdateHandlers) > 0 {
+		graph.handleAfterStabilization.Push(n.id, n.onUpdateHandlers)
+	}
+	for _, p := range n.parents {
+		if p.Node().shouldRecompute() {
+			graph.recomputeHeap.Add(p)
+		}
+	}
+	return
 }

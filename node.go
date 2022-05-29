@@ -29,23 +29,15 @@ func Label(n *Node, nodeType string) string {
 	return fmt.Sprintf("%s[%s]", nodeType, n.id.Short())
 }
 
-// SetStale sets a node as stale.
-func SetStale(gn INode) {
-	n := gn.Node()
-	n.setAt = n.g.stabilizationNum
-	n.g.recomputeHeap.Add(gn)
-}
-
 // Node is the common metadata for any node in the computation graph.
 type Node struct {
 	// id is a unique identifier for the node
 	id Identifier
+	// graph is the graph this node is attached to currently.
+	graph *Graph
 	// label is a descriptive string for the
 	// node, and is set with `SetLabel`
 	label string
-	// gs is a shared reference to the graph state
-	// for the computation
-	g *graph
 	// parents are the nodes that depend on this node, that is
 	// parents are nodes for which this node is an input
 	parents []INode
@@ -207,42 +199,6 @@ func (n *Node) calculateHeight() int {
 		}
 	}
 	return maxChildHeight + 1
-}
-
-// recompute starts the recompute cycle for the node
-// setting the recomputedAt field and possibly changing the value.
-func (n *Node) recompute(ctx context.Context) error {
-	n.g.numNodesRecomputed++
-	n.numRecomputes++
-	n.recomputedAt = n.g.stabilizationNum
-	return n.maybeChangeValue(ctx)
-}
-
-// maybeChangeValue checks the cutoff, and calls the stabilization
-// delegate if one is set, adding the nodes parents to the recompute heap
-// if there are changes.
-func (n *Node) maybeChangeValue(ctx context.Context) (err error) {
-	if n.maybeCutoff(ctx) {
-		return
-	}
-	n.g.numNodesChanged++
-	n.numChanges++
-	n.changedAt = n.g.stabilizationNum
-	if err = n.maybeStabilize(ctx); err != nil {
-		for _, eh := range n.onErrorHandlers {
-			eh(ctx, err)
-		}
-		return
-	}
-	if len(n.onUpdateHandlers) > 0 {
-		n.g.handleAfterStabilization.Push(n.id, n.onUpdateHandlers)
-	}
-	for _, p := range n.parents {
-		if p.Node().shouldRecompute() {
-			n.g.recomputeHeap.Add(p)
-		}
-	}
-	return
 }
 
 // maybeStabilize calls the stabilize delegate if one is set.

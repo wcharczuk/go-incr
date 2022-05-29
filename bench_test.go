@@ -74,28 +74,28 @@ func benchmarkSize(size int, b *testing.B) {
 
 	ctx := testContext()
 
-	gs := nodes[len(nodes)-1]
-	Initialize(ctx, gs)
+	graph := New()
+	graph.Observe(nodes[0])
 
 	// this is what we care about
 	b.ResetTimer()
 	var err error
 	for n := 0; n < b.N; n++ {
-		err = Stabilize(ctx, gs)
+		err = graph.Stabilize(ctx)
 		if err != nil {
 			b.Fatal(err)
 		}
 		for x := 0; x < size>>1; x++ {
-			SetStale(nodes[rand.Intn(size)])
+			graph.SetStale(nodes[rand.Intn(size)])
 		}
-		err = Stabilize(ctx, gs)
+		err = graph.Stabilize(ctx)
 		if err != nil {
 			b.Fatal(err)
 		}
 		for x := 0; x < size>>2; x++ {
-			SetStale(nodes[rand.Intn(size)])
+			graph.SetStale(nodes[rand.Intn(size)])
 		}
-		err = Stabilize(ctx, gs)
+		err = graph.Stabilize(ctx)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -119,29 +119,29 @@ func benchmarkParallelSize(size int, b *testing.B) {
 		cursor += x
 	}
 
-	gs := nodes[len(nodes)-1]
+	graph := New()
+	graph.Observe(nodes[0])
 	ctx := testContext()
-	Initialize(ctx, gs)
 
 	// this is what we care about
 	b.ResetTimer()
 	var err error
 	for n := 0; n < b.N; n++ {
-		err = ParallelStabilize(ctx, gs)
+		err = graph.ParallelStabilize(ctx)
 		if err != nil {
 			b.Fatal(err)
 		}
 		for x := 0; x < size>>1; x++ {
-			SetStale(nodes[rand.Intn(size)])
+			graph.SetStale(nodes[rand.Intn(size)])
 		}
-		err = ParallelStabilize(ctx, gs)
+		err = graph.ParallelStabilize(ctx)
 		if err != nil {
 			b.Fatal(err)
 		}
 		for x := 0; x < size>>2; x++ {
-			SetStale(nodes[rand.Intn(size)])
+			graph.SetStale(nodes[rand.Intn(size)])
 		}
-		err = ParallelStabilize(ctx, gs)
+		err = graph.ParallelStabilize(ctx)
 		if err != nil {
 			b.Fatal(err)
 		}

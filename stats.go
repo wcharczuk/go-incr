@@ -11,11 +11,11 @@ func NodeStats(n INode) INodeStats {
 }
 
 // GraphStats return graph statistics from a given node.
-func GraphStats(n INode) IGraphStats {
+func (graph *Graph) Stats() IGraphStats {
 	return graphStats{
-		numNodes:           n.Node().g.numNodes,
-		numNodesRecomputed: n.Node().g.numNodesRecomputed,
-		numNodesChanged:    n.Node().g.numNodesChanged,
+		numNodes:           graph.numNodes,
+		numNodesRecomputed: graph.numNodesRecomputed,
+		numNodesChanged:    graph.numNodesChanged,
 	}
 }
 

@@ -42,17 +42,17 @@ func main() {
 		ctx = incr.WithTracing(ctx)
 	}
 
-	gs := nodes[len(nodes)-1]
-	incr.Initialize(ctx, gs)
+	graph := incr.New()
+	graph.Observe(nodes[0])
 
 	var err error
 	for n := 0; n < ROUNDS; n++ {
-		err = incr.Stabilize(ctx, gs)
+		err = graph.Stabilize(ctx)
 		if err != nil {
 			fatal(err)
 		}
-		incr.SetStale(nodes[rand.Intn(len(nodes))])
-		err = incr.Stabilize(ctx, gs)
+		graph.SetStale(nodes[rand.Intn(len(nodes))])
+		err = graph.Stabilize(ctx)
 		if err != nil {
 			fatal(err)
 		}

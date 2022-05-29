@@ -78,8 +78,9 @@ func main() {
 
 	ctx := incr.WithTracing(context.Background())
 
-	data := make(map[incr.Identifier]Order)
+	graph := incr.New()
 
+	data := make(map[incr.Identifier]Order)
 	dataInput := incr.Var(data)
 
 	dataInputAdds := incr.DiffMapByKeysAdded(dataInput.Read())
@@ -106,12 +107,12 @@ func main() {
 		},
 	)
 
+	graph.Observe(dataInput, orders, shares, symbolCounts)
 	for x := 0; x < 10; x++ {
-		_ = incr.Stabilize(ctx, shares)
+		_ = graph.Stabilize(ctx)
 		fmt.Println("orders:", orders.Value())
 		fmt.Println("shares:", shares.Value())
 		fmt.Println("orders by symbol:", symbolCounts.Value())
-
 		fillOrders(data, 2048)
 		dataInput.Set(data)
 	}

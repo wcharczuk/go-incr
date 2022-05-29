@@ -24,10 +24,9 @@ var (
 )
 
 type freezeIncr[A any] struct {
-	n        *Node
-	i        Incr[A]
-	freezeAt uint64
-	v        A
+	n *Node
+	i Incr[A]
+	v A
 }
 
 func (f *freezeIncr[T]) Node() *Node { return f.n }
@@ -37,10 +36,9 @@ func (f *freezeIncr[T]) Value() T { return f.v }
 func (f *freezeIncr[T]) String() string { return Label(f.n, "freeze") }
 
 func (f *freezeIncr[A]) Stabilize(_ context.Context) error {
-	if f.freezeAt > 0 {
+	if f.Node().changedAt > 0 {
 		return nil
 	}
-	f.freezeAt = f.n.g.stabilizationNum
 	f.v = f.i.Value()
 	return nil
 }
