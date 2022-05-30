@@ -43,16 +43,17 @@ func (graph *Graph) parallelRecomputeAll(ctx context.Context) error {
 	if graph.recomputeHeap.Len() == 0 {
 		return nil
 	}
+	workerPool := new(parallelBatch)
+	workerPool.SetLimit(runtime.NumCPU())
+	var minHeight int
 	var minHeightBlock []INode
 	var err error
 	for graph.recomputeHeap.Len() > 0 {
-		workerPool, _ := parallelBatchWithContext(ctx)
-		workerPool.SetLimit(runtime.NumCPU())
+		minHeight = graph.recomputeHeap.minHeight
 		minHeightBlock = graph.recomputeHeap.RemoveMinHeight()
+		tracePrintf(ctx, "parallel stabilize; recomputing height %d block with %d nodes", minHeight, len(minHeightBlock))
 		for _, n := range minHeightBlock {
-			workerPool.Go(func() error {
-				return graph.recompute(ctx, n.Node())
-			})
+			workerPool.Go(graph.parallelRecomputeNode(ctx, n.Node()))
 		}
 		if err = workerPool.Wait(); err != nil {
 			return err
@@ -61,14 +62,10 @@ func (graph *Graph) parallelRecomputeAll(ctx context.Context) error {
 	return nil
 }
 
-// parallelBatchWithContext returns a new Group and an associated Context derived from ctx.
-//
-// The derived Context is canceled the first time a function passed to Go
-// returns a non-nil error or the first time Wait returns, whichever occurs
-// first.
-func parallelBatchWithContext(ctx context.Context) (*parallelBatch, context.Context) {
-	ctx, cancel := context.WithCancel(ctx)
-	return &parallelBatch{cancel: cancel}, ctx
+func (graph *Graph) parallelRecomputeNode(ctx context.Context, n *Node) func() error {
+	return func() error {
+		return graph.recompute(ctx, n)
+	}
 }
 
 // parallelBatch is a collection of goroutines working on subtasks that are part of
@@ -76,7 +73,6 @@ func parallelBatchWithContext(ctx context.Context) (*parallelBatch, context.Cont
 //
 // A zero Group is valid and does not cancel on error.
 type parallelBatch struct {
-	cancel  func()
 	wg      sync.WaitGroup
 	sem     chan parallelBatchToken
 	errOnce sync.Once
@@ -97,9 +93,6 @@ func (pb *parallelBatch) done() {
 // returns the first non-nil error (if any) from them.
 func (pb *parallelBatch) Wait() error {
 	pb.wg.Wait()
-	if pb.cancel != nil {
-		pb.cancel()
-	}
 	return pb.err
 }
 
@@ -121,9 +114,6 @@ func (pb *parallelBatch) Go(f func() error) {
 		if err := f(); err != nil {
 			pb.errOnce.Do(func() {
 				pb.err = err
-				if pb.cancel != nil {
-					pb.cancel()
-				}
 			})
 		}
 	}()

@@ -185,6 +185,12 @@ func (graph *Graph) stabilizeEnd(ctx context.Context) {
 	}
 	atomic.StoreInt32(&graph.status, StatusRunningUpdateHandlers)
 	var updateHandlers []func(context.Context)
+	if graph.handleAfterStabilization.len > 0 {
+		tracePrintf(ctx, "stabilize[%d]; calling update handlers starting", graph.stabilizationNum)
+		defer func() {
+			tracePrintf(ctx, "stabilize[%d]; calling update handlers complete", graph.stabilizationNum)
+		}()
+	}
 	for graph.handleAfterStabilization.len > 0 {
 		_, updateHandlers, _ = graph.handleAfterStabilization.Pop()
 		for _, uh := range updateHandlers {
