@@ -73,9 +73,9 @@ func (b *bindIncr[A, B]) SetBind(v Incr[B]) {
 	b.bound = v
 }
 
-func (b *bindIncr[A, B]) Bind(ctx context.Context) (oldValue, newValue Incr[B], err error) {
-	oldValue = b.bound
-	newValue, err = b.fn(ctx, b.a.Value())
+func (b *bindIncr[A, B]) Bind(ctx context.Context) (oldIncr, newIncr Incr[B], err error) {
+	oldIncr = b.bound
+	newIncr, err = b.fn(ctx, b.a.Value())
 	return
 }
 
@@ -111,20 +111,24 @@ func bindUpdate[A any](ctx context.Context, b BindIncr[A]) error {
 		return newIncr.Node().maybeStabilize(ctx)
 	}
 
-	if oldIncr.Node().id != newIncr.Node().id {
-		// unlink the old node from the bind node
-		b.Node().parents = nil
-		oldIncr.Node().children = nil
-		b.Node().graph.undiscoverAllNodes(oldIncr)
+	if oldIncr.Node().id == newIncr.Node().id {
+		return nil
+	}
 
-		// link the new value as the parent
-		// of the bind node, specifically
-		// that b is an input to newValue
-		Link(newIncr, b)
-		b.Node().graph.discoverAllNodes(newIncr)
-		b.SetBind(newIncr)
-		newIncr.Node().changedAt = b.Node().graph.stabilizationNum
-		return newIncr.Node().maybeStabilize(ctx)
+	// "unlink" the old node from the bind node
+	b.Node().parents = nil
+	oldIncr.Node().children = nil
+	b.Node().graph.undiscoverAllNodes(oldIncr)
+
+	// link the new value as the parent
+	// of the bind node, specifically
+	// that b is an input to newValue
+	Link(newIncr, b)
+	b.Node().graph.discoverAllNodes(newIncr)
+	b.SetBind(newIncr)
+	newIncr.Node().changedAt = b.Node().graph.stabilizationNum
+	if err := newIncr.Node().maybeStabilize(ctx); err != nil {
+		return err
 	}
 	return nil
 }

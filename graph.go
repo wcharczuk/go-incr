@@ -148,7 +148,9 @@ func (graph *Graph) undiscoverAllNodes(gn INode) {
 }
 
 func (graph *Graph) undiscoverNode(gn INode) {
-	delete(graph.observed, gn.Node().id)
+	gnn := gn.Node()
+	gnn.graph = nil
+	delete(graph.observed, gnn.id)
 	graph.numNodes--
 	graph.recomputeHeap.Remove(gn)
 	graph.handleAfterStabilization.Remove(graph.handleAfterStabilization.Find(gn.Node().id))
