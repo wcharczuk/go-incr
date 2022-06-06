@@ -436,7 +436,7 @@ func Test_Stabilize_bind(t *testing.T) {
 	ItsEqual(t, 1, len(m0.Node().children))
 
 	ItsEqual(t, 1, len(i1.Node().parents))
-	ItsEqual(t, 1, len(m1.Node().children))
+	ItsEqual(t, 2, len(m1.Node().children), "children should include the bind node, and the input")
 
 	ItsEqual(t, false, graph.isObserving(i0))
 	ItsEqual(t, false, graph.isObserving(m0))
@@ -455,6 +455,12 @@ func Test_Stabilize_bind(t *testing.T) {
 
 	err = graph.Stabilize(ctx)
 	ItsNil(t, err)
+
+	ItsEqual(t, 1, len(i0.Node().parents))
+	ItsEqual(t, 2, len(m0.Node().children))
+
+	ItsEqual(t, 1, len(i1.Node().parents))
+	ItsEqual(t, 1, len(m1.Node().children), "children should include the bind node, and the input")
 
 	ItsEqual(t, true, graph.isObserving(i0))
 	ItsEqual(t, true, graph.isObserving(m0))

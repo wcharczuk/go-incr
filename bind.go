@@ -101,9 +101,6 @@ func bindUpdate[A any](ctx context.Context, b BindIncr[A]) error {
 	}
 
 	if oldIncr == nil {
-		// link the new value as the parent
-		// of the bind node, specifically
-		// that b is an input to newValue
 		Link(newIncr, b)
 		b.Node().graph.discoverAllNodes(newIncr)
 		b.SetBind(newIncr)
@@ -116,8 +113,12 @@ func bindUpdate[A any](ctx context.Context, b BindIncr[A]) error {
 	}
 
 	// "unlink" the old node from the bind node
-	b.Node().parents = nil
-	oldIncr.Node().children = nil
+	b.Node().parents = filterNodes(b.Node().parents, func(p INode) bool {
+		return oldIncr.Node().id != p.Node().id
+	})
+	oldIncr.Node().children = filterNodes(oldIncr.Node().children, func(c INode) bool {
+		return b.Node().id != c.Node().id
+	})
 	b.Node().graph.undiscoverAllNodes(oldIncr)
 
 	// link the new value as the parent
@@ -131,4 +132,13 @@ func bindUpdate[A any](ctx context.Context, b BindIncr[A]) error {
 		return err
 	}
 	return nil
+}
+
+func filterNodes(nodes []INode, filter func(INode) bool) (out []INode) {
+	for _, n := range nodes {
+		if filter(n) {
+			out = append(out, n)
+		}
+	}
+	return out
 }
