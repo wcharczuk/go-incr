@@ -27,15 +27,17 @@ v1 := incr.Var("bar")
 output := incr.Map2(v0.Read(), v1.Read(), func(a, b string) string { return a + " and " + b, nil })
 ```
 
-In order to realize the values, we need to call `Stabilize` on it:
+In order to realize the values, we need to observe nodes in a graph, call `Stabilize` on it:
 
 ```go
-if err := incr.Stabilize(context.Background(), output); err != nil {
+g := incr.New()
+g.Observe(output)
+if err := g.Stabilize(context.Background()); err != nil {
   // ... handle error
 }
 ```
 
-`Stabilize` both initializes internal metadata for the computation graph, and does the full recomputation in subsequent cycles. 
+`Stabilize` then does the full recomputation, including in subsequent cycles. 
 
 # Design Choices
 
@@ -57,5 +59,3 @@ Many of the original library types are implemented, including:
 - Watch
 
 With these, you can create 90% of what I typically needed this library for, though some others would be relatively straightforward to implement given the primitives already implemented.
-
-Some concepts I just didn't implement to start, namely the observer pattern.
