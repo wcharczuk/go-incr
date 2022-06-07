@@ -27,7 +27,7 @@ v1 := incr.Var("bar")
 output := incr.Map2(v0.Read(), v1.Read(), func(a, b string) string { return a + " and " + b, nil })
 ```
 
-In order to realize the values, we need to observe nodes in a graph, call `Stabilize` on it:
+In order to realize the values, we need to observe nodes in a graph, and then call `Stabilize` on the graph:
 
 ```go
 g := incr.New()
