@@ -11,8 +11,8 @@ import (
 //
 // This is the entrypoint for all stabilization and computation
 // operations, and you must "observe" nodes you want to be computed.
-func New() *Graph {
-	return &Graph{
+func New(observed ...INode) *Graph {
+	g := &Graph{
 		id:                       NewIdentifier(),
 		stabilizationNum:         1,
 		status:                   StatusNotStabilizing,
@@ -21,6 +21,8 @@ func New() *Graph {
 		handleAfterStabilization: new(list[Identifier, []func(context.Context)]),
 		recomputeHeap:            newRecomputeHeap(defaultRecomputeHeapMaxHeight),
 	}
+	g.Observe(observed...)
+	return g
 }
 
 // defaultRecomputeHeapMaxHeight is the default
