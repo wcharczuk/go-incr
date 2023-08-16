@@ -10,7 +10,10 @@ import (
 // represents the shared state of a computation graph.
 //
 // This is the entrypoint for all stabilization and computation
-// operations, and you must "observe" nodes you want to be computed.
+// operations.
+//
+// Nodes you initialize the graph with will be "observed" before
+// the graph is returned, saving that step later.
 func New(observed ...INode) *Graph {
 	g := &Graph{
 		id:                       NewIdentifier(),
@@ -74,7 +77,13 @@ type Graph struct {
 
 // Observe observes a given list of nodes.
 //
-// we should likely _discover_ all the children at this point.
+// The observation process involves discovering nodes
+// linked to by parent child relationships of the given nodes
+// setting up the computation metadata and other infrastructure
+// to enable us to stabilize the computation later.
+//
+// Each node should in effect represent separate "sub-graphs" but
+// deduplication will be handled during the discovery process.
 func (graph *Graph) Observe(nodes ...INode) {
 	graph.mu.Lock()
 	for _, n := range nodes {

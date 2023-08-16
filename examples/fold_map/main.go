@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"time"
 
 	"github.com/wcharczuk/go-incr"
+	"github.com/wcharczuk/go-incr/incrutil"
 )
 
 // Symbol is a stock symbol identifier.
@@ -74,8 +74,6 @@ func fillOrders(output map[incr.Identifier]Order, count int) {
 }
 
 func main() {
-	rand.Seed(time.Now().Unix())
-
 	ctx := incr.WithTracing(context.Background())
 
 	graph := incr.New()
@@ -83,7 +81,7 @@ func main() {
 	data := make(map[incr.Identifier]Order)
 	dataInput := incr.Var(data)
 
-	dataInputAdds := incr.DiffMapByKeysAdded(dataInput.Read())
+	dataInputAdds := incrutil.DiffMapByKeysAdded(dataInput.Read())
 	orders := incr.FoldMap(
 		dataInputAdds,
 		0,

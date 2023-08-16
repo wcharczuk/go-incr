@@ -1,4 +1,4 @@
-package incr
+package incrutil
 
 import "testing"
 

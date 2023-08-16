@@ -1,30 +1,34 @@
-package incr
+package incrutil
 
-import "context"
+import (
+	"context"
+
+	"github.com/wcharczuk/go-incr"
+)
 
 // DiffSliceByIndicesAdded diffs a slice between stabilizations, yielding an
 // incremental that is just the added elements per pass.
-func DiffSliceByIndicesAdded[T any](i Incr[[]T]) Incr[[]T] {
+func DiffSliceByIndicesAdded[T any](i incr.Incr[[]T]) incr.Incr[[]T] {
 	o := &diffSliceByIndicesAddedIncr[T]{
-		n: NewNode(),
+		n: incr.NewNode(),
 		i: i,
 	}
-	Link(o, i)
+	incr.Link(o, i)
 	return o
 }
 
 type diffSliceByIndicesAddedIncr[T any] struct {
-	n    *Node
-	i    Incr[[]T]
+	n    *incr.Node
+	i    incr.Incr[[]T]
 	last int
 	val  []T
 }
 
 func (dsi *diffSliceByIndicesAddedIncr[T]) String() string {
-	return Label(dsi.n, "diff_slice_by_indices_added")
+	return incr.Label(dsi.n, "diff_slice_by_indices_added")
 }
 
-func (dsi *diffSliceByIndicesAddedIncr[T]) Node() *Node { return dsi.n }
+func (dsi *diffSliceByIndicesAddedIncr[T]) Node() *incr.Node { return dsi.n }
 
 func (dsi *diffSliceByIndicesAddedIncr[T]) Value() []T { return dsi.val }
 

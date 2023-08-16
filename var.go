@@ -18,10 +18,17 @@ func Var[T any](t T) VarIncr[T] {
 	}
 }
 
-// VarIncr is a type that implements a variable.
+// VarIncr is a graph node type that implements a variable.
+//
+// It is strictly _not_ an Incr, to use it as an Incr[A] you
+// must call `v.Read()`.
 type VarIncr[T any] interface {
 	Incr[T]
+
+	// Set sets the value of the Var
 	Set(T)
+
+	// Read returns the var as an Incr[A] node.
 	Read() Incr[T]
 }
 

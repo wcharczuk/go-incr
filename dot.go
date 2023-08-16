@@ -12,7 +12,7 @@ import (
 // To do so, you'll want to make sure you have `graphviz` installed
 // locally, and then you'll want to run:
 //
-//    > go run ??? | dot -Tpng > /home/foo/graph.png
+//	> go run ??? | dot -Tpng > /home/foo/graph.png
 //
 // As an for an example of a program that renders a graph with `Dot`,
 // look at `examples/benchmark/main.go`.

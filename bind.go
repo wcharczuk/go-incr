@@ -9,13 +9,21 @@ import (
 // on a given function and a single input.
 //
 // A way to think about this, as a sequence:
-//    a -> b.bind() -> (c | d | ...)
-//    a -> b.bind() -> c
-//    a -> b.bind() -> ~c~ d
+//
+// A given node `a` can be bound to `c` or `d` or more subnodes
+// with the value of `a` as the input:
+//
+//	a -> b.bind() -> c
+//
+// We might want to, at some point in the future, swap out `c` for `d`
+// based on some logic:
+//
+//	a -> b.bind() -> d
 //
 // As a result, (a) is a child of (b), and (c) or (d) are children of (b).
 // When the bind changes from (c) to (d), (c) is unlinked, and is removed
-// as a "child" of (b),
+// as a "child" of (b), preventing it from being considered part of the
+// overall computation unless it's referenced by another node in the graph.
 func Bind[A, B any](a Incr[A], fn func(A) Incr[B]) BindIncr[B] {
 	o := &bindIncr[A, B]{
 		n: NewNode(),
