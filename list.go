@@ -7,8 +7,13 @@ type list[K comparable, V any] struct {
 	head *listItem[K, V]
 	// tail is the "last" element in the list
 	tail *listItem[K, V]
-	// len is the overall length of the list
-	len int
+	// lookup is a map between the key and the actual list item(s)
+	lookup map[K]*listItem[K, V]
+}
+
+// Len returns the length of the list.
+func (l *list[K, V]) Len() int {
+	return len(l.lookup)
 }
 
 // Push appends a node to the end, or tail, of the list.
@@ -17,8 +22,11 @@ func (l *list[K, V]) Push(k K, v V) *listItem[K, V] {
 		key:   k,
 		value: v,
 	}
+	if l.lookup == nil {
+		l.lookup = make(map[K]*listItem[K, V])
+	}
+	l.lookup[k] = item
 
-	l.len++
 	if l.head == nil {
 		l.head = item
 		l.tail = item
@@ -38,8 +46,11 @@ func (l *list[K, V]) PushFront(k K, v V) *listItem[K, V] {
 		key:   k,
 		value: v,
 	}
+	if l.lookup == nil {
+		l.lookup = make(map[K]*listItem[K, V])
+	}
+	l.lookup[k] = item
 
-	l.len++
 	if l.head == nil {
 		l.head = item
 		l.tail = item
@@ -62,8 +73,7 @@ func (l *list[K, V]) Pop() (k K, v V, ok bool) {
 	k = l.head.key
 	v = l.head.value
 	ok = true
-
-	l.len--
+	delete(l.lookup, k)
 
 	if l.head == l.tail {
 		l.head = nil
@@ -86,8 +96,8 @@ func (l *list[K, V]) PopBack() (k K, v V, ok bool) {
 	k = l.tail.key
 	v = l.tail.value
 	ok = true
+	delete(l.lookup, k)
 
-	l.len--
 	if l.tail == l.head {
 		l.head = nil
 		l.tail = nil
@@ -109,59 +119,40 @@ func (l *list[K, V]) PopAll() (output []V) {
 	}
 	l.head = nil
 	l.tail = nil
-	l.len = 0
+	clear(l.lookup)
 	return
 }
 
 // Find returns the list item that matches a given key.
 func (l *list[K, V]) Find(k K) *listItem[K, V] {
-	ptr := l.head
-	for ptr != nil {
-		if ptr.key == k {
-			return ptr
-		}
-		ptr = ptr.next
+	n, ok := l.lookup[k]
+	if ok {
+		return n
 	}
 	return nil
 }
 
-// Remove removes an element from the list.
-func (l *list[K, V]) Remove(i *listItem[K, V]) {
-	l.len--
-
-	// three possibilities
-	// - i is both the head and the tail
-	// 		- nil out both
-	// - i is the head
-	// 		- set the head to i's next
-	// - i is the tail
-	//		- set the tail to i's previous
-	// - i is neither
-	//		- if i has a next, set its previous to i's previous
-	//		- if i has a previous, set its previous to i's next
-
-	if l.head == i && l.tail == i {
-		l.head = nil
-		l.tail = nil
-		return
-	}
-	if l.head == i {
-		l.head = i.next
-		return
-	}
-	if l.tail == i {
-		l.tail = i.previous
+// Remove removes an element with a given key from the list.
+func (l *list[K, V]) Remove(k K) (ok bool) {
+	if len(l.lookup) == 0 {
 		return
 	}
 
-	next := i.next
-	if next != nil {
-		next.previous = i.previous
+	var node *listItem[K, V]
+	node, ok = l.lookup[k]
+	if !ok {
+		return
 	}
-	previous := i.previous
-	if previous != nil {
-		previous.next = i.next
+	delete(l.lookup, k)
+
+	// splice """out""" the node from the list
+	if node.next != nil {
+		// do things
 	}
+	if node.previous != nil {
+		// do things
+	}
+	return
 }
 
 type listItem[K comparable, V any] struct {
