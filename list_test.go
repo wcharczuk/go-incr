@@ -7,7 +7,7 @@ func idWithNode(n INode) (Identifier, INode) {
 }
 
 func Test_list_Push_Pop(t *testing.T) {
-	q := new(list[Identifier, INode])
+	q := new(List[listItem[Identifier, INode]])
 
 	n0 := newHeightIncr(0)
 	n1 := newHeightIncr(0)
@@ -15,16 +15,15 @@ func Test_list_Push_Pop(t *testing.T) {
 	n3 := newHeightIncr(0)
 
 	var zeroID Identifier
-	id, n, ok := q.Pop()
+	node, ok := q.Pop()
 
 	// Region: empty list
 	{
 		ItsEqual(t, false, ok)
 		ItsNil(t, q.head)
 		ItsNil(t, q.tail)
-		ItsEqual(t, zeroID, id)
-		ItsNil(t, n)
-		ItsEqual(t, 0, q.len)
+		ItsEqual(t, zeroID, node.Key)
+		ItsEqual(t, 0, q.size)
 	}
 
 	// Region: push 0

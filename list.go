@@ -1,175 +1,232 @@
 package incr
 
-// list is a linked list datastructure that can be used
-// as a FIFO queue or a stack depending on the context.
-type list[K comparable, V any] struct {
-	// head is the "first" element in the list
-	head *listItem[K, V]
-	// tail is the "last" element in the list
-	tail *listItem[K, V]
-	// len is the overall length of the list
-	len int
-}
-
-// Push appends a node to the end, or tail, of the list.
-func (l *list[K, V]) Push(k K, v V) *listItem[K, V] {
-	item := &listItem[K, V]{
-		key:   k,
-		value: v,
-	}
-
-	l.len++
-	if l.head == nil {
-		l.head = item
-		l.tail = item
-		return item
-	}
-
-	l.tail.next = item
-	item.previous = l.tail
-	item.next = nil
-	l.tail = item
-	return item
-}
-
-// Push appends a node to the front, or head, of the list.
-func (l *list[K, V]) PushFront(k K, v V) *listItem[K, V] {
-	item := &listItem[K, V]{
-		key:   k,
-		value: v,
-	}
-
-	l.len++
-	if l.head == nil {
-		l.head = item
-		l.tail = item
-		return item
-	}
-
-	l.head.previous = item
-	item.next = l.head
-	item.previous = nil
-	l.head = item
-	return item
-}
-
-// Pop removes the first, or head, element of the list.
-func (l *list[K, V]) Pop() (k K, v V, ok bool) {
-	if l.head == nil {
-		return
-	}
-
-	k = l.head.key
-	v = l.head.value
-	ok = true
-
-	l.len--
-
-	if l.head == l.tail {
-		l.head = nil
-		l.tail = nil
-		return
-	}
-
-	next := l.head.next
-	next.previous = nil
-	l.head = next
-	return
-}
-
-// PopBack removes the last, or tail, element of the list.
-func (l *list[K, V]) PopBack() (k K, v V, ok bool) {
-	if l.tail == nil {
-		return
-	}
-
-	k = l.tail.key
-	v = l.tail.value
-	ok = true
-
-	l.len--
-	if l.tail == l.head {
-		l.head = nil
-		l.tail = nil
-		return
-	}
-
-	previous := l.tail.previous
-	previous.next = nil
-	l.tail = previous
-	return
-}
-
-// PopAll removes all the elements, returning a slice.
-func (l *list[K, V]) PopAll() (output []V) {
-	ptr := l.head
-	for ptr != nil {
-		output = append(output, ptr.value)
-		ptr = ptr.next
-	}
-	l.head = nil
-	l.tail = nil
-	l.len = 0
-	return
-}
-
-// Find returns the list item that matches a given key.
-func (l *list[K, V]) Find(k K) *listItem[K, V] {
-	ptr := l.head
-	for ptr != nil {
-		if ptr.key == k {
-			return ptr
-		}
-		ptr = ptr.next
-	}
-	return nil
-}
-
-// Remove removes an element from the list.
-func (l *list[K, V]) Remove(i *listItem[K, V]) {
-	l.len--
-
-	// three possibilities
-	// - i is both the head and the tail
-	// 		- nil out both
-	// - i is the head
-	// 		- set the head to i's next
-	// - i is the tail
-	//		- set the tail to i's previous
-	// - i is neither
-	//		- if i has a next, set its previous to i's previous
-	//		- if i has a previous, set its previous to i's next
-
-	if l.head == i && l.tail == i {
-		l.head = nil
-		l.tail = nil
-		return
-	}
-	if l.head == i {
-		l.head = i.next
-		return
-	}
-	if l.tail == i {
-		l.tail = i.previous
-		return
-	}
-
-	next := i.next
-	if next != nil {
-		next.previous = i.previous
-	}
-	previous := i.previous
-	if previous != nil {
-		previous.next = i.next
-	}
-}
+const (
+	queueDefaultCapacity = 4
+)
 
 type listItem[K comparable, V any] struct {
-	key K
-	// value is the INode
-	value V
-	// next is the pointer towards the tail
-	next *listItem[K, V]
-	// previous is the pointer towards the head
-	previous *listItem[K, V]
+	Key   K
+	Value V
+}
+
+// List is a fifo buffer that is backed by a pre-allocated array, as opposed to a linked-list
+// which would allocate a whole new struct for each element, which saves GC churn.
+// Push can be O(n), Dequeue can be O(1).
+type List[K comparable, V any] struct {
+	array []listItem[K, V]
+	head  int
+	tail  int
+	len   int
+}
+
+// Len returns the length of the queue (as it is currently populated).
+//
+// Actual memory footprint may be different, use `Cap()` to return total memory.
+func (l *List[K, V]) Len() int {
+	return l.len
+}
+
+// Cap returns the total capacity of the queue, including empty elements.
+func (l *List[K, V]) Cap() int {
+	return len(l.array)
+}
+
+// Clear removes all objects from the Queue.
+func (l *List[K, V]) Clear() {
+	if l.head < l.tail {
+		arrayClear(l.array, l.head, l.len)
+	} else {
+		arrayClear(l.array, l.head, len(l.array)-l.head)
+		arrayClear(l.array, 0, l.tail)
+	}
+	l.head = 0
+	l.tail = 0
+	l.len = 0
+}
+
+// PopAll collects the storage array into a copy array which is returned,
+// zeroing any elements currently contained in the list.
+func (l *List[K, V]) PopAll() (output []V) {
+	if l.len == 0 {
+		return
+	}
+	var zero listItem[K, V]
+	output = make([]V, 0, l.len)
+	if l.head < l.tail {
+		for cursor := l.head; cursor < l.tail; cursor++ {
+			output = append(output, l.array[cursor].Value)
+			l.array[cursor] = zero
+		}
+	} else {
+		for cursor := l.head; cursor < len(l.array); cursor++ {
+			output = append(output, l.array[cursor].Value)
+			l.array[cursor] = zero
+		}
+		for cursor := 0; cursor < l.tail; cursor++ {
+			output = append(output, l.array[cursor].Value)
+			l.array[cursor] = zero
+		}
+	}
+	return
+}
+
+// Trim trims a queue to a given size.
+func (l *List[K, V]) Trim(size int) {
+	l.setCapacity(size)
+}
+
+// Push adds an element to the "back" of the Queue.
+func (l *List[K, V]) Push(k K, v V) {
+	if len(l.array) == 0 {
+		l.array = make([]listItem[K, V], queueDefaultCapacity)
+	} else if l.len == len(l.array) {
+		l.setCapacity(len(l.array) << 1)
+	}
+	l.array[l.tail] = listItem[K, V]{k, v}
+	l.tail = (l.tail + 1) % len(l.array)
+	l.len++
+}
+
+// Pop removes the oldest (head) element from the Queue.
+func (l *List[K, V]) Pop() (key K, val V, ok bool) {
+	if l.len == 0 {
+		return
+	}
+
+	key = l.array[l.head].Key
+	val = l.array[l.head].Value
+	ok = true
+
+	var zero listItem[K, V]
+	l.array[l.head] = zero
+	l.head = (l.head + 1) % len(l.array)
+	l.len--
+	return
+}
+
+// PopBack removes the newest (tail) element from the Queue.
+func (l *List[K, V]) PopBack() (key K, val V, ok bool) {
+	if l.len == 0 {
+		return
+	}
+
+	var zero listItem[K, V]
+	if l.tail == 0 {
+		key = l.array[len(l.array)-1].Key
+		val = l.array[len(l.array)-1].Value
+		l.array[len(l.array)-1] = zero
+		l.tail = len(l.array) - 1
+	} else {
+		key = l.array[l.tail-1].Key
+		val = l.array[l.tail-1].Value
+		l.array[l.tail-1] = zero
+		l.tail = l.tail - 1
+	}
+	ok = true
+	l.len--
+	return
+}
+
+// Head returns but does not remove the first element.
+func (l *List[K, V]) Head() (key K, val V, ok bool) {
+	if l.len == 0 {
+		return
+	}
+	key = l.array[l.head].Key
+	val = l.array[l.head].Value
+	ok = true
+	return
+}
+
+// Tail returns but does not remove the last element.
+func (l *List[K, V]) Tail() (key K, val V, ok bool) {
+	if l.len == 0 {
+		return
+	}
+	if l.tail == 0 {
+		key = l.array[len(l.array)-1].Key
+		val = l.array[len(l.array)-1].Value
+		ok = true
+		return
+	}
+	key = l.array[l.tail-1].Key
+	val = l.array[l.tail-1].Value
+	ok = true
+	return
+}
+
+// Each calls the fn for each element in the buffer.
+func (l *List[K, V]) Each(fn func(K, V)) {
+	if l.len == 0 {
+		return
+	}
+	if l.head < l.tail {
+		for cursor := l.head; cursor < l.tail; cursor++ {
+			fn(l.array[cursor].Key, l.array[cursor].Value)
+		}
+	} else {
+		for cursor := l.head; cursor < len(l.array); cursor++ {
+			fn(l.array[cursor].Key, l.array[cursor].Value)
+		}
+		for cursor := 0; cursor < l.tail; cursor++ {
+			fn(l.array[cursor].Key, l.array[cursor].Value)
+		}
+	}
+}
+
+// Values collects the storage array into a copy array which is returned.
+func (l *List[K, V]) Values() (output []V) {
+	if l.len == 0 {
+		return
+	}
+	output = make([]V, 0, l.len)
+	if l.head < l.tail {
+		for cursor := l.head; cursor < l.tail; cursor++ {
+			output = append(output, l.array[cursor].Value)
+		}
+	} else {
+		for cursor := l.head; cursor < len(l.array); cursor++ {
+			output = append(output, l.array[cursor].Value)
+		}
+		for cursor := 0; cursor < l.tail; cursor++ {
+			output = append(output, l.array[cursor].Value)
+		}
+	}
+	return
+}
+
+// setCapacity copies the queue into a new buffer
+// with the given capacity.
+//
+// the new buffer will reset the head and tail
+// indices such that head will be 0, and tail
+// will be wherever the size index places it.
+func (l *List[K, V]) setCapacity(capacity int) {
+	newArray := make([]listItem[K, V], capacity)
+	if l.len > 0 {
+		if l.head < l.tail {
+			copy(newArray, l.array[l.head:l.head+l.len])
+		} else {
+			copy(newArray, l.array[l.head:])
+			copy(newArray[len(l.array)-l.head:], l.array[:l.tail])
+		}
+	}
+	l.array = newArray
+	l.head = 0
+	if capacity < l.len {
+		l.len = capacity
+	}
+	if l.len == capacity {
+		l.tail = 0
+	} else {
+		l.tail = l.len
+	}
+}
+
+func arrayClear[A any](source []A, index, length int) {
+	var zero A
+	for x := 0; x < length; x++ {
+		absoluteIndex := x + index
+		source[absoluteIndex] = zero
+	}
 }

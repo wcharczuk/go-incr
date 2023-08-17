@@ -4,8 +4,15 @@ import (
 	"testing"
 )
 
-func Test_recomuteHeap_Add(t *testing.T) {
+func value[K comparable, V any](k K, v V, _ bool) V {
+	return v
+}
 
+func key[K comparable, V any](k K, v V, _ bool) K {
+	return k
+}
+
+func Test_recomuteHeap_Add(t *testing.T) {
 	rh := newRecomputeHeap(32)
 
 	n50 := newHeightIncr(5)
@@ -18,9 +25,8 @@ func Test_recomuteHeap_Add(t *testing.T) {
 	{
 		ItsEqual(t, 1, rh.Len())
 		ItsEqual(t, 1, rh.heights[5].len)
-		ItsNotNil(t, 1, rh.heights[5].head)
-		ItsNotNil(t, 1, rh.heights[5].head.value)
-		ItsEqual(t, n50.Node().id, rh.heights[5].head.value.Node().id)
+		ItsNotNil(t, value(rh.heights[5].Head()))
+		ItsEqual(t, n50.Node().id, key(rh.heights[5].Head()))
 		ItsEqual(t, true, rh.Has(n50))
 		ItsEqual(t, false, rh.Has(n60))
 		ItsEqual(t, false, rh.Has(n70))

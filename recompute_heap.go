@@ -1,6 +1,7 @@
 package incr
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -8,7 +9,7 @@ import (
 func newRecomputeHeap(heightLimit int) *recomputeHeap {
 	return &recomputeHeap{
 		heightLimit: heightLimit,
-		heights:     make([]*list[Identifier, INode], heightLimit),
+		heights:     make([]*List[Identifier, INode], heightLimit),
 		lookup:      make(map[Identifier]*listItem[Identifier, INode]),
 	}
 }
@@ -31,7 +32,7 @@ type recomputeHeap struct {
 	// heights is an array of linked lists corresponding
 	// to node heights. it should be pre-allocated with
 	// the constructor to the height limit number of elements.
-	heights []*list[Identifier, INode]
+	heights []*List[Identifier, INode]
 	// lookup is a quick lookup function for testing if an item exists
 	// in the heap, and specifically removing single elements quickly by id.
 	lookup map[Identifier]*listItem[Identifier, INode]
@@ -78,24 +79,25 @@ func (rh *recomputeHeap) Has(s INode) (ok bool) {
 	return
 }
 
-// RemoveMin removes the minimum node from the recompute heap.
+// RemoveMin removes the first node from the minimum height
+// list of the recompute heap.
 func (rh *recomputeHeap) RemoveMin() INode {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
 
-	if rh.heights[rh.minHeight] != nil && rh.heights[rh.minHeight].len > 0 {
-		id, node, _ := rh.heights[rh.minHeight].Pop()
-		delete(rh.lookup, id)
-		if rh.heights[rh.minHeight].len == 0 {
+	if rh.heights[rh.minHeight] != nil && rh.heights[rh.minHeight].Len() > 0 {
+		nodeWithID, _ := rh.heights[rh.minHeight].Pop()
+		delete(rh.lookup, nodeWithID.Key)
+		if rh.heights[rh.minHeight].Len() == 0 {
 			rh.minHeight = rh.nextMinHeight()
 		}
-		return node
+		return nodeWithID.Value
 	}
 	return nil
 }
 
 // RemoveMinHeight removes the minimum height nodes from
-// the recompute heap all at once.
+// the recompute heap all at once as a batch.
 func (rh *recomputeHeap) RemoveMinHeight() (nodes []INode) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
@@ -136,8 +138,9 @@ func (rh *recomputeHeap) addUnsafe(nodes ...INode) {
 	for _, s := range nodes {
 		sn := s.Node()
 		if sn.height >= rh.heightLimit {
-			panic("recompute heap; cannot add node with height greater than max height")
+			panic(fmt.Sprintf("recompute heap; cannot add node with height %d greater than heap max height of %d", sn.height, rh.maxHeight))
 		}
+
 		// this needs to be here for
 		// `SetStale` to work correctly.
 		if _, ok := rh.lookup[sn.id]; ok {

@@ -19,12 +19,15 @@ func MapN[A, B any](fn MapNFunc[A, B], inputs ...Incr[A]) MapNIncr[A, B] {
 	return o
 }
 
-// MapNFunc is the function that the ApplyN incremental applies.
+// MapNFunc is the function that the MapN incremental applies.
 type MapNFunc[A, B any] func(context.Context, ...A) (B, error)
 
-// MapNIncr is a type of incremental that can add inputs over time.
+// MapNIncr is a type of map incremental that can be built
+// with a dynamic number of children of type A that returns a type B.
 type MapNIncr[A, B any] interface {
 	Incr[B]
+
+	// AddInput adds an input to the map input list.
 	AddInput(Incr[A])
 }
 
