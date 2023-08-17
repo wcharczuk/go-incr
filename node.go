@@ -195,20 +195,20 @@ func (n *Node) shouldRecompute() bool {
 	return false
 }
 
-// calculateHeight calculates the nodes height in respect to its children
+// pseudoHeight calculates the nodes height in respect to its children.
 //
-// it is only called during discovery, for subsequent uses the height field
-// should be referenced.
-func (n *Node) calculateHeight() int {
-	if n.height > 0 {
-		return n.height
-	}
+// it will use the maximum height _the node has ever seen_, i.e.
+// if the height is 1, then 3, then 1 again, this will return 3.
+func (n *Node) pseudoHeight() int {
 	var maxChildHeight int
 	var childHeight int
 	for _, c := range n.children {
-		if childHeight = c.Node().calculateHeight(); childHeight > maxChildHeight {
+		if childHeight = c.Node().pseudoHeight(); childHeight > maxChildHeight {
 			maxChildHeight = childHeight
 		}
+	}
+	if n.height > maxChildHeight {
+		return n.height
 	}
 	return maxChildHeight + 1
 }

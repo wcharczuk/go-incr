@@ -10,8 +10,8 @@ import (
 // can be resolved incrementally using an action.
 type DependencyGraph[Result any] struct {
 	Dependencies []Dependency
-	Action       incr.MapNFunc[Result, Result]
-	OnUpdate     func(context.Context)
+	Action       func(context.Context, Dependency) (Result, error)
+	OnUpdate     func(context.Context, Dependency)
 }
 
 // Dependency is pseudo-dependency metadata.
@@ -22,7 +22,7 @@ type Dependency struct {
 
 // Create walks the dependency graph and returns the "leaves" of the graph, or the nodes that
 // are not depended on by any other nodes.
-func (dg DependencyGraph[Result]) Create() *incr.Graph {
+func (dg DependencyGraph[Result]) Create() (*incr.Graph, map[string]DependencyIncr[Result]) {
 	dependencyLookup := dg.createDependencyLookup()
 
 	// build "dependedBy" list(s)
@@ -46,7 +46,7 @@ func (dg DependencyGraph[Result]) Create() *incr.Graph {
 		}
 	}
 
-	return incr.New(leaves...)
+	return incr.New(leaves...), packageIncrementals
 }
 
 func (dg DependencyGraph[Result]) createDependencyLookup() (output map[string]*dependencyWithDependedBy) {
@@ -70,10 +70,22 @@ func (dg DependencyGraph[Result]) createDependencyIncrLookup() (output map[strin
 	return
 }
 
+func (dg DependencyGraph[Result]) mapAction(d Dependency) func(ctx context.Context, _ ...Result) (Result, error) {
+	return func(ctx context.Context, _ ...Result) (Result, error) {
+		return dg.Action(ctx, d)
+	}
+}
+
+func (dg DependencyGraph[Result]) mapOnUpdate(d Dependency) func(context.Context) {
+	return func(ctx context.Context) {
+		dg.OnUpdate(ctx, d)
+	}
+}
+
 func (dg DependencyGraph[Result]) createDependencyIncr(d Dependency) DependencyIncr[Result] {
-	output := incr.MapN[Result, Result](dg.Action)
+	output := incr.MapN[Result, Result](dg.mapAction(d))
 	if dg.OnUpdate != nil {
-		output.Node().OnUpdate(dg.OnUpdate)
+		output.Node().OnUpdate(dg.mapOnUpdate(d))
 	}
 	output.Node().SetLabel(d.Name)
 	return output

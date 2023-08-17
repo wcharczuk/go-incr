@@ -131,7 +131,7 @@ func (graph *Graph) discoverNode(gn INode) {
 	gnn.graph = graph
 	gnn.detectCutoff(gn)
 	gnn.detectStabilize(gn)
-	gnn.height = gnn.calculateHeight()
+	gnn.height = gnn.pseudoHeight()
 	graph.numNodes++
 	graph.recomputeHeap.Add(gn)
 	return

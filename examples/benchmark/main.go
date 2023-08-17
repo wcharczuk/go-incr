@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"time"
 
 	"github.com/wcharczuk/go-incr"
 )
@@ -21,8 +20,6 @@ func concat(a, b string) string {
 }
 
 func main() {
-	rand.Seed(time.Now().Unix())
-
 	nodes := make([]incr.Incr[string], SIZE)
 	for x := 0; x < SIZE; x++ {
 		nodes[x] = incr.Var(fmt.Sprintf("var_%d", x))
@@ -42,8 +39,7 @@ func main() {
 		ctx = incr.WithTracing(ctx)
 	}
 
-	graph := incr.New()
-	graph.Observe(nodes[0])
+	graph := incr.New(nodes[0])
 
 	var err error
 	for n := 0; n < ROUNDS; n++ {
