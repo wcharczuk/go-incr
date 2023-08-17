@@ -96,7 +96,7 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 }
 
 func (b *bindIncr[A, B]) String() string {
-	return Label(b.n, "bind")
+	return FormatLabel(b.n, "bind")
 }
 
 // bindUpdate is a helper for dealing with bind node changes

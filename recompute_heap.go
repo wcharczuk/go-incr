@@ -1,6 +1,7 @@
 package incr
 
 import (
+	"fmt"
 	"sync"
 )
 
@@ -83,10 +84,10 @@ func (rh *recomputeHeap) RemoveMin() INode {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
 
-	if rh.heights[rh.minHeight] != nil && rh.heights[rh.minHeight].len > 0 {
+	if rh.heights[rh.minHeight] != nil && rh.heights[rh.minHeight].Len() > 0 {
 		id, node, _ := rh.heights[rh.minHeight].Pop()
 		delete(rh.lookup, id)
-		if rh.heights[rh.minHeight].len == 0 {
+		if rh.heights[rh.minHeight].Len() == 0 {
 			rh.minHeight = rh.nextMinHeight()
 		}
 		return node
@@ -100,7 +101,7 @@ func (rh *recomputeHeap) RemoveMinHeight() (nodes []INode) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
 
-	if rh.heights[rh.minHeight] != nil && rh.heights[rh.minHeight].len > 0 {
+	if rh.heights[rh.minHeight] != nil && rh.heights[rh.minHeight].Len() > 0 {
 		nodes = rh.heights[rh.minHeight].PopAll()
 		for _, n := range nodes {
 			delete(rh.lookup, n.Node().id)
@@ -121,9 +122,9 @@ func (rh *recomputeHeap) Remove(s INode) {
 		return
 	}
 	delete(rh.lookup, sn.id)
-	rh.heights[sn.height].Remove(item)
+	rh.heights[sn.height].Remove(item.key)
 
-	if sn.height == rh.minHeight && (rh.heights[sn.height] == nil || rh.heights[sn.height].len == 0) {
+	if sn.height == rh.minHeight && (rh.heights[sn.height] == nil || rh.heights[sn.height].Len() == 0) {
 		rh.minHeight = rh.nextMinHeight()
 	}
 }
@@ -136,10 +137,12 @@ func (rh *recomputeHeap) addUnsafe(nodes ...INode) {
 	for _, s := range nodes {
 		sn := s.Node()
 		if sn.height >= rh.heightLimit {
-			panic("recompute heap; cannot add node with height greater than max height")
+			panic(fmt.Sprintf("recompute heap; cannot add node with height %d which is greater than the max height %d", sn.height, rh.heightLimit))
 		}
+
 		// this needs to be here for
-		// `SetStale` to work correctly.
+		// `SetStale` to work correctly, specifically
+		// we may need to add items multiple times.
 		if _, ok := rh.lookup[sn.id]; ok {
 			continue
 		}

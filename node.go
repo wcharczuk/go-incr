@@ -22,8 +22,8 @@ func Link(parent INode, inputs ...INode) {
 	}
 }
 
-// Label returns a standard node label.
-func Label(n *Node, nodeType string) string {
+// FormatLabel returns a standard node label.
+func FormatLabel(n *Node, nodeType string) string {
 	if n.label != "" {
 		return fmt.Sprintf("%s[%s]:%s", nodeType, n.id.Short(), n.label)
 	}
@@ -80,6 +80,11 @@ type Node struct {
 	numChanges uint64
 }
 
+// ID returns a unique identifier for the node.
+func (n *Node) ID() Identifier {
+	return n.id
+}
+
 // OnUpdate registers an update handler.
 func (n *Node) OnUpdate(fn func(context.Context)) {
 	n.onUpdateHandlers = append(n.onUpdateHandlers, fn)
@@ -88,6 +93,12 @@ func (n *Node) OnUpdate(fn func(context.Context)) {
 // OnError registers an error handler.
 func (n *Node) OnError(fn func(context.Context, error)) {
 	n.onErrorHandlers = append(n.onErrorHandlers, fn)
+}
+
+// Label returns a descriptive label for the node or
+// an empty string if one hasn't been provided.
+func (n *Node) Label() string {
+	return n.label
 }
 
 // SetLabel sets the descriptive label on the node.

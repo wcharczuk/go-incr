@@ -64,5 +64,5 @@ func (m2n *map2Incr[A, B, C]) Stabilize(ctx context.Context) (err error) {
 }
 
 func (m2n *map2Incr[A, B, C]) String() string {
-	return Label(m2n.n, "map2")
+	return FormatLabel(m2n.n, "map2")
 }

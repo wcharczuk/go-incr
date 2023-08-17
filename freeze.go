@@ -34,7 +34,7 @@ func (f *freezeIncr[T]) Node() *Node { return f.n }
 
 func (f *freezeIncr[T]) Value() T { return f.v }
 
-func (f *freezeIncr[T]) String() string { return Label(f.n, "freeze") }
+func (f *freezeIncr[T]) String() string { return FormatLabel(f.n, "freeze") }
 
 func (f *freezeIncr[A]) Stabilize(_ context.Context) error {
 	if f.freezeAt > 0 {

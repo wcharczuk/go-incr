@@ -58,5 +58,5 @@ func (b *bindIfIncr[A]) Stabilize(ctx context.Context) error {
 }
 
 func (b *bindIfIncr[A]) String() string {
-	return Label(b.n, "bind_if")
+	return FormatLabel(b.n, "bind_if")
 }

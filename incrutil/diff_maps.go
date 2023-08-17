@@ -63,7 +63,7 @@ type diffMapByKeysAddedIncr[K comparable, V any] struct {
 }
 
 func (mfn *diffMapByKeysAddedIncr[K, V]) String() string {
-	return incr.Label(mfn.n, "diff_map_by_keys_added")
+	return incr.FormatLabel(mfn.n, "diff_map_by_keys_added")
 }
 
 func (mfn *diffMapByKeysAddedIncr[K, V]) Node() *incr.Node { return mfn.n }
@@ -91,7 +91,7 @@ type diffMapByKeysRemovedIncr[K comparable, V any] struct {
 }
 
 func (mfn *diffMapByKeysRemovedIncr[K, V]) String() string {
-	return incr.Label(mfn.n, "diff_map_by_keys_removed")
+	return incr.FormatLabel(mfn.n, "diff_map_by_keys_removed")
 }
 
 func (mfn *diffMapByKeysRemovedIncr[K, V]) Node() *incr.Node { return mfn.n }

@@ -40,5 +40,5 @@ func (f *funcIncr[T]) Stabilize(ctx context.Context) error {
 }
 
 func (f *funcIncr[T]) String() string {
-	return Label(f.n, "func")
+	return FormatLabel(f.n, "func")
 }

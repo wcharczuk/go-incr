@@ -51,4 +51,4 @@ func (mi *mapIfIncr[A]) Stabilize(ctx context.Context) error {
 	return nil
 }
 
-func (mi *mapIfIncr[A]) String() string { return Label(mi.n, "map_if") }
+func (mi *mapIfIncr[A]) String() string { return FormatLabel(mi.n, "map_if") }

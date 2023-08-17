@@ -63,4 +63,4 @@ func (w *watchIncr[A]) Node() *Node {
 }
 
 // String implements fmt.Stringer.
-func (w *watchIncr[A]) String() string { return Label(w.n, "watch") }
+func (w *watchIncr[A]) String() string { return FormatLabel(w.n, "watch") }

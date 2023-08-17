@@ -164,7 +164,7 @@ func (graph *Graph) undiscoverNode(gn INode) {
 	delete(graph.observed, gnn.id)
 	graph.numNodes--
 	graph.recomputeHeap.Remove(gn)
-	graph.handleAfterStabilization.Remove(graph.handleAfterStabilization.Find(gn.Node().id))
+	graph.handleAfterStabilization.Remove(gn.Node().ID())
 }
 
 //
@@ -191,20 +191,20 @@ func (graph *Graph) stabilizeEnd(ctx context.Context) {
 	tracePrintf(ctx, "stabilize[%d]; stabilization complete", graph.stabilizationNum)
 	graph.stabilizationNum++
 	var n INode
-	for graph.setDuringStabilization.len > 0 {
+	for !graph.setDuringStabilization.IsEmpty() {
 		_, n, _ = graph.setDuringStabilization.Pop()
 		_ = n.Node().maybeStabilize(ctx)
 		graph.SetStale(n)
 	}
 	atomic.StoreInt32(&graph.status, StatusRunningUpdateHandlers)
 	var updateHandlers []func(context.Context)
-	if graph.handleAfterStabilization.len > 0 {
+	if !graph.handleAfterStabilization.IsEmpty() {
 		tracePrintf(ctx, "stabilize[%d]; calling update handlers starting", graph.stabilizationNum)
 		defer func() {
 			tracePrintf(ctx, "stabilize[%d]; calling update handlers complete", graph.stabilizationNum)
 		}()
 	}
-	for graph.handleAfterStabilization.len > 0 {
+	for !graph.handleAfterStabilization.IsEmpty() {
 		_, updateHandlers, _ = graph.handleAfterStabilization.Pop()
 		for _, uh := range updateHandlers {
 			uh(ctx)

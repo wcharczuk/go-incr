@@ -60,5 +60,5 @@ func (b *bind3Incr[A, B, C, D]) Stabilize(ctx context.Context) error {
 }
 
 func (b *bind3Incr[A, B, C, D]) String() string {
-	return Label(b.n, "bind3")
+	return FormatLabel(b.n, "bind3")
 }

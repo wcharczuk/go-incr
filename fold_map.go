@@ -42,7 +42,7 @@ type foldMapIncr[K comparable, V any, O any] struct {
 	val O
 }
 
-func (fmi *foldMapIncr[K, V, O]) String() string { return Label(fmi.n, "fold_map") }
+func (fmi *foldMapIncr[K, V, O]) String() string { return FormatLabel(fmi.n, "fold_map") }
 
 func (fmi *foldMapIncr[K, V, O]) Node() *Node { return fmi.n }
 
