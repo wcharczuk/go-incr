@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // New returns a new graph state, which is the type that
@@ -24,7 +25,7 @@ func New(observed ...INode) *Graph {
 		handleAfterStabilization: new(list[Identifier, []func(context.Context)]),
 		recomputeHeap:            newRecomputeHeap(defaultRecomputeHeapMaxHeight),
 	}
-	g.AddNodes(observed...)
+	g.Observe(observed...)
 	return g
 }
 
@@ -58,6 +59,8 @@ type Graph struct {
 	// - StatusStabilizing
 	// - StatusRunningUpdateHandlers
 	status int32
+	// stabilizationStarted is the time of the stabilization pass currently in progress
+	stabilizationStarted time.Time
 	// numNodes are the total number of nodes found during
 	// discovery and is typically used for testing
 	numNodes uint64
@@ -71,16 +74,16 @@ type Graph struct {
 	numNodesChanged uint64
 }
 
-// AddNodes adds a given list of nodes.
+// Observe observes a given list of nodes.
 //
-// The adding process involves discovering nodes
+// The observation process involves discovering nodes
 // linked to by dependency relationships of the given nodes
 // setting up the computation metadata and other infrastructure
 // to enable us to stabilize the computation later.
 //
 // Each node should in effect represent separate "graphs" but
 // deduplication will be handled during the adding process.
-func (graph *Graph) AddNodes(nodes ...INode) {
+func (graph *Graph) Observe(nodes ...INode) {
 	graph.mu.Lock()
 	for _, n := range nodes {
 		graph.discoverAllNodes(n)
@@ -177,14 +180,16 @@ func (graph *Graph) ensureNotStabilizing(ctx context.Context) error {
 
 func (graph *Graph) stabilizeStart(ctx context.Context) {
 	atomic.StoreInt32(&graph.status, StatusStabilizing)
+	graph.stabilizationStarted = time.Now()
 	tracePrintf(ctx, "stabilize[%d]; stabilization starting", graph.stabilizationNum)
 }
 
 func (graph *Graph) stabilizeEnd(ctx context.Context) {
 	defer func() {
+		graph.stabilizationStarted = time.Time{}
 		atomic.StoreInt32(&graph.status, StatusNotStabilizing)
 	}()
-	tracePrintf(ctx, "stabilize[%d]; stabilization complete", graph.stabilizationNum)
+	tracePrintf(ctx, "stabilize[%d]; stabilization complete (%v)", graph.stabilizationNum, time.Since(graph.stabilizationStarted).Round(time.Microsecond))
 	graph.stabilizationNum++
 	var n INode
 	for !graph.setDuringStabilization.IsEmpty() {

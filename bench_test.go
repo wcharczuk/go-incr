@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
-	"time"
 )
 
 func Benchmark_Stabilize_withPreInitialize_512(b *testing.B) {
@@ -72,8 +71,7 @@ func benchmarkSize(size int, b *testing.B) {
 
 	ctx := testContext()
 
-	graph := New()
-	graph.AddNodes(nodes[0])
+	graph := New(nodes[len(nodes)-1])
 
 	// this is what we care about
 	b.ResetTimer()
@@ -101,8 +99,6 @@ func benchmarkSize(size int, b *testing.B) {
 }
 
 func benchmarkParallelSize(size int, b *testing.B) {
-	rand.Seed(time.Now().Unix())
-
 	nodes := make([]Incr[string], size)
 	for x := 0; x < size; x++ {
 		nodes[x] = Var(fmt.Sprintf("var_%d", x))
@@ -117,8 +113,7 @@ func benchmarkParallelSize(size int, b *testing.B) {
 		cursor += x
 	}
 
-	graph := New()
-	graph.AddNodes(nodes[0])
+	graph := New(nodes[0])
 	ctx := testContext()
 
 	// this is what we care about

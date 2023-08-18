@@ -23,14 +23,7 @@ import (
 // Each parallel recompute cycle may produce new nodes to process, and as a result
 // parallel stabilization can move up and down in height before fully recomputing
 // the graph.
-func (graph *Graph) ParallelStabilize(ctx context.Context) error {
-	if err := graph.parallelStabilize(ctx); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (graph *Graph) parallelStabilize(ctx context.Context) (err error) {
+func (graph *Graph) ParallelStabilize(ctx context.Context) (err error) {
 	if err = graph.ensureNotStabilizing(ctx); err != nil {
 		return
 	}

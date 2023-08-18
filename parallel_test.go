@@ -8,14 +8,13 @@ import (
 func Test_ParallelStabilize(t *testing.T) {
 	ctx := testContext()
 
-	graph := New()
-
 	v0 := Var("foo")
 	v1 := Var("bar")
-	m0 := Map2(v0.Read(), v1.Read(), func(a, b string) string {
+	m0 := Map2(v0, v1, func(a, b string) string {
 		return a + " " + b
 	})
-	graph.AddNodes(v0, v1, m0)
+
+	graph := New(m0)
 
 	err := graph.ParallelStabilize(ctx)
 	ItsNil(t, err)
@@ -69,7 +68,7 @@ func Test_ParallelStabilize_jsDocs(t *testing.T) {
 
 	i := Var(data)
 	output := Map(
-		i.Read(),
+		i,
 		func(entries []Entry) (output []string) {
 			for _, e := range entries {
 				if e.Time.Sub(now) > 2*time.Second {
@@ -80,8 +79,7 @@ func Test_ParallelStabilize_jsDocs(t *testing.T) {
 		},
 	)
 
-	graph := New()
-	graph.AddNodes(output)
+	graph := New(output)
 
 	err := graph.ParallelStabilize(ctx)
 	ItsNil(t, err)

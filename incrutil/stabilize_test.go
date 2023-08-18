@@ -20,13 +20,12 @@ func Test_Stabilize_diffMapByKeysAdded(t *testing.T) {
 	}
 
 	mv := incr.Var(m)
-	mda := DiffMapByKeysAdded(mv.Read())
+	mda := DiffMapByKeysAdded(mv)
 	mf := incr.FoldMap(mda, 0, func(key string, val, accum int) int {
 		return accum + val
 	})
 
-	graph := incr.New()
-	graph.AddNodes(mf)
+	graph := incr.New(mf)
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, 21, mf.Value())
@@ -60,13 +59,12 @@ func Test_Stabilize_diffMapByKeysRemoved(t *testing.T) {
 	}
 
 	mv := incr.Var(m)
-	mdr := DiffMapByKeysRemoved(mv.Read())
+	mdr := DiffMapByKeysRemoved(mv)
 	mf := incr.FoldMap(mdr, 0, func(key string, val, accum int) int {
 		return accum + val
 	})
 
-	graph := incr.New()
-	graph.AddNodes(mf)
+	graph := incr.New(mf)
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, 0, mf.Value())
@@ -93,7 +91,7 @@ func Test_Stabilize_diffMapByKeys(t *testing.T) {
 	}
 
 	mv := incr.Var(m)
-	mda, mdr := DiffMapByKeys(mv.Read())
+	mda, mdr := DiffMapByKeys(mv)
 	mfa := incr.FoldMap(mda, 0, func(key string, val, accum int) int {
 		return accum + val
 	})
@@ -101,8 +99,7 @@ func Test_Stabilize_diffMapByKeys(t *testing.T) {
 		return accum + val
 	})
 
-	graph := incr.New()
-	graph.AddNodes(mfa, mfr)
+	graph := incr.New(mfr)
 
 	_ = graph.Stabilize(ctx)
 	_ = graph.Stabilize(ctx)
@@ -134,12 +131,11 @@ func Test_Stabilize_diffSlice(t *testing.T) {
 		6,
 	}
 	mv := incr.Var(m)
-	mf := incr.FoldLeft(DiffSliceByIndicesAdded(mv.Read()), "", func(accum string, val int) string {
+	mf := incr.FoldLeft(DiffSliceByIndicesAdded(mv), "", func(accum string, val int) string {
 		return accum + fmt.Sprint(val)
 	})
 
-	graph := incr.New()
-	graph.AddNodes(mv, mv)
+	graph := incr.New(mf)
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, "123456", mf.Value())

@@ -81,7 +81,7 @@ func main() {
 	data := make(map[incr.Identifier]Order)
 	dataInput := incr.Var(data)
 
-	dataInputAdds := incrutil.DiffMapByKeysAdded(dataInput.Read())
+	dataInputAdds := incrutil.DiffMapByKeysAdded(dataInput)
 	orders := incr.FoldMap(
 		dataInputAdds,
 		0,
@@ -105,7 +105,7 @@ func main() {
 		},
 	)
 
-	graph.AddNodes(dataInput, orders, shares, symbolCounts)
+	graph.Observe(orders, shares, symbolCounts)
 	for x := 0; x < 10; x++ {
 		_ = graph.Stabilize(ctx)
 		fmt.Println("orders:", orders.Value())
