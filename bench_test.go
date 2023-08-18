@@ -56,8 +56,6 @@ func Benchmark_ParallelStabilize_withPreInitialize_16384(b *testing.B) {
 }
 
 func benchmarkSize(size int, b *testing.B) {
-	rand.Seed(time.Now().Unix())
-
 	nodes := make([]Incr[string], size)
 	for x := 0; x < size; x++ {
 		nodes[x] = Var(fmt.Sprintf("var_%d", x))
@@ -75,7 +73,7 @@ func benchmarkSize(size int, b *testing.B) {
 	ctx := testContext()
 
 	graph := New()
-	graph.Observe(nodes[0])
+	graph.AddNodes(nodes[0])
 
 	// this is what we care about
 	b.ResetTimer()
@@ -120,7 +118,7 @@ func benchmarkParallelSize(size int, b *testing.B) {
 	}
 
 	graph := New()
-	graph.Observe(nodes[0])
+	graph.AddNodes(nodes[0])
 	ctx := testContext()
 
 	// this is what we care about

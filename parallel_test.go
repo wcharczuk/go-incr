@@ -15,8 +15,7 @@ func Test_ParallelStabilize(t *testing.T) {
 	m0 := Map2(v0.Read(), v1.Read(), func(a, b string) string {
 		return a + " " + b
 	})
-
-	graph.Observe(v0, v1, m0)
+	graph.AddNodes(v0, v1, m0)
 
 	err := graph.ParallelStabilize(ctx)
 	ItsNil(t, err)
@@ -82,7 +81,8 @@ func Test_ParallelStabilize_jsDocs(t *testing.T) {
 	)
 
 	graph := New()
-	graph.Observe(output)
+	graph.AddNodes(output)
+
 	err := graph.ParallelStabilize(ctx)
 	ItsNil(t, err)
 	ItsEqual(t, 2, len(output.Value()))

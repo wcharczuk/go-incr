@@ -5,6 +5,10 @@ import (
 	"sync"
 )
 
+// defaultRecomputeHeapMaxHeight is the default
+// maximum recompute heap height when we create graph states.
+const defaultRecomputeHeapMaxHeight = 255
+
 // newRecomputeHeap returns a new recompute heap with a given maximum height.
 func newRecomputeHeap(heightLimit int) *recomputeHeap {
 	return &recomputeHeap{

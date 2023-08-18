@@ -1,7 +1,8 @@
 package incr
 
-// list is a linked list datastructure that can be used
-// as a FIFO queue or a stack depending on the context.
+// list is a linked list structure that can be used
+// as a ordered list as well as a constant time
+// map using a similar technique to high throughput LRU queues.
 type list[K comparable, V any] struct {
 	// head is the "first" element in the list
 	head *listItem[K, V]
@@ -69,7 +70,7 @@ func (l *list[K, V]) PushFront(k K, v V) *listItem[K, V] {
 	return item
 }
 
-// Pop removes the first, or head, element of the list.
+// Pop removes the  head element of the list and returns it.
 func (l *list[K, V]) Pop() (k K, v V, ok bool) {
 	if l.head == nil { // follows that items is nil
 		return
@@ -92,7 +93,7 @@ func (l *list[K, V]) Pop() (k K, v V, ok bool) {
 	return
 }
 
-// PopBack removes the last, or tail, element of the list.
+// PopBack removes the tail element of the list and returns it.
 func (l *list[K, V]) PopBack() (k K, v V, ok bool) {
 	if l.tail == nil { // follows that items is nil
 		return

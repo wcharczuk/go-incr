@@ -105,7 +105,7 @@ func main() {
 		},
 	)
 
-	graph.Observe(dataInput, orders, shares, symbolCounts)
+	graph.AddNodes(dataInput, orders, shares, symbolCounts)
 	for x := 0; x < 10; x++ {
 		_ = graph.Stabilize(ctx)
 		fmt.Println("orders:", orders.Value())

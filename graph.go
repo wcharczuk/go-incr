@@ -24,13 +24,9 @@ func New(observed ...INode) *Graph {
 		handleAfterStabilization: new(list[Identifier, []func(context.Context)]),
 		recomputeHeap:            newRecomputeHeap(defaultRecomputeHeapMaxHeight),
 	}
-	g.Observe(observed...)
+	g.AddNodes(observed...)
 	return g
 }
-
-// defaultRecomputeHeapMaxHeight is the default
-// maximum recompute heap height when we create graph states.
-const defaultRecomputeHeapMaxHeight = 255
 
 // Graph is the state that is shared across nodes.
 //
@@ -75,16 +71,16 @@ type Graph struct {
 	numNodesChanged uint64
 }
 
-// Observe observes a given list of nodes.
+// AddNodes adds a given list of nodes.
 //
-// The observation process involves discovering nodes
-// linked to by parent child relationships of the given nodes
+// The adding process involves discovering nodes
+// linked to by dependency relationships of the given nodes
 // setting up the computation metadata and other infrastructure
 // to enable us to stabilize the computation later.
 //
-// Each node should in effect represent separate "sub-graphs" but
-// deduplication will be handled during the discovery process.
-func (graph *Graph) Observe(nodes ...INode) {
+// Each node should in effect represent separate "graphs" but
+// deduplication will be handled during the adding process.
+func (graph *Graph) AddNodes(nodes ...INode) {
 	graph.mu.Lock()
 	for _, n := range nodes {
 		graph.discoverAllNodes(n)

@@ -21,8 +21,11 @@ func concat(a, b string) string {
 
 func main() {
 	nodes := make([]incr.Incr[string], SIZE)
+	vars := make([]incr.VarIncr[string], 0, SIZE)
 	for x := 0; x < SIZE; x++ {
-		nodes[x] = incr.Var(fmt.Sprintf("var_%d", x))
+		v := incr.Var(fmt.Sprintf("var_%d", x))
+		vars = append(vars, v)
+		nodes[x] = v
 	}
 
 	var cursor int
@@ -47,7 +50,7 @@ func main() {
 		if err != nil {
 			fatal(err)
 		}
-		graph.SetStale(nodes[rand.Intn(len(nodes))])
+		vars[rand.Intn(len(vars))].Set(fmt.Sprintf("set_%d", n))
 		err = graph.Stabilize(ctx)
 		if err != nil {
 			fatal(err)

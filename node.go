@@ -210,6 +210,9 @@ func (n *Node) pseudoHeight() int {
 	if n.height > maxChildHeight {
 		return n.height
 	}
+	if maxChildHeight > defaultRecomputeHeapMaxHeight {
+		panic("possible cycle detected, child height exceeds maximum recompute height")
+	}
 	return maxChildHeight + 1
 }
 
