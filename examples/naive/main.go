@@ -72,7 +72,7 @@ func main() {
 	for n := 0; n < ROUNDS; n++ {
 		start := time.Now()
 		incrVars[rand.Intn(len(incrVars))].Set(fmt.Sprintf("set_%d", n))
-		_ = graph.Stabilize(ctx)
+		_ = graph.ParallelStabilize(ctx)
 		incrResults = append(incrResults, time.Since(start))
 	}
 
