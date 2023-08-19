@@ -46,6 +46,20 @@ As a result, most of the features of this library can be leveraged externally, b
 
 Specific implications of this are, the `INode` interface includes a function that returns the `Node` metadata, but this `Node` struct has 0 exported members on it, and users of this library should not really concern themselves with what's on it, just that it gets supplied to `Incr` through the interface implementation.
 
+# Implementation details
+
+Internally `go-incr` uses a pseudo-height recomputation adjacency list similar to the mainline library. This offers "good enough" approximation of a heap while also allowing for fast iteration between results (e.g. faster than a traditional heap's O(log(n)) performance).
+
+`go-incr` also supports multiple "graphs" rooted in specific variables.
+
+# A word on `Bind`
+
+The `Bind` incremental is by far the most powerful, and as a result complicated, node type in the ecosystem.
+
+To explain its purpose; there are situations where you want to dynamically swap out parts of a graph rooted at a given node. A concrete example might be in a user interface swapping out the displayed controls, which may be made up of individual computations.
+
+The effect of `Bind` is that "children" of a `Bind` node may have their heights change significantly depending on the changes made to the "bound" nodes, and this has implications for the recomputation heap as a result.
+
 # Progress
 
 Many of the original library types are implemented, including:
