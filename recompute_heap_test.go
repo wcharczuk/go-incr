@@ -2,6 +2,8 @@ package incr
 
 import (
 	"testing"
+
+	. "github.com/wcharczuk/go-incr/testutil"
 )
 
 func Test_recomuteHeap_Add(t *testing.T) {

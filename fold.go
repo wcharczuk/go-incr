@@ -36,7 +36,7 @@ type foldLeftIncr[T, O any] struct {
 	val  O
 }
 
-func (fli *foldLeftIncr[T, O]) String() string { return FormatLabel(fli.n, "fold_left") }
+func (fli *foldLeftIncr[T, O]) String() string { return fli.n.String("fold_left") }
 
 func (fli *foldLeftIncr[T, O]) Node() *Node { return fli.n }
 
@@ -64,7 +64,7 @@ type foldRightIncr[T, O any] struct {
 	val  O
 }
 
-func (fli *foldRightIncr[T, O]) String() string { return FormatLabel(fli.n, "fold_right") }
+func (fli *foldRightIncr[T, O]) String() string { return fli.n.String("fold_right") }
 
 func (fli *foldRightIncr[T, O]) Node() *Node { return fli.n }
 

@@ -1,6 +1,10 @@
 package incr
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/wcharczuk/go-incr/testutil"
+)
 
 func Test_New(t *testing.T) {
 	r0 := Return("hello")
@@ -8,11 +12,10 @@ func Test_New(t *testing.T) {
 	m0 := Map2(r0, r1, func(v0, v1 string) string { return v0 + v1 })
 	g := New(m0)
 
-	ItsEqual(t, 3, len(g.observed))
-	ItsEqual(t, true, g.isObserving(r0))
-	ItsEqual(t, true, g.isObserving(r1))
-	ItsEqual(t, true, g.isObserving(m0))
+	testutil.ItsEqual(t, true, g.IsObserving(r0))
+	testutil.ItsEqual(t, true, g.IsObserving(r1))
+	testutil.ItsEqual(t, true, g.IsObserving(m0))
 
 	m1 := Map2(r0, r1, func(v0, v1 string) string { return v0 + v1 })
-	ItsEqual(t, false, g.isObserving(m1))
+	testutil.ItsEqual(t, false, g.IsObserving(m1))
 }

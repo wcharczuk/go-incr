@@ -3,6 +3,8 @@ package incr
 import (
 	"bytes"
 	"testing"
+
+	"github.com/wcharczuk/go-incr/testutil"
 )
 
 func Test_Dot(t *testing.T) {
@@ -14,7 +16,6 @@ func Test_Dot(t *testing.T) {
 	n3 -> n1;
 }
 `
-
 	v0 := Var("foo")
 	v0.Node().id, _ = ParseIdentifier("165382c219e24e3db77fd41a884f9774")
 	v1 := Var("bar")
@@ -24,6 +25,6 @@ func Test_Dot(t *testing.T) {
 
 	buf := new(bytes.Buffer)
 	err := Dot(buf, m0)
-	ItsNil(t, err)
-	ItsEqual(t, golden, buf.String())
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, golden, buf.String())
 }

@@ -84,5 +84,5 @@ func (vn *varIncr[T]) Stabilize(ctx context.Context) error {
 
 // String implements fmt.Striger.
 func (vn *varIncr[T]) String() string {
-	return FormatLabel(vn.n, "var")
+	return vn.n.String("var")
 }

@@ -77,4 +77,4 @@ func (c *cutoffIncr[A]) Node() *Node {
 	return c.n
 }
 
-func (c *cutoffIncr[A]) String() string { return FormatLabel(c.n, "cutoff") }
+func (c *cutoffIncr[A]) String() string { return c.n.String("cutoff") }

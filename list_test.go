@@ -1,6 +1,10 @@
 package incr
 
-import "testing"
+import (
+	"testing"
+
+	. "github.com/wcharczuk/go-incr/testutil"
+)
 
 func idWithNode(n INode) (Identifier, INode) {
 	return n.Node().id, n

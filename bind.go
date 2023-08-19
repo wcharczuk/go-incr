@@ -25,24 +25,18 @@ import (
 // as a "child" of (b), preventing it from being considered part of the
 // overall computation unless it's referenced by another node in the graph.
 func Bind[A, B any](a Incr[A], fn func(A) Incr[B]) BindIncr[B] {
-	o := &bindIncr[A, B]{
-		n: NewNode(),
-		a: a,
-		fn: func(_ context.Context, va A) (Incr[B], error) {
-			return fn(va), nil
-		},
-	}
-	Link(o, a)
-	return o
+	return BindContext[A, B](a, func(_ context.Context, va A) (Incr[B], error) {
+		return fn(va), nil
+	})
 }
 
-// BindContext is like Bind but takes a context and returns an error for
-// the bind delegate itself.
+// BindContext is like Bind but allows the bind delegate to take a context and return an error.
 func BindContext[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], error)) BindIncr[B] {
 	o := &bindIncr[A, B]{
-		n:  NewNode(),
-		a:  a,
-		fn: fn,
+		n:        NewNode(),
+		a:        a,
+		fn:       fn,
+		bindType: "bind",
 	}
 	Link(o, a)
 	return o
@@ -53,8 +47,6 @@ func BindContext[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], erro
 // based on input incrementals.
 type BindIncr[A any] interface {
 	Incr[A]
-	Bind(context.Context) (old, new Incr[A], err error)
-	SetBind(Incr[A])
 }
 
 var (
@@ -66,44 +58,21 @@ var (
 )
 
 type bindIncr[A, B any] struct {
-	n     *Node
-	a     Incr[A]
-	fn    func(context.Context, A) (Incr[B], error)
-	bound Incr[B]
-	value B
+	n        *Node
+	a        Incr[A]
+	fn       func(context.Context, A) (Incr[B], error)
+	bound    Incr[B]
+	bindType string
+	value    B
 }
 
 func (b *bindIncr[A, B]) Node() *Node { return b.n }
 
 func (b *bindIncr[A, B]) Value() B { return b.value }
 
-func (b *bindIncr[A, B]) SetBind(v Incr[B]) {
-	b.bound = v
-}
-
-func (b *bindIncr[A, B]) Bind(ctx context.Context) (oldIncr, newIncr Incr[B], err error) {
-	oldIncr = b.bound
-	newIncr, err = b.fn(ctx, b.a.Value())
-	return
-}
-
 func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
-	if err := bindUpdate[B](ctx, b); err != nil {
-		return err
-	}
-	b.value = b.bound.Value()
-	return nil
-}
-
-func (b *bindIncr[A, B]) String() string {
-	return FormatLabel(b.n, "bind")
-}
-
-// bindUpdate is a helper for dealing with bind node changes
-// specifically handling unlinking and linking bound nodes
-// when the bind changes.
-func bindUpdate[A any](ctx context.Context, b BindIncr[A]) error {
-	oldIncr, newIncr, err := b.Bind(ctx)
+	oldIncr := b.bound
+	newIncr, err := b.fn(ctx, b.a.Value())
 	if err != nil {
 		return err
 	}
@@ -111,9 +80,13 @@ func bindUpdate[A any](ctx context.Context, b BindIncr[A]) error {
 	if oldIncr == nil {
 		Link(newIncr, b)
 		b.Node().graph.discoverAllNodes(newIncr)
-		b.SetBind(newIncr)
 		newIncr.Node().changedAt = b.Node().graph.stabilizationNum
-		return newIncr.Node().maybeStabilize(ctx)
+		if err := newIncr.Node().maybeStabilize(ctx); err != nil {
+			return err
+		}
+		b.bound = newIncr
+		b.value = b.bound.Value()
+		return nil
 	}
 
 	if oldIncr.Node().id == newIncr.Node().id {
@@ -134,12 +107,18 @@ func bindUpdate[A any](ctx context.Context, b BindIncr[A]) error {
 	// that b is an input to newValue
 	Link(newIncr, b)
 	b.Node().graph.discoverAllNodes(newIncr)
-	b.SetBind(newIncr)
 	newIncr.Node().changedAt = b.Node().graph.stabilizationNum
 	if err := newIncr.Node().maybeStabilize(ctx); err != nil {
 		return err
 	}
+
+	b.bound = newIncr
+	b.value = b.bound.Value()
 	return nil
+}
+
+func (b *bindIncr[A, B]) String() string {
+	return b.n.String(b.bindType)
 }
 
 func filterNodes(nodes []INode, filter func(INode) bool) (out []INode) {

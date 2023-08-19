@@ -10,26 +10,6 @@ func NewNode() *Node {
 	return &Node{id: NewIdentifier()}
 }
 
-// Link is a common helper for setting up node relationships,
-// specifically adding a set of "children" to a "parent" node.
-//
-// The reverse of this is `Unlink` on the parent node, which
-// removes the inputs as "children" of the "parent" node.
-func Link(parent INode, inputs ...INode) {
-	parent.Node().addChildren(inputs...)
-	for _, gnp := range inputs {
-		gnp.Node().addParents(parent)
-	}
-}
-
-// FormatLabel returns a standard node label.
-func FormatLabel(n *Node, nodeType string) string {
-	if n.label != "" {
-		return fmt.Sprintf("%s[%s]:%s", nodeType, n.id.Short(), n.label)
-	}
-	return fmt.Sprintf("%s[%s]", nodeType, n.id.Short())
-}
-
 // Node is the common metadata for any node in the computation graph.
 type Node struct {
 	// id is a unique identifier for the node
@@ -83,6 +63,14 @@ type Node struct {
 // ID returns a unique identifier for the node.
 func (n *Node) ID() Identifier {
 	return n.id
+}
+
+// String returns a string form of the node metadata.
+func (n *Node) String(nodeType string) string {
+	if n.label != "" {
+		return fmt.Sprintf("%s[%s]:%s", nodeType, n.id.Short(), n.label)
+	}
+	return fmt.Sprintf("%s[%s]", nodeType, n.id.Short())
 }
 
 // OnUpdate registers an update handler.

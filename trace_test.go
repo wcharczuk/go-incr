@@ -5,6 +5,8 @@ import (
 	"context"
 	"strings"
 	"testing"
+
+	. "github.com/wcharczuk/go-incr/testutil"
 )
 
 func Test_WithTracingOutput(t *testing.T) {

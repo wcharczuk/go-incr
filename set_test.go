@@ -1,6 +1,10 @@
 package incr
 
-import "testing"
+import (
+	"testing"
+
+	. "github.com/wcharczuk/go-incr/testutil"
+)
 
 func Test_set(t *testing.T) {
 	s := make(set[string])

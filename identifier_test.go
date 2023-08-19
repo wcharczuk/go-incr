@@ -4,12 +4,14 @@ import (
 	"encoding/hex"
 	"fmt"
 	"testing"
+
+	"github.com/wcharczuk/go-incr/testutil"
 )
 
 func Test_Identifier(t *testing.T) {
 	id := NewIdentifier()
-	ItsEqual(t, hex.EncodeToString(id[:]), id.String())
-	ItsEqual(t, hex.EncodeToString(id[12:]), id.Short())
+	testutil.ItsEqual(t, hex.EncodeToString(id[:]), id.String())
+	testutil.ItsEqual(t, hex.EncodeToString(id[12:]), id.Short())
 }
 
 func Test_ParseIdentifier(t *testing.T) {
@@ -28,11 +30,11 @@ func Test_ParseIdentifier(t *testing.T) {
 	for _, tc := range testCases {
 		parsed, err := ParseIdentifier(tc.Input)
 		if tc.ExpectedErr != nil {
-			ItsNotNil(t, err)
-			ItsEqual(t, tc.ExpectedErr.Error(), err.Error())
+			testutil.ItsNotNil(t, err)
+			testutil.ItsEqual(t, tc.ExpectedErr.Error(), err.Error())
 		} else {
-			ItsNil(t, err, tc.Input)
-			ItsEqual(t, tc.Expected, parsed, tc.Input)
+			testutil.ItsNil(t, err, tc.Input)
+			testutil.ItsEqual(t, tc.Expected, parsed, tc.Input)
 		}
 	}
 }

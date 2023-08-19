@@ -67,5 +67,5 @@ func (mn *map3Incr[A, B, C, D]) Stabilize(ctx context.Context) (err error) {
 }
 
 func (mn *map3Incr[A, B, C, D]) String() string {
-	return FormatLabel(mn.n, "map3")
+	return mn.n.String("map3")
 }

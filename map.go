@@ -61,5 +61,5 @@ func (mn *mapIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 }
 
 func (mn *mapIncr[A, B]) String() string {
-	return FormatLabel(mn.n, "map")
+	return mn.n.String("map")
 }

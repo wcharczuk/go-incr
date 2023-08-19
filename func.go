@@ -7,7 +7,13 @@ import (
 
 // Func wraps a given function as an incremental.
 //
-// You can mark this for recomputation with the `SetStale` helper.
+// The result of the function after the first stabilization will
+// be re-used between stabilizations unless you mark the node stale
+// with the `SetStale` helper.
+//
+// Because there is no tracking of input changes, this node
+// type is generally discouraged in favor of `Map` or `Bind`
+// incrementals but is included for "expert" use cases.
 func Func[T any](fn func(context.Context) (T, error)) Incr[T] {
 	return &funcIncr[T]{
 		n:  NewNode(),
@@ -40,5 +46,5 @@ func (f *funcIncr[T]) Stabilize(ctx context.Context) error {
 }
 
 func (f *funcIncr[T]) String() string {
-	return FormatLabel(f.n, "func")
+	return f.n.String("func")
 }

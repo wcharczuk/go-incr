@@ -91,6 +91,12 @@ func (graph *Graph) Observe(nodes ...INode) {
 	graph.mu.Unlock()
 }
 
+// IsObserving returns if a graph is observing a given node.
+func (graph *Graph) IsObserving(gn INode) (ok bool) {
+	_, ok = graph.observed[gn.Node().id]
+	return
+}
+
 // SetStale sets a node as stale.
 func (graph *Graph) SetStale(gn INode) {
 	n := gn.Node()
@@ -102,22 +108,17 @@ func (graph *Graph) SetStale(gn INode) {
 // internal methods
 //
 
-func (graph *Graph) isObserving(gn INode) (ok bool) {
-	_, ok = graph.observed[gn.Node().id]
-	return
-}
-
 func (graph *Graph) discoverAllNodes(gn INode) {
 	graph.discoverNode(gn)
 	gnn := gn.Node()
 	for _, c := range gnn.children {
-		if graph.isObserving(c) {
+		if graph.IsObserving(c) {
 			continue
 		}
 		graph.discoverAllNodes(c)
 	}
 	for _, p := range gnn.parents {
-		if graph.isObserving(p) {
+		if graph.IsObserving(p) {
 			continue
 		}
 		graph.discoverAllNodes(p)
@@ -144,13 +145,13 @@ func (graph *Graph) undiscoverAllNodes(gn INode) {
 	graph.undiscoverNode(gn)
 	gnn := gn.Node()
 	for _, c := range gnn.children {
-		if !graph.isObserving(c) {
+		if !graph.IsObserving(c) {
 			continue
 		}
 		graph.undiscoverAllNodes(c)
 	}
 	for _, p := range gnn.parents {
-		if !graph.isObserving(p) {
+		if !graph.IsObserving(p) {
 			continue
 		}
 		graph.undiscoverAllNodes(p)

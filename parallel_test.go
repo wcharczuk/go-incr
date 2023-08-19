@@ -3,6 +3,8 @@ package incr
 import (
 	"testing"
 	"time"
+
+	. "github.com/wcharczuk/go-incr/testutil"
 )
 
 func Test_ParallelStabilize(t *testing.T) {

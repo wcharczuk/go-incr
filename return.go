@@ -28,4 +28,4 @@ func (r returnIncr[A]) Node() *Node { return r.n }
 
 func (r returnIncr[A]) Value() A { return r.v }
 
-func (r returnIncr[A]) String() string { return FormatLabel(r.n, "return") }
+func (r returnIncr[A]) String() string { return r.n.String("return") }

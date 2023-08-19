@@ -7,6 +7,9 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/wcharczuk/go-incr/testutil"
+	. "github.com/wcharczuk/go-incr/testutil"
 )
 
 func Test_Stabilize(t *testing.T) {
@@ -414,7 +417,7 @@ func Test_Stabilize_bind(t *testing.T) {
 
 	graph := New(mb)
 
-	ItsEqual(t, true, graph.isObserving(sw))
+	ItsEqual(t, true, graph.IsObserving(sw))
 
 	err := graph.Stabilize(ctx)
 	ItsNil(t, err)
@@ -425,13 +428,13 @@ func Test_Stabilize_bind(t *testing.T) {
 	ItsEqual(t, 1, len(i1.Node().parents))
 	ItsEqual(t, 2, len(m1.Node().children), "children should include the bind node, and the input")
 
-	ItsEqual(t, false, graph.isObserving(i0))
-	ItsEqual(t, false, graph.isObserving(m0))
+	ItsEqual(t, false, graph.IsObserving(i0))
+	ItsEqual(t, false, graph.IsObserving(m0))
 	ItsNil(t, i0.Node().graph, "i0 should not be in the graph after the first stabilization")
 	ItsNil(t, m0.Node().graph, "m0 should not be in the graph after the first stabilization")
 
-	ItsEqual(t, true, graph.isObserving(i1))
-	ItsEqual(t, true, graph.isObserving(m1))
+	ItsEqual(t, true, graph.IsObserving(i1))
+	ItsEqual(t, true, graph.IsObserving(m1))
 	ItsNotNil(t, i1.Node().graph, "i1 should be in the graph after the first stabilization")
 	ItsNotNil(t, m1.Node().graph, "m1 should be in the graph after the first stabilization")
 
@@ -449,112 +452,17 @@ func Test_Stabilize_bind(t *testing.T) {
 	ItsEqual(t, 1, len(i1.Node().parents))
 	ItsEqual(t, 1, len(m1.Node().children), "children should include the bind node, and the input")
 
-	ItsEqual(t, true, graph.isObserving(i0))
-	ItsEqual(t, true, graph.isObserving(m0))
+	ItsEqual(t, true, graph.IsObserving(i0))
+	ItsEqual(t, true, graph.IsObserving(m0))
 	ItsNotNil(t, i0.Node().graph, "i0 should be in the graph after the second stabilization")
 	ItsNotNil(t, m0.Node().graph, "m0 should be in the graph after the second stabilization")
 
-	ItsEqual(t, false, graph.isObserving(i1))
-	ItsEqual(t, false, graph.isObserving(m1))
+	ItsEqual(t, false, graph.IsObserving(i1))
+	ItsEqual(t, false, graph.IsObserving(m1))
 	ItsNil(t, i1.Node().graph, "i1 should not be in the graph after the second stabilization")
 	ItsNil(t, m1.Node().graph, "m1 should not be in the graph after the second stabilization")
 
 	ItsEqual(t, "foo-moo-baz", mb.Value())
-}
-
-func Test_Stabilize_bind2(t *testing.T) {
-	ctx := testContext()
-
-	sw0 := Var(false)
-	sw1 := Var(false)
-	i0 := Return("foo")
-	i1 := Return("bar")
-
-	b := Bind2(sw0, sw1, func(_ context.Context, swv0, swv1 bool) (Incr[string], error) {
-		if swv0 && swv1 {
-			return i0, nil
-		}
-		return i1, nil
-	})
-
-	graph := New(b)
-
-	err := graph.Stabilize(ctx)
-	ItsNil(t, err)
-
-	ItsNil(t, i0.Node().graph, "i0 should not be in the graph after the first stabilization")
-	ItsNotNil(t, i1.Node().graph, "i1 should be in the graph after the first stabilization")
-
-	ItsEqual(t, "bar", b.Value())
-
-	sw0.Set(true)
-	err = graph.Stabilize(ctx)
-	ItsNil(t, err)
-
-	ItsNil(t, i0.Node().graph, "i0 should not be in the graph after the second stabilization")
-	ItsNotNil(t, i1.Node().graph, "i1 should be in the graph after the second stabilization")
-
-	ItsEqual(t, "bar", b.Value())
-
-	sw1.Set(true)
-	err = graph.Stabilize(ctx)
-	ItsNil(t, err)
-
-	ItsNil(t, i1.Node().graph, "i0 should be in the graph after the third stabilization")
-	ItsNotNil(t, i0.Node().graph, "i1 should not be in the graph after the third stabilization")
-
-	ItsEqual(t, "foo", b.Value())
-}
-
-func Test_Stabilize_bind3(t *testing.T) {
-	ctx := testContext()
-
-	sw0 := Var(false)
-	sw1 := Var(false)
-	sw2 := Var(false)
-
-	i0 := Return("foo")
-	i1 := Return("bar")
-
-	b := Bind3(sw0, sw1, sw2, func(_ context.Context, swv0, swv1, swv2 bool) (Incr[string], error) {
-		if swv0 && swv1 && swv2 {
-			return i0, nil
-		}
-		return i1, nil
-	})
-
-	graph := New(b)
-
-	err := graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsNil(t, i0.Node().graph, "i0 should not be in the graph after the first stabilization")
-	ItsNotNil(t, i1.Node().graph, "i1 should be in the graph after the first stabilization")
-	ItsEqual(t, "bar", b.Value())
-
-	sw0.Set(true)
-
-	err = graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsNil(t, i0.Node().graph, "i0 should not be in the graph after the second stabilization")
-	ItsNotNil(t, i1.Node().graph, "i1 should be in the graph after the second stabilization")
-	ItsEqual(t, "bar", b.Value())
-
-	sw1.Set(true)
-
-	err = graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsNil(t, i0.Node().graph, "i0 should not be in the graph after the third stabilization")
-	ItsNotNil(t, i1.Node().graph, "i1 should be in the graph after the third stabilization")
-	ItsEqual(t, "bar", b.Value())
-	ItsNil(t, err)
-
-	sw2.Set(true)
-
-	err = graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsNil(t, i1.Node().graph, "i0 should be in the graph after the fourth stabilization")
-	ItsNotNil(t, i0.Node().graph, "i1 should not be in the graph after the fourth stabilization")
-	ItsEqual(t, "foo", b.Value())
 }
 
 func Test_Stabilize_bindIf(t *testing.T) {
@@ -565,7 +473,7 @@ func Test_Stabilize_bindIf(t *testing.T) {
 	i1 := Return("bar")
 
 	b := BindIf(sw, func(ctx context.Context, swv bool) (Incr[string], error) {
-		itsBlueDye(ctx, t)
+		testutil.ItsBlueDye(ctx, t)
 		if swv {
 			return i0, nil
 		}
@@ -724,7 +632,7 @@ func Test_Stabilize_MapContext(t *testing.T) {
 
 	c0 := Return(1)
 	m := MapContext(c0, func(ictx context.Context, a int) (int, error) {
-		itsBlueDye(ictx, t)
+		testutil.ItsBlueDye(ictx, t)
 		return a + 10, nil
 	})
 	graph := New(m)
@@ -751,7 +659,7 @@ func Test_Stabilize_Map2Context(t *testing.T) {
 	c0 := Return(1)
 	c1 := Return(2)
 	m2 := Map2Context(c0, c1, func(ictx context.Context, a, b int) (int, error) {
-		itsBlueDye(ctx, t)
+		testutil.ItsBlueDye(ctx, t)
 		return a + b, nil
 	})
 	graph := New(m2)
@@ -782,7 +690,7 @@ func Test_Stabilize_Map3Context(t *testing.T) {
 	c1 := Return(2)
 	c2 := Return(3)
 	m3 := Map3Context(c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
-		itsBlueDye(ictx, t)
+		testutil.ItsBlueDye(ictx, t)
 		return a + b + c, nil
 	})
 
@@ -845,11 +753,11 @@ func Test_Stabilize_func(t *testing.T) {
 
 	value := "hello"
 	f := Func(func(ictx context.Context) (string, error) {
-		itsBlueDye(ictx, t)
+		testutil.ItsBlueDye(ictx, t)
 		return value, nil
 	})
 	m := MapContext(f, func(ictx context.Context, v string) (string, error) {
-		itsBlueDye(ctx, t)
+		testutil.ItsBlueDye(ctx, t)
 		return v + " world!", nil
 	})
 
