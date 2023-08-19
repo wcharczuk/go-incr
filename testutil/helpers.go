@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"regexp"
 	"testing"
 )
 
@@ -58,6 +59,14 @@ func ItsNotNil(t *testing.T, v any, message ...any) {
 	}
 }
 
+// ItMatches is a test helper to verify that a string matches a given regular expression.
+func ItMatches(t *testing.T, expression string, actual any, message ...any) {
+	t.Helper()
+	if !matches(expression, actual) {
+		Fatalf(t, "expected %v to match expression %v", []any{actual, expression}, message)
+	}
+}
+
 // Nil returns if a given reference is nil, but also returning true
 // if the reference is a valid typed pointer to nil, which may not strictly
 // be equal to nil.
@@ -90,6 +99,10 @@ func areEqual(expected, actual any) bool {
 		return reflect.DeepEqual(expectedValue.Convert(actualType).Interface(), actual)
 	}
 	return reflect.DeepEqual(expected, actual)
+}
+
+func matches(expression string, actual any) bool {
+	return regexp.MustCompile(expression).MatchString(fmt.Sprint(actual))
 }
 
 type blueDyeKey struct{}

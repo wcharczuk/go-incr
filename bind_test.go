@@ -41,7 +41,10 @@ func Test_Bind_basic(t *testing.T) {
 		}
 		return nil
 	})
+
 	bind.Node().SetLabel("bind")
+
+	testutil.ItMatches(t, "bind\\[(.*)\\]:bind", bind.String())
 
 	s0 := Return("hello")
 	s0.Node().SetLabel("s0")

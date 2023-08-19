@@ -50,6 +50,7 @@ func BindContext[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], erro
 // based on input incrementals.
 type BindIncr[A any] interface {
 	Incr[A]
+	fmt.Stringer
 }
 
 var (
@@ -126,13 +127,4 @@ func (b *bindIncr[A, B]) linkNew(newIncr Incr[B]) {
 
 func (b *bindIncr[A, B]) String() string {
 	return b.n.String("bind")
-}
-
-func filterNodes(nodes []INode, filter func(INode) bool) (out []INode) {
-	for _, n := range nodes {
-		if filter(n) {
-			out = append(out, n)
-		}
-	}
-	return out
 }
