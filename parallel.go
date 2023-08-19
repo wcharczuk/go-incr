@@ -46,7 +46,7 @@ func (graph *Graph) parallelRecomputeAll(ctx context.Context) error {
 		minHeightBlock = graph.recomputeHeap.RemoveMinHeight()
 		tracePrintf(ctx, "parallel stabilize; recomputing height %d block with %d nodes", minHeight, len(minHeightBlock))
 		for _, n := range minHeightBlock {
-			workerPool.Go(graph.parallelRecomputeNode(ctx, n.Node()))
+			workerPool.Go(graph.parallelRecomputeNode(ctx, n))
 		}
 		if err = workerPool.Wait(); err != nil {
 			return err
@@ -55,7 +55,7 @@ func (graph *Graph) parallelRecomputeAll(ctx context.Context) error {
 	return nil
 }
 
-func (graph *Graph) parallelRecomputeNode(ctx context.Context, n *Node) func() error {
+func (graph *Graph) parallelRecomputeNode(ctx context.Context, n INode) func() error {
 	return func() error {
 		return graph.recompute(ctx, n)
 	}

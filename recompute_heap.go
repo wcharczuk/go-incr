@@ -144,29 +144,44 @@ func (rh *recomputeHeap) addUnsafe(nodes ...INode) {
 			panic(fmt.Sprintf("recompute heap; cannot add node with height %d which is greater than the max height %d", sn.height, rh.heightLimit))
 		}
 
-		// this needs to be here for
-		// `SetStale` to work correctly, specifically
-		// we may need to add items multiple times.
+		// this needs to be here for `SetStale` to work
+		// correctly, specifically we may need to
+		// add nodes to the recompute heap multiple times.
 		if _, ok := rh.lookup[sn.id]; ok {
+			// we may need to move the node
+			if rh.heights[sn.height] == nil || !rh.heights[sn.height].Has(sn.id) {
+				// remove it from any existing height lists
+				for _, height := range rh.heights {
+					if height != nil {
+						height.Remove(sn.id)
+					}
+				}
+				// add it to the correct one
+				rh.addNodeUnsafe(s)
+			}
 			continue
 		}
-
-		// when we add nodes, make sure to note if we
-		// need to change the min or max height
-		if len(rh.lookup) == 0 {
-			rh.minHeight = sn.height
-			rh.maxHeight = sn.height
-		} else if rh.minHeight > sn.height {
-			rh.minHeight = sn.height
-		} else if rh.maxHeight < sn.height {
-			rh.maxHeight = sn.height
-		}
-		if rh.heights[sn.height] == nil {
-			rh.heights[sn.height] = new(list[Identifier, INode])
-		}
-		item := rh.heights[sn.height].Push(s.Node().id, s)
-		rh.lookup[sn.id] = item
+		rh.addNodeUnsafe(s)
 	}
+}
+
+func (rh *recomputeHeap) addNodeUnsafe(s INode) {
+	sn := s.Node()
+	// when we add nodes, make sure to note if we
+	// need to change the min or max height
+	if len(rh.lookup) == 0 {
+		rh.minHeight = sn.height
+		rh.maxHeight = sn.height
+	} else if rh.minHeight > sn.height {
+		rh.minHeight = sn.height
+	} else if rh.maxHeight < sn.height {
+		rh.maxHeight = sn.height
+	}
+	if rh.heights[sn.height] == nil {
+		rh.heights[sn.height] = new(list[Identifier, INode])
+	}
+	item := rh.heights[sn.height].Push(s.Node().id, s)
+	rh.lookup[sn.id] = item
 }
 
 // nextMinHeight finds the next smallest height in the heap that has nodes.

@@ -5,6 +5,8 @@ import (
 	"fmt"
 )
 
+// NOTE(wc): BIND SUCKS. SUUUUUUCKS.
+
 // Bind lets you swap out an entire subgraph of a computation based
 // on a given function and a single input.
 //
@@ -31,12 +33,13 @@ func Bind[A, B any](a Incr[A], fn func(A) Incr[B]) BindIncr[B] {
 }
 
 // BindContext is like Bind but allows the bind delegate to take a context and return an error.
+//
+// If an error returned, the bind is aborted and the error listener(s) will fire for the node.
 func BindContext[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], error)) BindIncr[B] {
 	o := &bindIncr[A, B]{
-		n:        NewNode(),
-		a:        a,
-		fn:       fn,
-		bindType: "bind",
+		n:  NewNode(),
+		a:  a,
+		fn: fn,
 	}
 	Link(o, a)
 	return o
@@ -53,72 +56,76 @@ var (
 	_ Incr[bool]     = (*bindIncr[string, bool])(nil)
 	_ BindIncr[bool] = (*bindIncr[string, bool])(nil)
 	_ INode          = (*bindIncr[string, bool])(nil)
-	_ IStabilize     = (*bindIncr[string, bool])(nil)
 	_ fmt.Stringer   = (*bindIncr[string, bool])(nil)
 )
 
 type bindIncr[A, B any] struct {
-	n        *Node
-	a        Incr[A]
-	fn       func(context.Context, A) (Incr[B], error)
-	bound    Incr[B]
-	bindType string
-	value    B
+	n     *Node
+	a     Incr[A]
+	fn    func(context.Context, A) (Incr[B], error)
+	bound Incr[B]
 }
 
 func (b *bindIncr[A, B]) Node() *Node { return b.n }
 
-func (b *bindIncr[A, B]) Value() B { return b.value }
+func (b *bindIncr[A, B]) Value() (output B) {
+	if b.bound != nil {
+		output = b.bound.Value()
+	}
+	return
+}
 
-func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
+func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 	oldIncr := b.bound
 	newIncr, err := b.fn(ctx, b.a.Value())
 	if err != nil {
 		return err
 	}
-
-	if oldIncr == nil {
-		Link(newIncr, b)
-		b.Node().graph.discoverAllNodes(newIncr)
-		newIncr.Node().changedAt = b.Node().graph.stabilizationNum
-		if err := newIncr.Node().maybeStabilize(ctx); err != nil {
-			return err
+	var bindChanged bool
+	if oldIncr != nil && newIncr != nil {
+		if oldIncr.Node().id != newIncr.Node().id {
+			bindChanged = true
+			b.unlinkOld(oldIncr)
+			b.linkNew(newIncr)
 		}
-		b.bound = newIncr
-		b.value = b.bound.Value()
-		return nil
+	} else if newIncr != nil {
+		bindChanged = true
+		b.linkNew(newIncr)
+	} else if oldIncr != nil {
+		bindChanged = true
+		b.unlinkOld(oldIncr)
 	}
-
-	if oldIncr.Node().id == newIncr.Node().id {
-		return nil
+	if bindChanged {
+		b.n.boundAt = b.n.graph.stabilizationNum
 	}
-
-	// "unlink" the old node from the bind node
-	b.Node().parents = filterNodes(b.Node().parents, func(p INode) bool {
-		return oldIncr.Node().id != p.Node().id
-	})
-	oldIncr.Node().children = filterNodes(oldIncr.Node().children, func(c INode) bool {
-		return b.Node().id != c.Node().id
-	})
-	b.Node().graph.undiscoverAllNodes(oldIncr)
-
-	// link the new value as the parent
-	// of the bind node, specifically
-	// that b is an input to newValue
-	Link(newIncr, b)
-	b.Node().graph.discoverAllNodes(newIncr)
-	newIncr.Node().changedAt = b.Node().graph.stabilizationNum
-	if err := newIncr.Node().maybeStabilize(ctx); err != nil {
-		return err
-	}
-
-	b.bound = newIncr
-	b.value = b.bound.Value()
 	return nil
 }
 
+func (b *bindIncr[A, B]) unlinkOld(oldIncr INode) {
+	for _, p := range b.n.parents {
+		p.Node().removeChild(oldIncr.Node().id)
+		oldIncr.Node().removeParent(p.Node().id)
+	}
+	if oldIncr.Node().isOrphaned() {
+		b.Node().graph.undiscoverAllNodes(oldIncr)
+	}
+}
+
+func (b *bindIncr[A, B]) linkNew(newIncr Incr[B]) {
+	// for each of the nodes that have the bind node as an input
+	// link the new incremental as a child
+	for _, p := range b.n.parents {
+		Link(p, newIncr)
+		p.Node().recomputeParentHeightsOnBindChange()
+	}
+	b.Node().graph.discoverAllNodes(newIncr)
+	newIncr.Node().changedAt = b.Node().graph.stabilizationNum
+	b.Node().graph.recomputeHeap.Add(newIncr)
+	b.bound = newIncr
+}
+
 func (b *bindIncr[A, B]) String() string {
-	return b.n.String(b.bindType)
+	return b.n.String("bind")
 }
 
 func filterNodes(nodes []INode, filter func(INode) bool) (out []INode) {

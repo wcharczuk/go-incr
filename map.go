@@ -46,7 +46,9 @@ type mapIncr[A, B any] struct {
 	val B
 }
 
-func (mn *mapIncr[A, B]) Node() *Node { return mn.n }
+func (mn *mapIncr[A, B]) Node() *Node {
+	return mn.n
+}
 
 func (mn *mapIncr[A, B]) Value() B { return mn.val }
 

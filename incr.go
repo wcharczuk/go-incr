@@ -20,6 +20,11 @@ type IStabilize interface {
 	Stabilize(context.Context) error
 }
 
+// IBind is a type that can be bound.
+type IBind interface {
+	Bind(context.Context) error
+}
+
 // ICutoff is a type that determines if changes should
 // continue to propagate or not.
 type ICutoff interface {

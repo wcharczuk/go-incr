@@ -25,21 +25,22 @@ type Node struct {
 	// children are the nodes that this node depends on, that is
 	// children are inputs to this node
 	children []INode
-	// height is the topological sort height of the
+	// height is the topological sort pseudo-height of the
 	// node and is used to order recomputation
-	// it is established when the graph is initialized
-	// - we may want to switch that to when the node is
-	//   strictly added to the graph.
+	// it is established when the graph is initialized but
+	// can also update if bind nodes change their graphs.
 	height int
 	// changedAt connotes when the node was changed last,
-	// and is a function of the stabilization_num on the
-	// graph state
+	// specifically if any of the node's parents were set or bound
 	changedAt uint64
 	// setAt connotes when the node was set last, specifically
-	// for var nodes so that we can track their changed state separately
-	// from their set state, and is a function of the
-	// stabilization_num (sn) on the graph state
+	// for var nodes so that we can track their "changed" state separately
+	// from their set state
 	setAt uint64
+	// boundAt connotes when the node was bound last, specifically
+	// for bind nodes so that we can track their changed state separately
+	// from their bound state
+	boundAt uint64
 	// recomputedAt connotes when the node was last stabilized
 	recomputedAt uint64
 	// onUpdateHandlers are functions that are called when the node updates.
@@ -54,6 +55,9 @@ type Node struct {
 	// cutoff is set during initialization and is a shortcut
 	// to the interface sniff for the node for the ICutoff interface.
 	cutoff func(context.Context) bool
+	// bind is set during observation and is a shortcut
+	// to the interface sniff for the node for the IBind interface.
+	bind func(context.Context) error
 	// numRecomputes is the number of times we recomputed the node
 	numRecomputes uint64
 	// numChanges is the number of times we changed the node
@@ -161,20 +165,42 @@ func (n *Node) detectStabilize(gn INode) {
 	}
 }
 
+// detectBind detects if an INode can be bound.
+func (n *Node) detectBind(gn INode) {
+	if typed, ok := gn.(IBind); ok {
+		n.bind = typed.Bind
+	}
+}
+
 // shouldRecompute returns whether or not a given node needs to be recomputed.
 func (n *Node) shouldRecompute() bool {
+	// we should always recompute on the first stabilization
 	if n.recomputedAt == 0 {
 		return true
 	}
-	if n.stabilize == nil {
+
+	// if a node can't stabilize or bind, just exit
+	if n.stabilize == nil && n.bind == nil {
 		return false
 	}
+
+	// if the node was marked stale explicitly
+	// either because it is a var or was
+	// called as a parameter to `graph.SetStale`
 	if n.setAt > n.recomputedAt {
+		return true
+	}
+	// if the node had a bind change recently
+	if n.boundAt > n.recomputedAt {
 		return true
 	}
 	if n.changedAt > n.recomputedAt {
 		return true
 	}
+
+	// if any of the direct _inputs_ to this node have changed
+	// or updated their bind. we don't go full recursive
+	// here to prevent a bunch of extra work.
 	for _, c := range n.children {
 		if c.Node().changedAt > n.recomputedAt {
 			return true
@@ -183,18 +209,37 @@ func (n *Node) shouldRecompute() bool {
 	return false
 }
 
+func (n *Node) recomputeParentHeightsOnBindChange() {
+	n.height = n.computePseudoHeight()
+	for _, p := range n.parents {
+		p.Node().recomputeParentHeightsOnBindChange()
+	}
+}
+
+// isOrphaned should return if the ref count, or the
+// number of nodes that reference this node, is zero.
+func (n *Node) isOrphaned() bool {
+	return len(n.parents) == 0
+}
+
 // pseudoHeight calculates the nodes height in respect to its children.
 //
 // it will use the maximum height _the node has ever seen_, i.e.
 // if the height is 1, then 3, then 1 again, this will return 3.
-func (n *Node) pseudoHeight() int {
+func (n *Node) computePseudoHeight() int {
 	var maxChildHeight int
 	var childHeight int
 	for _, c := range n.children {
-		if childHeight = c.Node().pseudoHeight(); childHeight > maxChildHeight {
+		childHeight = c.Node().computePseudoHeight()
+		if childHeight > maxChildHeight {
 			maxChildHeight = childHeight
 		}
 	}
+
+	// we do this to prevent the height
+	// changing a bunch with bind nodes.
+	// basically just stick with the overall maximum
+	// height the node has seen ever.
 	if n.height > maxChildHeight {
 		return n.height
 	}
@@ -204,7 +249,15 @@ func (n *Node) pseudoHeight() int {
 	return maxChildHeight + 1
 }
 
-// maybeStabilize calls the stabilize delegate if one is set.
+func (n *Node) maybeBind(ctx context.Context) (err error) {
+	if n.bind != nil {
+		if err = n.bind(ctx); err != nil {
+			return
+		}
+	}
+	return
+}
+
 func (n *Node) maybeStabilize(ctx context.Context) (err error) {
 	if n.stabilize != nil {
 		if err = n.stabilize(ctx); err != nil {

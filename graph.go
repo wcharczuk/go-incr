@@ -126,13 +126,18 @@ func (graph *Graph) discoverAllNodes(gn INode) {
 }
 
 func (graph *Graph) discoverNode(gn INode) {
-	graph.observed[gn.Node().id] = gn
 	gnn := gn.Node()
+	if gnn == nil {
+		panic("inconsistent metadata; INode is <nil>")
+	}
+	nodeID := gnn.id
+	graph.observed[nodeID] = gn
 	gnn.graph = graph
 	gnn.detectCutoff(gn)
 	gnn.detectStabilize(gn)
-	gnn.height = gnn.pseudoHeight()
+	gnn.detectBind(gn)
 	graph.numNodes++
+	gnn.height = gnn.computePseudoHeight()
 	graph.recomputeHeap.Add(gn)
 	return
 }
@@ -140,7 +145,8 @@ func (graph *Graph) discoverNode(gn INode) {
 // undiscoverAllNodes removes a node and all its parents
 // from a given graph.
 //
-// NOTE: you _must_ unlink it first or you'll just blow away the whole graph.
+// NOTE: you _must_ "unlink" it from its parents first or
+// you'll just blow away the whole graph.
 func (graph *Graph) undiscoverAllNodes(gn INode) {
 	graph.undiscoverNode(gn)
 	gnn := gn.Node()
@@ -217,33 +223,38 @@ func (graph *Graph) stabilizeEnd(ctx context.Context) {
 
 // recompute starts the recompute cycle for the node
 // setting the recomputedAt field and possibly changing the value.
-func (graph *Graph) recompute(ctx context.Context, n *Node) error {
+func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	graph.numNodesRecomputed++
-	n.numRecomputes++
-	n.recomputedAt = graph.stabilizationNum
-	return graph.maybeChangeValue(ctx, n)
-}
 
-// maybeChangeValue checks the cutoff, and calls the stabilization
-// delegate if one is set, adding the nodes parents to the recompute heap
-// if there are changes.
-func (graph *Graph) maybeChangeValue(ctx context.Context, n *Node) (err error) {
-	if n.maybeCutoff(ctx) {
+	nn := n.Node()
+	nn.numRecomputes++
+	nn.recomputedAt = graph.stabilizationNum
+	if nn.maybeCutoff(ctx) {
 		return
 	}
+
+	tracePrintf(ctx, "stabilize[%d]; recompute %v with height %d", graph.stabilizationNum, n, n.Node().height)
 	graph.numNodesChanged++
-	n.numChanges++
-	n.changedAt = graph.stabilizationNum
-	if err = n.maybeStabilize(ctx); err != nil {
-		for _, eh := range n.onErrorHandlers {
+	nn.numChanges++
+
+	// we have to propagate the "changed" or "recomputed" status to parents
+	nn.changedAt = graph.stabilizationNum
+	if err = nn.maybeBind(ctx); err != nil {
+		for _, eh := range nn.onErrorHandlers {
 			eh(ctx, err)
 		}
 		return
 	}
-	if len(n.onUpdateHandlers) > 0 {
-		graph.handleAfterStabilization.Push(n.id, n.onUpdateHandlers)
+	if err = nn.maybeStabilize(ctx); err != nil {
+		for _, eh := range nn.onErrorHandlers {
+			eh(ctx, err)
+		}
+		return
 	}
-	for _, p := range n.parents {
+	if len(nn.onUpdateHandlers) > 0 {
+		graph.handleAfterStabilization.Push(nn.id, nn.onUpdateHandlers)
+	}
+	for _, p := range nn.parents {
 		if p.Node().shouldRecompute() {
 			graph.recomputeHeap.Add(p)
 		}

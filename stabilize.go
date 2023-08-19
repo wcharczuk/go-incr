@@ -25,7 +25,7 @@ func (graph *Graph) stabilize(ctx context.Context) (err error) {
 	var n INode
 	for len(graph.recomputeHeap.lookup) > 0 {
 		n = graph.recomputeHeap.RemoveMin()
-		if err = graph.recompute(ctx, n.Node()); err != nil {
+		if err = graph.recompute(ctx, n); err != nil {
 			return err
 		}
 	}
