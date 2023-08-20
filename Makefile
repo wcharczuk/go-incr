@@ -1,15 +1,9 @@
-
-ensure-reflex:
-	@go install github.com/cespare/reflex@latest
-
-ensure-pprof:
-	@go install github.com/google/pprof@latest
-
 bench:
 	@go test -run=XXX -bench=.
 
 bench-profile-cpu:
 	@go test -run=XXX -bench=Benchmark_Stabilize_withPreInitialize_16384 -cpuprofile bench-cpu.out
 
-watch-test:
-	@reflex -g *.go -- go test -timeout 1s
+cover:
+	@go test -v -coverprofile=cover.out
+	@go tool cover -func=cover.out

@@ -114,7 +114,10 @@ func (b *bindIncr[A, B]) unlinkOld(oldIncr INode) {
 
 func (b *bindIncr[A, B]) linkNew(newIncr Incr[B]) {
 	// for each of the nodes that have the bind node as an input
-	// link the new incremental as a child
+	// link the new incremental as an input as well (i.e. the bind node
+	// itself and the "bound" node are peers in a way).
+	// we do this mostly to keep the heights from getting out of control
+	// but we could easily have the bind node as part of the chain directly.
 	for _, p := range b.n.parents {
 		Link(p, newIncr)
 		p.Node().recomputeParentHeightsOnBindChange()
