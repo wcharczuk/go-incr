@@ -110,6 +110,7 @@ func (b *bindIncr[A, B]) unlinkOld(oldIncr INode) {
 	if oldIncr.Node().isOrphaned() {
 		b.Node().graph.undiscoverAllNodes(oldIncr)
 	}
+	b.bound = nil
 }
 
 func (b *bindIncr[A, B]) linkNew(newIncr Incr[B]) {

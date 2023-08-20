@@ -1,6 +1,8 @@
 package incr
 
 import (
+	"context"
+	"fmt"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -63,6 +65,12 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.ItsEqual(t, 2, bind.Node().height)
 	testutil.ItsEqual(t, 3, o.Node().height)
 
+	testutil.ItsEqual(t, true, g.IsObserving(v0))
+	testutil.ItsEqual(t, true, g.IsObserving(s0))
+	testutil.ItsEqual(t, true, g.IsObserving(s1))
+	testutil.ItsEqual(t, true, g.IsObserving(bind))
+	testutil.ItsEqual(t, true, g.IsObserving(o))
+
 	testutil.ItsEqual(t, false, g.IsObserving(av))
 	testutil.ItsEqual(t, false, g.IsObserving(a0))
 	testutil.ItsEqual(t, false, g.IsObserving(a1))
@@ -75,6 +83,10 @@ func Test_Bind_basic(t *testing.T) {
 	err := g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 
+	testutil.ItsEqual(t, 1, bind.Node().boundAt)
+	testutil.ItsEqual(t, 1, bind.Node().changedAt)
+	testutil.ItsEqual(t, 1, a1.Node().changedAt)
+
 	testutil.ItsEqual(t, 1, v0.Node().height)
 	testutil.ItsEqual(t, 1, s0.Node().height)
 	testutil.ItsEqual(t, 2, s1.Node().height)
@@ -85,6 +97,12 @@ func Test_Bind_basic(t *testing.T) {
 
 	testutil.ItsEqual(t, 2, bind.Node().height)
 	testutil.ItsEqual(t, 4, o.Node().height)
+
+	testutil.ItsEqual(t, true, g.IsObserving(v0))
+	testutil.ItsEqual(t, true, g.IsObserving(s0))
+	testutil.ItsEqual(t, true, g.IsObserving(s1))
+	testutil.ItsEqual(t, true, g.IsObserving(bind))
+	testutil.ItsEqual(t, true, g.IsObserving(o))
 
 	testutil.ItsEqual(t, true, g.IsObserving(av))
 	testutil.ItsEqual(t, true, g.IsObserving(a0))
@@ -118,6 +136,12 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.ItsEqual(t, 2, bind.Node().height)
 	testutil.ItsEqual(t, 5, o.Node().height)
 
+	testutil.ItsEqual(t, true, g.IsObserving(v0))
+	testutil.ItsEqual(t, true, g.IsObserving(s0))
+	testutil.ItsEqual(t, true, g.IsObserving(s1))
+	testutil.ItsEqual(t, true, g.IsObserving(bind))
+	testutil.ItsEqual(t, true, g.IsObserving(o))
+
 	testutil.ItsEqual(t, false, g.IsObserving(av))
 	testutil.ItsEqual(t, false, g.IsObserving(a0))
 	testutil.ItsEqual(t, false, g.IsObserving(a1))
@@ -130,4 +154,64 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.ItsEqual(t, "a-value", av.Value())
 	testutil.ItsEqual(t, "b-value", bv.Value())
 	testutil.ItsEqual(t, "b-valuehello", o.Value())
+
+	v0.Set("neither")
+	err = g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+
+	testutil.ItsEqual(t, 1, v0.Node().height)
+	testutil.ItsEqual(t, 1, s0.Node().height)
+	testutil.ItsEqual(t, 2, s1.Node().height)
+
+	testutil.ItsEqual(t, 1, av.Node().height)
+	testutil.ItsEqual(t, 2, a0.Node().height)
+	testutil.ItsEqual(t, 3, a1.Node().height)
+
+	testutil.ItsEqual(t, 1, bv.Node().height)
+	testutil.ItsEqual(t, 2, b0.Node().height)
+	testutil.ItsEqual(t, 3, b1.Node().height)
+	testutil.ItsEqual(t, 4, b2.Node().height)
+
+	testutil.ItsEqual(t, 2, bind.Node().height)
+	testutil.ItsEqual(t, 5, o.Node().height)
+
+	testutil.ItsEqual(t, true, g.IsObserving(v0))
+	testutil.ItsEqual(t, true, g.IsObserving(s0))
+	testutil.ItsEqual(t, true, g.IsObserving(s1))
+	testutil.ItsEqual(t, true, g.IsObserving(bind))
+	testutil.ItsEqual(t, true, g.IsObserving(o))
+
+	testutil.ItsEqual(t, false, g.IsObserving(av))
+	testutil.ItsEqual(t, false, g.IsObserving(a0))
+	testutil.ItsEqual(t, false, g.IsObserving(a1))
+
+	testutil.ItsEqual(t, false, g.IsObserving(bv))
+	testutil.ItsEqual(t, false, g.IsObserving(b0))
+	testutil.ItsEqual(t, false, g.IsObserving(b1))
+	testutil.ItsEqual(t, false, g.IsObserving(b2))
+
+	testutil.ItsEqual(t, "a-value", av.Value())
+	testutil.ItsEqual(t, "b-value", bv.Value())
+	testutil.ItsEqual(t, "hello", o.Value())
+}
+
+func Test_Bind_error(t *testing.T) {
+	ctx := testContext()
+
+	v0 := Var("a")
+	bind := BindContext(v0, func(_ context.Context, which string) (Incr[string], error) {
+		return nil, fmt.Errorf("this is just a test")
+	})
+	bind.Node().SetLabel("bind")
+	var gotError error
+	bind.Node().OnError(func(_ context.Context, err error) {
+		gotError = err
+	})
+
+	o := Map(bind, ident)
+
+	g := New(o)
+	err := g.Stabilize(ctx)
+	testutil.ItsEqual(t, "this is just a test", err.Error())
+	testutil.ItsEqual(t, "this is just a test", gotError.Error())
 }
