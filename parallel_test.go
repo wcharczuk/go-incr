@@ -1,6 +1,8 @@
 package incr
 
 import (
+	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -48,6 +50,16 @@ func Test_ParallelStabilize(t *testing.T) {
 	ItsEqual(t, 2, m0.Node().recomputedAt)
 
 	ItsEqual(t, "not foo bar", m0.Value())
+}
+
+func Test_ParallelStabilize_alreadyStabilizing(t *testing.T) {
+	ctx := testContext()
+
+	graph := New()
+	graph.status = StatusStabilizing
+
+	err := graph.ParallelStabilize(ctx)
+	ItsNotNil(t, err)
 }
 
 func Test_ParallelStabilize_jsDocs(t *testing.T) {
@@ -98,4 +110,66 @@ func Test_ParallelStabilize_jsDocs(t *testing.T) {
 	err = graph.ParallelStabilize(ctx)
 	ItsNil(t, err)
 	ItsEqual(t, 3, len(output.Value()))
+}
+
+func Test_ParallelStabilize_error(t *testing.T) {
+	ctx := testContext()
+
+	v0 := Var("foo")
+	m0 := MapContext(v0, func(ctx context.Context, a string) (string, error) {
+		return "", fmt.Errorf("this is only a test")
+	})
+
+	graph := New(m0)
+
+	err := graph.ParallelStabilize(ctx)
+	ItsNotNil(t, err)
+}
+
+func Test_parallelBatch(t *testing.T) {
+	pb := new(parallelBatch)
+
+	var values = make(chan string, 1)
+	pb.Go(func() error {
+		values <- "hello"
+		return nil
+	})
+	err := pb.Wait()
+	ItsNil(t, err)
+	got := <-values
+	ItsEqual(t, "hello", got)
+}
+
+func Test_parallelBatch_error(t *testing.T) {
+	pb := new(parallelBatch)
+
+	pb.Go(func() error {
+		return fmt.Errorf("this is a test")
+	})
+	err := pb.Wait()
+	ItsNotNil(t, err)
+}
+
+func Test_parallelBatch_SetLimit(t *testing.T) {
+	pb := new(parallelBatch)
+
+	pb.SetLimit(4)
+	ItsEqual(t, 0, len(pb.sem))
+	ItsEqual(t, 4, cap(pb.sem))
+
+	pb.SetLimit(-1)
+	ItsNil(t, pb.sem)
+
+	var recovered any
+	func() {
+		defer func() {
+			recovered = recover()
+		}()
+		pb.SetLimit(4)
+		pb.sem <- parallelBatchToken{}
+		// this will panic hopefully
+		pb.SetLimit(4)
+	}()
+
+	ItsNotNil(t, recovered)
 }
