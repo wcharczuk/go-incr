@@ -5,8 +5,6 @@ import (
 	"fmt"
 )
 
-// NOTE(wc): BIND SUCKS. SUUUUUUCKS.
-
 // Bind lets you swap out an entire subgraph of a computation based
 // on a given function and a single input.
 //
@@ -40,6 +38,7 @@ func BindContext[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], erro
 		n:  NewNode(),
 		a:  a,
 		fn: fn,
+		bt: "bind",
 	}
 	Link(o, a)
 	return o
@@ -62,6 +61,7 @@ var (
 
 type bindIncr[A, B any] struct {
 	n     *Node
+	bt    string
 	a     Incr[A]
 	fn    func(context.Context, A) (Incr[B], error)
 	bound Incr[B]
@@ -130,5 +130,5 @@ func (b *bindIncr[A, B]) linkNew(newIncr Incr[B]) {
 }
 
 func (b *bindIncr[A, B]) String() string {
-	return b.n.String("bind")
+	return b.n.String(b.bt)
 }

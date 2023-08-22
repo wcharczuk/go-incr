@@ -100,11 +100,11 @@ func Test_recomputeHeap_RemoveMin(t *testing.T) {
 
 	rh.Add(n00)
 	ItsEqual(t, 1, rh.Len())
-	ItsEqual(t, 32, len(rh.heights))
+	ItsEqual(t, 33, len(rh.heights))
 	ItsEqual(t, 1, rh.heights[0].Len())
 	rh.Add(n01)
 	ItsEqual(t, 2, rh.Len())
-	ItsEqual(t, 32, len(rh.heights))
+	ItsEqual(t, 33, len(rh.heights))
 	ItsEqual(t, 2, rh.heights[0].Len())
 
 	ItsEqual(t, 0, rh.minHeight)
@@ -112,7 +112,7 @@ func Test_recomputeHeap_RemoveMin(t *testing.T) {
 
 	rh.Add(n10)
 	ItsEqual(t, 3, rh.Len())
-	ItsEqual(t, 32, len(rh.heights))
+	ItsEqual(t, 33, len(rh.heights))
 	ItsEqual(t, 2, rh.heights[0].Len())
 	ItsEqual(t, 1, rh.heights[1].Len())
 	ItsEqual(t, 0, rh.minHeight)
@@ -120,7 +120,7 @@ func Test_recomputeHeap_RemoveMin(t *testing.T) {
 
 	rh.Add(n100)
 	ItsEqual(t, 4, rh.Len())
-	ItsEqual(t, 32, len(rh.heights))
+	ItsEqual(t, 33, len(rh.heights))
 	ItsEqual(t, 2, rh.heights[0].Len())
 	ItsEqual(t, 1, rh.heights[1].Len())
 	ItsEqual(t, 1, rh.heights[10].Len())
@@ -338,4 +338,28 @@ func Test_recomputeHeap_Remove(t *testing.T) {
 	ItsNil(t, rh.heights[1].tail)
 	ItsEqual(t, 2, rh.MinHeight())
 	ItsEqual(t, 3, rh.MaxHeight())
+}
+
+func Test_recomputeHeap_nextMinHeight_noItems(t *testing.T) {
+	rh := new(recomputeHeap)
+
+	rh.minHeight = 1
+	rh.maxHeight = 3
+
+	next := rh.nextMinHeight()
+	ItsEqual(t, 0, next)
+}
+
+func Test_recomputeHeap_nextMinHeight_pastMax(t *testing.T) {
+	r0 := Return("hello")
+	rh := newRecomputeHeap(3)
+	rh.minHeight = 1
+	rh.maxHeight = 3
+
+	rh.lookup[r0.Node().id] = &listItem[Identifier, INode]{
+		key:   r0.Node().id,
+		value: r0,
+	}
+	next := rh.nextMinHeight()
+	ItsEqual(t, 0, next)
 }

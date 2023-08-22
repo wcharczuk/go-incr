@@ -47,14 +47,17 @@ func add[T Ordered](v0, v1 T) T {
 	return v0 + v1
 }
 
+func newMockBareNode() *mockBareNode {
+	return &mockBareNode{
+		n: NewNode(),
+	}
+}
+
 type mockBareNode struct {
 	n *Node
 }
 
 func (mn *mockBareNode) Node() *Node {
-	if mn.n == nil {
-		mn.n = NewNode()
-	}
 	return mn.n
 }
 

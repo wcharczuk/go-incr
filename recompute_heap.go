@@ -13,7 +13,7 @@ const defaultRecomputeHeapMaxHeight = 255
 func newRecomputeHeap(heightLimit int) *recomputeHeap {
 	return &recomputeHeap{
 		heightLimit: heightLimit,
-		heights:     make([]*list[Identifier, INode], heightLimit),
+		heights:     make([]*list[Identifier, INode], heightLimit+1),
 		lookup:      make(map[Identifier]*listItem[Identifier, INode]),
 	}
 }
@@ -123,7 +123,12 @@ func (rh *recomputeHeap) Remove(s INode) {
 	delete(rh.lookup, sn.id)
 	rh.heights[sn.height].Remove(item.key)
 
-	if sn.height == rh.minHeight && (rh.heights[sn.height] == nil || rh.heights[sn.height].Len() == 0) {
+	// handle the edge case where removing a node removes the _last_ node
+	// in the current minimum height, causing us to need to move
+	// the minimum height up one value.
+
+	isLastAtHeight := rh.heights[sn.height] == nil || rh.heights[sn.height].Len() == 0
+	if sn.height == rh.minHeight && isLastAtHeight {
 		rh.minHeight = rh.nextMinHeight()
 	}
 }
@@ -181,13 +186,18 @@ func (rh *recomputeHeap) addNodeUnsafe(s INode) {
 
 // nextMinHeight finds the next smallest height in the heap that has nodes.
 func (rh *recomputeHeap) nextMinHeight() (next int) {
+	// if there are no nodes left in the heap, return next heigh of zero.
 	if len(rh.lookup) == 0 {
 		return
 	}
+
+	// test for the _next_ higher height with elements.
+	// TODO(wc): do we want to start at zero instead of the old
+	// min height here?
 	for x := rh.minHeight; x <= rh.maxHeight; x++ {
 		if rh.heights[x] != nil && rh.heights[x].head != nil {
 			next = x
-			return
+			break
 		}
 	}
 	return

@@ -624,6 +624,7 @@ func Test_Stabilize_watch(t *testing.T) {
 
 	ItsEqual(t, 1, len(w0.Values()))
 	ItsEqual(t, 2, w0.Values()[0])
+	ItsEqual(t, 2, w0.Value())
 
 	v0.Set(2)
 
