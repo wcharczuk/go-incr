@@ -68,6 +68,26 @@ func Test_Stabilize_error(t *testing.T) {
 	ItsEqual(t, "this is just a test", err.Error())
 }
 
+func Test_Stabilize_errorHandler(t *testing.T) {
+	ctx := testContext()
+
+	m0 := Func(func(_ context.Context) (string, error) {
+		return "", fmt.Errorf("this is just a test")
+	})
+	var gotError error
+	m0.Node().OnError(func(ctx context.Context, err error) {
+		ItsBlueDye(ctx, t)
+		gotError = err
+	})
+
+	graph := New(m0)
+
+	err := graph.Stabilize(ctx)
+	ItsNotNil(t, err)
+	ItsEqual(t, "this is just a test", err.Error())
+	ItsEqual(t, "this is just a test", gotError.Error())
+}
+
 func Test_Stabilize_alreadyStabilizing(t *testing.T) {
 	ctx := testContext()
 

@@ -127,9 +127,6 @@ func (graph *Graph) discoverAllNodes(gn INode) {
 
 func (graph *Graph) discoverNode(gn INode) {
 	gnn := gn.Node()
-	if gnn == nil {
-		panic("inconsistent metadata; INode is <nil>")
-	}
 	nodeID := gnn.id
 	graph.observed[nodeID] = gn
 	gnn.graph = graph

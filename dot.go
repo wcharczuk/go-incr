@@ -17,6 +17,10 @@ import (
 // As an for an example of a program that renders a graph with `Dot`,
 // look at `examples/benchmark/main.go`.
 func Dot(wr io.Writer, node INode) (err error) {
+	// NOTE(wc): a word on the below
+	// basically we panic anywhere we use the `writef` helper
+	// specifically where it can error.
+	// we then panic if there is an error and recover here.
 	defer func() {
 		err, _ = recover().(error)
 	}()

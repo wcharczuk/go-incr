@@ -74,12 +74,7 @@ func (rh *recomputeHeap) Add(nodes ...INode) {
 func (rh *recomputeHeap) Has(s INode) (ok bool) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
-
-	sn := s.Node()
-	if sn.height >= rh.heightLimit {
-		panic("recompute heap; cannot has node with height greater than max height")
-	}
-	_, ok = rh.lookup[sn.id]
+	_, ok = rh.lookup[s.Node().id]
 	return
 }
 
