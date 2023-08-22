@@ -738,9 +738,33 @@ func Test_Stabilize_MapN(t *testing.T) {
 	c0 := Return(1)
 	c1 := Return(2)
 	c2 := Return(3)
-	mn := MapN(func(_ context.Context, inputs ...int) (int, error) {
-		return sum(inputs...), nil
-	}, c0, c1, c2)
+	mn := MapN(sum, c0, c1, c2)
+
+	graph := New(mn)
+
+	_ = graph.Stabilize(ctx)
+	ItsEqual(t, 6, mn.Value())
+}
+
+func Test_Stabilize_MapNContext(t *testing.T) {
+	ctx := testContext()
+
+	sum := func(ctx context.Context, values ...int) (output int, err error) {
+		ItsBlueDye(ctx, t)
+		if len(values) == 0 {
+			return
+		}
+		output = values[0]
+		for _, value := range values[1:] {
+			output += value
+		}
+		return
+	}
+
+	c0 := Return(1)
+	c1 := Return(2)
+	c2 := Return(3)
+	mn := MapNContext(sum, c0, c1, c2)
 
 	graph := New(mn)
 

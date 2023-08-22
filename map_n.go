@@ -8,6 +8,14 @@ import (
 // MapN applies a function to given list of input incrementals and returns
 // a new incremental of the output type of that function.
 func MapN[A, B any](fn MapNFunc[A, B], inputs ...Incr[A]) MapNIncr[A, B] {
+	return MapNContext(func(_ context.Context, i ...A) (B, error) {
+		return fn(i...), nil
+	}, inputs...)
+}
+
+// MapNContext applies a function to given list of input incrementals and returns
+// a new incremental of the output type of that function.
+func MapNContext[A, B any](fn MapNContextFunc[A, B], inputs ...Incr[A]) MapNIncr[A, B] {
 	o := &mapNIncr[A, B]{
 		n:      NewNode(),
 		inputs: inputs,
@@ -20,7 +28,10 @@ func MapN[A, B any](fn MapNFunc[A, B], inputs ...Incr[A]) MapNIncr[A, B] {
 }
 
 // MapNFunc is the function that the ApplyN incremental applies.
-type MapNFunc[A, B any] func(context.Context, ...A) (B, error)
+type MapNFunc[A, B any] func(...A) B
+
+// MapNContextFunc is the function that the ApplyN incremental applies.
+type MapNContextFunc[A, B any] func(context.Context, ...A) (B, error)
 
 // MapNIncr is a type of incremental that can add inputs over time.
 type MapNIncr[A, B any] interface {
@@ -39,7 +50,7 @@ var (
 type mapNIncr[A, B any] struct {
 	n      *Node
 	inputs []Incr[A]
-	fn     MapNFunc[A, B]
+	fn     MapNContextFunc[A, B]
 	val    B
 }
 

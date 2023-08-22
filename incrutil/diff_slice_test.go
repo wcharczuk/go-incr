@@ -1,29 +1,33 @@
 package incrutil
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/wcharczuk/go-incr/testutil"
+)
 
 func Test_diffSliceByIndicesAdded(t *testing.T) {
 	var s []int
 
 	val, last := diffSliceByIndicesAdded(0, s)
-	ItsEqual(t, 0, last)
-	ItsEqual(t, 0, len(val))
+	testutil.ItsEqual(t, 0, last)
+	testutil.ItsEqual(t, 0, len(val))
 
 	s = []int{
 		1, 2, 3,
 	}
 
 	val, last = diffSliceByIndicesAdded(last, s)
-	ItsEqual(t, 3, last)
-	ItsEqual(t, 3, len(val))
-	ItsEqual(t, []int{1, 2, 3}, val)
+	testutil.ItsEqual(t, 3, last)
+	testutil.ItsEqual(t, 3, len(val))
+	testutil.ItsEqual(t, []int{1, 2, 3}, val)
 
 	s = []int{
 		1, 2, 3, 4, 5,
 	}
 
 	val, last = diffSliceByIndicesAdded(last, s)
-	ItsEqual(t, 5, last)
-	ItsEqual(t, 2, len(val))
-	ItsEqual(t, []int{4, 5}, val)
+	testutil.ItsEqual(t, 5, last)
+	testutil.ItsEqual(t, 2, len(val))
+	testutil.ItsEqual(t, []int{4, 5}, val)
 }

@@ -48,7 +48,7 @@ func Map[A, B any](child0, child1 INode[A], fn func(context.Context, ...A) B) IN
 	}
 }
 
-func concat(_ context.Context, values ...string) string {
+func concatN(_ context.Context, values ...string) string {
 	return strings.Join(values, "")
 }
 
@@ -101,16 +101,12 @@ func makeNodes() (vars []INode[string], nodes []INode[string]) {
 	var cursor int
 	for x := SIZE; x > 0; x >>= 1 {
 		for y := 0; y < x-1; y += 2 {
-			n := Map[string, string](nodes[cursor+y], nodes[cursor+y+1], concat)
+			n := Map[string, string](nodes[cursor+y], nodes[cursor+y+1], concatN)
 			nodes = append(nodes, n)
 		}
 		cursor += x
 	}
 	return
-}
-
-func concat2(a, b string) string {
-	return a + b
 }
 
 func makeIncrNodes() (vars []incr.VarIncr[string], nodes []incr.Incr[string]) {
@@ -125,7 +121,9 @@ func makeIncrNodes() (vars []incr.VarIncr[string], nodes []incr.Incr[string]) {
 	var cursor int
 	for x := SIZE; x > 0; x >>= 1 {
 		for y := 0; y < x-1; y += 2 {
-			n := incr.Map2(nodes[cursor+y], nodes[cursor+y+1], concat2)
+			n := incr.Map2(nodes[cursor+y], nodes[cursor+y+1], func(a, b string) string {
+				return concatN(nil, a, b)
+			})
 			nodes = append(nodes, n)
 		}
 		cursor += x

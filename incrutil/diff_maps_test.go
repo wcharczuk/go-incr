@@ -1,6 +1,10 @@
 package incrutil
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/wcharczuk/go-incr/testutil"
+)
 
 func Test_diffMapsByKeysAdded(t *testing.T) {
 	m0 := map[string]string{
@@ -15,20 +19,20 @@ func Test_diffMapsByKeysAdded(t *testing.T) {
 	}
 
 	ma, orig := diffMapByKeysAdded(m0, m1)
-	ItsEqual(t, map[string]string{
+	testutil.ItsEqual(t, map[string]string{
 		"a": "a",
 		"d": "d",
 	}, ma)
-	ItsEqual(t, m1, orig)
+	testutil.ItsEqual(t, m1, orig)
 
 	ma, orig = diffMapByKeysAdded(nil, m1)
-	ItsEqual(t, map[string]string{
+	testutil.ItsEqual(t, map[string]string{
 		"a": "a",
 		"b": "b",
 		"c": "c",
 		"d": "d",
 	}, ma)
-	ItsEqual(t, map[string]string{
+	testutil.ItsEqual(t, map[string]string{
 		"a": "a",
 		"b": "b",
 		"c": "c",
@@ -49,18 +53,18 @@ func Test_diffMapsByKeysRemoved(t *testing.T) {
 	}
 
 	mr, orig := diffMapByKeysRemoved(m0, m1)
-	ItsEqual(t, map[string]string{
+	testutil.ItsEqual(t, map[string]string{
 		"a": "a",
 		"d": "d",
 	}, mr)
-	ItsEqual(t, orig, m1)
+	testutil.ItsEqual(t, orig, m1)
 
 	mr, orig = diffMapByKeysRemoved(m0, nil)
-	ItsEqual(t, map[string]string{
+	testutil.ItsEqual(t, map[string]string{
 		"a": "a",
 		"b": "b",
 		"c": "c",
 		"d": "d",
 	}, mr)
-	ItsEqual(t, 0, len(orig))
+	testutil.ItsEqual(t, 0, len(orig))
 }

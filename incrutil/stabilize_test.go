@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/wcharczuk/go-incr"
+	"github.com/wcharczuk/go-incr/testutil"
 )
 
 func Test_Stabilize_diffMapByKeysAdded(t *testing.T) {
@@ -28,7 +29,7 @@ func Test_Stabilize_diffMapByKeysAdded(t *testing.T) {
 	graph := incr.New(mf)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 21, mf.Value())
+	testutil.ItsEqual(t, 21, mf.Value())
 
 	m["seven"] = 7
 	m["eight"] = 8
@@ -36,14 +37,14 @@ func Test_Stabilize_diffMapByKeysAdded(t *testing.T) {
 	mv.Set(m)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 36, mf.Value())
+	testutil.ItsEqual(t, 36, mf.Value())
 
 	m["nine"] = 9
 
 	mv.Set(m)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 45, mf.Value())
+	testutil.ItsEqual(t, 45, mf.Value())
 }
 
 func Test_Stabilize_diffMapByKeysRemoved(t *testing.T) {
@@ -67,7 +68,7 @@ func Test_Stabilize_diffMapByKeysRemoved(t *testing.T) {
 	graph := incr.New(mf)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 0, mf.Value())
+	testutil.ItsEqual(t, 0, mf.Value())
 
 	delete(m, "two")
 	delete(m, "five")
@@ -75,7 +76,7 @@ func Test_Stabilize_diffMapByKeysRemoved(t *testing.T) {
 	mv.Set(m)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 7, mf.Value())
+	testutil.ItsEqual(t, 7, mf.Value())
 }
 
 func Test_Stabilize_diffMapByKeys(t *testing.T) {
@@ -103,8 +104,8 @@ func Test_Stabilize_diffMapByKeys(t *testing.T) {
 
 	_ = graph.Stabilize(ctx)
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 21, mfa.Value())
-	ItsEqual(t, 0, mfr.Value())
+	testutil.ItsEqual(t, 21, mfa.Value())
+	testutil.ItsEqual(t, 0, mfr.Value())
 
 	delete(m, "two")
 	delete(m, "five")
@@ -115,8 +116,8 @@ func Test_Stabilize_diffMapByKeys(t *testing.T) {
 
 	_ = graph.Stabilize(ctx)
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 36, mfa.Value())
-	ItsEqual(t, 7, mfr.Value())
+	testutil.ItsEqual(t, 36, mfa.Value())
+	testutil.ItsEqual(t, 7, mfr.Value())
 }
 
 func Test_Stabilize_diffSlice(t *testing.T) {
@@ -138,11 +139,11 @@ func Test_Stabilize_diffSlice(t *testing.T) {
 	graph := incr.New(mf)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, "123456", mf.Value())
+	testutil.ItsEqual(t, "123456", mf.Value())
 
 	m = append(m, 7, 8, 9)
 	mv.Set(m)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, "123456789", mf.Value())
+	testutil.ItsEqual(t, "123456789", mf.Value())
 }
