@@ -94,3 +94,12 @@ func Test_Graph_undiscoverAllNodes_notObserving(t *testing.T) {
 	testutil.ItsEqual(t, true, g.IsObserving(m1))
 	testutil.ItsEqual(t, true, g.IsObserving(m2))
 }
+
+func Test_Graph_IsStabilizing(t *testing.T) {
+	g := New()
+	testutil.ItsEqual(t, false, g.IsStabilizing())
+	g.status = StatusStabilizing
+	testutil.ItsEqual(t, true, g.IsStabilizing())
+	g.status = StatusNotStabilizing
+	testutil.ItsEqual(t, false, g.IsStabilizing())
+}

@@ -74,6 +74,11 @@ type Graph struct {
 	numNodesChanged uint64
 }
 
+// IsStabilizing returns if the graph is currently stabilizing.
+func (graph *Graph) IsStabilizing() bool {
+	return atomic.LoadInt32(&graph.status) != StatusNotStabilizing
+}
+
 // Observe observes a given list of nodes.
 //
 // The observation process involves discovering nodes
