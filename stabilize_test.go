@@ -688,6 +688,21 @@ func Test_Stabilize_Map2Context(t *testing.T) {
 	ItsEqual(t, 3, m2.Value())
 }
 
+func Test_Stabilize_Map2Context_error(t *testing.T) {
+	ctx := testContext()
+
+	c0 := Return(1)
+	c1 := Return(2)
+	m2 := Map2Context(c0, c1, func(ictx context.Context, a, b int) (int, error) {
+		testutil.ItsBlueDye(ctx, t)
+		return a + b, fmt.Errorf("this is just a test")
+	})
+	graph := New(m2)
+	err := graph.Stabilize(ctx)
+	ItsNotNil(t, err)
+	ItsEqual(t, 0, m2.Value())
+}
+
 func Test_Stabilize_Map3(t *testing.T) {
 	ctx := testContext()
 
@@ -719,6 +734,24 @@ func Test_Stabilize_Map3Context(t *testing.T) {
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, 6, m3.Value())
+}
+
+func Test_Stabilize_Map3Context_error(t *testing.T) {
+	ctx := testContext()
+
+	c0 := Return(1)
+	c1 := Return(2)
+	c2 := Return(3)
+	m3 := Map3Context(c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
+		testutil.ItsBlueDye(ictx, t)
+		return a + b + c, fmt.Errorf("this is just a test")
+	})
+
+	graph := New(m3)
+
+	err := graph.Stabilize(ctx)
+	ItsNotNil(t, err)
+	ItsEqual(t, 0, m3.Value())
 }
 
 func Test_Stabilize_MapIf(t *testing.T) {
@@ -767,6 +800,34 @@ func Test_Stabilize_MapN(t *testing.T) {
 	ItsEqual(t, 6, mn.Value())
 }
 
+func Test_Stabilize_MapN_AddInput(t *testing.T) {
+	ctx := testContext()
+
+	sum := func(values ...int) (output int) {
+		if len(values) == 0 {
+			return
+		}
+		output = values[0]
+		for _, value := range values[1:] {
+			output += value
+		}
+		return
+	}
+
+	c0 := Return(1)
+	c1 := Return(2)
+	c2 := Return(3)
+	mn := MapN(sum)
+	mn.AddInput(c0)
+	mn.AddInput(c1)
+	mn.AddInput(c2)
+
+	graph := New(mn)
+
+	_ = graph.Stabilize(ctx)
+	ItsEqual(t, 6, mn.Value())
+}
+
 func Test_Stabilize_MapNContext(t *testing.T) {
 	ctx := testContext()
 
@@ -791,6 +852,30 @@ func Test_Stabilize_MapNContext(t *testing.T) {
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, 6, mn.Value())
+}
+
+func Test_Stabilize_MapNContext_error(t *testing.T) {
+	ctx := testContext()
+
+	sum := func(ctx context.Context, values ...int) (output int, err error) {
+		ItsBlueDye(ctx, t)
+		for _, value := range values {
+			output += value
+		}
+		err = fmt.Errorf("this is just a test")
+		return
+	}
+
+	c0 := Return(1)
+	c1 := Return(2)
+	c2 := Return(3)
+	mn := MapNContext(sum, c0, c1, c2)
+
+	graph := New(mn)
+
+	err := graph.Stabilize(ctx)
+	ItsNotNil(t, err)
+	ItsEqual(t, 0, mn.Value())
 }
 
 func Test_Stabilize_func(t *testing.T) {

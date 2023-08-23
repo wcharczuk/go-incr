@@ -41,7 +41,7 @@ func Dot(wr io.Writer, node INode) (err error) {
 		color := ` fillcolor = "white" style="filled" fontcolor="black"`
 		if n.Node().setAt > 0 {
 			color = ` fillcolor = "red" style="filled" fontcolor="white"`
-		} else if n.Node().changedAt > 1 {
+		} else if n.Node().changedAt > 0 {
 			color = ` fillcolor = "pink" style="filled" fontcolor="black"`
 		}
 		writef(1, "node [%s%s]; %s", label, color, nodeLabel)
