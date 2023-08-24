@@ -14,6 +14,8 @@ func NewNode() *Node {
 type Node struct {
 	// id is a unique identifier for the node
 	id Identifier
+	// metadata is any additional metadata a user wants to attach to a node.
+	metadata any
 	// graph is the graph this node is attached to currently.
 	graph *Graph
 	// label is a descriptive string for the
@@ -96,6 +98,16 @@ func (n *Node) Label() string {
 // SetLabel sets the descriptive label on the node.
 func (n *Node) SetLabel(label string) {
 	n.label = label
+}
+
+// Metadata returns user assignable metadata.
+func (n *Node) Metadata() any {
+	return n.metadata
+}
+
+// SetMetadata sets the metadata on the node.
+func (n *Node) SetMetadata(md any) {
+	n.metadata = md
 }
 
 //

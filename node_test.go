@@ -24,12 +24,21 @@ func Test_NewNode(t *testing.T) {
 	testutil.ItsNil(t, n.stabilize)
 	testutil.ItsNil(t, n.cutoff)
 	testutil.ItsEqual(t, 0, n.numRecomputes)
+	testutil.ItsNil(t, n.metadata)
 }
 
 func Test_Node_Label(t *testing.T) {
 	n := NewNode()
+	testutil.ItsEqual(t, "", n.Label())
 	n.SetLabel("foo")
 	testutil.ItsEqual(t, "foo", n.Label())
+}
+
+func Test_Node_Metadata(t *testing.T) {
+	n := NewNode()
+	testutil.ItsEqual(t, nil, n.Metadata())
+	n.SetMetadata("foo")
+	testutil.ItsEqual(t, "foo", n.Metadata())
 }
 
 func Test_Link(t *testing.T) {
