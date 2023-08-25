@@ -79,16 +79,6 @@ func (n *Node) Height() int {
 	return n.height
 }
 
-// Parents returns the node parent list.
-func (n *Node) Parents() []INode {
-	return n.parents
-}
-
-// Parents returns the node child list.
-func (n *Node) Children() []INode {
-	return n.children
-}
-
 // String returns a string form of the node metadata.
 func (n *Node) String(nodeType string) string {
 	if n.label != "" {
@@ -130,19 +120,27 @@ func (n *Node) SetMetadata(md any) {
 	n.metadata = md
 }
 
-//
-// Internal Helpers
-//
+// Parent / Child helpers
 
-// addChildren adds children, or nodes that this node
+// Parents returns the node parent list.
+func (n *Node) Parents() []INode {
+	return n.parents
+}
+
+// Parents returns the node child list.
+func (n *Node) Children() []INode {
+	return n.children
+}
+
+// AddChildren adds children, or nodes that this node
 // depends on, specifically nodes that are inputs to this node.
-func (n *Node) addChildren(c ...INode) {
+func (n *Node) AddChildren(c ...INode) {
 	n.children = append(n.children, c...)
 }
 
-// removeChild removes a specific child from the node, specifically
+// RemoveChild removes a specific child from the node, specifically
 // a node that might have been an input to this node.
-func (n *Node) removeChild(id Identifier) {
+func (n *Node) RemoveChild(id Identifier) {
 	var newChildren []INode
 	for _, oc := range n.children {
 		if oc.Node().id != id {
@@ -152,15 +150,15 @@ func (n *Node) removeChild(id Identifier) {
 	n.children = newChildren
 }
 
-// addParents adds parents, or nodes that depend on this node, specifically
+// AddParents adds parents, or nodes that depend on this node, specifically
 // nodes for which this node is an input.
-func (n *Node) addParents(p ...INode) {
+func (n *Node) AddParents(p ...INode) {
 	n.parents = append(n.parents, p...)
 }
 
-// removeParent removes a parent from the node, specifically
+// RemoveParent removes a parent from the node, specifically
 // a node for which this node is an input.
-func (n *Node) removeParent(id Identifier) {
+func (n *Node) RemoveParent(id Identifier) {
 	var newParents []INode
 	for _, oc := range n.parents {
 		if oc.Node().id != id {
@@ -169,6 +167,10 @@ func (n *Node) removeParent(id Identifier) {
 	}
 	n.parents = newParents
 }
+
+//
+// Internal Helpers
+//
 
 // maybeCutoff calls the cutoff delegate if it's set, otherwise
 // just returns false (effectively _not_ cutting off the computation).

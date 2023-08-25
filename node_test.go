@@ -144,7 +144,7 @@ func Test_Node_addChildren(t *testing.T) {
 	testutil.ItsEqual(t, 0, len(n.n.parents))
 	testutil.ItsEqual(t, 0, len(n.n.children))
 
-	n.Node().addChildren(c0, c1)
+	n.Node().AddChildren(c0, c1)
 
 	testutil.ItsEqual(t, 0, len(n.n.parents))
 	testutil.ItsEqual(t, 2, len(n.n.children))
@@ -165,7 +165,7 @@ func Test_Node_removeChild(t *testing.T) {
 	c2 := newMockBareNode()
 	_ = c2.Node()
 
-	n.Node().addChildren(c0, c1, c2)
+	n.Node().AddChildren(c0, c1, c2)
 
 	testutil.ItsEqual(t, 0, len(n.n.parents))
 	testutil.ItsEqual(t, 3, len(n.n.children))
@@ -173,7 +173,7 @@ func Test_Node_removeChild(t *testing.T) {
 	testutil.ItsEqual(t, c1.n.id, n.n.children[1].Node().id)
 	testutil.ItsEqual(t, c2.n.id, n.n.children[2].Node().id)
 
-	n.Node().removeChild(c1.n.id)
+	n.Node().RemoveChild(c1.n.id)
 
 	testutil.ItsEqual(t, 0, len(n.n.parents))
 	testutil.ItsEqual(t, 2, len(n.n.children))
@@ -194,7 +194,7 @@ func Test_Node_addParents(t *testing.T) {
 	testutil.ItsEqual(t, 0, len(n.n.parents))
 	testutil.ItsEqual(t, 0, len(n.n.children))
 
-	n.Node().addParents(c0, c1)
+	n.Node().AddParents(c0, c1)
 
 	testutil.ItsEqual(t, 2, len(n.n.parents))
 	testutil.ItsEqual(t, 0, len(n.n.children))
@@ -215,7 +215,7 @@ func Test_Node_removeParent(t *testing.T) {
 	c2 := newMockBareNode()
 	_ = c2.Node()
 
-	n.Node().addParents(c0, c1, c2)
+	n.Node().AddParents(c0, c1, c2)
 
 	testutil.ItsEqual(t, 3, len(n.n.parents))
 	testutil.ItsEqual(t, 0, len(n.n.children))
@@ -223,7 +223,7 @@ func Test_Node_removeParent(t *testing.T) {
 	testutil.ItsEqual(t, c1.n.id, n.n.parents[1].Node().id)
 	testutil.ItsEqual(t, c2.n.id, n.n.parents[2].Node().id)
 
-	n.Node().removeParent(c1.n.id)
+	n.Node().RemoveParent(c1.n.id)
 
 	testutil.ItsEqual(t, 2, len(n.n.parents))
 	testutil.ItsEqual(t, 0, len(n.n.children))
@@ -359,7 +359,7 @@ func Test_Node_recompute(t *testing.T) {
 	})
 
 	p := newMockBareNode()
-	m0.Node().addParents(p)
+	m0.Node().AddParents(p)
 	g.Observe(m0)
 
 	var calledUpdateHandler0, calledUpdateHandler1 bool
@@ -422,7 +422,7 @@ func Test_Node_stabilize_error(t *testing.T) {
 	})
 
 	p := newMockBareNode()
-	m0.Node().addParents(p)
+	m0.Node().AddParents(p)
 	g.Observe(m0)
 
 	var calledUpdateHandler0, calledUpdateHandler1 bool

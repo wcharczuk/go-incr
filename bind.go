@@ -104,8 +104,8 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 
 func (b *bindIncr[A, B]) unlinkOld(oldIncr INode) {
 	for _, p := range b.n.parents {
-		p.Node().removeChild(oldIncr.Node().id)
-		oldIncr.Node().removeParent(p.Node().id)
+		p.Node().RemoveChild(oldIncr.Node().id)
+		oldIncr.Node().RemoveParent(p.Node().id)
 	}
 	if oldIncr.Node().isOrphaned() {
 		b.Node().graph.undiscoverAllNodes(oldIncr)
