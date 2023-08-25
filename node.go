@@ -138,6 +138,18 @@ func (n *Node) AddChildren(c ...INode) {
 	n.children = append(n.children, c...)
 }
 
+// HasChild returns if a child with a given identifier
+// is present in the children list.
+func (n *Node) HasChild(id Identifier) (ok bool) {
+	for _, c := range n.children {
+		if c.Node().id == id {
+			ok = true
+			return
+		}
+	}
+	return
+}
+
 // RemoveChild removes a specific child from the node, specifically
 // a node that might have been an input to this node.
 func (n *Node) RemoveChild(id Identifier) {
@@ -154,6 +166,18 @@ func (n *Node) RemoveChild(id Identifier) {
 // nodes for which this node is an input.
 func (n *Node) AddParents(p ...INode) {
 	n.parents = append(n.parents, p...)
+}
+
+// HasParent returns if a parent with a given identifier
+// is present in the parents list.
+func (n *Node) HasParent(id Identifier) (ok bool) {
+	for _, p := range n.parents {
+		if p.Node().id == id {
+			ok = true
+			return
+		}
+	}
+	return
 }
 
 // RemoveParent removes a parent from the node, specifically

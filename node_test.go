@@ -554,3 +554,29 @@ func Test_Node_shouldRecompute_unit(t *testing.T) {
 		emptyNode{&Node{changedAt: 2}},
 	}}).shouldRecompute())
 }
+
+func Test_Node_HasChild(t *testing.T) {
+	c0 := newMockBareNode()
+	c1 := newMockBareNode()
+	c2 := newMockBareNode()
+	n := &Node{
+		children: []INode{c0, c1},
+	}
+
+	testutil.ItsEqual(t, true, n.HasChild(c0.Node().ID()))
+	testutil.ItsEqual(t, true, n.HasChild(c1.Node().ID()))
+	testutil.ItsEqual(t, false, n.HasChild(c2.Node().ID()))
+}
+
+func Test_Node_HasParent(t *testing.T) {
+	p0 := newMockBareNode()
+	p1 := newMockBareNode()
+	p2 := newMockBareNode()
+	n := &Node{
+		parents: []INode{p0, p1},
+	}
+
+	testutil.ItsEqual(t, true, n.HasParent(p0.Node().ID()))
+	testutil.ItsEqual(t, true, n.HasParent(p1.Node().ID()))
+	testutil.ItsEqual(t, false, n.HasParent(p2.Node().ID()))
+}
