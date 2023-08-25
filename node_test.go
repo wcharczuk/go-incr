@@ -477,3 +477,24 @@ func Test_nodeFormatters(t *testing.T) {
 		testutil.ItsEqual(t, fmt.Sprintf("%s[%s]", tc.Label, id.Short()), fmt.Sprint(tc.Node))
 	}
 }
+
+func Test_Node_Properties_readonly(t *testing.T) {
+	n := &Node{
+		height:    1,
+		setAt:     2,
+		changedAt: 3,
+		children: []INode{
+			newMockBareNode(),
+			newMockBareNode(),
+		},
+		parents: []INode{
+			newMockBareNode(),
+			newMockBareNode(),
+			newMockBareNode(),
+		},
+	}
+
+	testutil.ItsEqual(t, 1, n.Height())
+	testutil.ItsEqual(t, 2, len(n.Children()))
+	testutil.ItsEqual(t, 3, len(n.Parents()))
+}

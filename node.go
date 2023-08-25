@@ -98,6 +98,21 @@ func (n *Node) SetLabel(label string) {
 	n.label = label
 }
 
+// Height returns the node height.
+func (n *Node) Height() int {
+	return n.height
+}
+
+// Parents returns the node parent list.
+func (n *Node) Parents() []INode {
+	return n.parents
+}
+
+// Parents returns the node child list.
+func (n *Node) Children() []INode {
+	return n.children
+}
+
 //
 // Internal Helpers
 //
