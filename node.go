@@ -14,6 +14,8 @@ func NewNode() *Node {
 type Node struct {
 	// id is a unique identifier for the node
 	id Identifier
+	// metadata is any additional metadata a user wants to attach to a node.
+	metadata any
 	// graph is the graph this node is attached to currently.
 	graph *Graph
 	// label is a descriptive string for the
@@ -64,9 +66,27 @@ type Node struct {
 	numChanges uint64
 }
 
+//
+// Readonly properties
+//
+
 // ID returns a unique identifier for the node.
 func (n *Node) ID() Identifier {
 	return n.id
+}
+
+func (n *Node) Height() int {
+	return n.height
+}
+
+// Parents returns the node parent list.
+func (n *Node) Parents() []INode {
+	return n.parents
+}
+
+// Parents returns the node child list.
+func (n *Node) Children() []INode {
+	return n.children
 }
 
 // String returns a string form of the node metadata.
@@ -76,6 +96,8 @@ func (n *Node) String(nodeType string) string {
 	}
 	return fmt.Sprintf("%s[%s]", nodeType, n.id.Short())
 }
+
+// Set/Get properties
 
 // OnUpdate registers an update handler.
 func (n *Node) OnUpdate(fn func(context.Context)) {
@@ -98,19 +120,14 @@ func (n *Node) SetLabel(label string) {
 	n.label = label
 }
 
-// Height returns the node height.
-func (n *Node) Height() int {
-	return n.height
+// Metadata returns user assignable metadata.
+func (n *Node) Metadata() any {
+	return n.metadata
 }
 
-// Parents returns the node parent list.
-func (n *Node) Parents() []INode {
-	return n.parents
-}
-
-// Parents returns the node child list.
-func (n *Node) Children() []INode {
-	return n.children
+// SetMetadata sets the metadata on the node.
+func (n *Node) SetMetadata(md any) {
+	n.metadata = md
 }
 
 //
@@ -257,9 +274,6 @@ func (n *Node) computePseudoHeight() int {
 	// height the node has seen ever.
 	if n.height > maxChildHeight {
 		return n.height
-	}
-	if maxChildHeight > defaultRecomputeHeapMaxHeight {
-		panic("possible cycle detected, child height exceeds maximum recompute height")
 	}
 	return maxChildHeight + 1
 }

@@ -24,6 +24,21 @@ func Test_NewNode(t *testing.T) {
 	testutil.ItsNil(t, n.stabilize)
 	testutil.ItsNil(t, n.cutoff)
 	testutil.ItsEqual(t, 0, n.numRecomputes)
+	testutil.ItsNil(t, n.metadata)
+}
+
+func Test_Node_Label(t *testing.T) {
+	n := NewNode()
+	testutil.ItsEqual(t, "", n.Label())
+	n.SetLabel("foo")
+	testutil.ItsEqual(t, "foo", n.Label())
+}
+
+func Test_Node_Metadata(t *testing.T) {
+	n := NewNode()
+	testutil.ItsEqual(t, nil, n.Metadata())
+	n.SetMetadata("foo")
+	testutil.ItsEqual(t, "foo", n.Metadata())
 }
 
 func Test_Link(t *testing.T) {
@@ -497,4 +512,45 @@ func Test_Node_Properties_readonly(t *testing.T) {
 	testutil.ItsEqual(t, 1, n.Height())
 	testutil.ItsEqual(t, 2, len(n.Children()))
 	testutil.ItsEqual(t, 3, len(n.Parents()))
+}
+
+type emptyNode struct {
+	n *Node
+}
+
+func (en emptyNode) Node() *Node {
+	return en.n
+}
+
+func Test_Node_recomputeParentHeightsOnBindChange(t *testing.T) {
+	n0 := emptyNode{NewNode()}
+	n1 := emptyNode{NewNode()}
+	n2 := emptyNode{NewNode()}
+	n3 := emptyNode{NewNode()}
+
+	Link(n1, n0)
+	Link(n2, n1)
+	Link(n3, n2)
+
+	n1.Node().recomputeParentHeightsOnBindChange()
+
+	testutil.ItsEqual(t, 0, n0.n.height)
+	testutil.ItsEqual(t, 2, n1.n.height)
+	testutil.ItsEqual(t, 3, n2.n.height)
+	testutil.ItsEqual(t, 4, n3.n.height)
+}
+
+func Test_Node_shouldRecompute_unit(t *testing.T) {
+	var noop = func(_ context.Context) error { return nil }
+	testutil.ItsEqual(t, true, (&Node{recomputedAt: 0}).shouldRecompute())
+	testutil.ItsEqual(t, false, (&Node{recomputedAt: 1}).shouldRecompute())
+	testutil.ItsEqual(t, true, (&Node{recomputedAt: 1, stabilize: noop, setAt: 2}).shouldRecompute())
+	testutil.ItsEqual(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 3}).shouldRecompute())
+	testutil.ItsEqual(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 3}).shouldRecompute())
+	testutil.ItsEqual(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 2, children: []INode{
+		emptyNode{&Node{changedAt: 3}},
+	}}).shouldRecompute())
+	testutil.ItsEqual(t, false, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 2, children: []INode{
+		emptyNode{&Node{changedAt: 2}},
+	}}).shouldRecompute())
 }

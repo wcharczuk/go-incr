@@ -175,10 +175,6 @@ func (l *list[K, V]) Remove(k K) (ok bool) {
 
 // removeHeadItem removes the head pointer.
 func (l *list[K, V]) removeHeadItem() {
-	if l.head == nil {
-		return
-	}
-
 	// if we have a single element,
 	// we will need to change the tail
 	// pointer as well

@@ -341,6 +341,34 @@ func Test_list_Remove(t *testing.T) {
 	ItsEqual(t, n0.Node().ID(), q.tail.previous.previous.previous.key)
 }
 
+func Test_List_Has(t *testing.T) {
+	ItsEqual(t, false, (&list[string, string]{}).Has("foo"))
+	ItsEqual(t, true, (&list[string, string]{
+		items: map[string]*listItem[string, string]{"foo": {key: "foo", value: "bar"}},
+	}).Has("foo"))
+	ItsEqual(t, false, (&list[string, string]{
+		items: map[string]*listItem[string, string]{"foo": {key: "foo", value: "bar"}},
+	}).Has("not-foo"))
+}
+
+func Test_List_Get(t *testing.T) {
+	got, ok := (&list[string, string]{}).Get("foo")
+	ItsEqual(t, false, ok)
+	ItsEqual(t, "", got)
+
+	got, ok = (&list[string, string]{
+		items: map[string]*listItem[string, string]{"foo": {key: "foo", value: "bar"}},
+	}).Get("foo")
+	ItsEqual(t, true, ok)
+	ItsEqual(t, "bar", got)
+
+	got, ok = (&list[string, string]{
+		items: map[string]*listItem[string, string]{"foo": {key: "foo", value: "bar"}},
+	}).Get("not-foo")
+	ItsEqual(t, false, ok)
+	ItsEqual(t, "", got)
+}
+
 func Test_list_Remove_notFound(t *testing.T) {
 	q := new(list[Identifier, INode])
 
