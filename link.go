@@ -13,3 +13,10 @@ func Link(parent INode, inputs ...INode) {
 		gnp.Node().AddParents(parent)
 	}
 }
+
+// Unlink removes the parent child association
+// between two nodes.
+func Unlink(parent, input INode) {
+	parent.Node().RemoveChild(input.Node().id)
+	input.Node().RemoveParent(parent.Node().id)
+}

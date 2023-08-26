@@ -104,11 +104,10 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 
 func (b *bindIncr[A, B]) unlinkOld(oldIncr INode) {
 	for _, p := range b.n.parents {
-		p.Node().RemoveChild(oldIncr.Node().id)
-		oldIncr.Node().RemoveParent(p.Node().id)
+		Unlink(p, oldIncr)
 	}
-	if oldIncr.Node().isOrphaned() {
-		b.Node().graph.undiscoverAllNodes(oldIncr)
+	if oldIncr.Node().IsOrphaned() {
+		b.Node().graph.UndiscoverAllNodes(oldIncr)
 	}
 	b.bound = nil
 }
@@ -123,7 +122,7 @@ func (b *bindIncr[A, B]) linkNew(newIncr Incr[B]) {
 		Link(p, newIncr)
 		p.Node().recomputeParentHeightsOnBindChange()
 	}
-	b.Node().graph.discoverAllNodes(newIncr)
+	b.Node().graph.DiscoverAllNodes(newIncr)
 	newIncr.Node().changedAt = b.Node().graph.stabilizationNum
 	b.Node().graph.recomputeHeap.Add(newIncr)
 	b.bound = newIncr

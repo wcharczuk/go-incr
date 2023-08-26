@@ -192,6 +192,12 @@ func (n *Node) RemoveParent(id Identifier) {
 	n.parents = newParents
 }
 
+// IsOrphaned should return if the ref count, or the
+// number of nodes that reference this node, is zero.
+func (n *Node) IsOrphaned() bool {
+	return len(n.parents) == 0
+}
+
 //
 // Internal Helpers
 //
@@ -272,12 +278,6 @@ func (n *Node) recomputeParentHeightsOnBindChange() {
 	for _, p := range n.parents {
 		p.Node().recomputeParentHeightsOnBindChange()
 	}
-}
-
-// isOrphaned should return if the ref count, or the
-// number of nodes that reference this node, is zero.
-func (n *Node) isOrphaned() bool {
-	return len(n.parents) == 0
 }
 
 // pseudoHeight calculates the nodes height in respect to its children.

@@ -91,7 +91,7 @@ func (graph *Graph) IsStabilizing() bool {
 func (graph *Graph) Observe(nodes ...INode) {
 	graph.mu.Lock()
 	for _, n := range nodes {
-		graph.discoverAllNodes(n)
+		graph.DiscoverAllNodes(n)
 	}
 	graph.mu.Unlock()
 }
@@ -110,27 +110,32 @@ func (graph *Graph) SetStale(gn INode) {
 }
 
 //
-// internal methods
+// Discovery methods
 //
 
-func (graph *Graph) discoverAllNodes(gn INode) {
-	graph.discoverNode(gn)
+// DiscoverAllNodes initializes tracking of a given node
+// andwalks the children and parents lists doing the same
+// for any nodes seen.
+func (graph *Graph) DiscoverAllNodes(gn INode) {
+	graph.DiscoverNode(gn)
 	gnn := gn.Node()
 	for _, c := range gnn.children {
 		if graph.IsObserving(c) {
 			continue
 		}
-		graph.discoverAllNodes(c)
+		graph.DiscoverAllNodes(c)
 	}
 	for _, p := range gnn.parents {
 		if graph.IsObserving(p) {
 			continue
 		}
-		graph.discoverAllNodes(p)
+		graph.DiscoverAllNodes(p)
 	}
 }
 
-func (graph *Graph) discoverNode(gn INode) {
+// DiscoverNode initializes a node and adds
+// it to the observed lookup.
+func (graph *Graph) DiscoverNode(gn INode) {
 	gnn := gn.Node()
 	nodeID := gnn.id
 	graph.observed[nodeID] = gn
@@ -144,29 +149,32 @@ func (graph *Graph) discoverNode(gn INode) {
 	return
 }
 
-// undiscoverAllNodes removes a node and all its parents
+// UndiscoverAllNodes removes a node and all its parents
 // from a given graph.
 //
 // NOTE: you _must_ "unlink" it from its parents first or
 // you'll just blow away the whole graph.
-func (graph *Graph) undiscoverAllNodes(gn INode) {
-	graph.undiscoverNode(gn)
+func (graph *Graph) UndiscoverAllNodes(gn INode) {
+	graph.UndiscoverNode(gn)
 	gnn := gn.Node()
 	for _, c := range gnn.children {
 		if !graph.IsObserving(c) {
 			continue
 		}
-		graph.undiscoverAllNodes(c)
+		graph.UndiscoverAllNodes(c)
 	}
 	for _, p := range gnn.parents {
 		if !graph.IsObserving(p) {
 			continue
 		}
-		graph.undiscoverAllNodes(p)
+		graph.UndiscoverAllNodes(p)
 	}
 }
 
-func (graph *Graph) undiscoverNode(gn INode) {
+// UndiscoverNode removes the node from the graph
+// observation lookup as well as updating internal
+// stats metadata for the graph.
+func (graph *Graph) UndiscoverNode(gn INode) {
 	gnn := gn.Node()
 	gnn.graph = nil
 	delete(graph.observed, gnn.id)

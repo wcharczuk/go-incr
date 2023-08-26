@@ -20,7 +20,7 @@ func Test_New(t *testing.T) {
 	testutil.ItsEqual(t, false, g.IsObserving(m1))
 }
 
-func Test_Graph_undiscoverAllNodes(t *testing.T) {
+func Test_Graph_UndiscoverAllNodes(t *testing.T) {
 	r0 := Return("hello")
 	m0 := Map(r0, ident)
 	m1 := Map(m0, ident)
@@ -45,7 +45,7 @@ func Test_Graph_undiscoverAllNodes(t *testing.T) {
 	testutil.ItsEqual(t, true, g.IsObserving(am1))
 	testutil.ItsEqual(t, true, g.IsObserving(am2))
 
-	g.undiscoverAllNodes(m1)
+	g.UndiscoverAllNodes(m1)
 
 	testutil.ItsEqual(t, false, g.IsObserving(r0))
 	testutil.ItsEqual(t, false, g.IsObserving(m0))
@@ -87,7 +87,7 @@ func Test_Graph_undiscoverAllNodes_notObserving(t *testing.T) {
 	testutil.ItsEqual(t, false, g.IsObserving(am1))
 	testutil.ItsEqual(t, false, g.IsObserving(am2))
 
-	g.undiscoverAllNodes(am1)
+	g.UndiscoverAllNodes(am1)
 
 	testutil.ItsEqual(t, true, g.IsObserving(r0))
 	testutil.ItsEqual(t, true, g.IsObserving(m0))
