@@ -2,10 +2,16 @@ package incr
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
+)
+
+var (
+	_ json.Marshaler   = (*Identifier)(nil)
+	_ json.Unmarshaler = (*Identifier)(nil)
 )
 
 func Test_Identifier(t *testing.T) {

@@ -38,6 +38,21 @@ func ParseIdentifier(raw string) (output Identifier, err error) {
 	return
 }
 
+// MarshalJSON implements json.Marshaler.
+func (id Identifier) MarshalJSON() ([]byte, error) {
+	return []byte(id.String()), nil
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (id *Identifier) UnmarshalJSON(data []byte) error {
+	parsed, err := ParseIdentifier(string(data))
+	if err != nil {
+		return err
+	}
+	*id = parsed
+	return nil
+}
+
 // String returns the full hex representation of the id.
 func (id Identifier) String() string {
 	var buf [32]byte
