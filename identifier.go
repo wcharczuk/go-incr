@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"strings"
 )
 
 // Identifier is a unique id.
@@ -40,12 +41,14 @@ func ParseIdentifier(raw string) (output Identifier, err error) {
 
 // MarshalJSON implements json.Marshaler.
 func (id Identifier) MarshalJSON() ([]byte, error) {
-	return []byte(id.String()), nil
+	return []byte("\"" + id.String() + "\""), nil
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
 func (id *Identifier) UnmarshalJSON(data []byte) error {
-	parsed, err := ParseIdentifier(string(data))
+	dataCleaned := strings.TrimPrefix(string(data), "\"")
+	dataCleaned = strings.TrimSuffix(dataCleaned, "\"")
+	parsed, err := ParseIdentifier(dataCleaned)
 	if err != nil {
 		return err
 	}

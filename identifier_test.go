@@ -44,3 +44,30 @@ func Test_ParseIdentifier(t *testing.T) {
 		}
 	}
 }
+
+type jsonTest struct {
+	ID Identifier `json:"id"`
+}
+
+func Test_Identifier_json(t *testing.T) {
+	testValue := jsonTest{
+		ID: NewIdentifier(),
+	}
+	data, err := json.Marshal(testValue)
+	testutil.ItsNil(t, err)
+	testutil.ItsNotEqual(t, 0, len(data))
+
+	var verify jsonTest
+	err = json.Unmarshal(data, &verify)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, testValue.ID, verify.ID)
+}
+
+func Test_Identifier_jsonError(t *testing.T) {
+	data := []byte(`{"id":"----------"}`)
+	var verify jsonTest
+	err := json.Unmarshal(data, &verify)
+	testutil.ItsNotNil(t, err)
+	var zero Identifier
+	testutil.ItsEqual(t, zero, verify.ID)
+}
