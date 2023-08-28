@@ -42,32 +42,32 @@ func Test_Node_Metadata(t *testing.T) {
 }
 
 func Test_Link(t *testing.T) {
-	p := newMockBareNode()
-	c0 := newMockBareNode()
-	c1 := newMockBareNode()
-	c2 := newMockBareNode()
+	c := newMockBareNode()
+	p0 := newMockBareNode()
+	p1 := newMockBareNode()
+	p2 := newMockBareNode()
 
 	// set up P with (3) inputs
-	Link(p, c0, c1, c2)
+	Link(c, p0, p1, p2)
 
 	// no nodes depend on p, p is not an input to any nodes
-	testutil.ItsEqual(t, 0, len(p.n.parents))
-	testutil.ItsEqual(t, 3, len(p.n.children))
-	testutil.ItsEqual(t, c0.n.id, p.n.children[0].Node().id)
-	testutil.ItsEqual(t, c1.n.id, p.n.children[1].Node().id)
-	testutil.ItsEqual(t, c2.n.id, p.n.children[2].Node().id)
+	testutil.ItsEqual(t, 3, len(c.n.parents))
+	testutil.ItsEqual(t, 0, len(c.n.children))
+	testutil.ItsEqual(t, p0.n.id, c.n.parents[0].Node().id)
+	testutil.ItsEqual(t, p1.n.id, c.n.parents[1].Node().id)
+	testutil.ItsEqual(t, p2.n.id, c.n.parents[2].Node().id)
 
-	testutil.ItsEqual(t, 1, len(c0.n.parents))
-	testutil.ItsEqual(t, p.n.id, c0.n.parents[0].Node().id)
-	testutil.ItsEqual(t, 0, len(c0.n.children))
+	testutil.ItsEqual(t, 1, len(p0.n.children))
+	testutil.ItsEqual(t, c.n.id, p0.n.children[0].Node().id)
+	testutil.ItsEqual(t, 0, len(p0.n.parents))
 
-	testutil.ItsEqual(t, 1, len(c1.n.parents))
-	testutil.ItsEqual(t, p.n.id, c1.n.parents[0].Node().id)
-	testutil.ItsEqual(t, 0, len(c1.n.children))
+	testutil.ItsEqual(t, 1, len(p1.n.children))
+	testutil.ItsEqual(t, c.n.id, p1.n.children[0].Node().id)
+	testutil.ItsEqual(t, 0, len(p1.n.parents))
 
-	testutil.ItsEqual(t, 1, len(c2.n.parents))
-	testutil.ItsEqual(t, p.n.id, c2.n.parents[0].Node().id)
-	testutil.ItsEqual(t, 0, len(c2.n.children))
+	testutil.ItsEqual(t, 1, len(p2.n.children))
+	testutil.ItsEqual(t, c.n.id, p2.n.children[0].Node().id)
+	testutil.ItsEqual(t, 0, len(p2.n.parents))
 }
 
 func Test_Node_String(t *testing.T) {
@@ -319,7 +319,7 @@ func Test_Node_shouldRecompute(t *testing.T) {
 	n.changedAt = 1
 	c1 := newMockBareNode()
 	c1.Node().changedAt = 2
-	n.children = append(n.children, newMockBareNode(), c1)
+	n.parents = append(n.parents, newMockBareNode(), c1)
 	testutil.ItsEqual(t, true, n.shouldRecompute())
 
 	c1.Node().changedAt = 1
@@ -522,7 +522,7 @@ func (en emptyNode) Node() *Node {
 	return en.n
 }
 
-func Test_Node_recomputeParentHeightsOnBindChange(t *testing.T) {
+func Test_Node_recomputeChildHeightsOnBindChange(t *testing.T) {
 	n0 := emptyNode{NewNode()}
 	n1 := emptyNode{NewNode()}
 	n2 := emptyNode{NewNode()}
@@ -532,7 +532,7 @@ func Test_Node_recomputeParentHeightsOnBindChange(t *testing.T) {
 	Link(n2, n1)
 	Link(n3, n2)
 
-	n1.Node().recomputeParentHeightsOnBindChange()
+	n1.Node().recomputeChildHeightsOnBindChange()
 
 	testutil.ItsEqual(t, 0, n0.n.height)
 	testutil.ItsEqual(t, 2, n1.n.height)
@@ -547,10 +547,10 @@ func Test_Node_shouldRecompute_unit(t *testing.T) {
 	testutil.ItsEqual(t, true, (&Node{recomputedAt: 1, stabilize: noop, setAt: 2}).shouldRecompute())
 	testutil.ItsEqual(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 3}).shouldRecompute())
 	testutil.ItsEqual(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 3}).shouldRecompute())
-	testutil.ItsEqual(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 2, children: []INode{
+	testutil.ItsEqual(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 2, parents: []INode{
 		emptyNode{&Node{changedAt: 3}},
 	}}).shouldRecompute())
-	testutil.ItsEqual(t, false, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 2, children: []INode{
+	testutil.ItsEqual(t, false, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 2, parents: []INode{
 		emptyNode{&Node{changedAt: 2}},
 	}}).shouldRecompute())
 }
@@ -579,4 +579,28 @@ func Test_Node_HasParent(t *testing.T) {
 	testutil.ItsEqual(t, true, n.HasParent(p0.Node().ID()))
 	testutil.ItsEqual(t, true, n.HasParent(p1.Node().ID()))
 	testutil.ItsEqual(t, false, n.HasParent(p2.Node().ID()))
+}
+
+func Test_Node_IsOrphaned(t *testing.T) {
+	p0 := newMockBareNode()
+	p1 := newMockBareNode()
+	n := &Node{
+		parents: []INode{p0, p1},
+	}
+
+	testutil.ItsEqual(t, false, n.IsOrphaned())
+	n1 := &Node{}
+	testutil.ItsEqual(t, true, n1.IsOrphaned())
+}
+
+func Test_Node_IsLeaf(t *testing.T) {
+	c0 := newMockBareNode()
+	c1 := newMockBareNode()
+	n := &Node{
+		children: []INode{c0, c1},
+	}
+
+	testutil.ItsEqual(t, false, n.IsLeaf())
+	n1 := &Node{}
+	testutil.ItsEqual(t, true, n1.IsLeaf())
 }

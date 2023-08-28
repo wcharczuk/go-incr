@@ -49,9 +49,9 @@ func Dot(wr io.Writer, node INode) (err error) {
 	}
 	for _, n := range nodes {
 		nodeLabel := nodeLabels[n.Node().id]
-		for _, p := range n.Node().parents {
-			parentLabel := nodeLabels[p.Node().id]
-			writef(1, "%s -> %s;", nodeLabel, parentLabel)
+		for _, p := range n.Node().children {
+			childLabel := nodeLabels[p.Node().id]
+			writef(1, "%s -> %s;", nodeLabel, childLabel)
 		}
 	}
 	writef(0, "}")

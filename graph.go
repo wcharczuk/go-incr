@@ -264,9 +264,12 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	if len(nn.onUpdateHandlers) > 0 {
 		graph.handleAfterStabilization.Push(nn.id, nn.onUpdateHandlers)
 	}
-	for _, p := range nn.parents {
-		if p.Node().shouldRecompute() {
-			graph.recomputeHeap.Add(p)
+
+	// recompute all the children of this node
+	// i.e. the nodes that depend on this node.
+	for _, c := range nn.children {
+		if c.Node().shouldRecompute() {
+			graph.recomputeHeap.Add(c)
 		}
 	}
 	return

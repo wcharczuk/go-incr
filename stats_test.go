@@ -38,8 +38,8 @@ func Test_NodeStats(t *testing.T) {
 	oStats := NodeStats(o)
 	testutil.ItsEqual(t, 0, oStats.Changes())
 	testutil.ItsEqual(t, 0, oStats.Recomputes())
-	testutil.ItsEqual(t, 2, oStats.Children())
-	testutil.ItsEqual(t, 0, oStats.Parents())
+	testutil.ItsEqual(t, 0, oStats.Children())
+	testutil.ItsEqual(t, 2, oStats.Parents())
 }
 
 func Test_GraphStats(t *testing.T) {

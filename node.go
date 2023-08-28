@@ -21,16 +21,19 @@ type Node struct {
 	// label is a descriptive string for the
 	// node, and is set with `SetLabel`
 	label string
-	// parents are the nodes that depend on this node, that is
-	// parents are nodes for which this node is an input
+	// parents are the nodes that this node depends on, that is
+	// parents are nodes that this node takes as inputs
 	parents []INode
-	// children are the nodes that this node depends on, that is
-	// children are inputs to this node
+	// children are the nodes that depend on this node, that is
+	// children take this node as an input
 	children []INode
 	// height is the topological sort pseudo-height of the
 	// node and is used to order recomputation
 	// it is established when the graph is initialized but
 	// can also update if bind nodes change their graphs.
+	// largely it represents how many levels of inputs feed into
+	// this node, e.g. how many other nodes have to update before
+	// this node has to update.
 	height int
 	// changedAt connotes when the node was changed last,
 	// specifically if any of the node's parents were set or bound
@@ -192,10 +195,16 @@ func (n *Node) RemoveParent(id Identifier) {
 	n.parents = newParents
 }
 
-// IsOrphaned should return if the ref count, or the
-// number of nodes that reference this node, is zero.
+// IsOrphaned should return if the parent count, or the
+// number of nodes that this node depends on is zero.
 func (n *Node) IsOrphaned() bool {
 	return len(n.parents) == 0
+}
+
+// IsLeaf should return if the child count, or the
+// number of nodes depend on this node is zero.
+func (n *Node) IsLeaf() bool {
+	return len(n.children) == 0
 }
 
 //
@@ -265,32 +274,32 @@ func (n *Node) shouldRecompute() bool {
 	// if any of the direct _inputs_ to this node have changed
 	// or updated their bind. we don't go full recursive
 	// here to prevent a bunch of extra work.
-	for _, c := range n.children {
-		if c.Node().changedAt > n.recomputedAt {
+	for _, p := range n.parents {
+		if p.Node().changedAt > n.recomputedAt {
 			return true
 		}
 	}
 	return false
 }
 
-func (n *Node) recomputeParentHeightsOnBindChange() {
+func (n *Node) recomputeChildHeightsOnBindChange() {
 	n.height = n.computePseudoHeight()
-	for _, p := range n.parents {
-		p.Node().recomputeParentHeightsOnBindChange()
+	for _, c := range n.children {
+		c.Node().recomputeChildHeightsOnBindChange()
 	}
 }
 
-// pseudoHeight calculates the nodes height in respect to its children.
+// computePseudoHeight calculates the nodes height in respect to its parents.
 //
 // it will use the maximum height _the node has ever seen_, i.e.
 // if the height is 1, then 3, then 1 again, this will return 3.
 func (n *Node) computePseudoHeight() int {
-	var maxChildHeight int
-	var childHeight int
-	for _, c := range n.children {
-		childHeight = c.Node().computePseudoHeight()
-		if childHeight > maxChildHeight {
-			maxChildHeight = childHeight
+	var maxParentHeight int
+	var parentHeight int
+	for _, p := range n.parents {
+		parentHeight = p.Node().computePseudoHeight()
+		if parentHeight > maxParentHeight {
+			maxParentHeight = parentHeight
 		}
 	}
 
@@ -298,10 +307,10 @@ func (n *Node) computePseudoHeight() int {
 	// changing a bunch with bind nodes.
 	// basically just stick with the overall maximum
 	// height the node has seen ever.
-	if n.height > maxChildHeight {
+	if n.height > maxParentHeight {
 		return n.height
 	}
-	return maxChildHeight + 1
+	return maxParentHeight + 1
 }
 
 func (n *Node) maybeBind(ctx context.Context) (err error) {
