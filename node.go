@@ -27,6 +27,9 @@ type Node struct {
 	// children are the nodes that depend on this node, that is
 	// children take this node as an input
 	children []INode
+	// observers are observer nodes that are attached to this
+	// node or its children.
+	observers []IObserver
 	// height is the topological sort pseudo-height of the
 	// node and is used to order recomputation
 	// it is established when the graph is initialized but
@@ -195,9 +198,9 @@ func (n *Node) RemoveParent(id Identifier) {
 	n.parents = newParents
 }
 
-// IsOrphaned should return if the parent count, or the
+// IsRoot should return if the parent count, or the
 // number of nodes that this node depends on is zero.
-func (n *Node) IsOrphaned() bool {
+func (n *Node) IsRoot() bool {
 	return len(n.parents) == 0
 }
 

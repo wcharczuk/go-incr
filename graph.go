@@ -2,7 +2,6 @@ package incr
 
 import (
 	"context"
-	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -35,8 +34,6 @@ func New(observed ...INode) *Graph {
 type Graph struct {
 	// id is a unique identifier for the graph
 	id Identifier
-	// mu is a synchronizing mutex for the graph
-	mu sync.Mutex
 	// observed are the nodes that the graph currently observes
 	// organized by node id.
 	observed map[Identifier]INode
@@ -89,11 +86,9 @@ func (graph *Graph) IsStabilizing() bool {
 // Each node should in effect represent separate "graphs" but
 // deduplication will be handled during the adding process.
 func (graph *Graph) Observe(nodes ...INode) {
-	graph.mu.Lock()
 	for _, n := range nodes {
-		graph.DiscoverAllNodes(n)
+		graph.DiscoverNodes(n)
 	}
-	graph.mu.Unlock()
 }
 
 // IsObserving returns if a graph is observing a given node.
@@ -116,20 +111,14 @@ func (graph *Graph) SetStale(gn INode) {
 // DiscoverAllNodes initializes tracking of a given node
 // andwalks the children and parents lists doing the same
 // for any nodes seen.
-func (graph *Graph) DiscoverAllNodes(gn INode) {
+func (graph *Graph) DiscoverNodes(gn INode) {
 	graph.DiscoverNode(gn)
 	gnn := gn.Node()
-	for _, c := range gnn.children {
-		if graph.IsObserving(c) {
-			continue
-		}
-		graph.DiscoverAllNodes(c)
-	}
 	for _, p := range gnn.parents {
 		if graph.IsObserving(p) {
 			continue
 		}
-		graph.DiscoverAllNodes(p)
+		graph.DiscoverNodes(p)
 	}
 }
 
@@ -154,20 +143,14 @@ func (graph *Graph) DiscoverNode(gn INode) {
 //
 // NOTE: you _must_ "unlink" it from its parents first or
 // you'll just blow away the whole graph.
-func (graph *Graph) UndiscoverAllNodes(gn INode) {
+func (graph *Graph) UndiscoverNodes(gn INode) {
 	graph.UndiscoverNode(gn)
 	gnn := gn.Node()
 	for _, c := range gnn.children {
 		if !graph.IsObserving(c) {
 			continue
 		}
-		graph.UndiscoverAllNodes(c)
-	}
-	for _, p := range gnn.parents {
-		if !graph.IsObserving(p) {
-			continue
-		}
-		graph.UndiscoverAllNodes(p)
+		graph.UndiscoverNodes(c)
 	}
 }
 

@@ -581,16 +581,16 @@ func Test_Node_HasParent(t *testing.T) {
 	testutil.ItsEqual(t, false, n.HasParent(p2.Node().ID()))
 }
 
-func Test_Node_IsOrphaned(t *testing.T) {
+func Test_Node_IsRoot(t *testing.T) {
 	p0 := newMockBareNode()
 	p1 := newMockBareNode()
 	n := &Node{
 		parents: []INode{p0, p1},
 	}
 
-	testutil.ItsEqual(t, false, n.IsOrphaned())
+	testutil.ItsEqual(t, false, n.IsRoot())
 	n1 := &Node{}
-	testutil.ItsEqual(t, true, n1.IsOrphaned())
+	testutil.ItsEqual(t, true, n1.IsRoot())
 }
 
 func Test_Node_IsLeaf(t *testing.T) {
