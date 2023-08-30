@@ -147,19 +147,12 @@ func (rh *recomputeHeap) addUnsafe(nodes ...INode) {
 		// this needs to be here for `SetStale` to work
 		// correctly, specifically we may need to
 		// add nodes to the recompute heap multiple times.
-		if _, ok := rh.lookup[sn.id]; ok {
-			// we may need to move the node
+		if current, ok := rh.lookup[sn.id]; ok {
 			if rh.heights[sn.height] == nil || !rh.heights[sn.height].Has(sn.id) {
-				// remove it from any existing height lists
-				for _, height := range rh.heights {
-					if height != nil {
-						height.Remove(sn.id)
-					}
-				}
-				// add it to the correct one
-				rh.addNodeUnsafe(s)
+				rh.heights[current.height].Remove(sn.id)
+			} else {
+				continue
 			}
-			continue
 		}
 		rh.addNodeUnsafe(s)
 	}
@@ -181,6 +174,7 @@ func (rh *recomputeHeap) addNodeUnsafe(s INode) {
 		rh.heights[sn.height] = new(list[Identifier, INode])
 	}
 	item := rh.heights[sn.height].Push(s.Node().id, s)
+	item.height = sn.height
 	rh.lookup[sn.id] = item
 }
 

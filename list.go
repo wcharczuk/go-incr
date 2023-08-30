@@ -215,6 +215,8 @@ type listItem[K comparable, V any] struct {
 	key K
 	// value is the INode
 	value V
+	// height is used for moving node(s)
+	height int
 	// next is the pointer towards the tail
 	next *listItem[K, V]
 	// previous is the pointer towards the head
