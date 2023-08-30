@@ -103,6 +103,7 @@ func Test_Stabilize_diffMapByKeys(t *testing.T) {
 	})
 
 	graph := incr.New()
+	_ = incr.Observe(graph, mfa)
 	_ = incr.Observe(graph, mfr)
 
 	_ = graph.Stabilize(ctx)
