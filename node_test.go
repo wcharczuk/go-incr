@@ -82,7 +82,7 @@ func Test_Node_String(t *testing.T) {
 func Test_SetStale(t *testing.T) {
 	g := New()
 	n := newMockBareNode()
-	g.Observe(n)
+	_ = Observe(g, n)
 	g.SetStale(n)
 
 	testutil.ItsEqual(t, 0, n.n.changedAt)
@@ -360,7 +360,7 @@ func Test_Node_recompute(t *testing.T) {
 
 	p := newMockBareNode()
 	m0.Node().AddParents(p)
-	g.Observe(m0)
+	_ = Observe(g, m0)
 
 	var calledUpdateHandler0, calledUpdateHandler1 bool
 	m0.Node().OnUpdate(func(ictx context.Context) {
@@ -423,7 +423,7 @@ func Test_Node_stabilize_error(t *testing.T) {
 
 	p := newMockBareNode()
 	m0.Node().AddParents(p)
-	g.Observe(m0)
+	_ = Observe(g, m0)
 
 	var calledUpdateHandler0, calledUpdateHandler1 bool
 	m0.Node().OnUpdate(func(ictx context.Context) {
@@ -464,6 +464,7 @@ func Test_Node_stabilize_error(t *testing.T) {
 
 func Test_nodeFormatters(t *testing.T) {
 	id := NewIdentifier()
+	g := New()
 
 	testCases := [...]struct {
 		Node  INode
@@ -485,6 +486,7 @@ func Test_nodeFormatters(t *testing.T) {
 		{FoldLeft(Return([]string{}), "", nil), "fold_left"},
 		{FoldRight(Return([]string{}), "", nil), "fold_right"},
 		{FoldMap(Return(map[string]int{}), "", nil), "fold_map"},
+		{Observe[string](g, Return("")), "observer"},
 	}
 
 	for _, tc := range testCases {

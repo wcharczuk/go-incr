@@ -107,25 +107,27 @@ func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, oldIncr INode) {
 		tracePrintf(ctx, "bind unlinking child %v", c)
 		Unlink(c, oldIncr)
 	}
-	if oldIncr.Node().IsLeaf() {
-		tracePrintf(ctx, "bind undiscovering old bind target %v", oldIncr)
-		b.Node().graph.UndiscoverAllNodes(oldIncr)
+	graph := b.Node().graph
+	for _, o := range b.Node().observers {
+		graph.UndiscoverNodes(o, oldIncr)
 	}
 	b.bound = nil
 }
 
 func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
 	tracePrintf(ctx, "bind linking new child %v", newIncr)
+
 	// for each of the nodes that have the bind node as an input
 	// link the new incremental as an input as well (i.e. the bind node
 	// itself and the "bound" node are peers in a way).
-	// we do this mostly to keep the heights from getting out of control
-	// but we could easily have the bind node as part of the chain directly.
+	// we do this mostly to keep the node heights from getting out of control.
 	for _, c := range b.n.children {
 		Link(c, newIncr)
 		c.Node().recomputeChildHeightsOnBindChange()
 	}
-	b.Node().graph.DiscoverAllNodes(newIncr)
+	for _, o := range b.Node().observers {
+		b.Node().graph.DiscoverNodes(o, newIncr)
+	}
 	newIncr.Node().changedAt = b.Node().graph.stabilizationNum
 	b.Node().graph.recomputeHeap.Add(newIncr)
 	b.bound = newIncr

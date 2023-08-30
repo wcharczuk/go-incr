@@ -18,7 +18,8 @@ func Test_ParallelStabilize(t *testing.T) {
 		return a + " " + b
 	})
 
-	graph := New(m0)
+	graph := New()
+	_ = Observe(graph, m0)
 
 	err := graph.ParallelStabilize(ctx)
 	ItsNil(t, err)
@@ -93,7 +94,8 @@ func Test_ParallelStabilize_jsDocs(t *testing.T) {
 		},
 	)
 
-	graph := New(output)
+	graph := New()
+	_ = Observe(graph, output)
 
 	err := graph.ParallelStabilize(ctx)
 	ItsNil(t, err)
@@ -120,7 +122,8 @@ func Test_ParallelStabilize_error(t *testing.T) {
 		return "", fmt.Errorf("this is only a test")
 	})
 
-	graph := New(m0)
+	graph := New()
+	_ = Observe(graph, m0)
 
 	err := graph.ParallelStabilize(ctx)
 	ItsNotNil(t, err)

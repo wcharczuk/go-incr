@@ -14,7 +14,7 @@ import (
 //
 // Nodes you initialize the graph with will be "observed" before
 // the graph is returned, saving that step later.
-func New(observed ...INode) *Graph {
+func New() *Graph {
 	g := &Graph{
 		id:                       NewIdentifier(),
 		stabilizationNum:         1,
@@ -24,7 +24,6 @@ func New(observed ...INode) *Graph {
 		handleAfterStabilization: new(list[Identifier, []func(context.Context)]),
 		recomputeHeap:            newRecomputeHeap(defaultRecomputeHeapMaxHeight),
 	}
-	g.Observe(observed...)
 	return g
 }
 
@@ -76,21 +75,6 @@ func (graph *Graph) IsStabilizing() bool {
 	return atomic.LoadInt32(&graph.status) != StatusNotStabilizing
 }
 
-// Observe observes a given list of nodes.
-//
-// The observation process involves discovering nodes
-// linked to by dependency relationships of the given nodes
-// setting up the computation metadata and other infrastructure
-// to enable us to stabilize the computation later.
-//
-// Each node should in effect represent separate "graphs" but
-// deduplication will be handled during the adding process.
-func (graph *Graph) Observe(nodes ...INode) {
-	for _, n := range nodes {
-		graph.DiscoverNodes(n)
-	}
-}
-
 // IsObserving returns if a graph is observing a given node.
 func (graph *Graph) IsObserving(gn INode) (ok bool) {
 	_, ok = graph.observed[gn.Node().id]
@@ -108,23 +92,22 @@ func (graph *Graph) SetStale(gn INode) {
 // Discovery methods
 //
 
-// DiscoverAllNodes initializes tracking of a given node
-// andwalks the children and parents lists doing the same
-// for any nodes seen.
-func (graph *Graph) DiscoverNodes(gn INode) {
-	graph.DiscoverNode(gn)
+// DiscoverNodes initializes tracking of a given node for a given observer
+// and walks the nodes parents doing the same for any nodes seen.
+func (graph *Graph) DiscoverNodes(on IObserver, gn INode) {
+	graph.DiscoverNode(on, gn)
 	gnn := gn.Node()
 	for _, p := range gnn.parents {
 		if graph.IsObserving(p) {
 			continue
 		}
-		graph.DiscoverNodes(p)
+		graph.DiscoverNodes(on, p)
 	}
 }
 
 // DiscoverNode initializes a node and adds
 // it to the observed lookup.
-func (graph *Graph) DiscoverNode(gn INode) {
+func (graph *Graph) DiscoverNode(on IObserver, gn INode) {
 	gnn := gn.Node()
 	nodeID := gnn.id
 	graph.observed[nodeID] = gn
@@ -132,38 +115,63 @@ func (graph *Graph) DiscoverNode(gn INode) {
 	gnn.detectCutoff(gn)
 	gnn.detectStabilize(gn)
 	gnn.detectBind(gn)
+	gnn.observers = append(gnn.observers, on)
 	graph.numNodes++
 	gnn.height = gnn.computePseudoHeight()
 	graph.recomputeHeap.Add(gn)
 	return
 }
 
+// DiscoverObserver initializes an observer node
+// which is treated specially by the graph.
+func (graph *Graph) DiscoverObserver(on IObserver) {
+	onn := on.Node()
+	onn.graph = graph
+	graph.numNodes++
+	onn.height = onn.computePseudoHeight()
+	graph.recomputeHeap.Add(on)
+	return
+}
+
 // UndiscoverAllNodes removes a node and all its parents
-// from a given graph.
-//
-// NOTE: you _must_ "unlink" it from its parents first or
-// you'll just blow away the whole graph.
-func (graph *Graph) UndiscoverNodes(gn INode) {
-	graph.UndiscoverNode(gn)
+// from a observation within a graph for a given observer.
+func (graph *Graph) UndiscoverNodes(on IObserver, gn INode) {
+	graph.UndiscoverNode(on, gn)
 	gnn := gn.Node()
-	for _, c := range gnn.children {
+	for _, c := range gnn.parents {
 		if !graph.IsObserving(c) {
 			continue
 		}
-		graph.UndiscoverNodes(c)
+		graph.UndiscoverNodes(on, c)
 	}
 }
 
 // UndiscoverNode removes the node from the graph
 // observation lookup as well as updating internal
-// stats metadata for the graph.
-func (graph *Graph) UndiscoverNode(gn INode) {
+// stats metadata for the graph for a given observer.
+func (graph *Graph) UndiscoverNode(on IObserver, gn INode) {
 	gnn := gn.Node()
-	gnn.graph = nil
-	delete(graph.observed, gnn.id)
+	gnn.observers = filter(gnn.observers, func(on0 IObserver) bool {
+		return on0.Node().id != on.Node().id
+	})
+	if len(gnn.observers) == 0 {
+		gnn.graph = nil
+		delete(graph.observed, gnn.id)
+		graph.numNodes--
+		graph.recomputeHeap.Remove(gn)
+		graph.handleAfterStabilization.Remove(gn.Node().ID())
+	}
+}
+
+// UndiscoverObserver removes an observer node
+// which is treated specially by the graph.
+func (graph *Graph) UndiscoverObserver(on IObserver) {
+	onn := on.Node()
+	onn.graph = nil
 	graph.numNodes--
-	graph.recomputeHeap.Remove(gn)
-	graph.handleAfterStabilization.Remove(gn.Node().ID())
+	graph.recomputeHeap.Remove(on)
+	graph.handleAfterStabilization.Remove(on.Node().ID())
+	return
 }
 
 //

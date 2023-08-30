@@ -13,13 +13,14 @@ func main() {
 	v1 := incr.Var("bar")
 	output := incr.Map2(v0, v1, func(a, b string) string { return a + " and " + b })
 
-	graph := incr.New(output)
+	graph := incr.New()
+	observer := incr.Observe(graph, output)
 
 	if err := graph.Stabilize(context.Background()); err != nil {
 		fmt.Fprintf(os.Stderr, "%+v\n", err)
 		os.Exit(1)
 	}
-	fmt.Println("output:", output.Value())
+	fmt.Println("output:", observer.Value())
 
 	v0.Set("not-foo")
 
@@ -27,5 +28,5 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%+v\n", err)
 		os.Exit(1)
 	}
-	fmt.Println("output:", output.Value())
+	fmt.Println("output:", observer.Value())
 }

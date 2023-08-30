@@ -67,7 +67,9 @@ func main() {
 	}
 
 	incrVars, incrNodes := makeIncrNodes()
-	graph := incr.New(incrNodes[0])
+	graph := incr.New()
+	incr.Observe(graph, incrNodes[0])
+
 	var incrResults []time.Duration
 	for n := 0; n < ROUNDS; n++ {
 		start := time.Now()

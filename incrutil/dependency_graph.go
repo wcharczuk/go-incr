@@ -39,14 +39,17 @@ func (dg DependencyGraph[Result]) Create() (*incr.Graph, map[string]DependencyIn
 
 	// build "leaves" list by filtering for
 	// nodes with zero "dependedBy" entries
-	var leaves []incr.INode
+	var leaves []DependencyIncr[Result]
 	for _, d := range dependencyLookup {
 		if len(d.dependedBy) == 0 {
 			leaves = append(leaves, packageIncrementals[d.Name])
 		}
 	}
-
-	return incr.New(leaves...), packageIncrementals
+	graph := incr.New()
+	for _, n := range leaves {
+		_ = incr.Observe[Result](graph, n)
+	}
+	return graph, packageIncrementals
 }
 
 func (dg DependencyGraph[Result]) createDependencyLookup() (output map[string]*dependencyWithDependedBy) {

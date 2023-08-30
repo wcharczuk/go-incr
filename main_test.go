@@ -47,6 +47,8 @@ func add[T Ordered](v0, v1 T) T {
 	return v0 + v1
 }
 
+var _ Incr[any] = (*mockBareNode)(nil)
+
 func newMockBareNode() *mockBareNode {
 	return &mockBareNode{
 		n: NewNode(),
@@ -59,6 +61,10 @@ type mockBareNode struct {
 
 func (mn *mockBareNode) Node() *Node {
 	return mn.n
+}
+
+func (mn *mockBareNode) Value() any {
+	return nil
 }
 
 func newHeightIncr(height int) *heightIncr {

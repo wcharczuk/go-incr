@@ -38,7 +38,8 @@ func main() {
 	c := Custom(incr.Return("hello"))
 	fmt.Println("before:", c.Value())
 
-	graph := incr.New(c)
+	graph := incr.New()
+	_ = incr.Observe(graph, c)
 
 	_ = graph.Stabilize(context.Background())
 	fmt.Println("after:", c.Value())

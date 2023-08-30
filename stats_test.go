@@ -33,12 +33,13 @@ func Test_NodeStats(t *testing.T) {
 	s1 := Map(s0, ident)
 	o := Map2(bind, s1, concat)
 
-	_ = New(o)
+	g := New()
+	_ = Observe(g, o)
 
 	oStats := NodeStats(o)
 	testutil.ItsEqual(t, 0, oStats.Changes())
 	testutil.ItsEqual(t, 0, oStats.Recomputes())
-	testutil.ItsEqual(t, 0, oStats.Children())
+	testutil.ItsEqual(t, 1, oStats.Children())
 	testutil.ItsEqual(t, 2, oStats.Parents())
 }
 

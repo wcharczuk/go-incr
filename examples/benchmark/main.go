@@ -42,7 +42,8 @@ func main() {
 		ctx = incr.WithTracing(ctx)
 	}
 
-	graph := incr.New(nodes[0])
+	graph := incr.New()
+	_ = incr.Observe(graph, nodes[0])
 
 	var err error
 	for n := 0; n < ROUNDS; n++ {
