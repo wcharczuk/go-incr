@@ -160,22 +160,33 @@ func (rh *recomputeHeap) addUnsafe(nodes ...INode) {
 
 func (rh *recomputeHeap) addNodeUnsafe(s INode) {
 	sn := s.Node()
-	// when we add nodes, make sure to note if we
-	// need to change the min or max height
-	if len(rh.lookup) == 0 {
-		rh.minHeight = sn.height
-		rh.maxHeight = sn.height
-	} else if rh.minHeight > sn.height {
-		rh.minHeight = sn.height
-	} else if rh.maxHeight < sn.height {
-		rh.maxHeight = sn.height
-	}
+	rh.adjustMinMaxHeights(sn.height)
 	if rh.heights[sn.height] == nil {
 		rh.heights[sn.height] = new(list[Identifier, INode])
 	}
 	item := rh.heights[sn.height].Push(s.Node().id, s)
 	item.height = sn.height
 	rh.lookup[sn.id] = item
+
+	if rh.heights[rh.minHeight] == nil || rh.heights[rh.minHeight].Len() == 0 {
+		rh.minHeight = rh.nextMinHeight()
+	}
+}
+
+func (rh *recomputeHeap) adjustMinMaxHeights(newHeight int) {
+	if len(rh.lookup) == 0 {
+		rh.minHeight = newHeight
+		rh.maxHeight = newHeight
+		return
+	}
+	if rh.minHeight > newHeight {
+		rh.minHeight = newHeight
+		return
+	}
+	if rh.maxHeight < newHeight {
+		rh.maxHeight = newHeight
+		return
+	}
 }
 
 // nextMinHeight finds the next smallest height in the heap that has nodes.

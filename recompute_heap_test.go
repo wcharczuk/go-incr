@@ -365,23 +365,39 @@ func Test_recomputeHeap_nextMinHeight_pastMax(t *testing.T) {
 }
 
 func Test_recomuteHeap_Add_regression(t *testing.T) {
+	// real world use case! it's insane!
+
 	rh := newRecomputeHeap(8)
 
-	v0 := newHeightIncr(0)
-	v1 := newHeightIncr(0)
-	m1 := newHeightIncr(1)
-	o2 := newHeightIncr(0)
+	v0 := newHeightIncr(1)
+	v1 := newHeightIncr(1)
+	m1 := newHeightIncr(0)
+	o2 := newHeightIncr(3)
 
-	rh.addUnsafe(v0)
-	rh.addUnsafe(v1)
-	rh.addUnsafe(v1)
+	rh.addUnsafe(m1)
 	rh.addUnsafe(m1)
 	rh.addUnsafe(o2)
-	o2.n.height = 3
+	m1.n.height = 2
+	rh.addUnsafe(m1)
+	rh.addUnsafe(v0)
+	rh.addUnsafe(v1)
 	rh.addUnsafe(o2)
 
-	ItsEqual(t, 4, len(rh.lookup))
-	ItsEqual(t, 2, rh.heights[0].Len())
-	ItsEqual(t, 1, rh.heights[1].Len())
-	ItsEqual(t, 1, rh.heights[3].Len())
+	ItsEqual(t, 1, rh.minHeight)
+
+	var nodesInLists int
+	for _, l := range rh.heights {
+		if l != nil {
+			nodesInLists += l.Len()
+		}
+	}
+	ItsEqual(t, len(rh.lookup), nodesInLists)
+
+	var seen []Identifier
+	for len(rh.lookup) > 0 {
+		n := rh.RemoveMin()
+		ItsNotNil(t, n)
+		seen = append(seen, n.Node().id)
+	}
+	ItsEqual(t, []Identifier{v0.n.id, v1.n.id, m1.n.id, o2.n.id}, seen)
 }
