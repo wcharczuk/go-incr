@@ -107,3 +107,24 @@ func Test_Observe_Unobserve_multiple(t *testing.T) {
 	testutil.ItsEqual(t, "", o1.Value())
 	testutil.ItsEqual(t, "not hello 1", o11.Value())
 }
+
+func Test_Observer_Unobserve_reobserve(t *testing.T) {
+	g := New()
+	v0 := Var("hello")
+	m0 := Map(v0, ident)
+	o0 := Observe(g, m0)
+
+	_ = g.Stabilize(context.TODO())
+	testutil.ItsEqual(t, "hello", o0.Value())
+
+	o0.Unobserve()
+
+	_ = g.Stabilize(context.TODO())
+	testutil.ItsEqual(t, false, g.IsObserving(m0))
+	// strictly, the value shouldn't change ...
+	testutil.ItsEqual(t, "hello", m0.Value())
+
+	o1 := Observe(g, m0)
+	_ = g.Stabilize(context.TODO())
+	testutil.ItsEqual(t, "hello", o1.Value())
+}

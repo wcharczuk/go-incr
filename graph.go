@@ -109,7 +109,7 @@ func (graph *Graph) DiscoverNode(on IObserver, gn INode) {
 	nodeID := gnn.id
 	gnn.observers = append(gnn.observers, on)
 
-	// if we're seeing the node for the first time
+	// if the node is not currently observed.
 	if _, ok := graph.observed[nodeID]; !ok {
 		graph.observed[nodeID] = gn
 		gnn.graph = graph
@@ -118,7 +118,10 @@ func (graph *Graph) DiscoverNode(on IObserver, gn INode) {
 		gnn.detectBind(gn)
 		graph.numNodes++
 		gnn.height = gnn.computePseudoHeight()
-		graph.recomputeHeap.Add(gn)
+
+		if gnn.shouldRecompute() {
+			graph.recomputeHeap.Add(gn)
+		}
 	}
 	return
 }
