@@ -154,6 +154,75 @@ func Test_Stabilize_updateHandlers(t *testing.T) {
 	ItsEqual(t, 2, updates)
 }
 
+func Test_Stabilize_observedHandlers(t *testing.T) {
+	ctx := testContext()
+
+	v0 := Var("foo")
+	v1 := Var("bar")
+	m0 := Map2(v0, v1, func(a, b string) string {
+		return a + " " + b
+	})
+
+	var observes int
+	m0.Node().OnObserved(func(IObserver) {
+		observes++
+	})
+
+	graph := New()
+	_ = Observe(graph, m0)
+
+	err := graph.Stabilize(ctx)
+	ItsNil(t, err)
+	ItsEqual(t, 1, observes)
+
+	v0.Set("not foo")
+	err = graph.Stabilize(ctx)
+	ItsNil(t, err)
+	ItsEqual(t, 1, observes)
+
+	_ = Observe(graph, m0)
+	ItsEqual(t, 2, observes)
+}
+
+func Test_Stabilize_unobservedHandlers(t *testing.T) {
+	ctx := testContext()
+
+	v0 := Var("foo")
+	v1 := Var("bar")
+	m0 := Map2(v0, v1, func(a, b string) string {
+		return a + " " + b
+	})
+
+	var observes, unobserves int
+	m0.Node().OnObserved(func(IObserver) {
+		observes++
+	})
+	m0.Node().OnUnobserved(func(IObserver) {
+		unobserves++
+	})
+
+	graph := New()
+	o0 := Observe(graph, m0)
+
+	err := graph.Stabilize(ctx)
+	ItsNil(t, err)
+	ItsEqual(t, 1, observes)
+	ItsEqual(t, 0, unobserves)
+
+	v0.Set("not foo")
+	err = graph.Stabilize(ctx)
+	ItsNil(t, err)
+	ItsEqual(t, 1, observes)
+
+	_ = Observe(graph, m0)
+	ItsEqual(t, 2, observes)
+	ItsEqual(t, 0, unobserves)
+
+	o0.Unobserve()
+	ItsEqual(t, 2, observes)
+	ItsEqual(t, 1, unobserves)
+}
+
 func Test_Stabilize_unevenHeights(t *testing.T) {
 	ctx := testContext()
 

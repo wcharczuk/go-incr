@@ -107,6 +107,10 @@ func (graph *Graph) DiscoverNodes(on IObserver, gn INode) {
 func (graph *Graph) DiscoverNode(on IObserver, gn INode) {
 	gnn := gn.Node()
 	nodeID := gnn.id
+
+	for _, handler := range gnn.onObservedHandlers {
+		handler(on)
+	}
 	gnn.observers = append(gnn.observers, on)
 
 	// if the node is not currently observed.
@@ -158,6 +162,9 @@ func (graph *Graph) UndiscoverNode(on IObserver, gn INode) {
 	gnn.observers = filter(gnn.observers, func(on0 IObserver) bool {
 		return on0.Node().id != on.Node().id
 	})
+	for _, handler := range gnn.onUnobservedHandlers {
+		handler(on)
+	}
 	if len(gnn.observers) == 0 {
 		gnn.graph = nil
 		delete(graph.observed, gnn.id)

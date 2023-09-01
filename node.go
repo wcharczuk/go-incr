@@ -57,6 +57,12 @@ type Node struct {
 	// onErrorHandlers are functions that are called when the node updates.
 	// they are added with `OnUpdate(...)`.
 	onErrorHandlers []func(context.Context, error)
+	// onObservedHandlers are functions that are called when the node is observed.
+	// they are added with `OnObserved(...)`.
+	onObservedHandlers []func(IObserver)
+	// onUnobservedHandlers are functions that are called when the node is unobserved.
+	// they are added with `OnUnobserved(...)`.
+	onUnobservedHandlers []func(IObserver)
 	// stabilize is set during initialization and is a shortcut
 	// to the interface sniff for the node for the IStabilize interface.
 	stabilize func(context.Context) error
@@ -103,6 +109,16 @@ func (n *Node) OnUpdate(fn func(context.Context)) {
 // OnError registers an error handler.
 func (n *Node) OnError(fn func(context.Context, error)) {
 	n.onErrorHandlers = append(n.onErrorHandlers, fn)
+}
+
+// OnObserved registers an observed handler.
+func (n *Node) OnObserved(fn func(IObserver)) {
+	n.onObservedHandlers = append(n.onObservedHandlers, fn)
+}
+
+// OnUnobserved registers an unobserved handler.
+func (n *Node) OnUnobserved(fn func(IObserver)) {
+	n.onUnobservedHandlers = append(n.onUnobservedHandlers, fn)
 }
 
 // Label returns a descriptive label for the node or
