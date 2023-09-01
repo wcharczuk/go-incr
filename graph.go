@@ -123,7 +123,7 @@ func (graph *Graph) DiscoverNode(on IObserver, gn INode) {
 		graph.numNodes++
 		gnn.height = gnn.computePseudoHeight()
 
-		if gnn.shouldRecompute() {
+		if gnn.ShouldRecompute() {
 			graph.recomputeHeap.Add(gn)
 		}
 	}
@@ -270,7 +270,7 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	// recompute all the children of this node
 	// i.e. the nodes that depend on this node.
 	for _, c := range nn.children {
-		if c.Node().shouldRecompute() {
+		if c.Node().ShouldRecompute() {
 			graph.recomputeHeap.Add(c)
 		}
 	}

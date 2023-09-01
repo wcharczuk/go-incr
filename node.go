@@ -269,8 +269,8 @@ func (n *Node) detectBind(gn INode) {
 	}
 }
 
-// shouldRecompute returns whether or not a given node needs to be recomputed.
-func (n *Node) shouldRecompute() bool {
+// ShouldRecompute returns whether or not a given node needs to be recomputed.
+func (n *Node) ShouldRecompute() bool {
 	// we should always recompute on the first stabilization
 	if n.recomputedAt == 0 {
 		return true

@@ -303,27 +303,27 @@ func Test_Node_detectStabilize(t *testing.T) {
 
 func Test_Node_shouldRecompute(t *testing.T) {
 	n := NewNode()
-	testutil.ItsEqual(t, true, n.shouldRecompute())
+	testutil.ItsEqual(t, true, n.ShouldRecompute())
 
 	n.recomputedAt = 1
-	testutil.ItsEqual(t, false, n.shouldRecompute())
+	testutil.ItsEqual(t, false, n.ShouldRecompute())
 
 	n.stabilize = func(_ context.Context) error { return nil }
 	n.setAt = 2
-	testutil.ItsEqual(t, true, n.shouldRecompute())
+	testutil.ItsEqual(t, true, n.ShouldRecompute())
 
 	n.setAt = 1
 	n.changedAt = 2
-	testutil.ItsEqual(t, true, n.shouldRecompute())
+	testutil.ItsEqual(t, true, n.ShouldRecompute())
 
 	n.changedAt = 1
 	c1 := newMockBareNode()
 	c1.Node().changedAt = 2
 	n.parents = append(n.parents, newMockBareNode(), c1)
-	testutil.ItsEqual(t, true, n.shouldRecompute())
+	testutil.ItsEqual(t, true, n.ShouldRecompute())
 
 	c1.Node().changedAt = 1
-	testutil.ItsEqual(t, false, n.shouldRecompute())
+	testutil.ItsEqual(t, false, n.ShouldRecompute())
 }
 
 func Test_Node_computePseudoHeight(t *testing.T) {
@@ -542,19 +542,19 @@ func Test_Node_recomputeChildHeightsOnBindChange(t *testing.T) {
 	testutil.ItsEqual(t, 4, n3.n.height)
 }
 
-func Test_Node_shouldRecompute_unit(t *testing.T) {
+func Test_Node_ShouldRecompute_unit(t *testing.T) {
 	var noop = func(_ context.Context) error { return nil }
-	testutil.ItsEqual(t, true, (&Node{recomputedAt: 0}).shouldRecompute())
-	testutil.ItsEqual(t, false, (&Node{recomputedAt: 1}).shouldRecompute())
-	testutil.ItsEqual(t, true, (&Node{recomputedAt: 1, stabilize: noop, setAt: 2}).shouldRecompute())
-	testutil.ItsEqual(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 3}).shouldRecompute())
-	testutil.ItsEqual(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 3}).shouldRecompute())
+	testutil.ItsEqual(t, true, (&Node{recomputedAt: 0}).ShouldRecompute())
+	testutil.ItsEqual(t, false, (&Node{recomputedAt: 1}).ShouldRecompute())
+	testutil.ItsEqual(t, true, (&Node{recomputedAt: 1, stabilize: noop, setAt: 2}).ShouldRecompute())
+	testutil.ItsEqual(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 3}).ShouldRecompute())
+	testutil.ItsEqual(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 3}).ShouldRecompute())
 	testutil.ItsEqual(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 2, parents: []INode{
 		emptyNode{&Node{changedAt: 3}},
-	}}).shouldRecompute())
+	}}).ShouldRecompute())
 	testutil.ItsEqual(t, false, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 2, parents: []INode{
 		emptyNode{&Node{changedAt: 2}},
-	}}).shouldRecompute())
+	}}).ShouldRecompute())
 }
 
 func Test_Node_HasChild(t *testing.T) {
