@@ -26,6 +26,9 @@ type VarIncr[T any] interface {
 	Incr[T]
 	// Set sets the value of the Var
 	Set(T)
+
+	// SetValue returns the current "set" value.
+	SetValue() T
 }
 
 // Assert interface implementations.
@@ -58,11 +61,9 @@ func (vn *varIncr[T]) Set(v T) {
 		vn.n.graph.setDuringStabilization.Push(vn.n.id, vn)
 		return
 	}
+	vn.setValue = v
 	if vn.n.graph != nil {
-		vn.setValue = v
 		vn.n.graph.SetStale(vn)
-	} else {
-		vn.value = v
 	}
 }
 
@@ -71,6 +72,9 @@ func (vn *varIncr[T]) Node() *Node { return vn.n }
 
 // Value implements Incr[A].
 func (vn *varIncr[T]) Value() T { return vn.value }
+
+// SetValue implements Incr[A].
+func (vn *varIncr[T]) SetValue() T { return vn.setValue }
 
 // Stabilize implements Incr[A].
 func (vn *varIncr[T]) Stabilize(ctx context.Context) error {
