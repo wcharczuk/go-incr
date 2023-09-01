@@ -606,3 +606,14 @@ func Test_Node_IsLeaf(t *testing.T) {
 	n1 := &Node{}
 	testutil.ItsEqual(t, true, n1.IsLeaf())
 }
+
+func Test_Node_Observers(t *testing.T) {
+	n := &Node{
+		observers: []IObserver{
+			&observeIncr[any]{},
+			&observeIncr[any]{},
+		},
+	}
+
+	testutil.ItsEqual(t, 2, len(n.Observers()))
+}

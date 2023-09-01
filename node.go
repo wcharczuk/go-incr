@@ -210,6 +210,11 @@ func (n *Node) IsLeaf() bool {
 	return len(n.children) == 0
 }
 
+// Observers returns the node observer list.
+func (n *Node) Observers() []IObserver {
+	return n.observers
+}
+
 //
 // Internal Helpers
 //
