@@ -58,9 +58,11 @@ func (vn *varIncr[T]) Set(v T) {
 		vn.n.graph.setDuringStabilization.Push(vn.n.id, vn)
 		return
 	}
-	vn.setValue = v
 	if vn.n.graph != nil {
+		vn.setValue = v
 		vn.n.graph.SetStale(vn)
+	} else {
+		vn.value = v
 	}
 }
 
@@ -77,7 +79,9 @@ func (vn *varIncr[T]) Stabilize(ctx context.Context) error {
 		vn.setDuringStabilization = false
 		return nil
 	}
+	var zero T
 	vn.value = vn.setValue
+	vn.setValue = zero
 	return nil
 }
 

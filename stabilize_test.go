@@ -551,13 +551,12 @@ func Test_Stabilize_bindIf(t *testing.T) {
 
 func Test_Stabilize_cutoff(t *testing.T) {
 	ctx := testContext()
-	input := Var(3.14)
 
+	input := Var(3.14)
 	cutoff := Cutoff[float64](
 		input,
 		epsilon(0.1),
 	)
-
 	output := Map2(
 		cutoff,
 		Return(10.0),
