@@ -52,17 +52,16 @@ type varIncr[T any] struct {
 //
 // This will invalidate any nodes that reference this variable.
 func (vn *varIncr[T]) Set(v T) {
-	// if the node is "stabilizing"
-	// what should we do? just hold the new value
-	// until stabilization is done?
-	if atomic.LoadInt32(&vn.n.graph.status) == StatusStabilizing {
+	if vn.n.graph != nil && atomic.LoadInt32(&vn.n.graph.status) == StatusStabilizing {
 		vn.setDuringStabilizationValue = v
 		vn.setDuringStabilization = true
 		vn.n.graph.setDuringStabilization.Push(vn.n.id, vn)
 		return
 	}
 	vn.setValue = v
-	vn.n.graph.SetStale(vn)
+	if vn.n.graph != nil {
+		vn.n.graph.SetStale(vn)
+	}
 }
 
 // Node implements Incr[A].
