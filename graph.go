@@ -98,9 +98,6 @@ func (graph *Graph) DiscoverNodes(on IObserver, gn INode) {
 	graph.DiscoverNode(on, gn)
 	gnn := gn.Node()
 	for _, p := range gnn.parents {
-		if graph.IsObserving(p) {
-			continue
-		}
 		graph.DiscoverNodes(on, p)
 	}
 }
@@ -110,15 +107,19 @@ func (graph *Graph) DiscoverNodes(on IObserver, gn INode) {
 func (graph *Graph) DiscoverNode(on IObserver, gn INode) {
 	gnn := gn.Node()
 	nodeID := gnn.id
-	graph.observed[nodeID] = gn
-	gnn.graph = graph
-	gnn.detectCutoff(gn)
-	gnn.detectStabilize(gn)
-	gnn.detectBind(gn)
 	gnn.observers = append(gnn.observers, on)
-	graph.numNodes++
-	gnn.height = gnn.computePseudoHeight()
-	graph.recomputeHeap.Add(gn)
+
+	// if we're seeing the node for the first time
+	if _, ok := graph.observed[nodeID]; !ok {
+		graph.observed[nodeID] = gn
+		gnn.graph = graph
+		gnn.detectCutoff(gn)
+		gnn.detectStabilize(gn)
+		gnn.detectBind(gn)
+		graph.numNodes++
+		gnn.height = gnn.computePseudoHeight()
+		graph.recomputeHeap.Add(gn)
+	}
 	return
 }
 

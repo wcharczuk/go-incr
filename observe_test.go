@@ -64,8 +64,15 @@ func Test_Observe_Unobserve_multiple(t *testing.T) {
 	o1 := Observe(g, m1)
 	o11 := Observe(g, m1)
 
+	testutil.ItsEqual(t, true, g.IsObserving(v0))
 	testutil.ItsEqual(t, true, g.IsObserving(m0))
+	testutil.ItsEqual(t, true, g.IsObserving(v1))
 	testutil.ItsEqual(t, true, g.IsObserving(m1))
+
+	testutil.ItsEqual(t, 1, len(v0.Node().Observers()))
+	testutil.ItsEqual(t, 1, len(m0.Node().Observers()))
+	testutil.ItsEqual(t, 2, len(v1.Node().Observers()))
+	testutil.ItsEqual(t, 2, len(m1.Node().Observers()))
 
 	testutil.ItsEqual(t, "", o0.Value())
 	testutil.ItsEqual(t, "", o1.Value())
@@ -80,12 +87,16 @@ func Test_Observe_Unobserve_multiple(t *testing.T) {
 
 	o1.Unobserve()
 
-	testutil.ItsEqual(t, len(g.observed), g.numNodes-3, "we don't observe the observer(s) but we do track them!")
+	testutil.ItsEqual(t, len(g.observed), g.numNodes-2, "we should have (1) less observer after unobserve!")
 	testutil.ItsNil(t, o1.Node().graph)
 
-	// should take effect immediately because there is only (1) observer.
 	testutil.ItsEqual(t, true, g.IsObserving(m0))
 	testutil.ItsEqual(t, true, g.IsObserving(m1))
+
+	testutil.ItsEqual(t, 1, len(v0.Node().Observers()))
+	testutil.ItsEqual(t, 1, len(m0.Node().Observers()))
+	testutil.ItsEqual(t, 1, len(v1.Node().Observers()))
+	testutil.ItsEqual(t, 1, len(m1.Node().Observers()))
 
 	v0.Set("not hello 0")
 	v1.Set("not hello 1")

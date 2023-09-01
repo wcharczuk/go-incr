@@ -46,7 +46,7 @@ func (o *observeIncr[A]) Node() *Node { return o.n }
 // from the observed ref count for a graph.
 func (o *observeIncr[A]) Unobserve() {
 	g := o.n.graph
-	g.UndiscoverNode(o, o.input)
+	g.UndiscoverNodes(o, o.input)
 	g.UndiscoverObserver(o)
 	o.input = nil
 }
