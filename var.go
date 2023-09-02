@@ -13,22 +13,17 @@ import (
 // that helps integrate into subcomputations.
 func Var[T any](t T) VarIncr[T] {
 	return &varIncr[T]{
-		n:        NewNode(),
-		setValue: t,
+		n:     NewNode(),
+		value: t,
 	}
 }
 
-// VarIncr is a graph node type that implements a variable.
-//
-// It is strictly _not_ an Incr, to use it as an Incr[A] you
-// must call `v.Read()`.
+// VarIncr is a graph node type that implements an incremental variable.
 type VarIncr[T any] interface {
 	Incr[T]
+
 	// Set sets the value of the Var
 	Set(T)
-
-	// SetValue returns the current "set" value.
-	SetValue() T
 }
 
 // Assert interface implementations.
@@ -44,7 +39,6 @@ var (
 type varIncr[T any] struct {
 	n                           *Node
 	value                       T
-	setValue                    T
 	setDuringStabilizationValue T
 	setDuringStabilization      bool
 }
@@ -61,7 +55,7 @@ func (vn *varIncr[T]) Set(v T) {
 		vn.n.graph.setDuringStabilization.Push(vn.n.id, vn)
 		return
 	}
-	vn.setValue = v
+	vn.value = v
 	if vn.n.graph != nil {
 		vn.n.graph.SetStale(vn)
 	}
@@ -73,9 +67,6 @@ func (vn *varIncr[T]) Node() *Node { return vn.n }
 // Value implements Incr[A].
 func (vn *varIncr[T]) Value() T { return vn.value }
 
-// SetValue implements Incr[A].
-func (vn *varIncr[T]) SetValue() T { return vn.setValue }
-
 // Stabilize implements Incr[A].
 func (vn *varIncr[T]) Stabilize(ctx context.Context) error {
 	if vn.setDuringStabilization {
@@ -83,9 +74,6 @@ func (vn *varIncr[T]) Stabilize(ctx context.Context) error {
 		vn.setDuringStabilization = false
 		return nil
 	}
-	var zero T
-	vn.value = vn.setValue
-	vn.setValue = zero
 	return nil
 }
 

@@ -10,13 +10,11 @@ import (
 func Test_Var_Set_unobserved(t *testing.T) {
 	v := Var("foo")
 
-	testutil.ItsEqual(t, "foo", v.SetValue())
-	testutil.ItsEqual(t, "", v.Value())
+	testutil.ItsEqual(t, "foo", v.Value())
 
 	v.Set("not-foo")
 
-	testutil.ItsEqual(t, "not-foo", v.SetValue())
-	testutil.ItsEqual(t, "", v.Value())
+	testutil.ItsEqual(t, "not-foo", v.Value())
 }
 
 func Test_Var_Stabilize_zero(t *testing.T) {
@@ -27,5 +25,4 @@ func Test_Var_Stabilize_zero(t *testing.T) {
 
 	_ = g.Stabilize(context.TODO())
 	testutil.ItsEqual(t, "foo", v.Value())
-	testutil.ItsEqual(t, "", v.SetValue())
 }
