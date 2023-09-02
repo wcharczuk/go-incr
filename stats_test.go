@@ -45,11 +45,13 @@ func Test_NodeStats(t *testing.T) {
 
 func Test_GraphStats(t *testing.T) {
 	gs := graphStats{
+		stabilizationNum:   4,
 		numNodes:           3,
 		numNodesRecomputed: 2,
 		numNodesChanged:    1,
 	}
 
+	testutil.ItsEqual(t, 4, gs.StabilizationNum())
 	testutil.ItsEqual(t, 3, gs.Nodes())
 	testutil.ItsEqual(t, 2, gs.NodesRecomputed())
 	testutil.ItsEqual(t, 1, gs.NodesChanged())
