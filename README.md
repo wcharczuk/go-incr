@@ -23,20 +23,20 @@ Given an exmaple computation:
 v0 := incr.Var("foo")
 v1 := incr.Var("bar")
 
-output := incr.Map2(v0, v1, func(a, b string) string { return a + " and " + b, nil })
+output := incr.Map2(v0, v1, func(a, b string) string { return a + " and " + b })
 ```
 
 In order to realize the values, we need to observe nodes in a graph, and then call `Stabilize` on the graph:
 
 ```go
 g := incr.New()
-g.Observe(output)
+o := incr.Observe(g, output)
 if err := g.Stabilize(context.Background()); err != nil {
   // ... handle error if it comes up
 }
 ```
 
-`Stabilize` then does the full recomputation.
+`Stabilize` then does the full recomputation, with the "observer" `o` marking the graph up from the `output` map as observed.
 
 # Design Choices
 
@@ -44,7 +44,7 @@ There is some consideration with this library on the balance between hiding muta
 
 As a result, most of the features of this library can be leveraged externally, but little of the internal state and recomputation mechanism is exposed to the user.
 
-Specific implications of this are, the `INode` interface includes a function that returns the `Node` metadata, but this `Node` struct has 0 exported members on it, and users of this library should not really concern themselves with what's on it, just that it gets supplied to `Incr` through the interface implementation.
+Specific implications of this are, the `INode` interface includes a function that returns the `Node` metadata, but this `Node` struct has 0 exported fields on it, and users of this library should not really concern themselves with what's on it, just that it gets supplied to `Incr` through the interface implementation.
 
 # Implementation details
 
@@ -63,12 +63,13 @@ The effect of `Bind` is that "children" of a `Bind` node may have their heights 
 # Progress
 
 Many of the original library types are implemented, including:
-- Bind(If)
-- Cutoff
-- Freeze
-- Map(2,3,If,N)
 - Return
 - Var
+- Map(2,3,If,N)
+- Observe
+- Cutoff
+- Freeze
 - Watch
+- Bind(If)
 
 With these, you can create 90% of what I typically needed this library for, though some others would be relatively straightforward to implement given the primitives already implemented.
