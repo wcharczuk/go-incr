@@ -14,11 +14,16 @@ func NodeStats(n INode) INodeStats {
 
 // GraphStats return graph statistics from a given node.
 func (graph *Graph) Stats() IGraphStats {
+	var recomputeHeapLength int
+	if graph.recomputeHeap != nil {
+		recomputeHeapLength = graph.recomputeHeap.Len()
+	}
 	return graphStats{
-		stabilizationNum:   graph.stabilizationNum,
-		numNodes:           graph.numNodes,
-		numNodesRecomputed: graph.numNodesRecomputed,
-		numNodesChanged:    graph.numNodesChanged,
+		stabilizationNum:    graph.stabilizationNum,
+		numNodes:            graph.numNodes,
+		numNodesRecomputed:  graph.numNodesRecomputed,
+		numNodesChanged:     graph.numNodesChanged,
+		recomputeHeapLength: recomputeHeapLength,
 	}
 }
 
@@ -38,6 +43,7 @@ type IGraphStats interface {
 	Nodes() uint64
 	NodesRecomputed() uint64
 	NodesChanged() uint64
+	RecomputeHeapLength() int
 }
 
 type nodeStats struct {
@@ -57,13 +63,15 @@ func (n nodeStats) SetAt() uint64      { return n.setAt }
 func (n nodeStats) ChangedAt() uint64  { return n.changedAt }
 
 type graphStats struct {
-	stabilizationNum   uint64
-	numNodes           uint64
-	numNodesRecomputed uint64
-	numNodesChanged    uint64
+	stabilizationNum    uint64
+	numNodes            uint64
+	numNodesRecomputed  uint64
+	numNodesChanged     uint64
+	recomputeHeapLength int
 }
 
 func (g graphStats) StabilizationNum() uint64 { return g.stabilizationNum }
 func (g graphStats) Nodes() uint64            { return g.numNodes }
 func (g graphStats) NodesRecomputed() uint64  { return g.numNodesRecomputed }
 func (g graphStats) NodesChanged() uint64     { return g.numNodesChanged }
+func (g graphStats) RecomputeHeapLength() int { return g.recomputeHeapLength }

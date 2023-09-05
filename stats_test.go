@@ -94,10 +94,12 @@ func Test_Graph_Stats(t *testing.T) {
 		numNodes:           3,
 		numNodesRecomputed: 2,
 		numNodesChanged:    1,
+		recomputeHeap:      new(recomputeHeap),
 	}
 	gs := g.Stats()
 
 	testutil.ItsEqual(t, 3, gs.Nodes())
 	testutil.ItsEqual(t, 2, gs.NodesRecomputed())
 	testutil.ItsEqual(t, 1, gs.NodesChanged())
+	testutil.ItsEqual(t, 0, gs.RecomputeHeapLength())
 }
