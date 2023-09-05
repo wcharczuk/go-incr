@@ -313,10 +313,10 @@ func (n *Node) ShouldRecompute() bool {
 	return false
 }
 
-func (n *Node) recomputeChildHeightsOnBindChange() {
+func (n *Node) recomputeHeights() {
 	n.height = n.computePseudoHeight()
 	for _, c := range n.children {
-		c.Node().recomputeChildHeightsOnBindChange()
+		c.Node().recomputeHeights()
 	}
 }
 

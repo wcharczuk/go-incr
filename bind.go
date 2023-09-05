@@ -123,7 +123,7 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
 	// we do this mostly to keep the node heights from getting out of control.
 	for _, c := range b.n.children {
 		Link(c, newIncr)
-		c.Node().recomputeChildHeightsOnBindChange()
+		c.Node().recomputeHeights()
 	}
 	for _, o := range b.Node().observers {
 		b.Node().graph.DiscoverNodes(o, newIncr)
