@@ -533,7 +533,7 @@ func (en emptyNode) Node() *Node {
 	return en.n
 }
 
-func Test_Node_RecomputeHeights(t *testing.T) {
+func Test_Node_recomputeHeights(t *testing.T) {
 	n0 := emptyNode{NewNode()}
 	n1 := emptyNode{NewNode()}
 	n2 := emptyNode{NewNode()}
@@ -543,7 +543,7 @@ func Test_Node_RecomputeHeights(t *testing.T) {
 	Link(n2, n1)
 	Link(n3, n2)
 
-	n1.Node().RecomputeHeights()
+	n1.Node().recomputeHeights()
 
 	testutil.ItsEqual(t, 0, n0.n.height)
 	testutil.ItsEqual(t, 2, n1.n.height)

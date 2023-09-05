@@ -313,12 +313,10 @@ func (n *Node) ShouldRecompute() bool {
 	return false
 }
 
-// RecomputeHeights recomputes the heights in respect
-// to the children of this node.
-func (n *Node) RecomputeHeights() {
+func (n *Node) recomputeHeights() {
 	n.height = n.computePseudoHeight()
 	for _, c := range n.children {
-		c.Node().RecomputeHeights()
+		c.Node().recomputeHeights()
 	}
 }
 

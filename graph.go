@@ -185,6 +185,23 @@ func (graph *Graph) UndiscoverObserver(on IObserver) {
 	return
 }
 
+// RecomputeHeight recomputes the height of a given node.
+//
+// In practice, you should almost never need this function as
+// heights are computed during observation, but in more
+// mutable graph contexts it's helpful to trigger
+// this step separately.
+func (graph *Graph) RecomputeHeight(n INode) {
+	nn := n.Node()
+	oldHeight := nn.height
+	nn.recomputeHeights()
+	if oldHeight != nn.height {
+		if graph.recomputeHeap.Has(n) {
+			graph.recomputeHeap.Add(n)
+		}
+	}
+}
+
 //
 // stabilization methods
 //

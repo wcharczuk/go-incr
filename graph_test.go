@@ -1,6 +1,7 @@
 package incr
 
 import (
+	"context"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -103,4 +104,44 @@ func Test_Graph_IsStabilizing(t *testing.T) {
 	testutil.ItsEqual(t, true, g.IsStabilizing())
 	g.status = StatusNotStabilizing
 	testutil.ItsEqual(t, false, g.IsStabilizing())
+}
+
+func Test_Graph_RecomputeHeight(t *testing.T) {
+	g := New()
+
+	n0 := emptyNode{NewNode()}
+	n1 := emptyNode{NewNode()}
+	n2 := emptyNode{NewNode()}
+	n3 := emptyNode{NewNode()}
+
+	Link(n1, n0)
+	Link(n2, n1)
+	Link(n3, n2)
+
+	g.RecomputeHeight(n1)
+
+	testutil.ItsEqual(t, 0, n0.n.height)
+	testutil.ItsEqual(t, 2, n1.n.height)
+	testutil.ItsEqual(t, 3, n2.n.height)
+	testutil.ItsEqual(t, 4, n3.n.height)
+}
+
+func Test_Graph_RecomputeHeight_observed(t *testing.T) {
+	g := New()
+
+	v0 := Var("a")
+	m0 := Map(v0, ident)
+	o0 := Observe(g, m0)
+
+	m1 := Map(m0, ident)
+	m2 := Map(m1, ident)
+	o1 := Observe(g, m2)
+
+	m0.Node().height = 1
+	g.RecomputeHeight(m0)
+
+	_ = g.Stabilize(context.TODO())
+
+	testutil.ItsEqual(t, "a", o0.Value())
+	testutil.ItsEqual(t, "a", o1.Value())
 }
