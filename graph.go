@@ -185,11 +185,6 @@ func (graph *Graph) UndiscoverObserver(on IObserver) {
 	return
 }
 
-// RecomputeHeights recomputes the heights of nodes.
-func (graph *Graph) RecomputeHeights(n INode) {
-	n.Node().recomputeHeights()
-}
-
 //
 // stabilization methods
 //

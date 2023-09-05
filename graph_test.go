@@ -104,22 +104,3 @@ func Test_Graph_IsStabilizing(t *testing.T) {
 	g.status = StatusNotStabilizing
 	testutil.ItsEqual(t, false, g.IsStabilizing())
 }
-
-func Test_Graph_RecomputeHeights(t *testing.T) {
-	g := New()
-	n0 := emptyNode{NewNode()}
-	n1 := emptyNode{NewNode()}
-	n2 := emptyNode{NewNode()}
-	n3 := emptyNode{NewNode()}
-
-	Link(n1, n0)
-	Link(n2, n1)
-	Link(n3, n2)
-
-	g.RecomputeHeights(n1)
-
-	testutil.ItsEqual(t, 0, n0.n.height)
-	testutil.ItsEqual(t, 2, n1.n.height)
-	testutil.ItsEqual(t, 3, n2.n.height)
-	testutil.ItsEqual(t, 4, n3.n.height)
-}
