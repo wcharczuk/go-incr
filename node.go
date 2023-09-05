@@ -87,6 +87,13 @@ func (n *Node) ID() Identifier {
 	return n.id
 }
 
+// SetID sets the node identifier.
+//
+// You should _really_ know what you're doing if you use this setter.
+func (n *Node) SetID(id Identifier) {
+	n.id = id
+}
+
 func (n *Node) Height() int {
 	return n.height
 }

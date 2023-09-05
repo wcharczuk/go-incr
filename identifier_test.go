@@ -20,6 +20,14 @@ func Test_Identifier(t *testing.T) {
 	testutil.ItsEqual(t, hex.EncodeToString(id[12:]), id.Short())
 }
 
+func Test_Identifier_IsZero(t *testing.T) {
+	id := NewIdentifier()
+	testutil.ItsEqual(t, false, id.IsZero())
+	testutil.ItsEqual(t, true, zero.IsZero())
+	var test Identifier
+	testutil.ItsEqual(t, true, test.IsZero())
+}
+
 func Test_ParseIdentifier(t *testing.T) {
 	knownID := NewIdentifier()
 	testCases := [...]struct {

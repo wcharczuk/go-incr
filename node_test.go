@@ -27,6 +27,15 @@ func Test_NewNode(t *testing.T) {
 	testutil.ItsNil(t, n.metadata)
 }
 
+func Test_Node_ID(t *testing.T) {
+	n := NewNode()
+	testutil.ItsEqual(t, false, n.ID().IsZero())
+
+	other := NewIdentifier()
+	n.SetID(other)
+	testutil.ItsEqual(t, other, n.ID())
+}
+
 func Test_Node_Label(t *testing.T) {
 	n := NewNode()
 	testutil.ItsEqual(t, "", n.Label())

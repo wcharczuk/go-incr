@@ -39,6 +39,13 @@ func ParseIdentifier(raw string) (output Identifier, err error) {
 	return
 }
 
+var zero Identifier
+
+// IsZero returns if the identifier is unset.
+func (id Identifier) IsZero() bool {
+	return id == zero
+}
+
 // MarshalJSON implements json.Marshaler.
 func (id Identifier) MarshalJSON() ([]byte, error) {
 	return []byte("\"" + id.String() + "\""), nil
