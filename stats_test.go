@@ -1,6 +1,7 @@
 package incr
 
 import (
+	"context"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -36,11 +37,42 @@ func Test_NodeStats(t *testing.T) {
 	g := New()
 	_ = Observe(g, o)
 
+	_ = g.Stabilize(context.TODO())
+
+	vStats := NodeStats(v0)
+	testutil.ItsEqual(t, 1, vStats.Changes())
+	testutil.ItsEqual(t, 1, vStats.Recomputes())
+	testutil.ItsEqual(t, 1, vStats.Children())
+	testutil.ItsEqual(t, 0, vStats.Parents())
+	testutil.ItsEqual(t, 0, vStats.SetAt())
+	testutil.ItsEqual(t, 1, vStats.ChangedAt())
+
 	oStats := NodeStats(o)
-	testutil.ItsEqual(t, 0, oStats.Changes())
-	testutil.ItsEqual(t, 0, oStats.Recomputes())
+	testutil.ItsEqual(t, 1, oStats.Changes())
+	testutil.ItsEqual(t, 1, oStats.Recomputes())
 	testutil.ItsEqual(t, 1, oStats.Children())
-	testutil.ItsEqual(t, 2, oStats.Parents())
+	testutil.ItsEqual(t, 3, oStats.Parents())
+	testutil.ItsEqual(t, 0, oStats.SetAt())
+	testutil.ItsEqual(t, 1, oStats.ChangedAt())
+
+	v0.Set("b")
+	_ = g.Stabilize(context.TODO())
+
+	vStats = NodeStats(v0)
+	testutil.ItsEqual(t, 2, vStats.Changes())
+	testutil.ItsEqual(t, 2, vStats.Recomputes())
+	testutil.ItsEqual(t, 1, vStats.Children())
+	testutil.ItsEqual(t, 0, vStats.Parents())
+	testutil.ItsEqual(t, 2, vStats.SetAt())
+	testutil.ItsEqual(t, 2, vStats.ChangedAt())
+
+	oStats = NodeStats(o)
+	testutil.ItsEqual(t, 2, oStats.Changes())
+	testutil.ItsEqual(t, 2, oStats.Recomputes())
+	testutil.ItsEqual(t, 1, oStats.Children())
+	testutil.ItsEqual(t, 3, oStats.Parents())
+	testutil.ItsEqual(t, 0, oStats.SetAt())
+	testutil.ItsEqual(t, 2, oStats.ChangedAt())
 }
 
 func Test_GraphStats(t *testing.T) {

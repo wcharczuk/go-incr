@@ -7,6 +7,8 @@ func NodeStats(n INode) INodeStats {
 		numChanges:    n.Node().numChanges,
 		numParents:    len(n.Node().parents),
 		numChildren:   len(n.Node().children),
+		setAt:         n.Node().setAt,
+		changedAt:     n.Node().changedAt,
 	}
 }
 
@@ -24,6 +26,8 @@ func (graph *Graph) Stats() IGraphStats {
 type INodeStats interface {
 	Recomputes() uint64
 	Changes() uint64
+	SetAt() uint64
+	ChangedAt() uint64
 	Children() int
 	Parents() int
 }
@@ -41,12 +45,16 @@ type nodeStats struct {
 	numChanges    uint64
 	numChildren   int
 	numParents    int
+	setAt         uint64
+	changedAt     uint64
 }
 
 func (n nodeStats) Recomputes() uint64 { return n.numRecomputes }
 func (n nodeStats) Changes() uint64    { return n.numChanges }
 func (n nodeStats) Children() int      { return n.numChildren }
 func (n nodeStats) Parents() int       { return n.numParents }
+func (n nodeStats) SetAt() uint64      { return n.setAt }
+func (n nodeStats) ChangedAt() uint64  { return n.changedAt }
 
 type graphStats struct {
 	stabilizationNum   uint64
