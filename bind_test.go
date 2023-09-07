@@ -8,10 +8,6 @@ import (
 	"github.com/wcharczuk/go-incr/testutil"
 )
 
-func ident[T any](v T) T {
-	return v
-}
-
 func Test_Bind_basic(t *testing.T) {
 	ctx := testContext()
 

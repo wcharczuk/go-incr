@@ -47,6 +47,17 @@ func add[T Ordered](v0, v1 T) T {
 	return v0 + v1
 }
 
+func ident[T any](v T) T {
+	return v
+}
+
+func identMany[T any](v ...T) (out T) {
+	if len(v) > 0 {
+		out = v[0]
+	}
+	return
+}
+
 var _ Incr[any] = (*mockBareNode)(nil)
 
 func newMockBareNode() *mockBareNode {
