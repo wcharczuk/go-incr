@@ -7,7 +7,7 @@ import (
 	"github.com/wcharczuk/go-incr/testutil"
 )
 
-func Test_Observe_Unobserve(t *testing.T) {
+func Test_MustObserve_Unobserve(t *testing.T) {
 	g := New()
 
 	v0 := Var("hello 0")
@@ -16,8 +16,8 @@ func Test_Observe_Unobserve(t *testing.T) {
 	v1 := Var("hello 1")
 	m1 := Map(v1, ident)
 
-	o0 := Observe(g, m0)
-	o1 := Observe(g, m1)
+	o0 := MustObserve(g, m0)
+	o1 := MustObserve(g, m1)
 
 	testutil.ItsEqual(t, 6, g.numNodes)
 
@@ -51,7 +51,7 @@ func Test_Observe_Unobserve(t *testing.T) {
 	testutil.ItsEqual(t, "", o1.Value())
 }
 
-func Test_Observe_Unobserve_multiple(t *testing.T) {
+func Test_MustObserve_Unobserve_multiple(t *testing.T) {
 	g := New()
 
 	v0 := Var("hello 0")
@@ -60,9 +60,9 @@ func Test_Observe_Unobserve_multiple(t *testing.T) {
 	v1 := Var("hello 1")
 	m1 := Map(v1, ident)
 
-	o0 := Observe(g, m0)
-	o1 := Observe(g, m1)
-	o11 := Observe(g, m1)
+	o0 := MustObserve(g, m0)
+	o1 := MustObserve(g, m1)
+	o11 := MustObserve(g, m1)
 
 	testutil.ItsEqual(t, true, g.IsObserving(v0))
 	testutil.ItsEqual(t, true, g.IsObserving(m0))
@@ -108,11 +108,11 @@ func Test_Observe_Unobserve_multiple(t *testing.T) {
 	testutil.ItsEqual(t, "not hello 1", o11.Value())
 }
 
-func Test_Observer_Unobserve_reobserve(t *testing.T) {
+func Test_MustObserver_Unobserve_reobserve(t *testing.T) {
 	g := New()
 	v0 := Var("hello")
 	m0 := Map(v0, ident)
-	o0 := Observe(g, m0)
+	o0 := MustObserve(g, m0)
 
 	_ = g.Stabilize(context.TODO())
 	testutil.ItsEqual(t, "hello", o0.Value())
@@ -124,7 +124,20 @@ func Test_Observer_Unobserve_reobserve(t *testing.T) {
 	// strictly, the value shouldn't change ...
 	testutil.ItsEqual(t, "hello", m0.Value())
 
-	o1 := Observe(g, m0)
+	o1 := MustObserve(g, m0)
 	_ = g.Stabilize(context.TODO())
 	testutil.ItsEqual(t, "hello", o1.Value())
+}
+
+func Test_Observe_cycle(t *testing.T) {
+	g := New()
+
+	c0 := MapN[any, any](identFirst)
+	c1 := MapN[any, any](identFirst)
+
+	c0.AddInput(c1)
+	c1.AddInput(c0)
+
+	_, err := Observe(g, c1)
+	testutil.ItsNotNil(t, err)
 }

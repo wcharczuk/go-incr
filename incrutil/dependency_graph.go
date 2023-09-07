@@ -47,7 +47,7 @@ func (dg DependencyGraph[Result]) Create() (*incr.Graph, map[string]DependencyIn
 	}
 	graph := incr.New()
 	for _, n := range leaves {
-		_ = incr.Observe[Result](graph, n)
+		_, _ = incr.Observe[Result](graph, n)
 	}
 	return graph, packageIncrementals
 }

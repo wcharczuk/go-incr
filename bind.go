@@ -87,11 +87,16 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 		if oldIncr.Node().id != newIncr.Node().id {
 			bindChanged = true
 			b.unlinkOld(ctx, oldIncr)
-			b.linkNew(ctx, newIncr)
+			err = b.linkNew(ctx, newIncr)
+			if err != nil {
+				return err
+			}
 		}
 	} else if newIncr != nil {
 		bindChanged = true
-		b.linkNew(ctx, newIncr)
+		if err = b.linkNew(ctx, newIncr); err != nil {
+			return err
+		}
 	} else if oldIncr != nil {
 		bindChanged = true
 		b.unlinkOld(ctx, oldIncr)
@@ -114,7 +119,7 @@ func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, oldIncr INode) {
 	b.bound = nil
 }
 
-func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
+func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) (err error) {
 	tracePrintf(ctx, "bind linking new child %v", newIncr)
 
 	// for each of the nodes that have the bind node as an input
@@ -123,14 +128,19 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
 	// we do this mostly to keep the node heights from getting out of control.
 	for _, c := range b.n.children {
 		Link(c, newIncr)
-		c.Node().recomputeHeights()
+		if err = c.Node().recomputeHeights(); err != nil {
+			return
+		}
 	}
 	for _, o := range b.Node().observers {
-		b.Node().graph.DiscoverNodes(o, newIncr)
+		if err = b.Node().graph.DiscoverNodes(o, newIncr); err != nil {
+			return
+		}
 	}
 	newIncr.Node().changedAt = b.Node().graph.stabilizationNum
 	b.Node().graph.recomputeHeap.Add(newIncr)
 	b.bound = newIncr
+	return
 }
 
 func (b *bindIncr[A, B]) String() string {

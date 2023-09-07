@@ -47,6 +47,12 @@ func add[T Ordered](v0, v1 T) T {
 	return v0 + v1
 }
 
+func newBareObserver() *observeIncr[any] {
+	return &observeIncr[any]{
+		n: NewNode(),
+	}
+}
+
 var _ Incr[any] = (*mockBareNode)(nil)
 
 func newMockBareNode() *mockBareNode {

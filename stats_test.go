@@ -35,7 +35,7 @@ func Test_NodeStats(t *testing.T) {
 	o := Map2(bind, s1, concat)
 
 	g := New()
-	_ = Observe(g, o)
+	_ = MustObserve(g, o)
 
 	_ = g.Stabilize(context.TODO())
 

@@ -19,7 +19,7 @@ func Test_ParallelStabilize(t *testing.T) {
 	})
 
 	graph := New()
-	_ = Observe(graph, m0)
+	_ = MustObserve(graph, m0)
 
 	err := graph.ParallelStabilize(ctx)
 	ItsNil(t, err)
@@ -95,7 +95,7 @@ func Test_ParallelStabilize_jsDocs(t *testing.T) {
 	)
 
 	graph := New()
-	_ = Observe(graph, output)
+	_ = MustObserve(graph, output)
 
 	err := graph.ParallelStabilize(ctx)
 	ItsNil(t, err)
@@ -123,7 +123,7 @@ func Test_ParallelStabilize_error(t *testing.T) {
 	})
 
 	graph := New()
-	_ = Observe(graph, m0)
+	_ = MustObserve(graph, m0)
 
 	err := graph.ParallelStabilize(ctx)
 	ItsNotNil(t, err)

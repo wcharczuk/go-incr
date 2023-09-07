@@ -313,22 +313,37 @@ func (n *Node) ShouldRecompute() bool {
 	return false
 }
 
-func (n *Node) recomputeHeights() {
-	n.height = n.computePseudoHeight()
-	for _, c := range n.children {
-		c.Node().recomputeHeights()
+func (n *Node) recomputeHeights() (err error) {
+	n.height, err = n.computePseudoHeight(0)
+	if err != nil {
+		return
 	}
+	for _, c := range n.children {
+		err = c.Node().recomputeHeights()
+		if err != nil {
+			return
+		}
+	}
+	return
 }
 
 // computePseudoHeight calculates the nodes height in respect to its parents.
 //
 // it will use the maximum height _the node has ever seen_, i.e.
 // if the height is 1, then 3, then 1 again, this will return 3.
-func (n *Node) computePseudoHeight() int {
+func (n *Node) computePseudoHeight(depth int) (pseudoHeight int, err error) {
+	if depth >= defaultRecomputeHeapMaxHeight {
+		err = fmt.Errorf("max height reached; likely there is a cycle")
+		return
+	}
+
 	var maxParentHeight int
 	var parentHeight int
 	for _, p := range n.parents {
-		parentHeight = p.Node().computePseudoHeight()
+		parentHeight, err = p.Node().computePseudoHeight(depth + 1)
+		if err != nil {
+			return
+		}
 		if parentHeight > maxParentHeight {
 			maxParentHeight = parentHeight
 		}
@@ -339,9 +354,11 @@ func (n *Node) computePseudoHeight() int {
 	// basically just stick with the overall maximum
 	// height the node has seen ever.
 	if n.height > maxParentHeight {
-		return n.height
+		pseudoHeight = n.height
+		return
 	}
-	return maxParentHeight + 1
+	pseudoHeight = maxParentHeight + 1
+	return
 }
 
 func (n *Node) maybeBind(ctx context.Context) (err error) {

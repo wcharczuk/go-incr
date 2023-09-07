@@ -14,7 +14,7 @@ func main() {
 	output := incr.Map2(v0, v1, func(a, b string) string { return a + " and " + b })
 
 	graph := incr.New()
-	observer := incr.Observe(graph, output)
+	observer := incr.MustObserve(graph, output)
 
 	if err := graph.Stabilize(context.Background()); err != nil {
 		fmt.Fprintf(os.Stderr, "%+v\n", err)

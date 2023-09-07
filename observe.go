@@ -2,17 +2,32 @@ package incr
 
 import "fmt"
 
+// MustObserve observes a node and panics if there is a cycle.
+func MustObserve[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
+	o, err := Observe[A](g, input)
+	if err != nil {
+		panic(err)
+	}
+	return o
+}
+
 // Observe observes a node, specifically including it for computation
 // as well as all of its parents.
-func Observe[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
-	o := &observeIncr[A]{
+func Observe[A any](g *Graph, input Incr[A]) (o ObserveIncr[A], err error) {
+	o = &observeIncr[A]{
 		n:     NewNode(),
 		input: input,
 	}
 	Link(o, input)
-	g.DiscoverObserver(o)
-	g.DiscoverNodes(o, input)
-	return o
+	err = g.DiscoverObserver(o)
+	if err != nil {
+		return
+	}
+	err = g.DiscoverNodes(o, input)
+	if err != nil {
+		return
+	}
+	return
 }
 
 // ObserveIncr is an incremental that observes a graph

@@ -21,7 +21,7 @@ func Test_Var_Stabilize_zero(t *testing.T) {
 	v := Var("foo")
 
 	g := New()
-	_ = Observe(g, v)
+	_ = MustObserve(g, v)
 
 	_ = g.Stabilize(context.TODO())
 	testutil.ItsEqual(t, "foo", v.Value())

@@ -12,6 +12,17 @@ func ident[T any](v T) T {
 	return v
 }
 
+func identMany[T any](v ...T) []T {
+	return v
+}
+
+func identFirst[T any](v ...T) (out T) {
+	if len(v) > 0 {
+		out = v[0]
+	}
+	return
+}
+
 func Test_Bind_basic(t *testing.T) {
 	ctx := testContext()
 
@@ -57,7 +68,7 @@ func Test_Bind_basic(t *testing.T) {
 	o.Node().SetLabel("o")
 
 	g := New()
-	_ = Observe(g, o)
+	_ = MustObserve(g, o)
 
 	testutil.ItsEqual(t, 1, bindVar.Node().height)
 	testutil.ItsEqual(t, 1, s0.Node().height)
@@ -212,7 +223,7 @@ func Test_Bind_error(t *testing.T) {
 	o := Map(bind, ident)
 
 	g := New()
-	_ = Observe(g, o)
+	_ = MustObserve(g, o)
 	err := g.Stabilize(ctx)
 	testutil.ItsEqual(t, "this is just a test", err.Error())
 	testutil.ItsEqual(t, "this is just a test", gotError.Error())

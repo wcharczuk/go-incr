@@ -94,17 +94,24 @@ func (graph *Graph) SetStale(gn INode) {
 
 // DiscoverNodes initializes tracking of a given node for a given observer
 // and walks the nodes parents doing the same for any nodes seen.
-func (graph *Graph) DiscoverNodes(on IObserver, gn INode) {
-	graph.DiscoverNode(on, gn)
+func (graph *Graph) DiscoverNodes(on IObserver, gn INode) (err error) {
+	err = graph.DiscoverNode(on, gn)
+	if err != nil {
+		return
+	}
 	gnn := gn.Node()
 	for _, p := range gnn.parents {
-		graph.DiscoverNodes(on, p)
+		err = graph.DiscoverNodes(on, p)
+		if err != nil {
+			return
+		}
 	}
+	return
 }
 
 // DiscoverNode initializes a node and adds
 // it to the observed lookup.
-func (graph *Graph) DiscoverNode(on IObserver, gn INode) {
+func (graph *Graph) DiscoverNode(on IObserver, gn INode) (err error) {
 	gnn := gn.Node()
 	nodeID := gnn.id
 
@@ -117,12 +124,14 @@ func (graph *Graph) DiscoverNode(on IObserver, gn INode) {
 	if _, ok := graph.observed[nodeID]; !ok {
 		graph.observed[nodeID] = gn
 		gnn.graph = graph
+		gnn.height, err = gnn.computePseudoHeight(0)
+		if err != nil {
+			return
+		}
 		gnn.detectCutoff(gn)
 		gnn.detectStabilize(gn)
 		gnn.detectBind(gn)
 		graph.numNodes++
-		gnn.height = gnn.computePseudoHeight()
-
 		if gnn.ShouldRecompute() {
 			graph.recomputeHeap.Add(gn)
 		}
@@ -132,11 +141,14 @@ func (graph *Graph) DiscoverNode(on IObserver, gn INode) {
 
 // DiscoverObserver initializes an observer node
 // which is treated specially by the graph.
-func (graph *Graph) DiscoverObserver(on IObserver) {
+func (graph *Graph) DiscoverObserver(on IObserver) (err error) {
 	onn := on.Node()
 	onn.graph = graph
+	onn.height, err = onn.computePseudoHeight(0)
+	if err != nil {
+		return
+	}
 	graph.numNodes++
-	onn.height = onn.computePseudoHeight()
 	graph.recomputeHeap.Add(on)
 	return
 }
@@ -191,15 +203,18 @@ func (graph *Graph) UndiscoverObserver(on IObserver) {
 // heights are computed during observation, but in more
 // mutable graph contexts it's helpful to trigger
 // this step separately.
-func (graph *Graph) RecomputeHeight(n INode) {
+func (graph *Graph) RecomputeHeight(n INode) (err error) {
 	nn := n.Node()
 	oldHeight := nn.height
-	nn.recomputeHeights()
+	if err = nn.recomputeHeights(); err != nil {
+		return
+	}
 	if oldHeight != nn.height {
 		if graph.recomputeHeap.Has(n) {
 			graph.recomputeHeap.Add(n)
 		}
 	}
+	return
 }
 
 //

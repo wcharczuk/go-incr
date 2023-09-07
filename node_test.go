@@ -91,7 +91,7 @@ func Test_Node_String(t *testing.T) {
 func Test_SetStale(t *testing.T) {
 	g := New()
 	n := newMockBareNode()
-	_ = Observe(g, n)
+	_ = MustObserve(g, n)
 	g.SetStale(n)
 
 	testutil.ItsEqual(t, 0, n.n.changedAt)
@@ -350,10 +350,25 @@ func Test_Node_computePseudoHeight(t *testing.T) {
 	Link(c1, c10)
 	Link(p, c0, c1, c2)
 
-	testutil.ItsEqual(t, 4, p.n.computePseudoHeight())
-	testutil.ItsEqual(t, 3, c0.n.computePseudoHeight())
-	testutil.ItsEqual(t, 2, c1.n.computePseudoHeight())
-	testutil.ItsEqual(t, 1, c2.n.computePseudoHeight())
+	testutil.ItsEqual(t, 4, must(p.n.computePseudoHeight(0)))
+	testutil.ItsEqual(t, 3, must(c0.n.computePseudoHeight(0)))
+	testutil.ItsEqual(t, 2, must(c1.n.computePseudoHeight(0)))
+	testutil.ItsEqual(t, 1, must(c2.n.computePseudoHeight(0)))
+}
+
+func must[T any](v T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+func Test_Node_computePseudoHeight_cycle(t *testing.T) {
+	p := newMockBareNode()
+
+	h, err := p.Node().computePseudoHeight(defaultRecomputeHeapMaxHeight + 1)
+	testutil.ItsNotNil(t, err)
+	testutil.ItsEqual(t, 0, h)
 }
 
 func Test_Node_recompute(t *testing.T) {
@@ -369,7 +384,7 @@ func Test_Node_recompute(t *testing.T) {
 
 	p := newMockBareNode()
 	m0.Node().AddParents(p)
-	_ = Observe(g, m0)
+	_ = MustObserve(g, m0)
 
 	var calledUpdateHandler0, calledUpdateHandler1 bool
 	m0.Node().OnUpdate(func(ictx context.Context) {
@@ -432,7 +447,7 @@ func Test_Node_stabilize_error(t *testing.T) {
 
 	p := newMockBareNode()
 	m0.Node().AddParents(p)
-	_ = Observe(g, m0)
+	_ = MustObserve(g, m0)
 
 	var calledUpdateHandler0, calledUpdateHandler1 bool
 	m0.Node().OnUpdate(func(ictx context.Context) {
@@ -495,7 +510,7 @@ func Test_nodeFormatters(t *testing.T) {
 		{FoldLeft(Return([]string{}), "", nil), "fold_left"},
 		{FoldRight(Return([]string{}), "", nil), "fold_right"},
 		{FoldMap(Return(map[string]int{}), "", nil), "fold_map"},
-		{Observe[string](g, Return("")), "observer"},
+		{MustObserve[string](g, Return("")), "MustObserver"},
 	}
 
 	for _, tc := range testCases {
@@ -543,7 +558,7 @@ func Test_Node_recomputeHeights(t *testing.T) {
 	Link(n2, n1)
 	Link(n3, n2)
 
-	n1.Node().recomputeHeights()
+	_ = n1.Node().recomputeHeights()
 
 	testutil.ItsEqual(t, 0, n0.n.height)
 	testutil.ItsEqual(t, 2, n1.n.height)
@@ -616,7 +631,7 @@ func Test_Node_IsLeaf(t *testing.T) {
 	testutil.ItsEqual(t, true, n1.IsLeaf())
 }
 
-func Test_Node_Observers(t *testing.T) {
+func Test_Node_MustObservers(t *testing.T) {
 	n := &Node{
 		observers: []IObserver{
 			&observeIncr[any]{},

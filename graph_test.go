@@ -12,7 +12,7 @@ func Test_New(t *testing.T) {
 	r1 := Return("world!")
 	m0 := Map2(r0, r1, func(v0, v1 string) string { return v0 + v1 })
 	g := New()
-	_ = Observe(g, m0)
+	_ = MustObserve(g, m0)
 
 	testutil.ItsEqual(t, true, g.IsObserving(r0))
 	testutil.ItsEqual(t, true, g.IsObserving(r1))
@@ -34,13 +34,13 @@ func Test_Graph_UndiscoverNodes(t *testing.T) {
 	am2 := Map(am1, ident)
 
 	g := New()
-	o1 := Observe(g, m1)
-	_ = Observe(g, am2)
+	o1 := MustObserve(g, m1)
+	_ = MustObserve(g, am2)
 
 	testutil.ItsEqual(t, true, g.IsObserving(r0))
 	testutil.ItsEqual(t, true, g.IsObserving(m0))
 	testutil.ItsEqual(t, true, g.IsObserving(m1))
-	testutil.ItsEqual(t, false, g.IsObserving(m2), "using the Observe incremental we actually don't care about m2!")
+	testutil.ItsEqual(t, false, g.IsObserving(m2), "using the MustObserve incremental we actually don't care about m2!")
 
 	testutil.ItsEqual(t, true, g.IsObserving(ar0))
 	testutil.ItsEqual(t, true, g.IsObserving(am0))
@@ -77,12 +77,12 @@ func Test_Graph_UndiscoverNodes_notObserving(t *testing.T) {
 	am2 := Map(am1, ident)
 
 	g := New()
-	o := Observe(g, m1)
+	o := MustObserve(g, m1)
 
 	testutil.ItsEqual(t, true, g.IsObserving(r0))
 	testutil.ItsEqual(t, true, g.IsObserving(m0))
 	testutil.ItsEqual(t, true, g.IsObserving(m1))
-	testutil.ItsEqual(t, false, g.IsObserving(m2), "we observed m1, which is the parent of m2!")
+	testutil.ItsEqual(t, false, g.IsObserving(m2), "we MustObserved m1, which is the parent of m2!")
 
 	testutil.ItsEqual(t, false, g.IsObserving(ar0))
 	testutil.ItsEqual(t, false, g.IsObserving(am0))
@@ -118,7 +118,7 @@ func Test_Graph_RecomputeHeight(t *testing.T) {
 	Link(n2, n1)
 	Link(n3, n2)
 
-	g.RecomputeHeight(n1)
+	_ = g.RecomputeHeight(n1)
 
 	testutil.ItsEqual(t, 0, n0.n.height)
 	testutil.ItsEqual(t, 2, n1.n.height)
@@ -126,22 +126,39 @@ func Test_Graph_RecomputeHeight(t *testing.T) {
 	testutil.ItsEqual(t, 4, n3.n.height)
 }
 
-func Test_Graph_RecomputeHeight_observed(t *testing.T) {
+func Test_Graph_RecomputeHeight_Observed(t *testing.T) {
 	g := New()
 
 	v0 := Var("a")
 	m0 := Map(v0, ident)
-	o0 := Observe(g, m0)
+	o0 := MustObserve(g, m0)
 
 	m1 := Map(m0, ident)
 	m2 := Map(m1, ident)
-	o1 := Observe(g, m2)
+	o1 := MustObserve(g, m2)
 
 	m0.Node().height = 1
-	g.RecomputeHeight(m0)
+	_ = g.RecomputeHeight(m0)
 
 	_ = g.Stabilize(context.TODO())
 
 	testutil.ItsEqual(t, "a", o0.Value())
 	testutil.ItsEqual(t, "a", o1.Value())
+}
+
+func Test_Graph_DiscoverObserver_cycle(t *testing.T) {
+	c0 := MapN[any, any](identFirst)
+	c1 := MapN[any, any](identFirst)
+
+	c0.AddInput(c1)
+	c1.AddInput(c0)
+
+	g := New()
+
+	o := newBareObserver()
+	o.input = c1
+	Link(o, c1)
+
+	err := g.DiscoverObserver(o)
+	testutil.ItsNotNil(t, err)
 }

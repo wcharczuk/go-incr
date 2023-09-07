@@ -105,9 +105,9 @@ func main() {
 		},
 	)
 
-	_ = incr.Observe(graph, orders)
-	_ = incr.Observe(graph, shares)
-	_ = incr.Observe(graph, symbolCounts)
+	_ = incr.MustObserve(graph, orders)
+	_ = incr.MustObserve(graph, shares)
+	_ = incr.MustObserve(graph, symbolCounts)
 	for x := 0; x < 10; x++ {
 		_ = graph.Stabilize(ctx)
 		fmt.Println("orders:", orders.Value())

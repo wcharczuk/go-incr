@@ -72,7 +72,7 @@ func benchmarkSize(size int, b *testing.B) {
 	ctx := testContext()
 
 	graph := New()
-	_ = Observe(graph, nodes[len(nodes)-1])
+	_ = MustObserve(graph, nodes[len(nodes)-1])
 
 	// this is what we care about
 	b.ResetTimer()
@@ -115,7 +115,7 @@ func benchmarkParallelSize(size int, b *testing.B) {
 	}
 
 	graph := New()
-	_ = Observe(graph, nodes[0])
+	_ = MustObserve(graph, nodes[0])
 	ctx := testContext()
 
 	// this is what we care about
