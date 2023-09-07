@@ -176,3 +176,35 @@ func Test_parallelBatch_SetLimit(t *testing.T) {
 
 	ItsNotNil(t, recovered)
 }
+
+func Test_ParallelStabilize_Always(t *testing.T) {
+	v := Var("foo")
+	m0 := Map(v, ident)
+	a := Always(m0)
+	m1 := Map(a, ident)
+
+	var updates int
+	m1.Node().OnUpdate(func(_ context.Context) {
+		updates++
+	})
+
+	g := New()
+	o := Observe(g, m1)
+
+	_ = g.ParallelStabilize(context.TODO())
+
+	ItsEqual(t, "foo", o.Value())
+	ItsEqual(t, 1, updates)
+
+	_ = g.ParallelStabilize(context.TODO())
+
+	ItsEqual(t, "foo", o.Value())
+	ItsEqual(t, 2, updates)
+
+	v.Set("bar")
+
+	_ = g.ParallelStabilize(context.TODO())
+
+	ItsEqual(t, "bar", o.Value())
+	ItsEqual(t, 3, updates)
+}

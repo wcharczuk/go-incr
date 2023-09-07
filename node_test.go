@@ -496,6 +496,7 @@ func Test_nodeFormatters(t *testing.T) {
 		{FoldRight(Return([]string{}), "", nil), "fold_right"},
 		{FoldMap(Return(map[string]int{}), "", nil), "fold_map"},
 		{Observe[string](g, Return("")), "observer"},
+		{Always[string](Return("")), "always"},
 	}
 
 	for _, tc := range testCases {

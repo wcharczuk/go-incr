@@ -23,11 +23,16 @@ func (graph *Graph) stabilize(ctx context.Context) (err error) {
 	graph.stabilizeStart(ctx)
 	defer graph.stabilizeEnd(ctx)
 	var n INode
+	var immediateRecompute []INode
 	for len(graph.recomputeHeap.lookup) > 0 {
 		n = graph.recomputeHeap.RemoveMin()
 		if err = graph.recompute(ctx, n); err != nil {
 			return err
 		}
+		if n.Node().always {
+			immediateRecompute = append(immediateRecompute, n)
+		}
 	}
+	graph.recomputeHeap.Add(immediateRecompute...)
 	return nil
 }

@@ -39,17 +39,22 @@ func (graph *Graph) parallelStabilize(ctx context.Context) error {
 	var minHeight int
 	var minHeightBlock []INode
 	var err error
+	var immediateRecompute []INode
 	for graph.recomputeHeap.Len() > 0 {
 		minHeight = graph.recomputeHeap.minHeight
 		minHeightBlock = graph.recomputeHeap.RemoveMinHeight()
 		tracePrintf(ctx, "parallel stabilize; recomputing height %d block with %d nodes", minHeight, len(minHeightBlock))
 		for _, n := range minHeightBlock {
 			workerPool.Go(graph.parallelRecomputeNode(ctx, n))
+			if n.Node().always {
+				immediateRecompute = append(immediateRecompute, n)
+			}
 		}
 		if err = workerPool.Wait(); err != nil {
 			return err
 		}
 	}
+	graph.recomputeHeap.Add(immediateRecompute...)
 	return nil
 }
 

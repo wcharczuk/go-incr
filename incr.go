@@ -30,3 +30,9 @@ type IBind interface {
 type ICutoff interface {
 	Cutoff(context.Context) bool
 }
+
+// IAlways is a type that determines a node is always marked
+// for recomputation.
+type IAlways interface {
+	Always()
+}

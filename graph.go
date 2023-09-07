@@ -118,6 +118,7 @@ func (graph *Graph) DiscoverNode(on IObserver, gn INode) {
 		graph.observed[nodeID] = gn
 		gnn.graph = graph
 		gnn.detectCutoff(gn)
+		gnn.detectAlways(gn)
 		gnn.detectStabilize(gn)
 		gnn.detectBind(gn)
 		graph.numNodes++
@@ -258,6 +259,8 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	nn := n.Node()
 	nn.numRecomputes++
 	nn.recomputedAt = graph.stabilizationNum
+
+	// if the computation is aborted here don't proceed.
 	if nn.maybeCutoff(ctx) {
 		return
 	}

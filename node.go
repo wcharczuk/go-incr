@@ -72,6 +72,8 @@ type Node struct {
 	// bind is set during observation and is a shortcut
 	// to the interface sniff for the node for the IBind interface.
 	bind func(context.Context) error
+	// always determines if we always recompute this node.
+	always bool
 	// numRecomputes is the number of times we recomputed the node
 	numRecomputes uint64
 	// numChanges is the number of times we changed the node
@@ -260,6 +262,12 @@ func (n *Node) detectCutoff(gn INode) {
 	}
 }
 
+// detectAlways detects if a INode (which should be the same
+// as as managed by this node reference), implements IAlways.
+func (n *Node) detectAlways(gn INode) {
+	_, n.always = gn.(IAlways)
+}
+
 // detectStabilize detects if a INode (which should be the same
 // as as managed by this node reference), implements IStabilize
 // and grabs a reference to the Stabilize delegate function.
@@ -280,6 +288,9 @@ func (n *Node) detectBind(gn INode) {
 func (n *Node) ShouldRecompute() bool {
 	// we should always recompute on the first stabilization
 	if n.recomputedAt == 0 {
+		return true
+	}
+	if n.always {
 		return true
 	}
 
