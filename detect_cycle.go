@@ -11,30 +11,28 @@ import "fmt"
 func DetectCycle(child, input INode) error {
 	seen := make(set[Identifier])
 
-	getParents := func(n INode) []INode {
-		if n.Node().id == child.Node().id {
-			return append(child.Node().Parents(), input)
+	getChildren := func(n INode) []INode {
+		if n.Node().id == input.Node().id {
+			return append(input.Node().Children(), child)
 		}
-		return n.Node().Parents()
+		return n.Node().Children()
 	}
-	if cycleSeen(child, getParents, seen) {
-		return fmt.Errorf("linking %v and %v would cause a cycle", child, input)
+	if err := cycleSeen(child, getChildren, seen); err != nil {
+		return fmt.Errorf("linking %v and %v would cause a cycle: %w", child, input, err)
 	}
 	return nil
 }
 
-func cycleSeen(n INode, getParents func(INode) []INode, seen set[Identifier]) bool {
+func cycleSeen(n INode, getChildren func(INode) []INode, seen set[Identifier]) error {
 	if seen.has(n.Node().id) {
-		return true
+		return fmt.Errorf("cycle detected at %v", n)
 	}
-
 	seen.add(n.Node().id)
-	parents := getParents(n)
-	for _, p := range parents {
-		if cycleSeen(p, getParents, seen) {
-			return true
+	children := getChildren(n)
+	for _, c := range children {
+		if err := cycleSeen(c, getChildren, seen); err != nil {
+			return err
 		}
 	}
-	return false
-
+	return nil
 }
