@@ -44,3 +44,17 @@ func Test_DetectCycle_regression(t *testing.T) {
 	err := DetectCycle(uploadRemaining, targetUpload)
 	testutil.ItsNil(t, err)
 }
+
+func Test_DetectCycle_regression2(t *testing.T) {
+	table := Var("table")
+	columnDownload := MapN(identMany[string])
+	lastDownload := Map(columnDownload, ident)
+	_ = Map(lastDownload, ident)
+
+	columnUpload := Map(table, ident)
+	lastUpload := Map(columnUpload, ident)
+	_ = MapN(identMany, lastUpload)
+
+	err := DetectCycle(columnDownload, table)
+	testutil.ItsNil(t, err)
+}

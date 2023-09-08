@@ -9,14 +9,13 @@ import "fmt"
 // in special cases; the vast majority of direct use cases
 // for the incremental library cannot create graph cycles.
 func DetectCycle(child, input INode) error {
-	seen := make(set[Identifier])
-
 	getChildren := func(n INode) []INode {
 		if n.Node().id == input.Node().id {
 			return append(input.Node().Children(), child)
 		}
 		return n.Node().Children()
 	}
+	seen := make(set[Identifier])
 	if err := cycleSeen(child, getChildren, seen); err != nil {
 		return fmt.Errorf("linking %v and %v would cause a cycle: %w", child, input, err)
 	}
@@ -30,7 +29,7 @@ func cycleSeen(n INode, getChildren func(INode) []INode, seen set[Identifier]) e
 	seen.add(n.Node().id)
 	children := getChildren(n)
 	for _, c := range children {
-		if err := cycleSeen(c, getChildren, seen); err != nil {
+		if err := cycleSeen(c, getChildren, seen.copy()); err != nil {
 			return err
 		}
 	}
