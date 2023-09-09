@@ -720,6 +720,13 @@ func Test_Stabilize_cutoffContext_error(t *testing.T) {
 		},
 	)
 
+	var errors int
+	cutoff.Node().OnError(func(_ context.Context, err error) {
+		if err != nil {
+			errors++
+		}
+	})
+
 	output := Map2(
 		cutoff,
 		Return(10.0),
@@ -733,6 +740,7 @@ func Test_Stabilize_cutoffContext_error(t *testing.T) {
 		ctx,
 	)
 	testutil.ItsNotNil(t, err)
+	testutil.ItsEqual(t, 1, errors)
 	testutil.ItsEqual(t, 0, output.Value())
 
 	input.Set(3.15)
@@ -741,6 +749,7 @@ func Test_Stabilize_cutoffContext_error(t *testing.T) {
 		ctx,
 	)
 	testutil.ItsNotNil(t, err)
+	testutil.ItsEqual(t, 2, errors)
 	testutil.ItsEqual(t, 0, output.Value())
 }
 
