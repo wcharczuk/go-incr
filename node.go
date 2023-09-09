@@ -68,7 +68,7 @@ type Node struct {
 	stabilize func(context.Context) error
 	// cutoff is set during initialization and is a shortcut
 	// to the interface sniff for the node for the ICutoff interface.
-	cutoff func(context.Context) bool
+	cutoff func(context.Context) (bool, error)
 	// bind is set during observation and is a shortcut
 	// to the interface sniff for the node for the IBind interface.
 	bind func(context.Context) error
@@ -246,11 +246,11 @@ func (n *Node) Observers() []IObserver {
 
 // maybeCutoff calls the cutoff delegate if it's set, otherwise
 // just returns false (effectively _not_ cutting off the computation).
-func (n *Node) maybeCutoff(ctx context.Context) bool {
+func (n *Node) maybeCutoff(ctx context.Context) (bool, error) {
 	if n.cutoff != nil {
 		return n.cutoff(ctx)
 	}
-	return false
+	return false, nil
 }
 
 // detectCutoff detects if a INode (which should be the same

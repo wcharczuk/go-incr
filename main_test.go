@@ -25,12 +25,12 @@ func epsilon(delta float64) func(float64, float64) bool {
 	}
 }
 
-func epsilonContext(t *testing.T, delta float64) func(context.Context, float64, float64) bool {
+func epsilonContext(t *testing.T, delta float64) func(context.Context, float64, float64) (bool, error) {
 	t.Helper()
-	return func(ctx context.Context, v0, v1 float64) bool {
+	return func(ctx context.Context, v0, v1 float64) (bool, error) {
 		t.Helper()
 		testutil.ItsBlueDye(ctx, t)
-		return math.Abs(v1-v0) <= delta
+		return math.Abs(v1-v0) <= delta, nil
 	}
 }
 

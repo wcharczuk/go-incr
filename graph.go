@@ -261,7 +261,15 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	nn.recomputedAt = graph.stabilizationNum
 
 	// if the computation is aborted here don't proceed.
-	if nn.maybeCutoff(ctx) {
+	var shouldCutoff bool
+	shouldCutoff, err = nn.maybeCutoff(ctx)
+	if err != nil {
+		for _, eh := range nn.onErrorHandlers {
+			eh(ctx, err)
+		}
+		return
+	}
+	if shouldCutoff {
 		return
 	}
 

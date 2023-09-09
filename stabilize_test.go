@@ -709,6 +709,41 @@ func Test_Stabilize_cutoffContext(t *testing.T) {
 	ItsEqual(t, 13.26, output.Value())
 }
 
+func Test_Stabilize_cutoffContext_error(t *testing.T) {
+	ctx := testContext()
+	input := Var(3.14)
+
+	cutoff := CutoffContext[float64](
+		input,
+		func(_ context.Context, _, _ float64) (bool, error) {
+			return false, fmt.Errorf("this is just a test")
+		},
+	)
+
+	output := Map2(
+		cutoff,
+		Return(10.0),
+		add[float64],
+	)
+
+	graph := New()
+	_ = Observe(graph, output)
+
+	err := graph.Stabilize(
+		ctx,
+	)
+	testutil.ItsNotNil(t, err)
+	testutil.ItsEqual(t, 0, output.Value())
+
+	input.Set(3.15)
+
+	err = graph.Stabilize(
+		ctx,
+	)
+	testutil.ItsNotNil(t, err)
+	testutil.ItsEqual(t, 0, output.Value())
+}
+
 func Test_Stabilize_watch(t *testing.T) {
 	ctx := testContext()
 

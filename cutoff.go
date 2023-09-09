@@ -10,19 +10,10 @@ import (
 // The goal of the cutoff incremental is to stop recomputation at a given
 // node if the difference between the previous and latest values are not
 // significant enough to warrant a full recomputation of the children of this node.
-func Cutoff[A any](i Incr[A], fn func(A, A) bool) Incr[A] {
-	o := &cutoffIncr[A]{
-		n: NewNode(),
-		i: i,
-		fn: func(_ context.Context, oldv, newv A) bool {
-			return fn(oldv, newv)
-		},
-	}
-	// we short circuit setup of the node cutoff reference here.
-	// this can be discovered in initialization but saves a step.
-	o.Node().cutoff = o.Cutoff
-	Link(o, i)
-	return o
+func Cutoff[A any](i Incr[A], fn CutoffFunc[A]) Incr[A] {
+	return CutoffContext[A](i, func(_ context.Context, oldv, newv A) (bool, error) {
+		return fn(oldv, newv), nil
+	})
 }
 
 // CutoffContext returns a new wrapping cutoff incremental.
@@ -30,7 +21,7 @@ func Cutoff[A any](i Incr[A], fn func(A, A) bool) Incr[A] {
 // The goal of the cutoff incremental is to stop recomputation at a given
 // node if the difference between the previous and latest values are not
 // significant enough to warrant a full recomputation of the children of this node.
-func CutoffContext[A any](i Incr[A], fn func(context.Context, A, A) bool) Incr[A] {
+func CutoffContext[A any](i Incr[A], fn CutoffContextFunc[A]) Incr[A] {
 	o := &cutoffIncr[A]{
 		n:  NewNode(),
 		i:  i,
@@ -42,6 +33,13 @@ func CutoffContext[A any](i Incr[A], fn func(context.Context, A, A) bool) Incr[A
 	Link(o, i)
 	return o
 }
+
+// CutoffFunc is a function that implements cutoff checking.
+type CutoffFunc[A any] func(A, A) bool
+
+// CutoffContextFunc is a function that implements cutoff checking
+// and takes a context.
+type CutoffContextFunc[A any] func(context.Context, A, A) (bool, error)
 
 var (
 	_ Incr[string] = (*cutoffIncr[string])(nil)
@@ -57,7 +55,7 @@ type cutoffIncr[A any] struct {
 	n     *Node
 	i     Incr[A]
 	value A
-	fn    func(context.Context, A, A) bool
+	fn    CutoffContextFunc[A]
 }
 
 func (c *cutoffIncr[A]) Value() A {
@@ -69,7 +67,7 @@ func (c *cutoffIncr[A]) Stabilize(ctx context.Context) error {
 	return nil
 }
 
-func (c *cutoffIncr[A]) Cutoff(ctx context.Context) bool {
+func (c *cutoffIncr[A]) Cutoff(ctx context.Context) (bool, error) {
 	return c.fn(ctx, c.value, c.i.Value())
 }
 

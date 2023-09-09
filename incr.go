@@ -28,7 +28,7 @@ type IBind interface {
 // ICutoff is a type that determines if changes should
 // continue to propagate or not.
 type ICutoff interface {
-	Cutoff(context.Context) bool
+	Cutoff(context.Context) (bool, error)
 }
 
 // IAlways is a type that determines a node is always marked

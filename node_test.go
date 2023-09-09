@@ -280,14 +280,26 @@ func Test_Node_maybeCutoff(t *testing.T) {
 	ctx := testContext()
 	n := NewNode()
 
-	testutil.ItsEqual(t, false, n.maybeCutoff(ctx))
+	shouldCutoff, err := n.maybeCutoff(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, false, shouldCutoff)
 
-	n.cutoff = func(ictx context.Context) bool {
+	n.cutoff = func(ictx context.Context) (bool, error) {
 		testutil.ItsBlueDye(ictx, t)
-		return true
+		return true, nil
 	}
 
-	testutil.ItsEqual(t, true, n.maybeCutoff(ctx))
+	shouldCutoff, err = n.maybeCutoff(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, true, shouldCutoff)
+
+	n.cutoff = func(ictx context.Context) (bool, error) {
+		testutil.ItsBlueDye(ictx, t)
+		return true, fmt.Errorf("this is just a test")
+	}
+	shouldCutoff, err = n.maybeCutoff(ctx)
+	testutil.ItsNotNil(t, err)
+	testutil.ItsEqual(t, true, shouldCutoff)
 }
 
 func Test_Node_detectCutoff(t *testing.T) {
