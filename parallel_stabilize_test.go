@@ -243,3 +243,26 @@ func Test_ParallelStabilize_always_cutoff(t *testing.T) {
 	testutil.ItsNil(t, err)
 	testutil.ItsEqual(t, "test-2", o.Value())
 }
+
+func Test_ParallelStabilize_always_cutoff_error(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	filename := Var("test")
+	filenameAlways := Always(filename)
+	modtime := 1
+	statfile := Map(filenameAlways, func(s string) int { return modtime })
+	statfileCutoff := CutoffContext(statfile, func(_ context.Context, ov, nv int) (bool, error) {
+		return false, fmt.Errorf("this is only a test")
+	})
+	readFile := Map2(filename, statfileCutoff, func(p string, mt int) string {
+		return fmt.Sprintf("%s-%d", p, mt)
+	})
+	o := Observe(g, readFile)
+
+	err := g.ParallelStabilize(ctx)
+	testutil.ItsNotNil(t, err)
+	testutil.ItsEqual(t, "", o.Value())
+
+	testutil.ItsEqual(t, 3, g.recomputeHeap.Len())
+}

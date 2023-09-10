@@ -39,7 +39,13 @@ func (graph *Graph) parallelStabilize(ctx context.Context) error {
 	var minHeight int
 	var minHeightBlock []INode
 	var err error
+
+	// we have to do this _always_
 	var immediateRecompute []INode
+	defer func() {
+		graph.recomputeHeap.Add(immediateRecompute...)
+	}()
+
 	for graph.recomputeHeap.Len() > 0 {
 		minHeight = graph.recomputeHeap.minHeight
 		minHeightBlock = graph.recomputeHeap.RemoveMinHeight()
@@ -55,7 +61,6 @@ func (graph *Graph) parallelStabilize(ctx context.Context) error {
 			return err
 		}
 	}
-	graph.recomputeHeap.Add(immediateRecompute...)
 	return nil
 }
 
