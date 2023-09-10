@@ -270,6 +270,7 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 		return
 	}
 	if shouldCutoff {
+		TracePrintf(ctx, "stabilize[%d]; cutoff %v with height %d", graph.stabilizationNum, n, n.Node().height)
 		return
 	}
 
