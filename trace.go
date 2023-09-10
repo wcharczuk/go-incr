@@ -44,25 +44,31 @@ func getTracer(ctx context.Context) Tracer {
 	return nil
 }
 
-func tracePrintln(ctx context.Context, args ...any) {
+// TracePrintln prints a line to the tracer on a given context.
+func TracePrintln(ctx context.Context, args ...any) {
 	if tracer := getTracer(ctx); tracer != nil {
 		tracer.Print(args...)
 	}
 }
 
-func tracePrintf(ctx context.Context, format string, args ...any) {
+// TracePrintf prints a line to the tracer on a given
+// context with a given format and args.
+func TracePrintf(ctx context.Context, format string, args ...any) {
 	if tracer := getTracer(ctx); tracer != nil {
 		tracer.Print(fmt.Sprintf(format, args...))
 	}
 }
 
-func traceErrorln(ctx context.Context, args ...any) {
+// TraceErrorln prints a line to the error output of a tracer on a given context.
+func TraceErrorln(ctx context.Context, args ...any) {
 	if tracer := getTracer(ctx); tracer != nil {
 		tracer.Error(args...)
 	}
 }
 
-func traceErrorf(ctx context.Context, format string, args ...any) {
+// TraceErrorf prints a line to the error output of a tracer
+// on a given context with a given format and args.
+func TraceErrorf(ctx context.Context, format string, args ...any) {
 	if tracer := getTracer(ctx); tracer != nil {
 		tracer.Error(fmt.Sprintf(format, args...))
 	}

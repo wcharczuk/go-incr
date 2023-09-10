@@ -34,19 +34,19 @@ func Test_WithTracingOutput(t *testing.T) {
 	ItsNotNil(t, tr.(*tracer).log)
 	ItsNotNil(t, tr.(*tracer).errLog)
 
-	tracePrintln(ctx, "this is a println test")
+	TracePrintln(ctx, "this is a println test")
 	ItsEqual(t, true, strings.Contains(output.String(), "this is a println test"))
 	ItsEqual(t, "", errOutput.String())
 
-	traceErrorln(ctx, "this is a errorln test")
+	TraceErrorln(ctx, "this is a errorln test")
 	ItsEqual(t, false, strings.Contains(output.String(), "this is a errorln test"))
 	ItsEqual(t, true, strings.Contains(errOutput.String(), "this is a errorln test"))
 
-	tracePrintf(ctx, "this is a %s test", "printf")
+	TracePrintf(ctx, "this is a %s test", "printf")
 	ItsEqual(t, true, strings.Contains(output.String(), "this is a printf test"))
 	ItsEqual(t, false, strings.Contains(errOutput.String(), "this is a printf test"))
 
-	traceErrorf(ctx, "this is a %s test", "errorf")
+	TraceErrorf(ctx, "this is a %s test", "errorf")
 	ItsEqual(t, false, strings.Contains(output.String(), "this is a errorf test"))
 	ItsEqual(t, true, strings.Contains(errOutput.String(), "this is a errorf test"))
 }

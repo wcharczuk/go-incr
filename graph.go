@@ -209,7 +209,7 @@ func (graph *Graph) RecomputeHeight(n INode) {
 
 func (graph *Graph) ensureNotStabilizing(ctx context.Context) error {
 	if atomic.LoadInt32(&graph.status) != StatusNotStabilizing {
-		tracePrintf(ctx, "stabilize; already stabilizing, cannot continue")
+		TracePrintf(ctx, "stabilize; already stabilizing, cannot continue")
 		return ErrAlreadyStabilizing
 	}
 	return nil
@@ -218,7 +218,7 @@ func (graph *Graph) ensureNotStabilizing(ctx context.Context) error {
 func (graph *Graph) stabilizeStart(ctx context.Context) {
 	atomic.StoreInt32(&graph.status, StatusStabilizing)
 	graph.stabilizationStarted = time.Now()
-	tracePrintf(ctx, "stabilize[%d]; stabilization starting", graph.stabilizationNum)
+	TracePrintf(ctx, "stabilize[%d]; stabilization starting", graph.stabilizationNum)
 }
 
 func (graph *Graph) stabilizeEnd(ctx context.Context) {
@@ -226,7 +226,7 @@ func (graph *Graph) stabilizeEnd(ctx context.Context) {
 		graph.stabilizationStarted = time.Time{}
 		atomic.StoreInt32(&graph.status, StatusNotStabilizing)
 	}()
-	tracePrintf(ctx, "stabilize[%d]; stabilization complete (%v)", graph.stabilizationNum, time.Since(graph.stabilizationStarted).Round(time.Microsecond))
+	TracePrintf(ctx, "stabilize[%d]; stabilization complete (%v)", graph.stabilizationNum, time.Since(graph.stabilizationStarted).Round(time.Microsecond))
 	graph.stabilizationNum++
 	var n INode
 	for !graph.setDuringStabilization.IsEmpty() {
@@ -237,9 +237,9 @@ func (graph *Graph) stabilizeEnd(ctx context.Context) {
 	atomic.StoreInt32(&graph.status, StatusRunningUpdateHandlers)
 	var updateHandlers []func(context.Context)
 	if !graph.handleAfterStabilization.IsEmpty() {
-		tracePrintf(ctx, "stabilize[%d]; calling update handlers starting", graph.stabilizationNum)
+		TracePrintf(ctx, "stabilize[%d]; calling update handlers starting", graph.stabilizationNum)
 		defer func() {
-			tracePrintf(ctx, "stabilize[%d]; calling update handlers complete", graph.stabilizationNum)
+			TracePrintf(ctx, "stabilize[%d]; calling update handlers complete", graph.stabilizationNum)
 		}()
 	}
 	for !graph.handleAfterStabilization.IsEmpty() {
@@ -273,7 +273,7 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 		return
 	}
 
-	tracePrintf(ctx, "stabilize[%d]; recompute %v with height %d", graph.stabilizationNum, n, n.Node().height)
+	TracePrintf(ctx, "stabilize[%d]; recompute %v with height %d", graph.stabilizationNum, n, n.Node().height)
 	graph.numNodesChanged++
 	nn.numChanges++
 

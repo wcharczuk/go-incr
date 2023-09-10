@@ -30,7 +30,7 @@ func (graph *Graph) stabilize(ctx context.Context) (err error) {
 			return err
 		}
 		if n.Node().always {
-			tracePrintf(ctx, "stabilize; adding always node to immediate recompute list %v", n)
+			TracePrintf(ctx, "stabilize[%d]; adding always node to immediate recompute list %v", graph.stabilizationNum, n)
 			immediateRecompute = append(immediateRecompute, n)
 		}
 	}

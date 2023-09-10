@@ -43,11 +43,11 @@ func (graph *Graph) parallelStabilize(ctx context.Context) error {
 	for graph.recomputeHeap.Len() > 0 {
 		minHeight = graph.recomputeHeap.minHeight
 		minHeightBlock = graph.recomputeHeap.RemoveMinHeight()
-		tracePrintf(ctx, "parallel stabilize; recomputing height %d block with %d nodes", minHeight, len(minHeightBlock))
+		TracePrintf(ctx, "parallel stabilize[%d]; recomputing height %d block with %d nodes", graph.stabilizationNum, minHeight, len(minHeightBlock))
 		for _, n := range minHeightBlock {
 			workerPool.Go(graph.parallelRecomputeNode(ctx, n))
 			if n.Node().always {
-				tracePrintf(ctx, "parallel stabilize; adding always node to immediate recompute list %v", n)
+				TracePrintf(ctx, "parallel stabilize[%d]; adding always node to immediate recompute list %v", graph.stabilizationNum, n)
 				immediateRecompute = append(immediateRecompute, n)
 			}
 		}
