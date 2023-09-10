@@ -1169,3 +1169,38 @@ func Test_Stabilize_freeze(t *testing.T) {
 	ItsEqual(t, "not-hello", v0.Value())
 	ItsEqual(t, "hello", fv.Value())
 }
+
+func Test_Stabilize_always_cutoff(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	filename := Var("test")
+	filenameAlways := Always(filename)
+	modtime := 1
+	statfile := Map(filenameAlways, func(s string) int { return modtime })
+	statfileCutoff := Cutoff(statfile, func(ov, nv int) bool {
+		return ov == nv
+	})
+	readFile := Map2(filename, statfileCutoff, func(p string, mt int) string {
+		return fmt.Sprintf("%s-%d", p, mt)
+	})
+	o := Observe(g, readFile)
+
+	err := g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, "test-1", o.Value())
+
+	err = g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, "test-1", o.Value())
+
+	modtime = 2
+
+	err = g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, "test-2", o.Value())
+
+	err = g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, "test-2", o.Value())
+}

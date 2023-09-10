@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/wcharczuk/go-incr/testutil"
+	"github.com/wcharczuk/go-incr/testutil"
 )
 
 func Test_ParallelStabilize(t *testing.T) {
@@ -22,35 +22,35 @@ func Test_ParallelStabilize(t *testing.T) {
 	_ = Observe(graph, m0)
 
 	err := graph.ParallelStabilize(ctx)
-	ItsNil(t, err)
+	testutil.ItsNil(t, err)
 
-	ItsEqual(t, 0, v0.Node().setAt)
-	ItsEqual(t, 1, v0.Node().changedAt)
-	ItsEqual(t, 0, v1.Node().setAt)
-	ItsEqual(t, 1, v1.Node().changedAt)
-	ItsEqual(t, 1, m0.Node().changedAt)
-	ItsEqual(t, 1, v0.Node().recomputedAt)
-	ItsEqual(t, 1, v1.Node().recomputedAt)
-	ItsEqual(t, 1, m0.Node().recomputedAt)
+	testutil.ItsEqual(t, 0, v0.Node().setAt)
+	testutil.ItsEqual(t, 1, v0.Node().changedAt)
+	testutil.ItsEqual(t, 0, v1.Node().setAt)
+	testutil.ItsEqual(t, 1, v1.Node().changedAt)
+	testutil.ItsEqual(t, 1, m0.Node().changedAt)
+	testutil.ItsEqual(t, 1, v0.Node().recomputedAt)
+	testutil.ItsEqual(t, 1, v1.Node().recomputedAt)
+	testutil.ItsEqual(t, 1, m0.Node().recomputedAt)
 
-	ItsEqual(t, "foo bar", m0.Value())
+	testutil.ItsEqual(t, "foo bar", m0.Value())
 
 	v0.Set("not foo")
-	ItsEqual(t, 2, v0.Node().setAt)
-	ItsEqual(t, 0, v1.Node().setAt)
+	testutil.ItsEqual(t, 2, v0.Node().setAt)
+	testutil.ItsEqual(t, 0, v1.Node().setAt)
 
 	err = graph.ParallelStabilize(ctx)
-	ItsNil(t, err)
+	testutil.ItsNil(t, err)
 
-	ItsEqual(t, 2, v0.Node().changedAt)
-	ItsEqual(t, 1, v1.Node().changedAt)
-	ItsEqual(t, 2, m0.Node().changedAt)
+	testutil.ItsEqual(t, 2, v0.Node().changedAt)
+	testutil.ItsEqual(t, 1, v1.Node().changedAt)
+	testutil.ItsEqual(t, 2, m0.Node().changedAt)
 
-	ItsEqual(t, 2, v0.Node().recomputedAt)
-	ItsEqual(t, 1, v1.Node().recomputedAt)
-	ItsEqual(t, 2, m0.Node().recomputedAt)
+	testutil.ItsEqual(t, 2, v0.Node().recomputedAt)
+	testutil.ItsEqual(t, 1, v1.Node().recomputedAt)
+	testutil.ItsEqual(t, 2, m0.Node().recomputedAt)
 
-	ItsEqual(t, "not foo bar", m0.Value())
+	testutil.ItsEqual(t, "not foo bar", m0.Value())
 }
 
 func Test_ParallelStabilize_alreadyStabilizing(t *testing.T) {
@@ -60,7 +60,7 @@ func Test_ParallelStabilize_alreadyStabilizing(t *testing.T) {
 	graph.status = StatusStabilizing
 
 	err := graph.ParallelStabilize(ctx)
-	ItsNotNil(t, err)
+	testutil.ItsNotNil(t, err)
 }
 
 func Test_ParallelStabilize_jsDocs(t *testing.T) {
@@ -98,20 +98,20 @@ func Test_ParallelStabilize_jsDocs(t *testing.T) {
 	_ = Observe(graph, output)
 
 	err := graph.ParallelStabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, 2, len(output.Value()))
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, 2, len(output.Value()))
 
 	data = append(data, Entry{
 		"5", now.Add(5 * time.Second),
 	})
 	err = graph.ParallelStabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, 2, len(output.Value()))
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, 2, len(output.Value()))
 
 	i.Set(data)
 	err = graph.ParallelStabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, 3, len(output.Value()))
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, 3, len(output.Value()))
 }
 
 func Test_ParallelStabilize_error(t *testing.T) {
@@ -126,7 +126,7 @@ func Test_ParallelStabilize_error(t *testing.T) {
 	_ = Observe(graph, m0)
 
 	err := graph.ParallelStabilize(ctx)
-	ItsNotNil(t, err)
+	testutil.ItsNotNil(t, err)
 }
 
 func Test_parallelBatch(t *testing.T) {
@@ -138,9 +138,9 @@ func Test_parallelBatch(t *testing.T) {
 		return nil
 	})
 	err := pb.Wait()
-	ItsNil(t, err)
+	testutil.ItsNil(t, err)
 	got := <-values
-	ItsEqual(t, "hello", got)
+	testutil.ItsEqual(t, "hello", got)
 }
 
 func Test_parallelBatch_error(t *testing.T) {
@@ -150,18 +150,18 @@ func Test_parallelBatch_error(t *testing.T) {
 		return fmt.Errorf("this is a test")
 	})
 	err := pb.Wait()
-	ItsNotNil(t, err)
+	testutil.ItsNotNil(t, err)
 }
 
 func Test_parallelBatch_SetLimit(t *testing.T) {
 	pb := new(parallelBatch)
 
 	pb.SetLimit(4)
-	ItsEqual(t, 0, len(pb.sem))
-	ItsEqual(t, 4, cap(pb.sem))
+	testutil.ItsEqual(t, 0, len(pb.sem))
+	testutil.ItsEqual(t, 4, cap(pb.sem))
 
 	pb.SetLimit(-1)
-	ItsNil(t, pb.sem)
+	testutil.ItsNil(t, pb.sem)
 
 	var recovered any
 	func() {
@@ -174,7 +174,7 @@ func Test_parallelBatch_SetLimit(t *testing.T) {
 		pb.SetLimit(4)
 	}()
 
-	ItsNotNil(t, recovered)
+	testutil.ItsNotNil(t, recovered)
 }
 
 func Test_ParallelStabilize_Always(t *testing.T) {
@@ -193,18 +193,53 @@ func Test_ParallelStabilize_Always(t *testing.T) {
 
 	_ = g.ParallelStabilize(context.TODO())
 
-	ItsEqual(t, "foo", o.Value())
-	ItsEqual(t, 1, updates)
+	testutil.ItsEqual(t, "foo", o.Value())
+	testutil.ItsEqual(t, 1, updates)
 
 	_ = g.ParallelStabilize(context.TODO())
 
-	ItsEqual(t, "foo", o.Value())
-	ItsEqual(t, 2, updates)
+	testutil.ItsEqual(t, "foo", o.Value())
+	testutil.ItsEqual(t, 2, updates)
 
 	v.Set("bar")
 
 	_ = g.ParallelStabilize(context.TODO())
 
-	ItsEqual(t, "bar", o.Value())
-	ItsEqual(t, 3, updates)
+	testutil.ItsEqual(t, "bar", o.Value())
+	testutil.ItsEqual(t, 3, updates)
+}
+
+func Test_ParallelStabilize_always_cutoff(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	filename := Var("test")
+	filenameAlways := Always(filename)
+	modtime := 1
+	statfile := Map(filenameAlways, func(s string) int { return modtime })
+	statfileCutoff := Cutoff(statfile, func(ov, nv int) bool {
+		return ov == nv
+	})
+	readFile := Map2(filename, statfileCutoff, func(p string, mt int) string {
+		return fmt.Sprintf("%s-%d", p, mt)
+	})
+	o := Observe(g, readFile)
+
+	err := g.ParallelStabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, "test-1", o.Value())
+
+	err = g.ParallelStabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, "test-1", o.Value())
+
+	modtime = 2
+
+	err = g.ParallelStabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, "test-2", o.Value())
+
+	err = g.ParallelStabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, "test-2", o.Value())
 }
