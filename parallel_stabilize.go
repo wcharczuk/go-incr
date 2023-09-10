@@ -47,6 +47,7 @@ func (graph *Graph) parallelStabilize(ctx context.Context) error {
 		for _, n := range minHeightBlock {
 			workerPool.Go(graph.parallelRecomputeNode(ctx, n))
 			if n.Node().always {
+				tracePrintf(ctx, "parallel stabilize; adding always node to immediate recompute list %v", n)
 				immediateRecompute = append(immediateRecompute, n)
 			}
 		}
