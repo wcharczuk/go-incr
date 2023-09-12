@@ -6,7 +6,7 @@ import (
 	. "github.com/wcharczuk/go-incr/testutil"
 )
 
-func Test_recomuteHeap_Add(t *testing.T) {
+func Test_recomputeHeap_Add(t *testing.T) {
 
 	rh := newRecomputeHeap(32)
 
@@ -73,19 +73,6 @@ func Test_recomuteHeap_Add(t *testing.T) {
 		ItsEqual(t, 5, rh.MinHeight())
 		ItsEqual(t, 7, rh.MaxHeight())
 	}
-
-	// assert the panic is thrown if we
-	// try to add a node with a height
-	// greater than the height limit
-	panics := make(chan any, 1)
-	func() {
-		defer func() {
-			panics <- recover()
-		}()
-		rh.Add(newHeightIncr(33))
-	}()
-
-	ItsNotNil(t, <-panics)
 }
 
 func Test_recomputeHeap_RemoveMin(t *testing.T) {
@@ -100,11 +87,11 @@ func Test_recomputeHeap_RemoveMin(t *testing.T) {
 
 	rh.Add(n00)
 	ItsEqual(t, 1, rh.Len())
-	ItsEqual(t, 33, len(rh.heights))
+	ItsEqual(t, 32, len(rh.heights))
 	ItsEqual(t, 1, rh.heights[0].Len())
 	rh.Add(n01)
 	ItsEqual(t, 2, rh.Len())
-	ItsEqual(t, 33, len(rh.heights))
+	ItsEqual(t, 32, len(rh.heights))
 	ItsEqual(t, 2, rh.heights[0].Len())
 
 	ItsEqual(t, 0, rh.minHeight)
@@ -112,7 +99,7 @@ func Test_recomputeHeap_RemoveMin(t *testing.T) {
 
 	rh.Add(n10)
 	ItsEqual(t, 3, rh.Len())
-	ItsEqual(t, 33, len(rh.heights))
+	ItsEqual(t, 32, len(rh.heights))
 	ItsEqual(t, 2, rh.heights[0].Len())
 	ItsEqual(t, 1, rh.heights[1].Len())
 	ItsEqual(t, 0, rh.minHeight)
@@ -120,7 +107,7 @@ func Test_recomputeHeap_RemoveMin(t *testing.T) {
 
 	rh.Add(n100)
 	ItsEqual(t, 4, rh.Len())
-	ItsEqual(t, 33, len(rh.heights))
+	ItsEqual(t, 32, len(rh.heights))
 	ItsEqual(t, 2, rh.heights[0].Len())
 	ItsEqual(t, 1, rh.heights[1].Len())
 	ItsEqual(t, 1, rh.heights[10].Len())
@@ -352,7 +339,7 @@ func Test_recomputeHeap_nextMinHeight_noItems(t *testing.T) {
 
 func Test_recomputeHeap_nextMinHeight_pastMax(t *testing.T) {
 	r0 := Return("hello")
-	rh := newRecomputeHeap(3)
+	rh := newRecomputeHeap(4)
 	rh.minHeight = 1
 	rh.maxHeight = 3
 
@@ -364,9 +351,32 @@ func Test_recomputeHeap_nextMinHeight_pastMax(t *testing.T) {
 	ItsEqual(t, 0, next)
 }
 
+func Test_recomputeHeap_adjustHeights(t *testing.T) {
+	rh := newRecomputeHeap(8)
+	ItsEqual(t, 8, len(rh.heights))
+	rh.adjustHeights(9) // we use (1) indexing!
+	ItsEqual(t, 10, len(rh.heights))
+}
+
+func Test_recomputeHeap_addAdjustsHeights(t *testing.T) {
+	rh := newRecomputeHeap(8)
+	ItsEqual(t, 8, len(rh.heights))
+
+	v0 := newHeightIncr(32)
+	rh.Add(v0)
+	ItsEqual(t, 33, len(rh.heights))
+	ItsEqual(t, 32, rh.minHeight)
+	ItsEqual(t, 32, rh.maxHeight)
+
+	v1 := newHeightIncr(64)
+	rh.Add(v1)
+	ItsEqual(t, 65, len(rh.heights))
+	ItsEqual(t, 32, rh.minHeight)
+	ItsEqual(t, 64, rh.maxHeight)
+}
+
 func Test_recomuteHeap_Add_regression(t *testing.T) {
 	// real world use case! it's insane!
-
 	rh := newRecomputeHeap(8)
 
 	v0 := newHeightIncr(1)
@@ -404,14 +414,72 @@ func Test_recomuteHeap_Add_regression(t *testing.T) {
 
 func Test_recomuteHeap_Add_regression2(t *testing.T) {
 	// another real world use case! also insane!
-	rh := newRecomputeHeap(8)
+	rh := newRecomputeHeap(256)
 
-	o1 := newHeightIncr(1)
-	rh.addUnsafe(o1)
+	observer4945d288 := newHeightIncr(1)
+	rh.Add(observer4945d288)
+	observer87df48be := newHeightIncr(1)
+	rh.Add(observer87df48be)
+	mapf2cb6e46 := newHeightIncr(0)
+	rh.Add(mapf2cb6e46)
+	map26e9bfb2a := newHeightIncr(0)
+	rh.Add(map26e9bfb2a)
+	map26e9bfb2a.n.height = 2
+	rh.Add(map26e9bfb2a)
+	map2dfe7c676 := newHeightIncr(1)
+	rh.Add(map2dfe7c676)
+	map2aa9d55f9 := newHeightIncr(1)
+	rh.Add(map2aa9d55f9)
+	observerbaad6dd3 := newHeightIncr(1)
+	rh.Add(observerbaad6dd3)
+	map2aa3f9a14 := newHeightIncr(1)
+	rh.Add(map2aa3f9a14)
+	observer6e9e8864 := newHeightIncr(1)
+	rh.Add(observer6e9e8864)
+	varb35bfa8a := newHeightIncr(1)
+	rh.Add(varb35bfa8a)
+	var54b93408 := newHeightIncr(1)
+	rh.Add(var54b93408)
+	alwaysc83986c6 := newHeightIncr(0)
+	rh.Add(alwaysc83986c6)
+	cutoff9d454a57 := newHeightIncr(0)
+	rh.Add(cutoff9d454a57)
+	varc0898518 := newHeightIncr(1)
+	rh.Add(varc0898518)
+	cutoff9d454a57.n.height = 4
+	rh.Add(cutoff9d454a57)
+	mapf2cb6e46.n.height = 3
+	rh.Add(mapf2cb6e46)
+	alwaysc83986c6.n.height = 2
+	rh.Add(alwaysc83986c6)
+	map26e9bfb2a.n.height = 7
+	rh.Add(map26e9bfb2a)
+	map2aa3f9a14.n.height = 5
+	rh.Add(map2aa3f9a14)
+	observer6e9e8864.n.height = 6
+	rh.Add(observer6e9e8864)
+	map2dfe7c676.n.height = 6
+	rh.Add(map2dfe7c676)
+	map2aa9d55f9.n.height = 6
+	rh.Add(map2aa9d55f9)
+	observerbaad6dd3.n.height = 8
+	rh.Add(observerbaad6dd3)
 
-	o1.n.height = 2
-	rh.addUnsafe(o1)
+	// now start """stabilization"""
 
-	ItsNil(t, rh.heights[1].head)
-	ItsNotNil(t, rh.heights[2].head)
+	ItsEqual(t, 1, rh.minHeight)
+	ItsEqual(t, 5, rh.heights[1].Len())
+
+	minHeightBlock := rh.RemoveMinHeight()
+	ItsEqual(t, 5, len(minHeightBlock))
+	ItsEqual(t, true, allHeight(minHeightBlock, 1))
+}
+
+func allHeight(values []INode, height int) bool {
+	for _, v := range values {
+		if v.Node().height != height {
+			return false
+		}
+	}
+	return true
 }

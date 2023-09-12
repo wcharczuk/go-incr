@@ -22,7 +22,7 @@ func New() *Graph {
 		observed:                 make(map[Identifier]INode),
 		setDuringStabilization:   new(list[Identifier, INode]),
 		handleAfterStabilization: new(list[Identifier, []func(context.Context)]),
-		recomputeHeap:            newRecomputeHeap(defaultRecomputeHeapMaxHeight),
+		recomputeHeap:            newRecomputeHeap(256),
 	}
 	return g
 }
@@ -108,25 +108,28 @@ func (graph *Graph) DiscoverNode(on IObserver, gn INode) {
 	gnn := gn.Node()
 	nodeID := gnn.id
 
+	// make sure to associate the given observer with the node
+	gnn.observers[on.Node().ID()] = on
 	for _, handler := range gnn.onObservedHandlers {
 		handler(on)
 	}
-	gnn.observers[on.Node().ID()] = on
 
 	// if the node is not currently observed.
 	if _, ok := graph.observed[nodeID]; !ok {
-		graph.observed[nodeID] = gn
-		gnn.graph = graph
-		gnn.detectCutoff(gn)
-		gnn.detectAlways(gn)
-		gnn.detectStabilize(gn)
-		gnn.detectBind(gn)
 		graph.numNodes++
-		gnn.height = gnn.computePseudoHeight()
+	}
+	graph.observed[nodeID] = gn
+	gnn.graph = graph
+	gnn.detectCutoff(gn)
+	gnn.detectAlways(gn)
+	gnn.detectStabilize(gn)
+	gnn.detectBind(gn)
+	gnn.height = gnn.computePseudoHeight()
 
-		if gnn.ShouldRecompute() {
-			graph.recomputeHeap.Add(gn)
-		}
+	// we should add to the heap if we should recompute the node _or_ if we need to
+	// potentially adjust the height it's sitting in the heap.
+	if gnn.ShouldRecompute() || graph.recomputeHeap.Has(gn) {
+		graph.recomputeHeap.Add(gn)
 	}
 	return
 }
