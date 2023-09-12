@@ -639,3 +639,24 @@ func Test_Node_Observers(t *testing.T) {
 
 	testutil.ItsEqual(t, 2, len(n.Observers()))
 }
+
+func Test_Node_HasObserver(t *testing.T) {
+	one := &observeIncr[any]{
+		n: NewNode(),
+	}
+	two := &observeIncr[any]{
+		n: NewNode(),
+	}
+	three := &observeIncr[any]{
+		n: NewNode(),
+	}
+	n := &Node{
+		observers: []IObserver{
+			one, two,
+		},
+	}
+
+	testutil.ItsEqual(t, true, n.HasObserver(one.Node().ID()))
+	testutil.ItsEqual(t, true, n.HasObserver(two.Node().ID()))
+	testutil.ItsEqual(t, false, n.HasObserver(three.Node().ID()))
+}

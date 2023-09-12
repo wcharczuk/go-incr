@@ -240,6 +240,18 @@ func (n *Node) Observers() []IObserver {
 	return n.observers
 }
 
+// HasObserver returns if an observer with a given identifier
+// is present in the observers list.
+func (n *Node) HasObserver(id Identifier) (ok bool) {
+	for _, o := range n.observers {
+		if o.Node().id == id {
+			ok = true
+			return
+		}
+	}
+	return
+}
+
 //
 // Internal Helpers
 //
