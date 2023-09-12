@@ -111,7 +111,7 @@ func (graph *Graph) DiscoverNode(on IObserver, gn INode) {
 	for _, handler := range gnn.onObservedHandlers {
 		handler(on)
 	}
-	gnn.observers = append(gnn.observers, on)
+	gnn.observers[on.Node().ID()] = on
 
 	// if the node is not currently observed.
 	if _, ok := graph.observed[nodeID]; !ok {
@@ -160,9 +160,7 @@ func (graph *Graph) UndiscoverNodes(on IObserver, gn INode) {
 // stats metadata for the graph for a given observer.
 func (graph *Graph) UndiscoverNode(on IObserver, gn INode) {
 	gnn := gn.Node()
-	gnn.observers = filter(gnn.observers, func(on0 IObserver) bool {
-		return on0.Node().id != on.Node().id
-	})
+	delete(gnn.observers, on.Node().ID())
 	for _, handler := range gnn.onUnobservedHandlers {
 		handler(on)
 	}

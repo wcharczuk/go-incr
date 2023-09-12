@@ -630,10 +630,16 @@ func Test_Node_IsLeaf(t *testing.T) {
 }
 
 func Test_Node_Observers(t *testing.T) {
+	one := &observeIncr[any]{
+		n: NewNode(),
+	}
+	two := &observeIncr[any]{
+		n: NewNode(),
+	}
 	n := &Node{
-		observers: []IObserver{
-			&observeIncr[any]{},
-			&observeIncr[any]{},
+		observers: map[Identifier]IObserver{
+			one.n.id: one,
+			two.n.id: two,
 		},
 	}
 
@@ -651,8 +657,9 @@ func Test_Node_HasObserver(t *testing.T) {
 		n: NewNode(),
 	}
 	n := &Node{
-		observers: []IObserver{
-			one, two,
+		observers: map[Identifier]IObserver{
+			one.n.id: one,
+			two.n.id: two,
 		},
 	}
 

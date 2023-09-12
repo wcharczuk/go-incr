@@ -7,7 +7,10 @@ import (
 
 // NewNode returns a new node.
 func NewNode() *Node {
-	return &Node{id: NewIdentifier()}
+	return &Node{
+		id:        NewIdentifier(),
+		observers: make(map[Identifier]IObserver),
+	}
 }
 
 // Node is the common metadata for any node in the computation graph.
@@ -29,7 +32,7 @@ type Node struct {
 	children []INode
 	// observers are observer nodes that are attached to this
 	// node or its children.
-	observers []IObserver
+	observers map[Identifier]IObserver
 	// height is the topological sort pseudo-height of the
 	// node and is used to order recomputation
 	// it is established when the graph is initialized but
@@ -236,8 +239,12 @@ func (n *Node) IsLeaf() bool {
 }
 
 // Observers returns the node observer list.
-func (n *Node) Observers() []IObserver {
-	return n.observers
+func (n *Node) Observers() (output []IObserver) {
+	output = make([]IObserver, 0, len(n.observers))
+	for _, o := range n.observers {
+		output = append(output, o)
+	}
+	return
 }
 
 // HasObserver returns if an observer with a given identifier
