@@ -13,6 +13,8 @@ func Test_Always(t *testing.T) {
 	a := Always(m0)
 	m1 := Map(a, ident)
 
+	a.(AlwaysIncr[string]).Always() // does nothing
+
 	var updates int
 	m1.Node().OnUpdate(func(_ context.Context) {
 		updates++

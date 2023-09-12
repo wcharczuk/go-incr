@@ -120,17 +120,7 @@ func (rh *recomputeHeap) Remove(s INode) {
 	if !ok {
 		return
 	}
-	delete(rh.lookup, sn.id)
-	rh.heights[sn.height].Remove(item.key)
-
-	// handle the edge case where removing a node removes the _last_ node
-	// in the current minimum height, causing us to need to move
-	// the minimum height up one value.
-
-	isLastAtHeight := rh.heights[sn.height] == nil || rh.heights[sn.height].Len() == 0
-	if sn.height == rh.minHeight && isLastAtHeight {
-		rh.minHeight = rh.nextMinHeight()
-	}
+	rh.removeUnsafe(item)
 }
 
 //
@@ -144,12 +134,12 @@ func (rh *recomputeHeap) addUnsafe(nodes ...INode) {
 			panic(fmt.Sprintf("recompute heap; cannot add node with height %d which is greater than the max height %d", sn.height, rh.heightLimit))
 		}
 
-		// this needs to be here for `SetStale` to work
-		// correctly, specifically we may need to
-		// add nodes to the recompute heap multiple times.
+		// this needs to be here for `SetStale` to work correctly, specifically
+		// we may need to add nodes to the recompute heap multiple times before
+		// we ultimately call stabilize, and the heights may change during that time.
 		if current, ok := rh.lookup[sn.id]; ok {
-			if rh.heights[sn.height] == nil || !rh.heights[sn.height].Has(sn.id) {
-				rh.heights[current.height].Remove(sn.id)
+			if current.height != sn.height {
+				rh.removeUnsafe(current)
 			} else {
 				continue
 			}
@@ -167,8 +157,17 @@ func (rh *recomputeHeap) addNodeUnsafe(s INode) {
 	item := rh.heights[sn.height].Push(s.Node().id, s)
 	item.height = sn.height
 	rh.lookup[sn.id] = item
+}
 
-	if rh.heights[rh.minHeight] == nil || rh.heights[rh.minHeight].Len() == 0 {
+func (rh *recomputeHeap) removeUnsafe(item *listItem[Identifier, INode]) {
+	delete(rh.lookup, item.key)
+	rh.heights[item.height].Remove(item.key)
+
+	// handle the edge case where removing a node removes the _last_ node
+	// in the current minimum height, causing us to need to move
+	// the minimum height up one value.
+	isLastAtHeight := rh.heights[item.height] == nil || rh.heights[item.height].Len() == 0
+	if item.height == rh.minHeight && isLastAtHeight {
 		rh.minHeight = rh.nextMinHeight()
 	}
 }

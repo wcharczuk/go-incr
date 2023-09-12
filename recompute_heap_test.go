@@ -401,3 +401,17 @@ func Test_recomuteHeap_Add_regression(t *testing.T) {
 	}
 	ItsEqual(t, []Identifier{v0.n.id, v1.n.id, m1.n.id, o2.n.id}, seen)
 }
+
+func Test_recomuteHeap_Add_regression2(t *testing.T) {
+	// another real world use case! also insane!
+	rh := newRecomputeHeap(8)
+
+	o1 := newHeightIncr(1)
+	rh.addUnsafe(o1)
+
+	o1.n.height = 2
+	rh.addUnsafe(o1)
+
+	ItsNil(t, rh.heights[1].head)
+	ItsNotNil(t, rh.heights[2].head)
+}
