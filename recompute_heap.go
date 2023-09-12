@@ -117,7 +117,6 @@ func (rh *recomputeHeap) Remove(s INode) {
 func (rh *recomputeHeap) addUnsafe(nodes ...INode) {
 	for _, s := range nodes {
 		sn := s.Node()
-
 		// this needs to be here for `SetStale` to work correctly, specifically
 		// we may need to add nodes to the recompute heap multiple times before
 		// we ultimately call stabilize, and the heights may change during that time.

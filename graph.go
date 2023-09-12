@@ -20,6 +20,7 @@ func New() *Graph {
 		stabilizationNum:         1,
 		status:                   StatusNotStabilizing,
 		observed:                 make(map[Identifier]INode),
+		observers:                make(map[Identifier]IObserver),
 		setDuringStabilization:   new(list[Identifier, INode]),
 		handleAfterStabilization: new(list[Identifier, []func(context.Context)]),
 		recomputeHeap:            newRecomputeHeap(256),
@@ -36,6 +37,8 @@ type Graph struct {
 	// observed are the nodes that the graph currently observes
 	// organized by node id.
 	observed map[Identifier]INode
+	// observers hold references to observers organized by node id.
+	observers map[Identifier]IObserver
 	// recomputeHeap is the heap of nodes to be processed
 	// organized by pseudo-height
 	recomputeHeap *recomputeHeap
@@ -139,7 +142,10 @@ func (graph *Graph) DiscoverNode(on IObserver, gn INode) {
 func (graph *Graph) DiscoverObserver(on IObserver) {
 	onn := on.Node()
 	onn.graph = graph
-	graph.numNodes++
+	if _, ok := graph.observers[onn.id]; !ok {
+		graph.numNodes++
+	}
+	graph.observers[onn.id] = on
 	onn.height = onn.computePseudoHeight()
 	graph.recomputeHeap.Add(on)
 	return
