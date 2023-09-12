@@ -37,7 +37,6 @@ func (graph *Graph) parallelStabilize(ctx context.Context) error {
 	}
 	workerPool := new(parallelBatch)
 	workerPool.SetLimit(runtime.NumCPU())
-	var minHeight int
 	var minHeightBlock []INode
 	var err error
 
@@ -48,16 +47,13 @@ func (graph *Graph) parallelStabilize(ctx context.Context) error {
 	}()
 
 	for graph.recomputeHeap.Len() > 0 {
-		minHeight = graph.recomputeHeap.minHeight
 		minHeightBlock = graph.recomputeHeap.RemoveMinHeight()
 		if len(minHeightBlock) == 0 {
 			return fmt.Errorf("parallel stabilize[%d]; recompute heap has remaining items but min height block is empty, aborting", graph.stabilizationNum)
 		}
-		TracePrintf(ctx, "parallel stabilize[%d]; recomputing height %d block with %d nodes, %d items remaining", graph.stabilizationNum, minHeight, len(minHeightBlock), graph.recomputeHeap.Len())
 		for _, n := range minHeightBlock {
 			workerPool.Go(graph.parallelRecomputeNode(ctx, n))
 			if n.Node().always {
-				TracePrintf(ctx, "parallel stabilize[%d]; adding always node to immediate recompute list %v", graph.stabilizationNum, n)
 				immediateRecompute = append(immediateRecompute, n)
 			}
 		}
