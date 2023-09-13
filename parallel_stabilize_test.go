@@ -281,3 +281,15 @@ func Test_ParallelStabilize_inconsistent_error(t *testing.T) {
 	err := g.ParallelStabilize(testContext())
 	testutil.ItsNotNil(t, err)
 }
+
+func Test_ParallelStabilize_recoversPanics(t *testing.T) {
+	g := New()
+
+	v0 := Var("hello")
+	gonnaPanic := Map(v0, func(_ string) string {
+		panic("help!")
+	})
+	_ = Observe(g, gonnaPanic)
+	err := g.ParallelStabilize(testContext())
+	testutil.ItsNotNil(t, err)
+}

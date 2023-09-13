@@ -65,7 +65,13 @@ func (graph *Graph) parallelStabilize(ctx context.Context) error {
 }
 
 func (graph *Graph) parallelRecomputeNode(ctx context.Context, n INode) func() error {
-	return func() error {
-		return graph.recompute(ctx, n)
+	return func() (err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				err = fmt.Errorf("%v", r)
+			}
+		}()
+		err = graph.recompute(ctx, n)
+		return
 	}
 }
