@@ -663,6 +663,10 @@ func Test_Stabilize_cutoff(t *testing.T) {
 	ItsEqual(t, 13.26, output.Value())
 }
 
+type MathTypes interface {
+	~int | ~int64 | ~float32 | ~float64
+}
+
 func Test_Stabilize_cutoffContext(t *testing.T) {
 	ctx := testContext()
 	input := Var(3.14)
@@ -716,6 +720,120 @@ func Test_Stabilize_cutoffContext_error(t *testing.T) {
 	cutoff := CutoffContext[float64](
 		input,
 		func(_ context.Context, _, _ float64) (bool, error) {
+			return false, fmt.Errorf("this is just a test")
+		},
+	)
+
+	var errors int
+	cutoff.Node().OnError(func(_ context.Context, err error) {
+		if err != nil {
+			errors++
+		}
+	})
+
+	output := Map2(
+		cutoff,
+		Return(10.0),
+		add[float64],
+	)
+
+	graph := New()
+	_ = Observe(graph, output)
+
+	err := graph.Stabilize(
+		ctx,
+	)
+	testutil.ItsNotNil(t, err)
+	testutil.ItsEqual(t, 1, errors)
+	testutil.ItsEqual(t, 0, output.Value())
+
+	input.Set(3.15)
+
+	err = graph.Stabilize(
+		ctx,
+	)
+	testutil.ItsNotNil(t, err)
+	testutil.ItsEqual(t, 2, errors)
+	testutil.ItsEqual(t, 0, output.Value())
+}
+
+func epsilonFn[A, B MathTypes](eps A, oldv, newv B) bool {
+	if oldv > newv {
+		return oldv-newv <= B(eps)
+	}
+	return newv-oldv <= B(eps)
+}
+
+func Test_Stabilize_cutoff2(t *testing.T) {
+	ctx := testContext()
+
+	epsilon := Var(0.1)
+	input := Var(3.14)
+	cutoff := Cutoff2[float64, float64](
+		epsilon,
+		input,
+		epsilonFn,
+	)
+	output := Map2(
+		cutoff,
+		Return(10.0),
+		add[float64],
+	)
+
+	graph := New()
+	_ = Observe(graph, output)
+
+	_ = graph.Stabilize(
+		ctx,
+	)
+	ItsEqual(t, 13.14, output.Value())
+	ItsEqual(t, 3.14, cutoff.Value())
+
+	input.Set(3.15)
+
+	_ = graph.Stabilize(
+		ctx,
+	)
+	ItsEqual(t, 3.14, cutoff.Value())
+	ItsEqual(t, 13.14, output.Value())
+
+	input.Set(3.26) // differs by 0.11, which is > 0.1
+
+	_ = graph.Stabilize(
+		ctx,
+	)
+	ItsEqual(t, 3.26, cutoff.Value())
+	ItsEqual(t, 13.26, output.Value())
+
+	_ = graph.Stabilize(
+		ctx,
+	)
+	ItsEqual(t, 13.26, output.Value())
+
+	epsilon.Set(0.5)
+	input.Set(3.37) // differs by 0.11, which is < 0.5
+
+	_ = graph.Stabilize(
+		ctx,
+	)
+	ItsEqual(t, 3.26, cutoff.Value())
+	ItsEqual(t, 13.26, output.Value())
+
+	_ = graph.Stabilize(
+		ctx,
+	)
+	ItsEqual(t, 13.26, output.Value())
+}
+
+func Test_Stabilize_cutoff2Context_error(t *testing.T) {
+	ctx := testContext()
+	epsilon := Var(0.1)
+	input := Var(3.14)
+
+	cutoff := Cutoff2Context[float64, float64](
+		epsilon,
+		input,
+		func(_ context.Context, _, _, _ float64) (bool, error) {
 			return false, fmt.Errorf("this is just a test")
 		},
 	)

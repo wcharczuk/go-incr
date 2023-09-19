@@ -29,7 +29,6 @@ func CutoffContext[A any](i Incr[A], fn CutoffContextFunc[A]) Incr[A] {
 	}
 	// we short circuit setup of the node cutoff reference here.
 	// this can be discovered in initialization but saves a step.
-	o.Node().cutoff = o.Cutoff
 	Link(o, i)
 	return o
 }

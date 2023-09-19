@@ -63,13 +63,14 @@ The effect of `Bind` is that "children" of a `Bind` node may have their heights 
 # Progress
 
 Many of the original library types are implemented, including:
-- Return
-- Var
+- Always
+- Bind(If)
+- Cutoff(2)
+- Freeze
 - Map(2,3,If,N)
 - Observe
-- Cutoff
-- Freeze
+- Return
+- Var
 - Watch
-- Bind(If)
 
 With these, you can create 90% of what I typically needed this library for, though some others would be relatively straightforward to implement given the primitives already implemented.

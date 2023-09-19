@@ -494,6 +494,7 @@ func Test_nodeFormatters(t *testing.T) {
 		{Bind[string, string](Return(""), nil), "bind"},
 		{BindIf[string](Return(false), nil), "bind_if"},
 		{Cutoff(Return(""), nil), "cutoff"},
+		{Cutoff2(Return(""), Return(""), nil), "cutoff2"},
 		{Func[string](nil), "func"},
 		{MapN[string, bool](nil), "map_n"},
 		{Map[string, bool](Return(""), nil), "map"},
