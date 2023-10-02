@@ -33,3 +33,15 @@ func Test_ExpertGraph_AddRecomputeHeap(t *testing.T) {
 	eg.AddRecomputeHeap(n1, n2)
 	testutil.ItsEqual(t, 2, g.recomputeHeap.Len())
 }
+
+func Test_ExpertGraph_stats(t *testing.T) {
+	g := New()
+
+	g.numNodes = 12
+	g.numNodesChanged = 13
+	g.numNodesRecomputed = 14
+	eg := ExpertGraph(g)
+	testutil.ItsEqual(t, 12, eg.NumNodes())
+	testutil.ItsEqual(t, 13, eg.NumNodesChanged())
+	testutil.ItsEqual(t, 14, eg.NumNodesRecomputed())
+}

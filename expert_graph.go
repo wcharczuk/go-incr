@@ -13,6 +13,9 @@ func ExpertGraph(g *Graph) IExpertGraph {
 // deserializing the graph from a durable store).
 type IExpertGraph interface {
 	SetID(Identifier)
+	NumNodes() uint64
+	NumNodesRecomputed() uint64
+	NumNodesChanged() uint64
 	StabilizationNum() uint64
 	SetStabilizationNum(uint64)
 	AddRecomputeHeap(...INode)
@@ -20,6 +23,18 @@ type IExpertGraph interface {
 
 type expertGraph struct {
 	graph *Graph
+}
+
+func (eg *expertGraph) NumNodes() uint64 {
+	return eg.graph.numNodes
+}
+
+func (eg *expertGraph) NumNodesRecomputed() uint64 {
+	return eg.graph.numNodesRecomputed
+}
+
+func (eg *expertGraph) NumNodesChanged() uint64 {
+	return eg.graph.numNodesChanged
 }
 
 func (eg *expertGraph) SetID(id Identifier) {
