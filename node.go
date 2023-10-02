@@ -92,17 +92,6 @@ func (n *Node) ID() Identifier {
 	return n.id
 }
 
-// SetID sets the node identifier.
-//
-// You should _really_ know what you're doing if you use this setter.
-func (n *Node) SetID(id Identifier) {
-	n.id = id
-}
-
-func (n *Node) Height() int {
-	return n.height
-}
-
 // String returns a string form of the node metadata.
 func (n *Node) String(nodeType string) string {
 	if n.label != "" {
@@ -166,12 +155,6 @@ func (n *Node) Children() []INode {
 	return n.children
 }
 
-// AddChildren adds children, or nodes that this node
-// depends on, specifically nodes that are inputs to this node.
-func (n *Node) AddChildren(c ...INode) {
-	n.children = append(n.children, c...)
-}
-
 // HasChild returns if a child with a given identifier
 // is present in the children list.
 func (n *Node) HasChild(id Identifier) (ok bool) {
@@ -184,24 +167,6 @@ func (n *Node) HasChild(id Identifier) (ok bool) {
 	return
 }
 
-// RemoveChild removes a specific child from the node, specifically
-// a node that might have been an input to this node.
-func (n *Node) RemoveChild(id Identifier) {
-	var newChildren []INode
-	for _, oc := range n.children {
-		if oc.Node().id != id {
-			newChildren = append(newChildren, oc)
-		}
-	}
-	n.children = newChildren
-}
-
-// AddParents adds parents, or nodes that depend on this node, specifically
-// nodes for which this node is an input.
-func (n *Node) AddParents(p ...INode) {
-	n.parents = append(n.parents, p...)
-}
-
 // HasParent returns if a parent with a given identifier
 // is present in the parents list.
 func (n *Node) HasParent(id Identifier) (ok bool) {
@@ -212,18 +177,6 @@ func (n *Node) HasParent(id Identifier) (ok bool) {
 		}
 	}
 	return
-}
-
-// RemoveParent removes a parent from the node, specifically
-// a node for which this node is an input.
-func (n *Node) RemoveParent(id Identifier) {
-	var newParents []INode
-	for _, oc := range n.parents {
-		if oc.Node().id != id {
-			newParents = append(newParents, oc)
-		}
-	}
-	n.parents = newParents
 }
 
 // IsRoot should return if the parent count, or the
@@ -262,6 +215,40 @@ func (n *Node) HasObserver(id Identifier) (ok bool) {
 //
 // Internal Helpers
 //
+
+// addChildren adds node references as children to this node.
+func (n *Node) addChildren(c ...INode) {
+	n.children = append(n.children, c...)
+}
+
+// addParents adds node references as parents to this node.
+func (n *Node) addParents(c ...INode) {
+	n.parents = append(n.parents, c...)
+}
+
+// RemoveChild removes a specific child from the node, specifically
+// a node that might have been an input to this node.
+func (n *Node) removeChild(id Identifier) {
+	var newChildren []INode
+	for _, oc := range n.children {
+		if oc.Node().id != id {
+			newChildren = append(newChildren, oc)
+		}
+	}
+	n.children = newChildren
+}
+
+// RemoveParent removes a parent from the node, specifically
+// a node for which this node is an input.
+func (n *Node) removeParent(id Identifier) {
+	var newParents []INode
+	for _, oc := range n.parents {
+		if oc.Node().id != id {
+			newParents = append(newParents, oc)
+		}
+	}
+	n.parents = newParents
+}
 
 // maybeCutoff calls the cutoff delegate if it's set, otherwise
 // just returns false (effectively _not_ cutting off the computation).

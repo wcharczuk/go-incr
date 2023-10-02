@@ -38,6 +38,20 @@ if err := g.Stabilize(context.Background()); err != nil {
 
 `Stabilize` then does the full recomputation, with the "observer" `o` marking the graph up from the `output` map as observed.
 
+# A word on how to use this library effectively
+
+It can be tempting when looking at what this library can do to say, "We should make each operation in our process incrementally computed", and that would maybe not be the ideal outcome.
+
+Specifically, making a computation incrementally computed adds overhead.
+
+The ideal balance is to use a more coarse-grain approach to making a computation incrementally computed, specifically breaking up chunks that are mostly atomic, and making those chunks incrementally computed.
+
+An illustrative example might be:
+
+- We need to take the prices for a given list of equities and compute some aggregates for those.
+- We could make each equity a var, pass that to the function that gets prices, then pass those to individual nodes that produce aggregates.
+
+
 # Design Choices
 
 There is some consideration with this library on the balance between hiding mutable implemenation details to protect against [Hyrum's Law](https://www.hyrumslaw.com/) issues, and surfacing enough utility helpers to allow users to extend this library for their own use cases.

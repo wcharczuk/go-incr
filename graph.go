@@ -73,6 +73,11 @@ type Graph struct {
 	numNodesChanged uint64
 }
 
+// ID is the identifier for the graph.
+func (graph *Graph) ID() Identifier {
+	return graph.id
+}
+
 // IsStabilizing returns if the graph is currently stabilizing.
 func (graph *Graph) IsStabilizing() bool {
 	return atomic.LoadInt32(&graph.status) != StatusNotStabilizing

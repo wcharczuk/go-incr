@@ -8,15 +8,15 @@ package incr
 // The reverse of this is `Unlink` on the child node, which
 // removes the inputs as "parents" of the "child" node.
 func Link(child INode, inputs ...INode) {
-	child.Node().AddParents(inputs...)
+	child.Node().addParents(inputs...)
 	for _, input := range inputs {
-		input.Node().AddChildren(child)
+		input.Node().addChildren(child)
 	}
 }
 
 // Unlink removes the parent child association
 // between two nodes.
 func Unlink(child, input INode) {
-	child.Node().RemoveParent(input.Node().id)
-	input.Node().RemoveChild(child.Node().id)
+	child.Node().removeParent(input.Node().id)
+	input.Node().removeChild(child.Node().id)
 }

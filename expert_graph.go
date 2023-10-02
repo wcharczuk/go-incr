@@ -1,0 +1,39 @@
+package incr
+
+// ExpertGraph returns an "expert" interface to modify
+// internal fields of the graph type.
+//
+// USE AT YOUR OWN RISK.
+func ExpertGraph(g *Graph) IExpertGraph {
+	return &expertGraph{graph: g}
+}
+
+// IExpertGraph is an interface to allow you to manage
+// internal fields of a graph (this is useful if you're
+// deserializing the graph from a durable store).
+type IExpertGraph interface {
+	SetID(Identifier)
+	StabilizationNum() uint64
+	SetStabilizationNum(uint64)
+	AddRecomputeHeap(...INode)
+}
+
+type expertGraph struct {
+	graph *Graph
+}
+
+func (eg *expertGraph) SetID(id Identifier) {
+	eg.graph.id = id
+}
+
+func (eg *expertGraph) StabilizationNum() uint64 {
+	return eg.graph.stabilizationNum
+}
+
+func (eg *expertGraph) SetStabilizationNum(stabilizationNum uint64) {
+	eg.graph.stabilizationNum = stabilizationNum
+}
+
+func (eg *expertGraph) AddRecomputeHeap(nodes ...INode) {
+	eg.graph.recomputeHeap.Add(nodes...)
+}
