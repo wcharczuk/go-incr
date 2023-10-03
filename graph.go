@@ -71,11 +71,25 @@ type Graph struct {
 	// that have been changed in the graph's history
 	// and is typically used in testing
 	numNodesChanged uint64
+
+	// metadata is extra data you can add to the graph instance and
+	// manage yourself.
+	metadata any
 }
 
 // ID is the identifier for the graph.
 func (graph *Graph) ID() Identifier {
 	return graph.id
+}
+
+// Metadata is extra data held on the graph instance.
+func (graph *Graph) Metadata() any {
+	return graph.metadata
+}
+
+// SetMetadata sets the metadata for the graph instance.
+func (graph *Graph) SetMetadata(metadata any) {
+	graph.metadata = metadata
 }
 
 // IsStabilizing returns if the graph is currently stabilizing.

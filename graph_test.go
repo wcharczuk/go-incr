@@ -22,6 +22,13 @@ func Test_New(t *testing.T) {
 	testutil.ItsEqual(t, false, g.IsObserving(m1))
 }
 
+func Test_Graph_Metadata(t *testing.T) {
+	g := New()
+	testutil.ItsNil(t, g.Metadata())
+	g.SetMetadata("foo")
+	testutil.ItsEqual(t, "foo", g.Metadata())
+}
+
 func Test_Graph_UndiscoverNodes(t *testing.T) {
 	r0 := Return("hello")
 	m0 := Map(r0, ident)
