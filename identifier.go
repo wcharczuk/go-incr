@@ -12,8 +12,8 @@ type Identifier [16]byte
 
 // NewIdentifier returns a new identifier.
 //
-// Currently i practice, the underlying data looks
-// like a uuidv4 but that shouldn't be relied upon.
+// Currently the underlying data looks like a
+// uuidv4 but that shouldn't be relied upon.
 func NewIdentifier() (output Identifier) {
 	_, _ = rand.Read(output[:])
 	output[6] = (output[6] & 0x0f) | 0x40 // Version 4
