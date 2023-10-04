@@ -32,6 +32,7 @@ func Test_ExpertGraph_AddRecomputeHeap(t *testing.T) {
 
 	eg.AddRecomputeHeap(n1, n2)
 	testutil.ItsEqual(t, 2, g.recomputeHeap.Len())
+	testutil.ItsEqual(t, 2, eg.RecomputeHeapLen())
 }
 
 func Test_ExpertGraph_stats(t *testing.T) {

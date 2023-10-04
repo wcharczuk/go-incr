@@ -19,6 +19,7 @@ type IExpertGraph interface {
 	StabilizationNum() uint64
 	SetStabilizationNum(uint64)
 	AddRecomputeHeap(...INode)
+	RecomputeHeapLen() int
 }
 
 type expertGraph struct {
@@ -51,4 +52,8 @@ func (eg *expertGraph) SetStabilizationNum(stabilizationNum uint64) {
 
 func (eg *expertGraph) AddRecomputeHeap(nodes ...INode) {
 	eg.graph.recomputeHeap.Add(nodes...)
+}
+
+func (eg *expertGraph) RecomputeHeapLen() int {
+	return eg.graph.recomputeHeap.Len()
 }
