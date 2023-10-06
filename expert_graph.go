@@ -20,6 +20,7 @@ type IExpertGraph interface {
 	SetStabilizationNum(uint64)
 	AddRecomputeHeap(...INode)
 	RecomputeHeapLen() int
+	RecomputeHeap() []Identifier
 }
 
 type expertGraph struct {
@@ -56,4 +57,12 @@ func (eg *expertGraph) AddRecomputeHeap(nodes ...INode) {
 
 func (eg *expertGraph) RecomputeHeapLen() int {
 	return eg.graph.recomputeHeap.Len()
+}
+
+func (eg *expertGraph) RecomputeHeap() []Identifier {
+	output := make([]Identifier, 0, len(eg.graph.recomputeHeap.lookup))
+	for _, n := range eg.graph.recomputeHeap.lookup {
+		output = append(output, n.key)
+	}
+	return output
 }
