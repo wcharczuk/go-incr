@@ -120,3 +120,34 @@ func ItsBlueDye(ctx context.Context, t *testing.T) {
 	t.Helper()
 	ItsNotNil(t, ctx.Value(blueDyeKey{}))
 }
+
+// ItsAny asserts a predicate matches any element in the values list.
+func ItsAny[A any](t *testing.T, values []A, pred func(A) bool, message ...any) {
+	t.Helper()
+	for _, v := range values {
+		if pred(v) {
+			return
+		}
+	}
+	Fatalf(t, "expected any value to match predicate", nil, message)
+}
+
+// ItsAll asserts a predicate matches all elements in the values list.
+func ItsAll[A any](t *testing.T, values []A, pred func(A) bool, message ...any) {
+	t.Helper()
+	for _, v := range values {
+		if !pred(v) {
+			Fatalf(t, "expected value to match predicate: %v", []any{v}, message)
+		}
+	}
+}
+
+// ItsNone asserts a predicate matches no elements in the values list.
+func ItsNone[A any](t *testing.T, values []A, pred func(A) bool, message ...any) {
+	t.Helper()
+	for _, v := range values {
+		if pred(v) {
+			Fatalf(t, "expected zero values to match predicate, value that matched: %v", []any{v}, message)
+		}
+	}
+}

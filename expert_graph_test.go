@@ -46,3 +46,20 @@ func Test_ExpertGraph_stats(t *testing.T) {
 	testutil.ItsEqual(t, 13, eg.NumNodesChanged())
 	testutil.ItsEqual(t, 14, eg.NumNodesRecomputed())
 }
+
+func Test_ExpertGraph_RecomputeHeap(t *testing.T) {
+	g := New()
+	eg := ExpertGraph(g)
+
+	n1 := newMockBareNode()
+	n2 := newMockBareNode()
+	n2.n.height = 3
+
+	eg.AddRecomputeHeap(n1, n2)
+	testutil.ItsEqual(t, 2, g.recomputeHeap.Len())
+
+	recomputeHeapIDs := eg.RecomputeHeap()
+	testutil.ItsEqual(t, 2, len(recomputeHeapIDs))
+	testutil.ItsAny(t, recomputeHeapIDs, func(id Identifier) bool { return id == n1.n.id })
+	testutil.ItsAny(t, recomputeHeapIDs, func(id Identifier) bool { return id == n2.n.id })
+}
