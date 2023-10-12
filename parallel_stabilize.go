@@ -27,8 +27,11 @@ func (graph *Graph) ParallelStabilize(ctx context.Context) (err error) {
 		return
 	}
 	graph.stabilizeStart(ctx)
-	defer graph.stabilizeEnd(ctx)
-	return graph.parallelStabilize(ctx)
+	defer func() {
+		graph.stabilizeEnd(ctx, err)
+	}()
+	err = graph.parallelStabilize(ctx)
+	return
 }
 
 func (graph *Graph) parallelStabilize(ctx context.Context) error {
@@ -74,9 +77,6 @@ func (graph *Graph) parallelRecomputeNode(ctx context.Context, n INode) func() e
 		defer func() {
 			if r := recover(); r != nil {
 				err = fmt.Errorf("%v", r)
-			}
-			if err != nil {
-				TraceErrorf(ctx, "parallel stabilize[%d]; node recompute error; %+v", graph.stabilizationNum, err)
 			}
 		}()
 		err = graph.recompute(ctx, n)

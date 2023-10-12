@@ -247,12 +247,17 @@ func (graph *Graph) stabilizeStart(ctx context.Context) {
 	TracePrintf(ctx, "stabilize[%d]; stabilization starting", graph.stabilizationNum)
 }
 
-func (graph *Graph) stabilizeEnd(ctx context.Context) {
+func (graph *Graph) stabilizeEnd(ctx context.Context, err error) {
 	defer func() {
 		graph.stabilizationStarted = time.Time{}
 		atomic.StoreInt32(&graph.status, StatusNotStabilizing)
 	}()
-	TracePrintf(ctx, "stabilize[%d]; stabilization complete (%v)", graph.stabilizationNum, time.Since(graph.stabilizationStarted).Round(time.Microsecond))
+	if err != nil {
+		TraceErrorf(ctx, "stabilize[%d]; %v", graph.stabilizationNum, err)
+		TracePrintf(ctx, "stabilize[%d]; stabilization failed (%v)", graph.stabilizationNum, time.Since(graph.stabilizationStarted).Round(time.Microsecond))
+	} else {
+		TracePrintf(ctx, "stabilize[%d]; stabilization complete (%v)", graph.stabilizationNum, time.Since(graph.stabilizationStarted).Round(time.Microsecond))
+	}
 	graph.stabilizationNum++
 	var n INode
 	for !graph.setDuringStabilization.IsEmpty() {

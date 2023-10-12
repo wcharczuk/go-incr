@@ -21,7 +21,9 @@ func (graph *Graph) stabilize(ctx context.Context) (err error) {
 		return
 	}
 	graph.stabilizeStart(ctx)
-	defer graph.stabilizeEnd(ctx)
+	defer func() {
+		graph.stabilizeEnd(ctx, err)
+	}()
 	var n INode
 
 	var immediateRecompute []INode
@@ -33,13 +35,12 @@ func (graph *Graph) stabilize(ctx context.Context) (err error) {
 	for len(graph.recomputeHeap.lookup) > 0 {
 		n = graph.recomputeHeap.RemoveMin()
 		if err = graph.recompute(ctx, n); err != nil {
-			TraceErrorf(ctx, "stabilize[%d]; node recompute error; %+v", graph.stabilizationNum, err)
-			return err
+			return
 		}
 		if n.Node().always {
 			TracePrintf(ctx, "stabilize[%d]; adding always node to immediate recompute list %v", graph.stabilizationNum, n)
 			immediateRecompute = append(immediateRecompute, n)
 		}
 	}
-	return nil
+	return
 }
