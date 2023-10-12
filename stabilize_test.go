@@ -1364,4 +1364,5 @@ func Test_Stabilize_printsErrors(t *testing.T) {
 	testutil.ItsNotNil(t, err)
 	testutil.ItsNotEqual(t, 0, len(outBuf.String()))
 	testutil.ItsNotEqual(t, 0, len(errBuf.String()))
+	testutil.ItsEqual(t, true, strings.Contains(errBuf.String(), "this is only a test"))
 }
