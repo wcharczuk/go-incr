@@ -11,11 +11,11 @@ import (
 
 func Test_WithTracing(t *testing.T) {
 	ctx := context.Background()
-	tr := getTracer(ctx)
+	tr := GetTracer(ctx)
 	ItsNil(t, tr)
 
 	ctx = WithTracing(ctx)
-	tr = getTracer(ctx)
+	tr = GetTracer(ctx)
 	ItsNotNil(t, tr)
 	ItsNotNil(t, tr.(*tracer).log)
 	ItsNotNil(t, tr.(*tracer).errLog)
@@ -25,11 +25,11 @@ func Test_WithTracingOutput(t *testing.T) {
 	output := new(bytes.Buffer)
 	errOutput := new(bytes.Buffer)
 
-	tr := getTracer(context.Background())
+	tr := GetTracer(context.Background())
 	ItsNil(t, tr)
 
 	ctx := WithTracingOutputs(context.Background(), output, errOutput)
-	tr = getTracer(ctx)
+	tr = GetTracer(ctx)
 	ItsNotNil(t, tr)
 	ItsNotNil(t, tr.(*tracer).log)
 	ItsNotNil(t, tr.(*tracer).errLog)

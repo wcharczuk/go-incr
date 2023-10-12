@@ -35,7 +35,8 @@ func WithTracer(ctx context.Context, tracer Tracer) context.Context {
 	return context.WithValue(ctx, tracerKey{}, tracer)
 }
 
-func getTracer(ctx context.Context) Tracer {
+// GetTracer returns the tracer from a given context, and nil if one is not present.
+func GetTracer(ctx context.Context) Tracer {
 	if value := ctx.Value(tracerKey{}); value != nil {
 		if typed, ok := value.(Tracer); ok {
 			return typed
@@ -46,7 +47,7 @@ func getTracer(ctx context.Context) Tracer {
 
 // TracePrintln prints a line to the tracer on a given context.
 func TracePrintln(ctx context.Context, args ...any) {
-	if tracer := getTracer(ctx); tracer != nil {
+	if tracer := GetTracer(ctx); tracer != nil {
 		tracer.Print(args...)
 	}
 }
@@ -54,14 +55,14 @@ func TracePrintln(ctx context.Context, args ...any) {
 // TracePrintf prints a line to the tracer on a given
 // context with a given format and args.
 func TracePrintf(ctx context.Context, format string, args ...any) {
-	if tracer := getTracer(ctx); tracer != nil {
+	if tracer := GetTracer(ctx); tracer != nil {
 		tracer.Print(fmt.Sprintf(format, args...))
 	}
 }
 
 // TraceErrorln prints a line to the error output of a tracer on a given context.
 func TraceErrorln(ctx context.Context, args ...any) {
-	if tracer := getTracer(ctx); tracer != nil {
+	if tracer := GetTracer(ctx); tracer != nil {
 		tracer.Error(args...)
 	}
 }
@@ -69,7 +70,7 @@ func TraceErrorln(ctx context.Context, args ...any) {
 // TraceErrorf prints a line to the error output of a tracer
 // on a given context with a given format and args.
 func TraceErrorf(ctx context.Context, format string, args ...any) {
-	if tracer := getTracer(ctx); tracer != nil {
+	if tracer := GetTracer(ctx); tracer != nil {
 		tracer.Error(fmt.Sprintf(format, args...))
 	}
 }
