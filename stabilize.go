@@ -33,6 +33,7 @@ func (graph *Graph) stabilize(ctx context.Context) (err error) {
 	for len(graph.recomputeHeap.lookup) > 0 {
 		n = graph.recomputeHeap.RemoveMin()
 		if err = graph.recompute(ctx, n); err != nil {
+			TraceErrorf(ctx, "stabilize[%d]; node recompute error %v: %+v", graph.stabilizationNum, n, err)
 			return err
 		}
 		if n.Node().always {
