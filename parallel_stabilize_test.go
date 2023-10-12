@@ -1,6 +1,7 @@
 package incr
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"testing"
@@ -292,4 +293,23 @@ func Test_ParallelStabilize_recoversPanics(t *testing.T) {
 	_ = Observe(g, gonnaPanic)
 	err := g.ParallelStabilize(testContext())
 	testutil.ItsNotNil(t, err)
+}
+
+func Test_ParallelStabilize_printsErrors(t *testing.T) {
+	g := New()
+
+	v0 := Var("hello")
+	gonnaPanic := MapContext(v0, func(_ context.Context, _ string) (string, error) {
+		return "", fmt.Errorf("this is only a test")
+	})
+	_ = Observe(g, gonnaPanic)
+
+	ctx := context.Background()
+	outBuf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	ctx = WithTracingOutputs(ctx, outBuf, errBuf)
+	err := g.ParallelStabilize(ctx)
+	testutil.ItsNotNil(t, err)
+	testutil.ItsNotEqual(t, 0, len(outBuf.String()))
+	testutil.ItsNotEqual(t, 0, len(errBuf.String()))
 }
