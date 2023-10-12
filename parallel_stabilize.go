@@ -76,7 +76,7 @@ func (graph *Graph) parallelRecomputeNode(ctx context.Context, n INode) func() e
 				err = fmt.Errorf("%v", r)
 			}
 			if err != nil {
-				TraceErrorf(ctx, "parallel stabilize[%d]; node recompute error %v: %+v", graph.stabilizationNum, n, err)
+				TraceErrorf(ctx, "parallel stabilize[%d]; node recompute error; %+v", graph.stabilizationNum, err)
 			}
 		}()
 		err = graph.recompute(ctx, n)
