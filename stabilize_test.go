@@ -1,6 +1,7 @@
 package incr
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -1344,4 +1345,23 @@ func Test_Stabilize_always_cutoff_error(t *testing.T) {
 	testutil.ItsEqual(t, "", o.Value())
 
 	testutil.ItsEqual(t, 3, g.recomputeHeap.Len())
+}
+
+func Test_Stabilize_printsErrors(t *testing.T) {
+	g := New()
+
+	v0 := Var("hello")
+	gonnaPanic := MapContext(v0, func(_ context.Context, _ string) (string, error) {
+		return "", fmt.Errorf("this is only a test")
+	})
+	_ = Observe(g, gonnaPanic)
+
+	ctx := context.Background()
+	outBuf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	ctx = WithTracingOutputs(ctx, outBuf, errBuf)
+	err := g.Stabilize(ctx)
+	testutil.ItsNotNil(t, err)
+	testutil.ItsNotEqual(t, 0, len(outBuf.String()))
+	testutil.ItsNotEqual(t, 0, len(errBuf.String()))
 }
