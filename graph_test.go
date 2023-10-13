@@ -29,6 +29,13 @@ func Test_Graph_Metadata(t *testing.T) {
 	testutil.ItsEqual(t, "foo", g.Metadata())
 }
 
+func Test_Graph_Label(t *testing.T) {
+	g := New()
+	testutil.ItsEqual(t, "", g.Label())
+	g.SetLabel("hello")
+	testutil.ItsEqual(t, "hello", g.Label())
+}
+
 func Test_Graph_UndiscoverNodes(t *testing.T) {
 	r0 := Return("hello")
 	m0 := Map(r0, ident)

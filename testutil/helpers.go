@@ -112,6 +112,12 @@ func WithBlueDye(ctx context.Context) context.Context {
 	return context.WithValue(ctx, blueDyeKey{}, "test")
 }
 
+// HasBlueDye returns a boolean true if the context
+// holds the blue dye variable.
+func HasBlueDye(ctx context.Context) bool {
+	return ctx.Value(blueDyeKey{}) != nil
+}
+
 // ItsBlueDye asserts the context has the blue dye nonce on it.
 //
 // NOTE: we have to use this whack order because of linting rules

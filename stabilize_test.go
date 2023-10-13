@@ -1366,3 +1366,34 @@ func Test_Stabilize_printsErrors(t *testing.T) {
 	testutil.ItsNotEqual(t, 0, len(errBuf.String()))
 	testutil.ItsEqual(t, true, strings.Contains(errBuf.String(), "this is only a test"))
 }
+
+func Test_Stabilize_handlers(t *testing.T) {
+	ctx := testContext()
+
+	v0 := Var("foo")
+	v1 := Var("bar")
+	m0 := Map2(v0, v1, func(a, b string) string {
+		return a + " " + b
+	})
+
+	var didCallStabilizationStart bool
+	var didCallStabilizationEnd bool
+	var startWasBlueDye bool
+	var endWasBlueDye bool
+	graph := New()
+	_ = Observe(graph, m0)
+	graph.OnStabilizationStart(func(ictx context.Context) {
+		startWasBlueDye = testutil.HasBlueDye(ctx)
+		didCallStabilizationStart = true
+	})
+	graph.OnStabilizationEnd(func(ictx context.Context, started time.Time, err error) {
+		endWasBlueDye = testutil.HasBlueDye(ctx)
+		didCallStabilizationEnd = true
+	})
+	err := graph.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, true, didCallStabilizationStart)
+	testutil.ItsEqual(t, true, didCallStabilizationEnd)
+	testutil.ItsEqual(t, true, startWasBlueDye)
+	testutil.ItsEqual(t, true, endWasBlueDye)
+}

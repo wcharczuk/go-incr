@@ -34,6 +34,8 @@ func New() *Graph {
 type Graph struct {
 	// id is a unique identifier for the graph
 	id Identifier
+	// label is a descriptive label for the graph
+	label string
 	// observed are the nodes that the graph currently observes
 	// organized by node id.
 	observed map[Identifier]INode
@@ -75,11 +77,27 @@ type Graph struct {
 	// metadata is extra data you can add to the graph instance and
 	// manage yourself.
 	metadata any
+
+	// onStabilizationStart are optional hooks called when stabilization starts.
+	onStabilizationStart []func(context.Context)
+
+	// onStabilizationEnd are optional hooks called when stabilization ends.
+	onStabilizationEnd []func(context.Context, time.Time, error)
 }
 
 // ID is the identifier for the graph.
 func (graph *Graph) ID() Identifier {
 	return graph.id
+}
+
+// Label returns the graph label.
+func (graph *Graph) Label() string {
+	return graph.label
+}
+
+// SetLabel sets the graph label.
+func (graph *Graph) SetLabel(label string) {
+	graph.label = label
 }
 
 // Metadata is extra data held on the graph instance.
@@ -102,6 +120,18 @@ func (graph *Graph) IsObserving(gn INode) (ok bool) {
 	_, ok = graph.observed[gn.Node().id]
 	return
 }
+
+// OnStabilizationStart adds a stabilization start handler.
+func (graph *Graph) OnStabilizationStart(handler func(context.Context)) {
+	graph.onStabilizationStart = append(graph.onStabilizationStart, handler)
+}
+
+// OnStabilizationEnd adds a stabilization end handler.
+func (graph *Graph) OnStabilizationEnd(handler func(context.Context, time.Time, error)) {
+	graph.onStabilizationEnd = append(graph.onStabilizationEnd, handler)
+}
+
+// Node helpers
 
 // SetStale sets a node as stale.
 func (graph *Graph) SetStale(gn INode) {
@@ -243,6 +273,9 @@ func (graph *Graph) ensureNotStabilizing(ctx context.Context) error {
 
 func (graph *Graph) stabilizeStart(ctx context.Context) {
 	atomic.StoreInt32(&graph.status, StatusStabilizing)
+	for _, handler := range graph.onStabilizationStart {
+		handler(ctx)
+	}
 	graph.stabilizationStarted = time.Now()
 	TracePrintf(ctx, "stabilize[%d]; stabilization starting", graph.stabilizationNum)
 }
@@ -252,6 +285,9 @@ func (graph *Graph) stabilizeEnd(ctx context.Context, err error) {
 		graph.stabilizationStarted = time.Time{}
 		atomic.StoreInt32(&graph.status, StatusNotStabilizing)
 	}()
+	for _, handler := range graph.onStabilizationEnd {
+		handler(ctx, graph.stabilizationStarted, err)
+	}
 	if err != nil {
 		TraceErrorf(ctx, "stabilize[%d]; %v", graph.stabilizationNum, err)
 		TracePrintf(ctx, "stabilize[%d]; stabilization failed (%v)", graph.stabilizationNum, time.Since(graph.stabilizationStarted).Round(time.Microsecond))
