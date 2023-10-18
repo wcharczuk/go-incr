@@ -1,6 +1,8 @@
 package incr
 
 import (
+	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -62,4 +64,25 @@ func Test_ExpertGraph_RecomputeHeap(t *testing.T) {
 	testutil.ItsEqual(t, 2, len(recomputeHeapIDs))
 	testutil.ItsAny(t, recomputeHeapIDs, func(id Identifier) bool { return id == n1.n.id })
 	testutil.ItsAny(t, recomputeHeapIDs, func(id Identifier) bool { return id == n2.n.id })
+}
+
+func Test_ExpertGraph_Trace(t *testing.T) {
+	out := new(bytes.Buffer)
+	errOut := new(bytes.Buffer)
+	g := New()
+	g.SetTracer(NewTracer(out, errOut))
+
+	eg := ExpertGraph(g)
+
+	eg.TracePrintf("trace %s %s", "print", "f")
+	testutil.ItsEqual(t, true, strings.HasSuffix(out.String(), "trace print f\n"))
+
+	eg.TracePrintln("trace ", "print", "ln")
+	testutil.ItsEqual(t, true, strings.HasSuffix(out.String(), "trace println\n"))
+
+	eg.TraceErrorf("trace %s %s", "error", "f")
+	testutil.ItsEqual(t, true, strings.HasSuffix(errOut.String(), "trace error f\n"))
+
+	eg.TraceErrorln("trace ", "error", "ln")
+	testutil.ItsEqual(t, true, strings.HasSuffix(errOut.String(), "trace errorln\n"))
 }

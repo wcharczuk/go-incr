@@ -3,7 +3,6 @@ package incr
 import (
 	"context"
 	"math"
-	"os"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -12,9 +11,6 @@ import (
 // testContext returns a test context.
 func testContext() context.Context {
 	ctx := context.Background()
-	if os.Getenv("DEBUG") != "" {
-		ctx = WithTracing(ctx)
-	}
 	ctx = testutil.WithBlueDye(ctx)
 	return ctx
 }

@@ -1350,6 +1350,10 @@ func Test_Stabilize_always_cutoff_error(t *testing.T) {
 func Test_Stabilize_printsErrors(t *testing.T) {
 	g := New()
 
+	outBuf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	g.SetTracer(NewTracer(outBuf, errBuf))
+
 	v0 := Var("hello")
 	gonnaPanic := MapContext(v0, func(_ context.Context, _ string) (string, error) {
 		return "", fmt.Errorf("this is only a test")
@@ -1357,9 +1361,7 @@ func Test_Stabilize_printsErrors(t *testing.T) {
 	_ = Observe(g, gonnaPanic)
 
 	ctx := context.Background()
-	outBuf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	ctx = WithTracingOutputs(ctx, outBuf, errBuf)
+
 	err := g.Stabilize(ctx)
 	testutil.ItsNotNil(t, err)
 	testutil.ItsNotEqual(t, 0, len(outBuf.String()))

@@ -83,6 +83,8 @@ type Graph struct {
 
 	// onStabilizationEnd are optional hooks called when stabilization ends.
 	onStabilizationEnd []func(context.Context, time.Time, error)
+
+	tracer Tracer
 }
 
 // ID is the identifier for the graph.
@@ -108,6 +110,11 @@ func (graph *Graph) Metadata() any {
 // SetMetadata sets the metadata for the graph instance.
 func (graph *Graph) SetMetadata(metadata any) {
 	graph.metadata = metadata
+}
+
+// SetTracer sets the graph tracer.
+func (graph *Graph) SetTracer(t Tracer) {
+	graph.tracer = t
 }
 
 // IsStabilizing returns if the graph is currently stabilizing.
@@ -265,7 +272,7 @@ func (graph *Graph) RecomputeHeight(n INode) {
 
 func (graph *Graph) ensureNotStabilizing(ctx context.Context) error {
 	if atomic.LoadInt32(&graph.status) != StatusNotStabilizing {
-		TracePrintf(ctx, "stabilize; already stabilizing, cannot continue")
+		graph.tracePrintf("stabilize; already stabilizing, cannot continue")
 		return ErrAlreadyStabilizing
 	}
 	return nil
@@ -277,7 +284,7 @@ func (graph *Graph) stabilizeStart(ctx context.Context) {
 		handler(ctx)
 	}
 	graph.stabilizationStarted = time.Now()
-	TracePrintf(ctx, "stabilize[%d]; stabilization starting", graph.stabilizationNum)
+	graph.tracePrintf("stabilize[%d]; stabilization starting", graph.stabilizationNum)
 }
 
 func (graph *Graph) stabilizeEnd(ctx context.Context, err error) {
@@ -289,10 +296,10 @@ func (graph *Graph) stabilizeEnd(ctx context.Context, err error) {
 		handler(ctx, graph.stabilizationStarted, err)
 	}
 	if err != nil {
-		TraceErrorf(ctx, "stabilize[%d]; %v", graph.stabilizationNum, err)
-		TracePrintf(ctx, "stabilize[%d]; stabilization failed (%v)", graph.stabilizationNum, time.Since(graph.stabilizationStarted).Round(time.Microsecond))
+		graph.traceErrorf("stabilize[%d]; %v", graph.stabilizationNum, err)
+		graph.tracePrintf("stabilize[%d]; stabilization failed (%v)", graph.stabilizationNum, time.Since(graph.stabilizationStarted).Round(time.Microsecond))
 	} else {
-		TracePrintf(ctx, "stabilize[%d]; stabilization complete (%v)", graph.stabilizationNum, time.Since(graph.stabilizationStarted).Round(time.Microsecond))
+		graph.tracePrintf("stabilize[%d]; stabilization complete (%v)", graph.stabilizationNum, time.Since(graph.stabilizationStarted).Round(time.Microsecond))
 	}
 	graph.stabilizationNum++
 	var n INode
@@ -304,9 +311,9 @@ func (graph *Graph) stabilizeEnd(ctx context.Context, err error) {
 	atomic.StoreInt32(&graph.status, StatusRunningUpdateHandlers)
 	var updateHandlers []func(context.Context)
 	if !graph.handleAfterStabilization.IsEmpty() {
-		TracePrintf(ctx, "stabilize[%d]; calling update handlers starting", graph.stabilizationNum)
+		graph.tracePrintf("stabilize[%d]; calling update handlers starting", graph.stabilizationNum)
 		defer func() {
-			TracePrintf(ctx, "stabilize[%d]; calling update handlers complete", graph.stabilizationNum)
+			graph.tracePrintf("stabilize[%d]; calling update handlers complete", graph.stabilizationNum)
 		}()
 	}
 	for !graph.handleAfterStabilization.IsEmpty() {
@@ -337,11 +344,11 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 		return
 	}
 	if shouldCutoff {
-		TracePrintf(ctx, "stabilize[%d]; cutoff %v with height %d", graph.stabilizationNum, n, n.Node().height)
+		graph.tracePrintf("stabilize[%d]; cutoff %v with height %d", graph.stabilizationNum, n, n.Node().height)
 		return
 	}
 
-	TracePrintf(ctx, "stabilize[%d]; recompute %v with height %d", graph.stabilizationNum, n, n.Node().height)
+	graph.tracePrintf("stabilize[%d]; recompute %v with height %d", graph.stabilizationNum, n, n.Node().height)
 	graph.numNodesChanged++
 	nn.numChanges++
 

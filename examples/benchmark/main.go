@@ -37,12 +37,13 @@ func main() {
 		cursor += x
 	}
 
+	graph := incr.New()
+
 	ctx := context.Background()
 	if os.Getenv("DEBUG") != "" {
-		ctx = incr.WithTracing(ctx)
+		graph.SetTracer(incr.NewTracer(os.Stdout, os.Stderr))
 	}
 
-	graph := incr.New()
 	_ = incr.Observe(graph, nodes[0])
 
 	var err error
