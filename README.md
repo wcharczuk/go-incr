@@ -44,11 +44,6 @@ It can be tempting when looking at what this library can do to say, "We should m
 
 A more ideal balance is to use a coarse-grain approach to making a computation incrementally computed, specifically breaking up chunks that are mostly atomic, and making those chunks incrementally computed, but each chunk may incorporate multiple operations.
 
-An illustrative example might be:
-
-- We need to take the prices for a given list of equities and compute some aggregates for those.
-- We could make each equity a var, pass that to the function that gets prices, then pass those to individual nodes that produce aggregates.
-
 # More advanced use cases
 
 There are simplified versions of common node types (e.g. `Map` and `Map2`) as well as more advanced versions (e.g. `MapContext` and `Map2Context`) that are intended for real world use cases, and facilitating returning errors from nodes.
