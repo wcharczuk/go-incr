@@ -84,6 +84,8 @@ type Graph struct {
 	// onStabilizationEnd are optional hooks called when stabilization ends.
 	onStabilizationEnd []func(context.Context, time.Time, error)
 
+	// tracer is the implementation of the logger that handles
+	// tracing messages.
 	tracer Tracer
 }
 
