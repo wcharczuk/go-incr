@@ -26,3 +26,21 @@ func Test_Var_Stabilize_zero(t *testing.T) {
 	_ = g.Stabilize(context.TODO())
 	testutil.ItsEqual(t, "foo", v.Value())
 }
+
+func Test_Var_Set_duringStabilization(t *testing.T) {
+	v := Var("foo")
+	g := New()
+	_ = Observe(g, v)
+	g.status = StatusStabilizing
+
+	v.Set("not-foo")
+
+	testutil.ItsEqual(t, true, v.(*varIncr[string]).setDuringStabilization)
+	testutil.ItsEqual(t, "not-foo", v.(*varIncr[string]).setDuringStabilizationValue)
+
+	_ = v.(*varIncr[string]).Stabilize(context.TODO())
+
+	testutil.ItsEqual(t, false, v.(*varIncr[string]).setDuringStabilization)
+	testutil.ItsEqual(t, "", v.(*varIncr[string]).setDuringStabilizationValue)
+	testutil.ItsEqual(t, "not-foo", v.(*varIncr[string]).value)
+}

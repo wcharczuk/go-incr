@@ -31,6 +31,9 @@ func New() *Graph {
 // Graph is the state that is shared across nodes.
 //
 // You should instantiate this type with `New()`.
+//
+// It is important to note that most operations on the graph are _not_ concurrent
+// safe and you should use your own mutex to synchronize access to internal state.
 type Graph struct {
 	// id is a unique identifier for the graph
 	id Identifier
@@ -300,6 +303,7 @@ func (graph *Graph) stabilizeEnd(ctx context.Context, err error) {
 	defer func() {
 		graph.stabilizationStarted = time.Time{}
 		atomic.StoreInt32(&graph.status, StatusNotStabilizing)
+		graph.stabilizationNum++
 	}()
 	for _, handler := range graph.onStabilizationEnd {
 		handler(ctx, graph.stabilizationStarted, err)
@@ -310,17 +314,27 @@ func (graph *Graph) stabilizeEnd(ctx context.Context, err error) {
 	} else {
 		graph.tracePrintf("stabilize[%d]; stabilization complete (%v)", graph.stabilizationNum, time.Since(graph.stabilizationStarted).Round(time.Microsecond))
 	}
-	graph.stabilizationNum++
-	var n INode
-	for !graph.setDuringStabilization.IsEmpty() {
-		_, n, _ = graph.setDuringStabilization.Pop()
-		_ = n.Node().maybeStabilize(ctx)
-		graph.SetStale(n)
-	}
-	atomic.StoreInt32(&graph.status, StatusRunningUpdateHandlers)
+	graph.stabilizeEndHandleSetDuringStabilization()
+	graph.stabilizeEndRunUpdateHandlers(ctx)
+	return
+}
 
+func (graph *Graph) stabilizeEndHandleSetDuringStabilization() {
+	graph.setDuringStabilization.mu.Lock()
+	defer graph.setDuringStabilization.mu.Unlock()
+	for !graph.setDuringStabilization.isEmptyUnsafe() {
+		nodes := graph.setDuringStabilization.popAllUnsafe()
+		for _, n := range nodes {
+			graph.SetStale(n)
+		}
+	}
+}
+
+func (graph *Graph) stabilizeEndRunUpdateHandlers(ctx context.Context) {
 	graph.handleAfterStabilization.mu.Lock()
 	defer graph.handleAfterStabilization.mu.Unlock()
+
+	atomic.StoreInt32(&graph.status, StatusRunningUpdateHandlers)
 
 	if !graph.handleAfterStabilization.isEmptyUnsafe() {
 		graph.tracePrintf("stabilize[%d]; calling update handlers starting", graph.stabilizationNum)
@@ -337,7 +351,6 @@ func (graph *Graph) stabilizeEnd(ctx context.Context, err error) {
 			}
 		}
 	}
-	return
 }
 
 // recompute starts the recompute cycle for the node

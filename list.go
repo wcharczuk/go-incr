@@ -5,6 +5,11 @@ import "sync"
 // list is a linked list structure that can be used
 // as a ordered list as well as a constant time
 // map using a similar technique to high throughput LRU queues.
+//
+// The exported functions on the list type are interlocked, that is
+// they're safe to use oncurrently, and the unexported ...Unsafe versions are
+// designed to be used internally when the root lock is held by the caller
+// or another synchronization mechanism is used.
 type list[K comparable, V any] struct {
 	mu sync.Mutex
 	// head is the "first" element in the list

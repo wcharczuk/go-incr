@@ -52,6 +52,7 @@ func (vn *varIncr[T]) Set(v T) {
 	if vn.n.graph != nil && atomic.LoadInt32(&vn.n.graph.status) == StatusStabilizing {
 		vn.setDuringStabilizationValue = v
 		vn.setDuringStabilization = true
+		// NOTE(wc): this .Push call is interlocked!
 		vn.n.graph.setDuringStabilization.Push(vn.n.id, vn)
 		return
 	}
@@ -70,7 +71,9 @@ func (vn *varIncr[T]) Value() T { return vn.value }
 // Stabilize implements Incr[A].
 func (vn *varIncr[T]) Stabilize(ctx context.Context) error {
 	if vn.setDuringStabilization {
+		var zero T
 		vn.value = vn.setDuringStabilizationValue
+		vn.setDuringStabilizationValue = zero
 		vn.setDuringStabilization = false
 		return nil
 	}
