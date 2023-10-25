@@ -1358,15 +1358,14 @@ func Test_Stabilize_printsErrors(t *testing.T) {
 
 	outBuf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	g.SetTracer(NewTracer(outBuf, errBuf))
+
+	ctx := WithTracingOutputs(context.Background(), outBuf, errBuf)
 
 	v0 := Var("hello")
 	gonnaPanic := MapContext(v0, func(_ context.Context, _ string) (string, error) {
 		return "", fmt.Errorf("this is only a test")
 	})
 	_ = Observe(g, gonnaPanic)
-
-	ctx := context.Background()
 
 	err := g.Stabilize(ctx)
 	testutil.ItsNotNil(t, err)

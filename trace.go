@@ -1,19 +1,12 @@
 package incr
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
+	"os"
 )
-
-// NewTracer returns a new tracer from a pair of output writers.
-func NewTracer(output, errOutput io.Writer) Tracer {
-	tracer := &tracer{
-		log:    log.New(output, "incr.trace|", log.LUTC|log.Lshortfile|log.Ldate|log.Lmicroseconds),
-		errLog: log.New(errOutput, "incr.trace.err|", log.LUTC|log.Lshortfile|log.Ldate|log.Lmicroseconds),
-	}
-	return tracer
-}
 
 // Tracer is a type that can implement a tracer.
 type Tracer interface {
@@ -21,33 +14,64 @@ type Tracer interface {
 	Error(...any)
 }
 
-// tracePrintln prints a line to the tracer on a given context.
-func (g *Graph) tracePrintln(args ...any) {
-	if g.tracer != nil {
-		g.tracer.Print(args...)
+type tracerKey struct{}
+
+// WithTracing adds a default tracer to a given context.
+func WithTracing(ctx context.Context) context.Context {
+	return WithTracingOutputs(ctx, os.Stderr, os.Stderr)
+}
+
+// WithTracingOutputs adds a tracer to a given context with given outputs.
+func WithTracingOutputs(ctx context.Context, output, errOutput io.Writer) context.Context {
+	tracer := &tracer{
+		log:    log.New(output, "incr.trace|", log.LUTC|log.Lshortfile|log.Ldate|log.Lmicroseconds),
+		errLog: log.New(errOutput, "incr.trace.err|", log.LUTC|log.Lshortfile|log.Ldate|log.Lmicroseconds),
+	}
+	return WithTracer(ctx, tracer)
+}
+
+// WithTracer adds a tracer to a given context.
+func WithTracer(ctx context.Context, tracer Tracer) context.Context {
+	return context.WithValue(ctx, tracerKey{}, tracer)
+}
+
+// GetTracer returns the tracer from a given context, and nil if one is not present.
+func GetTracer(ctx context.Context) Tracer {
+	if value := ctx.Value(tracerKey{}); value != nil {
+		if typed, ok := value.(Tracer); ok {
+			return typed
+		}
+	}
+	return nil
+}
+
+// TracePrintln prints a line to the tracer on a given context.
+func TracePrintln(ctx context.Context, args ...any) {
+	if tracer := GetTracer(ctx); tracer != nil {
+		tracer.Print(args...)
 	}
 }
 
-// tracePrintf prints a line to the tracer on a given
+// TracePrintf prints a line to the tracer on a given
 // context with a given format and args.
-func (g *Graph) tracePrintf(format string, args ...any) {
-	if g.tracer != nil {
-		g.tracer.Print(fmt.Sprintf(format, args...))
+func TracePrintf(ctx context.Context, format string, args ...any) {
+	if tracer := GetTracer(ctx); tracer != nil {
+		tracer.Print(fmt.Sprintf(format, args...))
 	}
 }
 
-// traceErrorln prints a line to the error output of a tracer on a given context.
-func (g *Graph) traceErrorln(args ...any) {
-	if g.tracer != nil {
-		g.tracer.Error(args...)
+// TraceErrorln prints a line to the error output of a tracer on a given context.
+func TraceErrorln(ctx context.Context, args ...any) {
+	if tracer := GetTracer(ctx); tracer != nil {
+		tracer.Error(args...)
 	}
 }
 
-// traceErrorf prints a line to the error output of a tracer
+// TraceErrorf prints a line to the error output of a tracer
 // on a given context with a given format and args.
-func (g *Graph) traceErrorf(format string, args ...any) {
-	if g.tracer != nil {
-		g.tracer.Error(fmt.Sprintf(format, args...))
+func TraceErrorf(ctx context.Context, format string, args ...any) {
+	if tracer := GetTracer(ctx); tracer != nil {
+		tracer.Error(fmt.Sprintf(format, args...))
 	}
 }
 
@@ -57,9 +81,9 @@ type tracer struct {
 }
 
 func (t *tracer) Print(args ...any) {
-	_ = t.log.Output(4, fmt.Sprint(args...))
+	_ = t.log.Output(3, fmt.Sprint(args...))
 }
 
 func (t *tracer) Error(args ...any) {
-	_ = t.errLog.Output(4, fmt.Sprint(args...))
+	_ = t.errLog.Output(3, fmt.Sprint(args...))
 }

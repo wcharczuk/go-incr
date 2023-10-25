@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"os"
 
 	"github.com/wcharczuk/go-incr"
 	"github.com/wcharczuk/go-incr/incrutil"
@@ -76,7 +75,6 @@ func fillOrders(output map[incr.Identifier]Order, count int) {
 
 func main() {
 	graph := incr.New()
-	graph.SetTracer(incr.NewTracer(os.Stdout, os.Stderr))
 
 	data := make(map[incr.Identifier]Order)
 	dataInput := incr.Var(data)

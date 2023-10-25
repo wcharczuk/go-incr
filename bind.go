@@ -104,7 +104,7 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 
 func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, oldIncr INode) {
 	for _, c := range b.n.children {
-		b.n.graph.tracePrintf("bind unlinking child %v", c)
+		TracePrintf(ctx, "bind unlinking child %v", c)
 		Unlink(c, oldIncr)
 	}
 	graph := b.Node().graph
@@ -115,7 +115,7 @@ func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, oldIncr INode) {
 }
 
 func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
-	b.n.graph.tracePrintf("bind linking new child %v", newIncr)
+	TracePrintf(ctx, "bind linking new child %v", newIncr)
 
 	// for each of the nodes that have the bind node as an input
 	// link the new incremental as an input as well (i.e. the bind node

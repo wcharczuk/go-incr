@@ -301,7 +301,7 @@ func Test_ParallelStabilize_printsErrors(t *testing.T) {
 
 	outBuf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	g.SetTracer(NewTracer(outBuf, errBuf))
+	ctx := WithTracingOutputs(context.Background(), outBuf, errBuf)
 
 	v0 := Var("hello")
 	gonnaPanic := MapContext(v0, func(_ context.Context, _ string) (string, error) {
@@ -309,7 +309,6 @@ func Test_ParallelStabilize_printsErrors(t *testing.T) {
 	})
 	_ = Observe(g, gonnaPanic)
 
-	ctx := context.Background()
 	err := g.ParallelStabilize(ctx)
 	testutil.ItsNotNil(t, err)
 	testutil.ItsNotEqual(t, 0, len(outBuf.String()))

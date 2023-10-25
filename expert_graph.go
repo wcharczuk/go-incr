@@ -21,11 +21,6 @@ type IExpertGraph interface {
 	AddRecomputeHeap(...INode)
 	RecomputeHeapLen() int
 	RecomputeHeap() []Identifier
-
-	TracePrintf(format string, args ...any)
-	TracePrintln(args ...any)
-	TraceErrorf(format string, args ...any)
-	TraceErrorln(args ...any)
 }
 
 type expertGraph struct {
@@ -75,20 +70,4 @@ func (eg *expertGraph) RecomputeHeap() []Identifier {
 		}
 	}
 	return output
-}
-
-func (eg *expertGraph) TracePrintf(format string, args ...any) {
-	eg.graph.tracePrintf(format, args...)
-}
-
-func (eg *expertGraph) TracePrintln(args ...any) {
-	eg.graph.tracePrintln(args...)
-}
-
-func (eg *expertGraph) TraceErrorf(format string, args ...any) {
-	eg.graph.traceErrorf(format, args...)
-}
-
-func (eg *expertGraph) TraceErrorln(args ...any) {
-	eg.graph.traceErrorln(args...)
 }

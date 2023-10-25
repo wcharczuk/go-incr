@@ -41,7 +41,7 @@ func main() {
 
 	ctx := context.Background()
 	if os.Getenv("DEBUG") != "" {
-		graph.SetTracer(incr.NewTracer(os.Stdout, os.Stderr))
+		ctx = incr.WithTracing(ctx)
 	}
 
 	_ = incr.Observe(graph, nodes[0])

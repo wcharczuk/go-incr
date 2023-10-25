@@ -46,7 +46,7 @@ func main() {
 	}
 	graph, nodes := dg.Create()
 	if os.Getenv("DEBUG") != "" {
-		graph.SetTracer(incr.NewTracer(os.Stdout, os.Stderr))
+		ctx = incr.WithTracing(ctx)
 	}
 
 	// one caveat here; we're stabilizing all the leaves
