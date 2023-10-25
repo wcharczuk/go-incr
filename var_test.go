@@ -37,6 +37,7 @@ func Test_Var_Set_duringStabilization(t *testing.T) {
 
 	testutil.ItsEqual(t, true, v.(*varIncr[string]).setDuringStabilization)
 	testutil.ItsEqual(t, "not-foo", v.(*varIncr[string]).setDuringStabilizationValue)
+	testutil.ItsEqual(t, "foo", v.(*varIncr[string]).value)
 
 	_ = v.(*varIncr[string]).Stabilize(context.TODO())
 

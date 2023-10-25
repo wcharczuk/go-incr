@@ -297,11 +297,17 @@ func Test_Stabilize_setDuringStabilization(t *testing.T) {
 		defer close(done)
 		_ = graph.Stabilize(ctx)
 	}()
+
 	<-called
+
+	// we're now stabilizing
 	v0.Set("not-foo")
 	ItsEqual(t, "foo", v0.Value())
+
 	close(wait)
 	<-done
+
+	// we're now _done_ stabilizing
 	ItsEqual(t, "not-foo", v0.Value())
 	ItsEqual(t, graph.stabilizationNum, v0.Node().setAt)
 	ItsEqual(t, 1, len(graph.recomputeHeap.lookup))

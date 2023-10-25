@@ -303,7 +303,6 @@ func (graph *Graph) stabilizeEnd(ctx context.Context, err error) {
 	defer func() {
 		graph.stabilizationStarted = time.Time{}
 		atomic.StoreInt32(&graph.status, StatusNotStabilizing)
-		graph.stabilizationNum++
 	}()
 	for _, handler := range graph.onStabilizationEnd {
 		handler(ctx, graph.stabilizationStarted, err)
@@ -314,17 +313,19 @@ func (graph *Graph) stabilizeEnd(ctx context.Context, err error) {
 	} else {
 		graph.tracePrintf("stabilize[%d]; stabilization complete (%v)", graph.stabilizationNum, time.Since(graph.stabilizationStarted).Round(time.Microsecond))
 	}
-	graph.stabilizeEndHandleSetDuringStabilization()
 	graph.stabilizeEndRunUpdateHandlers(ctx)
+	graph.stabilizationNum++
+	graph.stabilizeEndHandleSetDuringStabilization(ctx)
 	return
 }
 
-func (graph *Graph) stabilizeEndHandleSetDuringStabilization() {
+func (graph *Graph) stabilizeEndHandleSetDuringStabilization(ctx context.Context) {
 	graph.setDuringStabilization.mu.Lock()
 	defer graph.setDuringStabilization.mu.Unlock()
 	for !graph.setDuringStabilization.isEmptyUnsafe() {
 		nodes := graph.setDuringStabilization.popAllUnsafe()
 		for _, n := range nodes {
+			_ = n.Node().maybeStabilize(ctx)
 			graph.SetStale(n)
 		}
 	}
