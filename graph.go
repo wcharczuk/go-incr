@@ -41,15 +41,20 @@ type Graph struct {
 	observed map[Identifier]INode
 	// observers hold references to observers organized by node id.
 	observers map[Identifier]IObserver
+
 	// recomputeHeap is the heap of nodes to be processed
-	// organized by pseudo-height
+	// organized by pseudo-height. The recompute heap
+	// itself is concurrent safe.
 	recomputeHeap *recomputeHeap
+
 	// setDuringStabilization is a list of nodes that were
 	// set during stabilization
 	setDuringStabilization *list[Identifier, INode]
+
 	// handleAfterStabilization is a list of update
 	// handlers that need to run after stabilization is done.
 	handleAfterStabilization *list[Identifier, []func(context.Context)]
+
 	// stabilizationNum is the version
 	// of the graph in respect to when
 	// nodes are considered stale or changed
@@ -236,6 +241,7 @@ func (graph *Graph) UndiscoverNode(on IObserver, gn INode) {
 		delete(graph.observed, gnn.id)
 		graph.numNodes--
 		graph.recomputeHeap.Remove(gn)
+
 		graph.handleAfterStabilization.Remove(gn.Node().ID())
 	}
 }
@@ -247,6 +253,7 @@ func (graph *Graph) UndiscoverObserver(on IObserver) {
 	onn.graph = nil
 	graph.numNodes--
 	graph.recomputeHeap.Remove(on)
+
 	graph.handleAfterStabilization.Remove(on.Node().ID())
 	return
 }
@@ -311,17 +318,23 @@ func (graph *Graph) stabilizeEnd(ctx context.Context, err error) {
 		graph.SetStale(n)
 	}
 	atomic.StoreInt32(&graph.status, StatusRunningUpdateHandlers)
-	var updateHandlers []func(context.Context)
-	if !graph.handleAfterStabilization.IsEmpty() {
+
+	graph.handleAfterStabilization.mu.Lock()
+	defer graph.handleAfterStabilization.mu.Unlock()
+
+	if !graph.handleAfterStabilization.isEmptyUnsafe() {
 		graph.tracePrintf("stabilize[%d]; calling update handlers starting", graph.stabilizationNum)
 		defer func() {
 			graph.tracePrintf("stabilize[%d]; calling update handlers complete", graph.stabilizationNum)
 		}()
 	}
-	for !graph.handleAfterStabilization.IsEmpty() {
-		_, updateHandlers, _ = graph.handleAfterStabilization.Pop()
-		for _, uh := range updateHandlers {
-			uh(ctx)
+	var updateHandlers [][]func(context.Context)
+	for !graph.handleAfterStabilization.isEmptyUnsafe() {
+		updateHandlers = graph.handleAfterStabilization.popAllUnsafe()
+		for _, uhGroup := range updateHandlers {
+			for _, uh := range uhGroup {
+				uh(ctx)
+			}
 		}
 	}
 	return
@@ -368,6 +381,7 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 		}
 		return
 	}
+
 	if len(nn.onUpdateHandlers) > 0 {
 		graph.handleAfterStabilization.Push(nn.id, nn.onUpdateHandlers)
 	}

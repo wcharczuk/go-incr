@@ -327,17 +327,17 @@ func Test_recomputeHeap_Remove(t *testing.T) {
 	ItsEqual(t, 3, rh.MaxHeight())
 }
 
-func Test_recomputeHeap_nextMinHeight_noItems(t *testing.T) {
+func Test_recomputeHeap_nextMinHeightUnsafe_noItems(t *testing.T) {
 	rh := new(recomputeHeap)
 
 	rh.minHeight = 1
 	rh.maxHeight = 3
 
-	next := rh.nextMinHeight()
+	next := rh.nextMinHeightUnsafe()
 	ItsEqual(t, 0, next)
 }
 
-func Test_recomputeHeap_nextMinHeight_pastMax(t *testing.T) {
+func Test_recomputeHeap_nextMinHeightUnsafe_pastMax(t *testing.T) {
 	r0 := Return("hello")
 	rh := newRecomputeHeap(4)
 	rh.minHeight = 1
@@ -347,7 +347,7 @@ func Test_recomputeHeap_nextMinHeight_pastMax(t *testing.T) {
 		key:   r0.Node().id,
 		value: r0,
 	}
-	next := rh.nextMinHeight()
+	next := rh.nextMinHeightUnsafe()
 	ItsEqual(t, 0, next)
 }
 

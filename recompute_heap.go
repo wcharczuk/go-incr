@@ -71,11 +71,11 @@ func (rh *recomputeHeap) Has(s INode) (ok bool) {
 func (rh *recomputeHeap) RemoveMin() INode {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
-	if rh.heights[rh.minHeight] != nil && rh.heights[rh.minHeight].Len() > 0 {
-		id, node, _ := rh.heights[rh.minHeight].Pop()
+	if rh.heights[rh.minHeight] != nil && rh.heights[rh.minHeight].lenUnsafe() > 0 {
+		id, node, _ := rh.heights[rh.minHeight].popUnsafe()
 		delete(rh.lookup, id)
-		if rh.heights[rh.minHeight].Len() == 0 {
-			rh.minHeight = rh.nextMinHeight()
+		if rh.heights[rh.minHeight].lenUnsafe() == 0 {
+			rh.minHeight = rh.nextMinHeightUnsafe()
 		}
 		return node
 	}
@@ -87,12 +87,12 @@ func (rh *recomputeHeap) RemoveMin() INode {
 func (rh *recomputeHeap) RemoveMinHeight() (nodes []INode) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
-	if rh.heights[rh.minHeight] != nil && rh.heights[rh.minHeight].Len() > 0 {
-		nodes = rh.heights[rh.minHeight].PopAll()
+	if rh.heights[rh.minHeight] != nil && rh.heights[rh.minHeight].lenUnsafe() > 0 {
+		nodes = rh.heights[rh.minHeight].popAllUnsafe()
 		for _, n := range nodes {
 			delete(rh.lookup, n.Node().id)
 		}
-		rh.minHeight = rh.nextMinHeight()
+		rh.minHeight = rh.nextMinHeightUnsafe()
 	}
 	return
 }
@@ -137,21 +137,21 @@ func (rh *recomputeHeap) addNodeUnsafe(s INode) {
 	if rh.heights[sn.height] == nil {
 		rh.heights[sn.height] = new(list[Identifier, INode])
 	}
-	item := rh.heights[sn.height].Push(s.Node().id, s)
+	item := rh.heights[sn.height].pushUnsafe(s.Node().id, s)
 	item.height = sn.height
 	rh.lookup[sn.id] = item
 }
 
 func (rh *recomputeHeap) removeUnsafe(item *listItem[Identifier, INode]) {
 	delete(rh.lookup, item.key)
-	rh.heights[item.height].Remove(item.key)
+	rh.heights[item.height].removeUnsafe(item.key)
 
 	// handle the edge case where removing a node removes the _last_ node
 	// in the current minimum height, causing us to need to move
 	// the minimum height up one value.
 	isLastAtHeight := rh.heights[item.height] == nil || rh.heights[item.height].Len() == 0
 	if item.height == rh.minHeight && isLastAtHeight {
-		rh.minHeight = rh.nextMinHeight()
+		rh.minHeight = rh.nextMinHeightUnsafe()
 	}
 }
 
@@ -180,8 +180,8 @@ func (rh *recomputeHeap) adjustHeights(newHeight int) {
 	}
 }
 
-// nextMinHeight finds the next smallest height in the heap that has nodes.
-func (rh *recomputeHeap) nextMinHeight() (next int) {
+// nextMinHeightUnsafe finds the next smallest height in the heap that has nodes.
+func (rh *recomputeHeap) nextMinHeightUnsafe() (next int) {
 	if len(rh.lookup) == 0 {
 		// next is zero here
 		return
