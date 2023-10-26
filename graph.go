@@ -204,7 +204,6 @@ func (graph *Graph) DiscoverObserver(on IObserver) {
 	}
 	graph.observers[onn.id] = on
 	onn.height = onn.computePseudoHeight()
-	graph.recomputeHeap.Add(on)
 	return
 }
 

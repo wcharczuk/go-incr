@@ -169,8 +169,12 @@ func Test_Graph_DiscoverObserver_rediscover(t *testing.T) {
 	testutil.ItsEqual(t, true, ok)
 	testutil.ItsEqual(t, 2, g.numNodes)
 	testutil.ItsEqual(t, 2, o.Node().height)
+	testutil.ItsEqual(t, true, g.recomputeHeap.Has(o))
+	g.recomputeHeap.Remove(o)
+	testutil.ItsEqual(t, false, g.recomputeHeap.Has(o))
 
 	g.DiscoverObserver(o)
 	testutil.ItsEqual(t, 2, g.numNodes)
 	testutil.ItsEqual(t, 2, o.Node().height)
+	testutil.ItsEqual(t, false, g.recomputeHeap.Has(o))
 }

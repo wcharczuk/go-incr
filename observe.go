@@ -11,6 +11,12 @@ func Observe[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
 	}
 	Link(o, input)
 	g.DiscoverObserver(o)
+
+	// NOTE(wc): we do this here because some """expert""" use cases
+	// require us to "discover" observers but _not_ add them to the recompute heap.
+	// So we just add it here explicitly and don't add it implicitly
+	// in the DiscoverObserver function.
+	g.recomputeHeap.Add(o)
 	g.DiscoverNodes(o, input)
 	return o
 }
