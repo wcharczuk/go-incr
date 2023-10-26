@@ -75,3 +75,11 @@ func Test_ExpertNode_RemoveParent(t *testing.T) {
 	en.RemoveParent(mbn0.Node().ID())
 	testutil.ItsEqual(t, 1, len(n.Node().Parents()))
 }
+
+func Test_ExpertNode_ComputePseudoheight(t *testing.T) {
+	n := newMockBareNode()
+	en := ExpertNode(n)
+
+	pseudoHeight := en.ComputePseudoheight()
+	testutil.ItsEqual(t, 1, pseudoHeight)
+}

@@ -27,6 +27,8 @@ type IExpertNode interface {
 	AddParents(...INode)
 	RemoveChild(Identifier)
 	RemoveParent(Identifier)
+
+	ComputePseudoheight() int
 }
 
 type expertNode struct {
@@ -87,4 +89,8 @@ func (en *expertNode) RemoveChild(id Identifier) {
 
 func (en *expertNode) RemoveParent(id Identifier) {
 	en.node.removeParent(id)
+}
+
+func (en *expertNode) ComputePseudoheight() int {
+	return en.node.computePseudoHeight()
 }
