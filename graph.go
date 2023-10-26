@@ -202,6 +202,7 @@ func (graph *Graph) DiscoverObserver(on IObserver) {
 	if _, ok := graph.observers[onn.id]; !ok {
 		graph.numNodes++
 	}
+	onn.detectStabilize(on)
 	graph.observers[onn.id] = on
 	onn.height = onn.computePseudoHeight()
 	return
