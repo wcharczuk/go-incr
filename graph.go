@@ -372,7 +372,7 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	graph.numNodesChanged++
 	nn.numChanges++
 
-	// we have to propagate the "changed" or "recomputed" status to parents
+	// we have to propagate the "changed" or "recomputed" status to children
 	nn.changedAt = graph.stabilizationNum
 	if err = nn.maybeBind(ctx); err != nil {
 		for _, eh := range nn.onErrorHandlers {

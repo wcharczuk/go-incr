@@ -74,7 +74,7 @@ func (graph *Graph) parallelRecomputeNode(ctx context.Context, n INode) func() e
 	return func() (err error) {
 		defer func() {
 			if r := recover(); r != nil {
-				err = fmt.Errorf("%v", r)
+				err = fmt.Errorf("panic stabilizing %v: %+v", n, r)
 			}
 		}()
 		err = graph.recompute(ctx, n)
