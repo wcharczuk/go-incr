@@ -390,11 +390,13 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 		graph.handleAfterStabilization.Push(nn.id, nn.onUpdateHandlers)
 	}
 
-	// recompute all the children of this node
-	// i.e. the nodes that depend on this node.
+	// recompute all the children of this node, i.e. the nodes that
+	// depend on this node if they need to be recomputed.
 	for _, c := range nn.children {
 		if c.Node().ShouldRecompute() {
 			graph.recomputeHeap.Add(c)
+		} else {
+			TracePrintf(ctx, "stabilize[%d]; skipping recompute child %v", graph.stabilizationNum, c)
 		}
 	}
 	return
