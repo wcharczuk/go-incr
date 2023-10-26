@@ -21,8 +21,6 @@ func Var[T any](t T) VarIncr[T] {
 // VarIncr is a graph node type that implements an incremental variable.
 type VarIncr[T any] interface {
 	Incr[T]
-
-	// Set sets the value of the Var
 	Set(T)
 }
 
