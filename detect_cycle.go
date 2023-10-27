@@ -8,16 +8,16 @@ import "fmt"
 // It is a low-level utility function that should be used
 // in special cases; the vast majority of direct use cases
 // for the incremental library cannot create graph cycles.
-func DetectCycle(child, input INode) error {
+func DetectCycle(child, parent INode) error {
 	getChildren := func(n INode) []INode {
-		if n.Node().id == input.Node().id {
-			return append(input.Node().Children(), child)
+		if n.Node().id == parent.Node().id {
+			return append(parent.Node().Children(), child)
 		}
 		return n.Node().Children()
 	}
 	seen := make(set[Identifier])
 	if err := cycleSeen(child, getChildren, seen); err != nil {
-		return fmt.Errorf("linking %v and %v would cause a cycle: %w", child, input, err)
+		return fmt.Errorf("%w; adding %v as a child of %v would cause a cycle", err, child, parent)
 	}
 	return nil
 }
