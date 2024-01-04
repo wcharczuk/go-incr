@@ -137,7 +137,7 @@ func (rh *recomputeHeap) addNodeUnsafe(s INode) {
 	if rh.heights[sn.height] == nil {
 		rh.heights[sn.height] = new(list[Identifier, INode])
 	}
-	item := rh.heights[sn.height].pushUnsafe(s.Node().id, s)
+	item := rh.heights[sn.height].pushUnsafe(sn.id, s)
 	item.height = sn.height
 	rh.lookup[sn.id] = item
 }
