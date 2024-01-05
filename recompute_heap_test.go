@@ -412,7 +412,7 @@ func Test_recomuteHeap_Add_regression(t *testing.T) {
 	ItsEqual(t, []Identifier{v0.n.id, v1.n.id, m1.n.id, o2.n.id}, seen)
 }
 
-func Test_recomuteHeap_Add_regression2(t *testing.T) {
+func Test_recomputeHeap_Add_regression2(t *testing.T) {
 	// another real world use case! also insane!
 	rh := newRecomputeHeap(256)
 
@@ -473,6 +473,48 @@ func Test_recomuteHeap_Add_regression2(t *testing.T) {
 	minHeightBlock := rh.RemoveMinHeight()
 	ItsEqual(t, 5, len(minHeightBlock))
 	ItsEqual(t, true, allHeight(minHeightBlock, 1))
+}
+
+func Test_recomputeHeap_fix(t *testing.T) {
+	rh := newRecomputeHeap(8)
+	v0 := newHeightIncr(2)
+	rh.Add(v0)
+	v1 := newHeightIncr(3)
+	rh.Add(v1)
+	v2 := newHeightIncr(4)
+	rh.Add(v2)
+
+	ItsEqual(t, 2, rh.minHeight)
+	ItsEqual(t, 1, rh.heights[2].Len())
+	ItsEqual(t, 1, rh.heights[3].Len())
+	ItsEqual(t, 1, rh.heights[4].Len())
+	ItsEqual(t, 4, rh.maxHeight)
+
+	v0.n.height = 1
+	rh.fix(v0.n.id)
+
+	ItsEqual(t, 1, rh.minHeight)
+	ItsEqual(t, 1, rh.heights[1].Len())
+	ItsEqual(t, 0, rh.heights[2].Len())
+	ItsEqual(t, 1, rh.heights[4].Len())
+	ItsEqual(t, 4, rh.maxHeight)
+
+	rh.fix(v0.n.id)
+	ItsEqual(t, 1, rh.minHeight)
+	ItsEqual(t, 1, rh.heights[1].Len())
+	ItsEqual(t, 0, rh.heights[2].Len())
+	ItsEqual(t, 1, rh.heights[4].Len())
+	ItsEqual(t, 4, rh.maxHeight)
+
+	v2.n.height = 5
+	rh.fix(v2.n.id)
+
+	ItsEqual(t, 1, rh.minHeight)
+	ItsEqual(t, 1, rh.heights[1].Len())
+	ItsEqual(t, 0, rh.heights[2].Len())
+	ItsEqual(t, 1, rh.heights[5].Len())
+	ItsEqual(t, 0, rh.heights[4].Len())
+	ItsEqual(t, 5, rh.maxHeight)
 }
 
 func allHeight(values []INode, height int) bool {

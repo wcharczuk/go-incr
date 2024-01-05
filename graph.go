@@ -184,16 +184,13 @@ func (graph *Graph) DiscoverNode(on IObserver, gn INode) {
 	gnn.detectAlways(gn)
 	gnn.detectStabilize(gn)
 	gnn.detectBind(gn)
-
-	oldHeight := gnn.height
 	gnn.height = gnn.computePseudoHeight()
 
 	// we should add to the heap if we should recompute the node _or_ if we need to
 	// potentially adjust the height it's sitting in the heap.
-	if gnn.ShouldRecompute() || graph.recomputeHeap.Has(gn) || gnn.height != oldHeight {
+	if gnn.ShouldRecompute() || graph.recomputeHeap.Has(gn) {
 		graph.recomputeHeap.Add(gn)
 	}
-	return
 }
 
 // DiscoverObserver initializes an observer node
@@ -207,7 +204,6 @@ func (graph *Graph) DiscoverObserver(on IObserver) {
 	onn.detectStabilize(on)
 	graph.observers[onn.id] = on
 	onn.height = onn.computePseudoHeight()
-	return
 }
 
 // UndiscoverAllNodes removes a node and all its parents
@@ -251,7 +247,6 @@ func (graph *Graph) UndiscoverObserver(on IObserver) {
 	graph.recomputeHeap.Remove(on)
 
 	graph.handleAfterStabilization.Remove(on.Node().ID())
-	return
 }
 
 // RecomputeHeight recomputes the height of a given node.
@@ -262,13 +257,7 @@ func (graph *Graph) UndiscoverObserver(on IObserver) {
 // this step separately.
 func (graph *Graph) RecomputeHeight(n INode) {
 	nn := n.Node()
-	oldHeight := nn.height
 	nn.recomputeHeights()
-	if oldHeight != nn.height {
-		if graph.recomputeHeap.Has(n) {
-			graph.recomputeHeap.Add(n)
-		}
-	}
 }
 
 //
@@ -309,7 +298,6 @@ func (graph *Graph) stabilizeEnd(ctx context.Context, err error) {
 	graph.stabilizeEndRunUpdateHandlers(ctx)
 	graph.stabilizationNum++
 	graph.stabilizeEndHandleSetDuringStabilization(ctx)
-	return
 }
 
 func (graph *Graph) stabilizeEndHandleSetDuringStabilization(ctx context.Context) {

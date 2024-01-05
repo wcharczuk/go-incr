@@ -114,6 +114,25 @@ func (rh *recomputeHeap) Remove(s INode) {
 // utils
 //
 
+// hasKey returns if a given node id exists in the recompute heap lookup.
+func (rh *recomputeHeap) hasKey(id Identifier) (ok bool) {
+	rh.mu.Lock()
+	defer rh.mu.Unlock()
+	_, ok = rh.lookup[id]
+	return
+}
+
+// fix moves an existing node around in the height maps if its height changes.
+func (rh *recomputeHeap) fix(id Identifier) {
+	rh.mu.Lock()
+	defer rh.mu.Unlock()
+
+	if item, ok := rh.lookup[id]; ok {
+		rh.heights[item.height].removeUnsafe(item.key)
+		rh.addNodeUnsafe(item.value)
+	}
+}
+
 func (rh *recomputeHeap) addUnsafe(nodes ...INode) {
 	for _, s := range nodes {
 		sn := s.Node()
@@ -163,11 +182,9 @@ func (rh *recomputeHeap) adjustMinMaxHeights(newHeight int) {
 	}
 	if rh.minHeight > newHeight {
 		rh.minHeight = newHeight
-		return
 	}
 	if rh.maxHeight < newHeight {
 		rh.maxHeight = newHeight
-		return
 	}
 }
 
