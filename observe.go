@@ -43,7 +43,6 @@ var (
 type observeIncr[A any] struct {
 	n     *Node
 	input Incr[A]
-	value A
 }
 
 func (o *observeIncr[A]) Node() *Node { return o.n }

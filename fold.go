@@ -29,11 +29,10 @@ func FoldRight[T, O any](i Incr[[]T], v0 O, fn func(T, O) O) Incr[O] {
 }
 
 type foldLeftIncr[T, O any] struct {
-	n    *Node
-	i    Incr[[]T]
-	fn   func(O, T) O
-	last []T
-	val  O
+	n   *Node
+	i   Incr[[]T]
+	fn  func(O, T) O
+	val O
 }
 
 func (fli *foldLeftIncr[T, O]) String() string { return fli.n.String("fold_left") }
@@ -57,11 +56,10 @@ func foldLeft[T, O any](input []T, v0 O, fn func(O, T) O) (o O) {
 }
 
 type foldRightIncr[T, O any] struct {
-	n    *Node
-	i    Incr[[]T]
-	fn   func(T, O) O
-	last []T
-	val  O
+	n   *Node
+	i   Incr[[]T]
+	fn  func(T, O) O
+	val O
 }
 
 func (fli *foldRightIncr[T, O]) String() string { return fli.n.String("fold_right") }

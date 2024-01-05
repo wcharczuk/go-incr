@@ -496,6 +496,7 @@ func Test_recomputeHeap_fix(t *testing.T) {
 	ItsEqual(t, 1, rh.minHeight)
 	ItsEqual(t, 1, rh.heights[1].Len())
 	ItsEqual(t, 0, rh.heights[2].Len())
+	ItsEqual(t, 1, rh.heights[3].Len())
 	ItsEqual(t, 1, rh.heights[4].Len())
 	ItsEqual(t, 4, rh.maxHeight)
 
@@ -503,6 +504,7 @@ func Test_recomputeHeap_fix(t *testing.T) {
 	ItsEqual(t, 1, rh.minHeight)
 	ItsEqual(t, 1, rh.heights[1].Len())
 	ItsEqual(t, 0, rh.heights[2].Len())
+	ItsEqual(t, 1, rh.heights[3].Len())
 	ItsEqual(t, 1, rh.heights[4].Len())
 	ItsEqual(t, 4, rh.maxHeight)
 
@@ -512,8 +514,9 @@ func Test_recomputeHeap_fix(t *testing.T) {
 	ItsEqual(t, 1, rh.minHeight)
 	ItsEqual(t, 1, rh.heights[1].Len())
 	ItsEqual(t, 0, rh.heights[2].Len())
-	ItsEqual(t, 1, rh.heights[5].Len())
+	ItsEqual(t, 1, rh.heights[3].Len())
 	ItsEqual(t, 0, rh.heights[4].Len())
+	ItsEqual(t, 1, rh.heights[5].Len())
 	ItsEqual(t, 5, rh.maxHeight)
 }
 
