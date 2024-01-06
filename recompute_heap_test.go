@@ -211,6 +211,7 @@ func Test_recomputeHeap_RemoveMinHeight(t *testing.T) {
 	ItsEqual(t, 5, rh.MaxHeight())
 
 	output := rh.RemoveMinHeight()
+	ItsNil(t, rh.sanityCheck())
 	ItsEqual(t, 9, rh.Len())
 	ItsEqual(t, 3, len(output))
 	ItsNil(t, rh.heights[0].head)
@@ -227,6 +228,7 @@ func Test_recomputeHeap_RemoveMinHeight(t *testing.T) {
 	ItsEqual(t, 5, rh.MaxHeight())
 
 	output = rh.RemoveMinHeight()
+	ItsNil(t, rh.sanityCheck())
 	ItsEqual(t, 5, rh.Len())
 	ItsEqual(t, 4, len(output))
 	ItsNil(t, rh.heights[0].head)
@@ -240,6 +242,7 @@ func Test_recomputeHeap_RemoveMinHeight(t *testing.T) {
 	ItsEqual(t, 5, rh.heights[5].Len())
 
 	output = rh.RemoveMinHeight()
+	ItsNil(t, rh.sanityCheck())
 	ItsEqual(t, 0, rh.Len())
 	ItsEqual(t, 5, len(output))
 	ItsNil(t, rh.heights[0].head)
@@ -258,11 +261,13 @@ func Test_recomputeHeap_RemoveMinHeight(t *testing.T) {
 	rh.Add(n53)
 	rh.Add(n54)
 
+	ItsNil(t, rh.sanityCheck())
 	ItsEqual(t, 5, rh.Len())
 	ItsEqual(t, 5, rh.MinHeight())
 	ItsEqual(t, 5, rh.MaxHeight())
 
 	output = rh.RemoveMinHeight()
+	ItsNil(t, rh.sanityCheck())
 	ItsEqual(t, 0, rh.Len())
 	ItsEqual(t, 5, len(output))
 	ItsNil(t, rh.heights[0].head)
@@ -295,6 +300,7 @@ func Test_recomputeHeap_Remove(t *testing.T) {
 	rh.Add(n22)
 	rh.Add(n30)
 
+	ItsNil(t, rh.sanityCheck())
 	ItsEqual(t, true, rh.Has(n10))
 	ItsEqual(t, true, rh.Has(n11))
 	ItsEqual(t, true, rh.Has(n20))
@@ -304,6 +310,7 @@ func Test_recomputeHeap_Remove(t *testing.T) {
 
 	rh.Remove(n21)
 
+	ItsNil(t, rh.sanityCheck())
 	ItsEqual(t, 5, rh.Len())
 	ItsEqual(t, true, rh.Has(n10))
 	ItsEqual(t, true, rh.Has(n11))
@@ -319,6 +326,7 @@ func Test_recomputeHeap_Remove(t *testing.T) {
 	rh.Remove(n10)
 	rh.Remove(n11)
 
+	ItsNil(t, rh.sanityCheck())
 	ItsEqual(t, 3, rh.Len())
 	ItsEqual(t, 0, rh.heights[1].Len())
 	ItsNil(t, rh.heights[1].head)
@@ -351,14 +359,14 @@ func Test_recomputeHeap_nextMinHeightUnsafe_pastMax(t *testing.T) {
 	ItsEqual(t, 0, next)
 }
 
-func Test_recomputeHeap_adjustHeights(t *testing.T) {
+func Test_recomputeHeap_maybeAddNewHeights(t *testing.T) {
 	rh := newRecomputeHeap(8)
 	ItsEqual(t, 8, len(rh.heights))
-	rh.adjustHeights(9) // we use (1) indexing!
+	rh.maybeAddNewHeights(9) // we use (1) indexing!
 	ItsEqual(t, 10, len(rh.heights))
 }
 
-func Test_recomputeHeap_addAdjustsHeights(t *testing.T) {
+func Test_recomputeHeap_Add_adjustsHeights(t *testing.T) {
 	rh := newRecomputeHeap(8)
 	ItsEqual(t, 8, len(rh.heights))
 
