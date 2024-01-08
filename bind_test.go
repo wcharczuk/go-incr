@@ -214,137 +214,148 @@ func Test_Bind_error(t *testing.T) {
 	testutil.ItsEqual(t, "this is just a test", gotError.Error())
 }
 
-func Test_Bind_dynamic(t *testing.T) {
-	ctx := testContext()
+func createDynamicMaps(label string) Incr[string] {
+	mapVar0 := Var(fmt.Sprintf("%s-0", label))
+	mapVar1 := Var(fmt.Sprintf("%s-1", label))
+	m := Map2(mapVar0, mapVar1, func(a, b string) string {
+		return a + "+" + b
+	})
+	m.Node().SetLabel(label)
+	return m
+}
 
+func createDynamicBind(label string, a, b Incr[string]) (VarIncr[string], BindIncr[string]) {
 	bindVar := Var("a")
-	bindVar.Node().SetLabel("bindVar")
+	bindVar.Node().SetLabel(fmt.Sprintf("bind - %s - var", label))
 
 	bind := Bind(bindVar, func(which string) Incr[string] {
 		if which == "a" {
-			av := Var("a-value")
-			av.Node().SetLabel("av")
-			a0 := Map(av, ident)
-			a0.Node().SetLabel("a0")
-			a1 := Map(a0, ident)
-			a1.Node().SetLabel("a1")
-			return a1
+			return Map(a, func(v string) string {
+				return v + "->" + label
+			})
 		}
 		if which == "b" {
-			bv := Var("b-value")
-			bv.Node().SetLabel("bv")
-			b0 := Map(bv, ident)
-			b0.Node().SetLabel("b0")
-			b1 := Map(b0, ident)
-			b1.Node().SetLabel("b1")
-			b2 := Map(b1, ident)
-			b2.Node().SetLabel("b2")
-			return b2
+			return Map(b, func(v string) string {
+				return v + "->" + label
+			})
 		}
 		return nil
 	})
-	bind.Node().SetLabel("bind")
+	bind.Node().SetLabel(fmt.Sprintf("bind - %s", label))
+	return bindVar, bind
+}
 
-	testutil.ItMatches(t, "bind\\[(.*)\\]:bind", bind.String())
+func Test_Bind_nested(t *testing.T) {
+	ctx := testContext()
 
-	s0 := Return("hello")
-	s0.Node().SetLabel("s0")
-	s1 := Map(s0, ident)
-	s1.Node().SetLabel("s1")
+	// a -> c
+	// a -> b -> c
+	// a -> c
 
-	o := Map2(bind, s1, concat)
-	o.Node().SetLabel("o")
+	a0 := createDynamicMaps("a0")
+	a1 := createDynamicMaps("a1")
+	bv, b := createDynamicBind("b", a0, a1)
+	cv, c := createDynamicBind("c", a0, b)
+	final := Map2(c, Return("final"), func(a, b string) string {
+		return a + "->" + b
+	})
 
 	g := New()
-	_ = Observe(g, o)
+	o := Observe(g, final)
 
-	testutil.ItsEqual(t, 1, bindVar.Node().height)
-	testutil.ItsEqual(t, 1, s0.Node().height)
-	testutil.ItsEqual(t, 2, s1.Node().height)
+	_ = g.Stabilize(ctx)
 
-	testutil.ItsEqual(t, 2, bind.Node().height)
-	testutil.ItsEqual(t, 3, o.Node().height)
+	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
+	testutil.ItsEqual(t, "a0-0+a0-1->c->final", o.Value())
 
-	testutil.ItsEqual(t, true, g.IsObserving(bindVar))
-	testutil.ItsEqual(t, true, g.IsObserving(s0))
-	testutil.ItsEqual(t, true, g.IsObserving(s1))
-	testutil.ItsEqual(t, true, g.IsObserving(bind))
-	testutil.ItsEqual(t, true, g.IsObserving(o))
+	cv.Set("b")
+	_ = g.Stabilize(ctx)
+
+	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
+	testutil.ItsEqual(t, "a0-0+a0-1->b->c->final", o.Value())
+
+	bv.Set("b")
+	_ = g.Stabilize(ctx)
+
+	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
+	testutil.ItsEqual(t, "a1-0+a1-1->b->c->final", o.Value())
+
+	bv.Set("a")
+	_ = g.Stabilize(ctx)
+
+	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
+	testutil.ItsEqual(t, "a0-0+a0-1->b->c->final", o.Value())
+
+	cv.Set("a")
+	_ = g.Stabilize(ctx)
+
+	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
+	testutil.ItsEqual(t, "a0-0+a0-1->c->final", o.Value())
+}
+
+func Test_Bind_nested_bindCreatesBind(t *testing.T) {
+	ctx := testContext()
+
+	cv := Var("a")
+	bv := Var("a")
+	c := Bind[string](cv, func(which string) Incr[string] {
+		a0 := createDynamicMaps("a0")
+		a1 := createDynamicMaps("a1")
+		bind := BindContext(bv, func(_ context.Context, which string) (Incr[string], error) {
+			if which == "a" {
+				return Map(a0, func(v string) string {
+					return v + "->" + "b"
+				}), nil
+			} else if which == "b" {
+				return Map(a1, func(v string) string {
+					return v + "->" + "b"
+				}), nil
+			}
+			return nil, fmt.Errorf("invalid bind node selector: %v", which)
+		})
+		bind.Node().SetLabel(fmt.Sprintf("bind - %s", "b"))
+		return bind
+	})
+	c.Node().SetLabel("c")
+	final := Map2(c, Return("final"), func(a, b string) string {
+		return a + "->" + b
+	})
+
+	g := New()
+	o := Observe(g, final)
 
 	err := g.Stabilize(ctx)
+
 	testutil.ItsNil(t, err)
+	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
+	testutil.ItsEqual(t, "a0-0+a0-1->b->final", o.Value())
 
-	testutil.ItsEqual(t, 1, bind.Node().boundAt)
-	testutil.ItsEqual(t, 1, bind.Node().changedAt)
-
-	testutil.ItsEqual(t, 1, bindVar.Node().height)
-	testutil.ItsEqual(t, 1, s0.Node().height)
-	testutil.ItsEqual(t, 2, s1.Node().height)
-	testutil.ItsEqual(t, 2, bind.Node().height)
-	testutil.ItsEqual(t, 4, o.Node().height)
-
-	testutil.ItsEqual(t, true, g.IsObserving(bindVar))
-	testutil.ItsEqual(t, true, g.IsObserving(s0))
-	testutil.ItsEqual(t, true, g.IsObserving(s1))
-	testutil.ItsEqual(t, true, g.IsObserving(bind))
-	testutil.ItsEqual(t, true, g.IsObserving(o))
-
-	testutil.ItsEqual(t, "a-valuehello", o.Value())
-
-	bindVar.Set("b")
+	cv.Set("b")
 	err = g.Stabilize(ctx)
+
 	testutil.ItsNil(t, err)
+	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
+	testutil.ItsEqual(t, "a0-0+a0-1->b->final", o.Value())
 
-	testutil.ItsEqual(t, 1, bindVar.Node().height)
-	testutil.ItsEqual(t, 1, s0.Node().height)
-	testutil.ItsEqual(t, 2, s1.Node().height)
-
-	testutil.ItsEqual(t, 2, bind.Node().height)
-	testutil.ItsEqual(t, 5, o.Node().height)
-
-	testutil.ItsEqual(t, true, g.IsObserving(bindVar))
-	testutil.ItsEqual(t, true, g.IsObserving(s0))
-	testutil.ItsEqual(t, true, g.IsObserving(s1))
-	testutil.ItsEqual(t, true, g.IsObserving(bind))
-	testutil.ItsEqual(t, true, g.IsObserving(o))
-
-	testutil.ItsEqual(t, "b-valuehello", o.Value())
-
-	bindVar.Set("a")
+	bv.Set("b")
 	err = g.Stabilize(ctx)
+
 	testutil.ItsNil(t, err)
+	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
+	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
+	testutil.ItsEqual(t, "a1-0+a1-1->b->final", o.Value())
 
-	testutil.ItsEqual(t, 1, bindVar.Node().height)
-	testutil.ItsEqual(t, 1, s0.Node().height)
-	testutil.ItsEqual(t, 2, s1.Node().height)
-
-	testutil.ItsEqual(t, 2, bind.Node().height)
-	testutil.ItsEqual(t, 5, o.Node().height)
-
-	testutil.ItsEqual(t, true, g.IsObserving(bindVar))
-	testutil.ItsEqual(t, true, g.IsObserving(s0))
-	testutil.ItsEqual(t, true, g.IsObserving(s1))
-	testutil.ItsEqual(t, true, g.IsObserving(bind))
-	testutil.ItsEqual(t, true, g.IsObserving(o))
-
-	testutil.ItsEqual(t, "a-valuehello", o.Value())
-
-	bindVar.Set("neither")
+	bv.Set("a")
 	err = g.Stabilize(ctx)
+
 	testutil.ItsNil(t, err)
+	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
+	testutil.ItsEqual(t, "a0-0+a0-1->b->final", o.Value())
 
-	testutil.ItsEqual(t, 1, bindVar.Node().height)
-	testutil.ItsEqual(t, 1, s0.Node().height)
-	testutil.ItsEqual(t, 2, s1.Node().height)
+	cv.Set("a")
+	err = g.Stabilize(ctx)
 
-	testutil.ItsEqual(t, 2, bind.Node().height)
-	testutil.ItsEqual(t, 5, o.Node().height)
-
-	testutil.ItsEqual(t, true, g.IsObserving(bindVar))
-	testutil.ItsEqual(t, true, g.IsObserving(s0))
-	testutil.ItsEqual(t, true, g.IsObserving(s1))
-	testutil.ItsEqual(t, true, g.IsObserving(bind))
-	testutil.ItsEqual(t, true, g.IsObserving(o))
-
-	testutil.ItsEqual(t, "hello", o.Value())
+	testutil.ItsNil(t, err)
+	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
+	testutil.ItsEqual(t, "a0-0+a0-1->b->final", o.Value())
 }

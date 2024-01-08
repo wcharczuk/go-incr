@@ -12,6 +12,7 @@ import (
 func testContext() context.Context {
 	ctx := context.Background()
 	ctx = testutil.WithBlueDye(ctx)
+	ctx = WithTracing(ctx)
 	return ctx
 }
 

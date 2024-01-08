@@ -49,6 +49,7 @@ func BindContext[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], erro
 // based on input incrementals.
 type BindIncr[A any] interface {
 	Incr[A]
+	Bind(context.Context) error
 	fmt.Stringer
 }
 
@@ -87,11 +88,15 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 		if oldIncr.Node().id != newIncr.Node().id {
 			bindChanged = true
 			b.unlinkOld(ctx, oldIncr)
-			b.linkNew(ctx, newIncr)
+			if err = b.linkNew(ctx, newIncr); err != nil {
+				return err
+			}
 		}
 	} else if newIncr != nil {
 		bindChanged = true
-		b.linkNew(ctx, newIncr)
+		if err = b.linkNew(ctx, newIncr); err != nil {
+			return err
+		}
 	} else if oldIncr != nil {
 		bindChanged = true
 		b.unlinkOld(ctx, oldIncr)
@@ -114,7 +119,7 @@ func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, oldIncr INode) {
 	b.bound = nil
 }
 
-func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
+func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) error {
 	TracePrintf(ctx, "bind linking new child %v", newIncr)
 
 	// for each of the nodes that have the bind node as an input
@@ -128,9 +133,16 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
 	for _, o := range b.Node().observers {
 		b.Node().graph.DiscoverNodes(o, newIncr)
 	}
+
+	// NOTE(wc): problem, below `b` might not have been observed
+	// yet, so the "graph" won't be set on the node metadata.
+	//
+	// this is happening because we're calling "Bind" on this node before observing.
+
 	newIncr.Node().changedAt = b.Node().graph.stabilizationNum
 	b.Node().graph.recomputeHeap.Add(newIncr)
 	b.bound = newIncr
+	return nil
 }
 
 func (b *bindIncr[A, B]) String() string {
