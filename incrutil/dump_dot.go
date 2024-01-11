@@ -2,7 +2,6 @@ package incrutil
 
 import (
 	"bytes"
-	"io"
 	"os"
 	"os/exec"
 
@@ -31,10 +30,6 @@ func DumpDot(root incr.INode, path string) error {
 
 	cmd := exec.Command(dotFullPath, "-Tpng")
 	cmd.Stdin = dotContents
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return err
-	}
-	_, _ = io.Copy(dotOutput, bytes.NewReader(output))
-	return nil
+	cmd.Stdout = dotOutput
+	return cmd.Run()
 }
