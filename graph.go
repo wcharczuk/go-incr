@@ -2,6 +2,7 @@ package incr
 
 import (
 	"context"
+	"fmt"
 	"sync/atomic"
 	"time"
 )
@@ -208,14 +209,14 @@ func (graph *Graph) DiscoverObserver(on IObserver) {
 
 // UndiscoverAllNodes removes a node and all its parents
 // from a observation within a graph for a given observer.
-func (graph *Graph) UndiscoverNodes(on IObserver, gn INode) {
+func (graph *Graph) UndiscoverNodes(ctx context.Context, on IObserver, gn INode) {
 	graph.UndiscoverNode(on, gn)
 	gnn := gn.Node()
 	for _, c := range gnn.parents {
 		if !graph.IsObserving(c) {
 			continue
 		}
-		graph.UndiscoverNodes(on, c)
+		graph.UndiscoverNodes(ctx, on, c)
 	}
 }
 
@@ -233,7 +234,6 @@ func (graph *Graph) UndiscoverNode(on IObserver, gn INode) {
 		delete(graph.observed, gnn.id)
 		graph.numNodes--
 		graph.recomputeHeap.Remove(gn)
-
 		graph.handleAfterStabilization.Remove(gn.Node().ID())
 	}
 }
@@ -343,6 +343,10 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	graph.numNodesRecomputed++
 
 	nn := n.Node()
+	if nn == nil {
+		return fmt.Errorf("attempting to recompute uninitialized node; cannot continue")
+	}
+
 	nn.numRecomputes++
 	nn.recomputedAt = graph.stabilizationNum
 
@@ -386,7 +390,7 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	// recompute all the children of this node, i.e. the nodes that
 	// depend on this node if they need to be recomputed.
 	for _, c := range nn.children {
-		if c.Node().ShouldRecompute() {
+		if graph.IsObserving(c) && c.Node().ShouldRecompute() {
 			graph.recomputeHeap.Add(c)
 		} else {
 			TracePrintf(ctx, "stabilization is skipping recompute %v child %v", n, c)

@@ -1,6 +1,9 @@
 package incr
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 // Observe observes a node, specifically including it for computation
 // as well as all of its parents.
@@ -25,13 +28,13 @@ func Observe[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
 // of incrementals starting a given input.
 type ObserveIncr[A any] interface {
 	Incr[A]
-	Unobserve()
+	Unobserve(context.Context)
 }
 
 // IObserver is an INode that can be unobserved.
 type IObserver interface {
 	INode
-	Unobserve()
+	Unobserve(context.Context)
 }
 
 var (
@@ -49,9 +52,9 @@ func (o *observeIncr[A]) Node() *Node { return o.n }
 
 // Unobserve effectively removes a given node
 // from the observed ref count for a graph.
-func (o *observeIncr[A]) Unobserve() {
+func (o *observeIncr[A]) Unobserve(ctx context.Context) {
 	g := o.n.graph
-	g.UndiscoverNodes(o, o.input)
+	g.UndiscoverNodes(ctx, o, o.input)
 	g.UndiscoverObserver(o)
 	o.input = nil
 }

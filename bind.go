@@ -79,7 +79,7 @@ func (b *bindIncr[A, B]) Value() (output B) {
 
 func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 	if b.n.graph == nil {
-		panic("bind node hasn't been observed yet!")
+		return fmt.Errorf("cannot bind %v; graph is unset", b)
 	}
 
 	oldIncr := b.bound
@@ -114,19 +114,14 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 }
 
 func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, oldIncr INode) {
-	Unlink(b, oldIncr)
+	TracePrintf(ctx, "%v unlinking old child %v", b, oldIncr)
+
 	for _, c := range b.n.children {
-		TracePrintf(ctx, "%v unlinking child %v", b, c)
+		Unlink(c, oldIncr)
 	}
 	graph := b.Node().graph
 	for _, o := range b.Node().observers {
-		graph.UndiscoverNodes(o, oldIncr)
-	}
-	// in case there are still shared incoming nodes
-	// to the old node, we need to fully "quiesce" the old node
-	// by unlinking those parents.
-	for _, p := range oldIncr.Node().parents {
-		Unlink(oldIncr, p)
+		graph.UndiscoverNodes(ctx, o, oldIncr)
 	}
 	b.bound = nil
 }
@@ -138,8 +133,8 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) error {
 	// link the new incremental as an input as well (i.e. the bind node
 	// itself and the "bound" node are peers in a way).
 	// we do this mostly to keep the node heights from getting out of control.
-	Link(b, newIncr)
 	for _, c := range b.n.children {
+		Link(c, newIncr)
 		c.Node().recomputeHeights()
 	}
 	for _, o := range b.Node().observers {
