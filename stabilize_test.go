@@ -572,8 +572,8 @@ func Test_Stabilize_bind(t *testing.T) {
 	ItsEqual(t, 1, len(m0.Node().children))
 
 	ItsEqual(t, 0, len(i1.Node().parents))
-	ItsEqual(t, 1, len(i1.Node().children))
-	ItsEqual(t, 1, len(m1.Node().parents), "m1 parents should include the input")
+	ItsEqual(t, 0, len(i1.Node().children))
+	ItsEqual(t, 0, len(m1.Node().parents))
 	ItsEqual(t, 0, len(m1.Node().children), "m1 should be swapped out for m0 at this point and have no children")
 
 	ItsEqual(t, true, graph.IsObserving(i0))

@@ -78,6 +78,10 @@ func (b *bindIncr[A, B]) Value() (output B) {
 }
 
 func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
+	if b.n.graph == nil {
+		panic("bind node hasn't been observed yet!")
+	}
+
 	oldIncr := b.bound
 	newIncr, err := b.fn(ctx, b.a.Value())
 	if err != nil {
@@ -91,6 +95,8 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 			if err = b.linkNew(ctx, newIncr); err != nil {
 				return err
 			}
+		} else {
+			TracePrintf(ctx, "%v bound node unchanged %v vs. %v", b, oldIncr, newIncr)
 		}
 	} else if newIncr != nil {
 		bindChanged = true
@@ -108,37 +114,37 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 }
 
 func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, oldIncr INode) {
+	Unlink(b, oldIncr)
 	for _, c := range b.n.children {
-		TracePrintf(ctx, "bind unlinking child %v", c)
-		Unlink(c, oldIncr)
+		TracePrintf(ctx, "%v unlinking child %v", b, c)
 	}
 	graph := b.Node().graph
 	for _, o := range b.Node().observers {
 		graph.UndiscoverNodes(o, oldIncr)
 	}
+	// in case there are still shared incoming nodes
+	// to the old node, we need to fully "quiesce" the old node
+	// by unlinking those parents.
+	for _, p := range oldIncr.Node().parents {
+		Unlink(oldIncr, p)
+	}
 	b.bound = nil
 }
 
 func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) error {
-	TracePrintf(ctx, "bind linking new child %v", newIncr)
+	TracePrintf(ctx, "%v linking new child %v", b, newIncr)
 
 	// for each of the nodes that have the bind node as an input
 	// link the new incremental as an input as well (i.e. the bind node
 	// itself and the "bound" node are peers in a way).
 	// we do this mostly to keep the node heights from getting out of control.
+	Link(b, newIncr)
 	for _, c := range b.n.children {
-		Link(c, newIncr)
 		c.Node().recomputeHeights()
 	}
 	for _, o := range b.Node().observers {
 		b.Node().graph.DiscoverNodes(o, newIncr)
 	}
-
-	// NOTE(wc): problem, below `b` might not have been observed
-	// yet, so the "graph" won't be set on the node metadata.
-	//
-	// this is happening because we're calling "Bind" on this node before observing.
-
 	newIncr.Node().changedAt = b.Node().graph.stabilizationNum
 	b.Node().graph.recomputeHeap.Add(newIncr)
 	b.bound = newIncr

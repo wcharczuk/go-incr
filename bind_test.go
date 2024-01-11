@@ -1,8 +1,12 @@
 package incr
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -93,7 +97,7 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.ItsEqual(t, 3, a1.Node().height)
 
 	testutil.ItsEqual(t, 2, bind.Node().height)
-	testutil.ItsEqual(t, 4, o.Node().height)
+	testutil.ItsEqual(t, 5, o.Node().height)
 
 	testutil.ItsEqual(t, true, g.IsObserving(bindVar))
 	testutil.ItsEqual(t, true, g.IsObserving(s0))
@@ -131,7 +135,7 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.ItsEqual(t, 4, b2.Node().height)
 
 	testutil.ItsEqual(t, 2, bind.Node().height)
-	testutil.ItsEqual(t, 5, o.Node().height)
+	testutil.ItsEqual(t, 6, o.Node().height)
 
 	testutil.ItsEqual(t, true, g.IsObserving(bindVar))
 	testutil.ItsEqual(t, true, g.IsObserving(s0))
@@ -170,7 +174,7 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.ItsEqual(t, 4, b2.Node().height)
 
 	testutil.ItsEqual(t, 2, bind.Node().height)
-	testutil.ItsEqual(t, 5, o.Node().height)
+	testutil.ItsEqual(t, 6, o.Node().height)
 
 	testutil.ItsEqual(t, true, g.IsObserving(bindVar))
 	testutil.ItsEqual(t, true, g.IsObserving(s0))
@@ -298,7 +302,7 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 
 	cv := Var("a")
 	bv := Var("a")
-	c := Bind[string](cv, func(which string) Incr[string] {
+	c := BindContext[string](cv, func(ctx context.Context, _ string) (Incr[string], error) {
 		a0 := createDynamicMaps("a0")
 		a1 := createDynamicMaps("a1")
 		bind := BindContext(bv, func(_ context.Context, which string) (Incr[string], error) {
@@ -314,7 +318,8 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 			return nil, fmt.Errorf("invalid bind node selector: %v", which)
 		})
 		bind.Node().SetLabel(fmt.Sprintf("bind - %s", "b"))
-		return bind
+		TracePrintf(ctx, "returning new bind node")
+		return bind, nil
 	})
 	c.Node().SetLabel("c")
 	final := Map2(c, Return("final"), func(a, b string) string {
@@ -324,28 +329,38 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 	g := New()
 	o := Observe(g, final)
 
+	TracePrintln(ctx, "first stabilization")
 	err := g.Stabilize(ctx)
-
 	testutil.ItsNil(t, err)
+	// err = dumpDot(o, "$HOME/Desktop/first.png")
+	testutil.ItsNil(t, err)
+
 	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
 	testutil.ItsEqual(t, "a0-0+a0-1->b->final", o.Value())
 
 	cv.Set("b")
+	TracePrintln(ctx, "setting c to 'b'")
 	err = g.Stabilize(ctx)
-
 	testutil.ItsNil(t, err)
+	// err = dumpDot(o, "$HOME/Desktop/second.png")
+	testutil.ItsNil(t, err)
+
 	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
 	testutil.ItsEqual(t, "a0-0+a0-1->b->final", o.Value())
 
 	bv.Set("b")
+	TracePrintln(ctx, "setting b to 'b'")
 	err = g.Stabilize(ctx)
-
 	testutil.ItsNil(t, err)
+	// err = dumpDot(o, "$HOME/Desktop/third.png")
+	testutil.ItsNil(t, err)
+
 	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
 	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
 	testutil.ItsEqual(t, "a1-0+a1-1->b->final", o.Value())
 
 	bv.Set("a")
+	TracePrintln(ctx, "setting b to 'a'")
 	err = g.Stabilize(ctx)
 
 	testutil.ItsNil(t, err)
@@ -353,9 +368,35 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 	testutil.ItsEqual(t, "a0-0+a0-1->b->final", o.Value())
 
 	cv.Set("a")
+	TracePrintln(ctx, "setting c to 'a'")
 	err = g.Stabilize(ctx)
 
 	testutil.ItsNil(t, err)
 	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
 	testutil.ItsEqual(t, "a0-0+a0-1->b->final", o.Value())
+}
+
+func dumpDot(root INode, path string) error {
+	dotContents := new(bytes.Buffer)
+	if err := Dot(dotContents, root); err != nil {
+		return err
+	}
+	dotOutput, err := os.Create(os.ExpandEnv(path))
+	if err != nil {
+		return err
+	}
+	defer func() { _ = dotOutput.Close() }()
+	dotFullPath, err := exec.LookPath("dot")
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command(dotFullPath, "-Tpng")
+	cmd.Stdin = dotContents
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return err
+	}
+	_, _ = io.Copy(dotOutput, bytes.NewReader(output))
+	return nil
 }

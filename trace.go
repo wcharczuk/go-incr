@@ -21,11 +21,13 @@ func WithTracing(ctx context.Context) context.Context {
 	return WithTracingOutputs(ctx, os.Stderr, os.Stderr)
 }
 
+const defaultLoggerFlags = log.LUTC | log.Lshortfile | log.Ldate | log.Lmicroseconds
+
 // WithTracingOutputs adds a tracer to a given context with given outputs.
 func WithTracingOutputs(ctx context.Context, output, errOutput io.Writer) context.Context {
 	tracer := &tracer{
-		log:    log.New(output, "incr.trace|", log.LUTC|log.Lshortfile|log.Ldate|log.Lmicroseconds),
-		errLog: log.New(errOutput, "incr.trace.err|", log.LUTC|log.Lshortfile|log.Ldate|log.Lmicroseconds),
+		log:    log.New(output, "incr.trace|", defaultLoggerFlags),
+		errLog: log.New(errOutput, "incr.trace.err|", defaultLoggerFlags),
 	}
 	return WithTracer(ctx, tracer)
 }
@@ -48,7 +50,7 @@ func GetTracer(ctx context.Context) Tracer {
 // TracePrintln prints a line to the tracer on a given context.
 func TracePrintln(ctx context.Context, args ...any) {
 	if tracer := GetTracer(ctx); tracer != nil {
-		tracer.Print(args...)
+		tracer.Print(FormatStabilizationNumber(ctx) + fmt.Sprint(args...))
 	}
 }
 
@@ -56,14 +58,14 @@ func TracePrintln(ctx context.Context, args ...any) {
 // context with a given format and args.
 func TracePrintf(ctx context.Context, format string, args ...any) {
 	if tracer := GetTracer(ctx); tracer != nil {
-		tracer.Print(fmt.Sprintf(format, args...))
+		tracer.Print(FormatStabilizationNumber(ctx) + fmt.Sprintf(format, args...))
 	}
 }
 
 // TraceErrorln prints a line to the error output of a tracer on a given context.
 func TraceErrorln(ctx context.Context, args ...any) {
 	if tracer := GetTracer(ctx); tracer != nil {
-		tracer.Error(args...)
+		tracer.Error(FormatStabilizationNumber(ctx) + fmt.Sprint(args...))
 	}
 }
 
@@ -71,7 +73,7 @@ func TraceErrorln(ctx context.Context, args ...any) {
 // on a given context with a given format and args.
 func TraceErrorf(ctx context.Context, format string, args ...any) {
 	if tracer := GetTracer(ctx); tracer != nil {
-		tracer.Error(fmt.Sprintf(format, args...))
+		tracer.Error(FormatStabilizationNumber(ctx) + fmt.Sprintf(format, args...))
 	}
 }
 
@@ -86,4 +88,29 @@ func (t *tracer) Print(args ...any) {
 
 func (t *tracer) Error(args ...any) {
 	_ = t.errLog.Output(3, fmt.Sprint(args...))
+}
+
+type stabilizationNumberKey struct{}
+
+// WithStabilizationNumber adds a stabilization number to a context.
+func WithStabilizationNumber(ctx context.Context, stabilizationNumber uint64) context.Context {
+	return context.WithValue(ctx, stabilizationNumberKey{}, stabilizationNumber)
+}
+
+// GetStabilizationNumber gets the stabilization number from a context.
+func GetStabilizationNumber(ctx context.Context) (stabilizationNumber uint64, ok bool) {
+	if value := ctx.Value(stabilizationNumberKey{}); value != nil {
+		stabilizationNumber, ok = value.(uint64)
+		return
+	}
+	return
+}
+
+// FormatStabilizationNumber formats the stabilization number from a context for tracing output.
+func FormatStabilizationNumber(ctx context.Context) (output string) {
+	num, ok := GetStabilizationNumber(ctx)
+	if !ok {
+		return
+	}
+	return fmt.Sprintf("%d: ", num)
 }

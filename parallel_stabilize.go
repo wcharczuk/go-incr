@@ -26,7 +26,7 @@ func (graph *Graph) ParallelStabilize(ctx context.Context) (err error) {
 	if err = graph.ensureNotStabilizing(ctx); err != nil {
 		return
 	}
-	graph.stabilizeStart(ctx)
+	ctx = graph.stabilizeStart(ctx)
 	defer func() {
 		graph.stabilizeEnd(ctx, err)
 	}()
