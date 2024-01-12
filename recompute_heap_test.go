@@ -3,6 +3,7 @@ package incr
 import (
 	"testing"
 
+	"github.com/wcharczuk/go-incr/testutil"
 	. "github.com/wcharczuk/go-incr/testutil"
 )
 
@@ -528,11 +529,52 @@ func Test_recomputeHeap_fix(t *testing.T) {
 	ItsEqual(t, 5, rh.maxHeight)
 }
 
-func allHeight(values []INode, height int) bool {
-	for _, v := range values {
-		if v.Node().height != height {
-			return false
-		}
+func Test_recomputeHeap_sanityCheck_ok_badNodeHeight(t *testing.T) {
+	rh := newRecomputeHeap(8)
+
+	n_1_00 := newMockBareNodeWithHeight(1)
+	n_2_00 := newMockBareNodeWithHeight(2)
+	n_2_01 := newMockBareNodeWithHeight(2)
+	n_3_00 := newMockBareNodeWithHeight(3)
+	n_3_01 := newMockBareNodeWithHeight(3)
+	n_3_02 := newMockBareNodeWithHeight(3)
+
+	rh.heights = []*list[Identifier, INode]{
+		nil,
+		newList(n_1_00),
+		newList(n_2_00, n_2_01),
+		newList(n_3_00, n_3_01, n_3_02),
 	}
-	return true
+
+	err := rh.sanityCheck()
+	testutil.ItsNil(t, err)
+
+	n_3_00.n.height = 2
+
+	err = rh.sanityCheck()
+	testutil.ItsNotNil(t, err)
+}
+
+func Test_recomputeHeap_sanityCheck_badItemHeight(t *testing.T) {
+	rh := newRecomputeHeap(8)
+
+	n_1_00 := newMockBareNodeWithHeight(1)
+	n_2_00 := newMockBareNodeWithHeight(2)
+	n_2_01 := newMockBareNodeWithHeight(2)
+	n_3_00 := newMockBareNodeWithHeight(3)
+	n_3_01 := newMockBareNodeWithHeight(3)
+	n_3_02 := newMockBareNodeWithHeight(3)
+
+	height2, height2Items := newListWithItems(n_2_00, n_2_01)
+
+	rh.heights = []*list[Identifier, INode]{
+		nil,
+		newList(n_1_00),
+		height2,
+		newList(n_3_00, n_3_01, n_3_02),
+	}
+
+	height2Items[0].height = 1
+	err := rh.sanityCheck()
+	testutil.ItsNotNil(t, err)
 }

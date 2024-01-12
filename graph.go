@@ -384,7 +384,7 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	}
 
 	if len(nn.onUpdateHandlers) > 0 {
-		graph.handleAfterStabilization.Push(nn.id, nn.onUpdateHandlers)
+		graph.handleAfterStabilization.Push(nn.id, nn.onUpdateHandlers, 0)
 	}
 
 	// recompute all the children of this node, i.e. the nodes that

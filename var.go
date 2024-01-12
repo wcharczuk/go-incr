@@ -51,9 +51,10 @@ func (vn *varIncr[T]) Set(v T) {
 		vn.setDuringStabilizationValue = v
 		vn.setDuringStabilization = true
 		// NOTE(wc): this .Push call is interlocked!
-		vn.n.graph.setDuringStabilization.Push(vn.n.id, vn)
+		vn.n.graph.setDuringStabilization.Push(vn.n.id, vn, vn.n.height)
 		return
 	}
+
 	vn.value = v
 	if vn.n.graph != nil {
 		vn.n.graph.SetStale(vn)

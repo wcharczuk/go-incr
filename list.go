@@ -27,10 +27,6 @@ func (l *list[K, V]) IsEmpty() bool {
 	return l.isEmptyUnsafe()
 }
 
-func (l *list[K, V]) isEmptyUnsafe() bool {
-	return len(l.items) == 0
-}
-
 // Len returns the length of the list.
 func (l *list[K, V]) Len() int {
 	l.mu.Lock()
@@ -38,21 +34,18 @@ func (l *list[K, V]) Len() int {
 	return l.lenUnsafe()
 }
 
-func (l *list[K, V]) lenUnsafe() int {
-	return len(l.items)
-}
-
 // Push appends a node to the end, or tail, of the list.
-func (l *list[K, V]) Push(k K, v V) *listItem[K, V] {
+func (l *list[K, V]) Push(k K, v V, height int) *listItem[K, V] {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	return l.pushUnsafe(k, v)
+	return l.pushUnsafe(k, v, height)
 }
 
-func (l *list[K, V]) pushUnsafe(k K, v V) *listItem[K, V] {
+func (l *list[K, V]) pushUnsafe(k K, v V, height int) *listItem[K, V] {
 	item := &listItem[K, V]{
-		key:   k,
-		value: v,
+		key:    k,
+		value:  v,
+		height: height,
 	}
 	if l.items == nil {
 		l.items = make(map[K]*listItem[K, V])
@@ -73,16 +66,29 @@ func (l *list[K, V]) pushUnsafe(k K, v V) *listItem[K, V] {
 }
 
 // PushFront appends a node to the front, or head, of the list.
-func (l *list[K, V]) PushFront(k K, v V) *listItem[K, V] {
+func (l *list[K, V]) PushFront(k K, v V, height int) *listItem[K, V] {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	return l.pushFrontUnsafe(k, v)
+	return l.pushFrontUnsafe(k, v, height)
 }
 
-func (l *list[K, V]) pushFrontUnsafe(k K, v V) *listItem[K, V] {
+//
+// internal & unsafe methods
+//
+
+func (l *list[K, V]) isEmptyUnsafe() bool {
+	return len(l.items) == 0
+}
+
+func (l *list[K, V]) lenUnsafe() int {
+	return len(l.items)
+}
+
+func (l *list[K, V]) pushFrontUnsafe(k K, v V, height int) *listItem[K, V] {
 	item := &listItem[K, V]{
-		key:   k,
-		value: v,
+		key:    k,
+		value:  v,
+		height: height,
 	}
 	if l.items == nil {
 		l.items = make(map[K]*listItem[K, V])

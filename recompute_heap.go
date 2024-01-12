@@ -156,8 +156,7 @@ func (rh *recomputeHeap) addNodeUnsafe(s INode) {
 	if rh.heights[sn.height] == nil {
 		rh.heights[sn.height] = new(list[Identifier, INode])
 	}
-	item := rh.heights[sn.height].pushUnsafe(sn.id, s)
-	item.height = sn.height
+	item := rh.heights[sn.height].pushUnsafe(sn.id, s, sn.height)
 	rh.lookup[sn.id] = item
 }
 
@@ -224,9 +223,6 @@ func (rh *recomputeHeap) sanityCheck() error {
 			}
 			if item.height != item.value.Node().height {
 				return fmt.Errorf("recompute heap; sanity check; at height %d item has height %d and node has height %d", heightIndex, item.height, item.value.Node().height)
-			}
-			if heightIndex != item.value.Node().height {
-				return fmt.Errorf("recompute heap; sanity check; at item height %d node has height %d", heightIndex, item.value.Node().height)
 			}
 		}
 	}

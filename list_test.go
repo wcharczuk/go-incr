@@ -6,8 +6,8 @@ import (
 	. "github.com/wcharczuk/go-incr/testutil"
 )
 
-func idWithNode(n INode) (Identifier, INode) {
-	return n.Node().id, n
+func idWithNode(n INode) (Identifier, INode, int) {
+	return n.Node().id, n, n.Node().height
 }
 
 func Test_list_Push_Pop(t *testing.T) {

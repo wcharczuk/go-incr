@@ -60,6 +60,14 @@ func identMany[T any](v ...T) (out T) {
 
 var _ Incr[any] = (*mockBareNode)(nil)
 
+func newMockBareNodeWithHeight(height int) *mockBareNode {
+	mbn := &mockBareNode{
+		n: NewNode(),
+	}
+	mbn.n.height = height
+	return mbn
+}
+
 func newMockBareNode() *mockBareNode {
 	return &mockBareNode{
 		n: NewNode(),
@@ -104,4 +112,29 @@ type heightIncr struct {
 
 func (hi heightIncr) Node() *Node {
 	return hi.n
+}
+
+func allHeight(values []INode, height int) bool {
+	for _, v := range values {
+		if v.Node().height != height {
+			return false
+		}
+	}
+	return true
+}
+
+func newList(items ...INode) *list[Identifier, INode] {
+	l := new(list[Identifier, INode])
+	for _, i := range items {
+		l.Push(i.Node().id, i, i.Node().height)
+	}
+	return l
+}
+
+func newListWithItems(items ...INode) (l *list[Identifier, INode], outputItems []*listItem[Identifier, INode]) {
+	l = new(list[Identifier, INode])
+	for _, i := range items {
+		outputItems = append(outputItems, l.Push(i.Node().id, i, i.Node().height))
+	}
+	return
 }
