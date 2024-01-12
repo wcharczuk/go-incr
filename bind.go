@@ -78,10 +78,6 @@ func (b *bindIncr[A, B]) Value() (output B) {
 }
 
 func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
-	if b.n.graph == nil {
-		return fmt.Errorf("cannot bind %v; graph is unset", b)
-	}
-
 	oldIncr := b.bound
 	newIncr, err := b.fn(ctx, b.a.Value())
 	if err != nil {
@@ -92,17 +88,11 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 		if oldIncr.Node().id != newIncr.Node().id {
 			bindChanged = true
 			b.unlinkOld(ctx, oldIncr)
-			if err = b.linkNew(ctx, newIncr); err != nil {
-				return err
-			}
-		} else {
-			TracePrintf(ctx, "%v bound node unchanged %v vs. %v", b, oldIncr, newIncr)
+			b.linkNew(ctx, newIncr)
 		}
 	} else if newIncr != nil {
 		bindChanged = true
-		if err = b.linkNew(ctx, newIncr); err != nil {
-			return err
-		}
+		b.linkNew(ctx, newIncr)
 	} else if oldIncr != nil {
 		bindChanged = true
 		b.unlinkOld(ctx, oldIncr)
@@ -126,7 +116,7 @@ func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, oldIncr INode) {
 	b.bound = nil
 }
 
-func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) error {
+func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
 	TracePrintf(ctx, "%v linking new child %v", b, newIncr)
 
 	// for each of the nodes that have the bind node as an input
@@ -143,7 +133,6 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) error {
 	newIncr.Node().changedAt = b.Node().graph.stabilizationNum
 	b.Node().graph.recomputeHeap.Add(newIncr)
 	b.bound = newIncr
-	return nil
 }
 
 func (b *bindIncr[A, B]) String() string {
