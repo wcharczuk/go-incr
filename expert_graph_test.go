@@ -23,14 +23,14 @@ func Test_ExpertGraph_SetStabilizationNum(t *testing.T) {
 	testutil.ItsEqual(t, 1234, eg.StabilizationNum())
 }
 
-func Test_ExpertGraph_AddRecomputeHeap(t *testing.T) {
+func Test_ExpertGraph_RecomputeHeapAdd(t *testing.T) {
 	g := New()
 	eg := ExpertGraph(g)
 
 	n1 := newMockBareNode()
 	n2 := newMockBareNode()
 
-	eg.AddRecomputeHeap(n1, n2)
+	eg.RecomputeHeapAdd(n1, n2)
 	testutil.ItsEqual(t, 2, g.recomputeHeap.Len())
 	testutil.ItsEqual(t, 2, eg.RecomputeHeapLen())
 }
@@ -55,7 +55,7 @@ func Test_ExpertGraph_RecomputeHeap(t *testing.T) {
 	n2 := newMockBareNode()
 	n2.n.height = 3
 
-	eg.AddRecomputeHeap(n1, n2)
+	eg.RecomputeHeapAdd(n1, n2)
 	testutil.ItsEqual(t, 2, g.recomputeHeap.Len())
 
 	recomputeHeapIDs := eg.RecomputeHeap()

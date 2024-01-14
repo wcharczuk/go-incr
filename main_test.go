@@ -2,6 +2,7 @@ package incr
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"os"
 	"testing"
@@ -137,4 +138,35 @@ func newListWithItems(items ...INode) (l *list[Identifier, INode], outputItems [
 		outputItems = append(outputItems, l.Push(i.Node().id, i, i.Node().height))
 	}
 	return
+}
+
+func createDynamicMaps(label string) Incr[string] {
+	mapVar0 := Var(fmt.Sprintf("%s-0", label))
+	mapVar1 := Var(fmt.Sprintf("%s-1", label))
+	m := Map2(mapVar0, mapVar1, func(a, b string) string {
+		return a + "+" + b
+	})
+	m.Node().SetLabel(label)
+	return m
+}
+
+func createDynamicBind(label string, a, b Incr[string]) (VarIncr[string], BindIncr[string]) {
+	bindVar := Var("a")
+	bindVar.Node().SetLabel(fmt.Sprintf("bind - %s - var", label))
+
+	bind := Bind(bindVar, func(which string) Incr[string] {
+		if which == "a" {
+			return Map(a, func(v string) string {
+				return v + "->" + label
+			})
+		}
+		if which == "b" {
+			return Map(b, func(v string) string {
+				return v + "->" + label
+			})
+		}
+		return nil
+	})
+	bind.Node().SetLabel(fmt.Sprintf("bind - %s", label))
+	return bindVar, bind
 }

@@ -18,7 +18,7 @@ type IExpertGraph interface {
 	NumNodesChanged() uint64
 	StabilizationNum() uint64
 	SetStabilizationNum(uint64)
-	AddRecomputeHeap(...INode)
+	RecomputeHeapAdd(...INode)
 	RecomputeHeapLen() int
 	RecomputeHeap() []Identifier
 }
@@ -51,7 +51,7 @@ func (eg *expertGraph) SetStabilizationNum(stabilizationNum uint64) {
 	eg.graph.stabilizationNum = stabilizationNum
 }
 
-func (eg *expertGraph) AddRecomputeHeap(nodes ...INode) {
+func (eg *expertGraph) RecomputeHeapAdd(nodes ...INode) {
 	eg.graph.recomputeHeap.Add(nodes...)
 }
 

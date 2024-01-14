@@ -3,7 +3,6 @@ package incr
 import (
 	"testing"
 
-	"github.com/wcharczuk/go-incr/testutil"
 	. "github.com/wcharczuk/go-incr/testutil"
 )
 
@@ -547,12 +546,12 @@ func Test_recomputeHeap_sanityCheck_ok_badNodeHeight(t *testing.T) {
 	}
 
 	err := rh.sanityCheck()
-	testutil.ItsNil(t, err)
+	ItsNil(t, err)
 
 	n_3_00.n.height = 2
 
 	err = rh.sanityCheck()
-	testutil.ItsNotNil(t, err)
+	ItsNotNil(t, err)
 }
 
 func Test_recomputeHeap_sanityCheck_badItemHeight(t *testing.T) {
@@ -576,5 +575,5 @@ func Test_recomputeHeap_sanityCheck_badItemHeight(t *testing.T) {
 
 	height2Items[0].height = 1
 	err := rh.sanityCheck()
-	testutil.ItsNotNil(t, err)
+	ItsNotNil(t, err)
 }

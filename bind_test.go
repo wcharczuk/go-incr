@@ -214,37 +214,6 @@ func Test_Bind_error(t *testing.T) {
 	testutil.ItsEqual(t, "this is just a test", gotError.Error())
 }
 
-func createDynamicMaps(label string) Incr[string] {
-	mapVar0 := Var(fmt.Sprintf("%s-0", label))
-	mapVar1 := Var(fmt.Sprintf("%s-1", label))
-	m := Map2(mapVar0, mapVar1, func(a, b string) string {
-		return a + "+" + b
-	})
-	m.Node().SetLabel(label)
-	return m
-}
-
-func createDynamicBind(label string, a, b Incr[string]) (VarIncr[string], BindIncr[string]) {
-	bindVar := Var("a")
-	bindVar.Node().SetLabel(fmt.Sprintf("bind - %s - var", label))
-
-	bind := Bind(bindVar, func(which string) Incr[string] {
-		if which == "a" {
-			return Map(a, func(v string) string {
-				return v + "->" + label
-			})
-		}
-		if which == "b" {
-			return Map(b, func(v string) string {
-				return v + "->" + label
-			})
-		}
-		return nil
-	})
-	bind.Node().SetLabel(fmt.Sprintf("bind - %s", label))
-	return bindVar, bind
-}
-
 func Test_Bind_nested(t *testing.T) {
 	ctx := testContext()
 
@@ -295,7 +264,6 @@ func Test_Bind_nested(t *testing.T) {
 
 func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 	ctx := testContext()
-	ctx = WithTracing(ctx)
 
 	cv := Var("a")
 	cv.Node().SetLabel("cv")
@@ -305,16 +273,18 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 		a0 := createDynamicMaps("a0")
 		a1 := createDynamicMaps("a1")
 		bind := BindContext(bv, func(_ context.Context, which string) (Incr[string], error) {
-			if which == "a" {
+			switch which {
+			case "a":
 				return Map(a0, func(v string) string {
 					return v + "->" + "b"
 				}), nil
-			} else if which == "b" {
+			case "b":
 				return Map(a1, func(v string) string {
 					return v + "->" + "b"
 				}), nil
+			default:
+				return nil, fmt.Errorf("invalid bind node selector: %v", which)
 			}
-			return nil, fmt.Errorf("invalid bind node selector: %v", which)
 		})
 		bind.Node().SetLabel(fmt.Sprintf("bind - %s", "b"))
 		TracePrintf(ctx, "returning new bind node")
@@ -367,4 +337,31 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 
 	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
 	testutil.ItsEqual(t, "a0-0+a0-1->b->final", o.Value())
+}
+
+func Test_Bind_nested_bindUnobserved(t *testing.T) {
+	ctx := testContext()
+
+	v := Var("a")
+
+	m0v := Var("foo")
+
+	m0 := Map2(m0v, Return("bar"), concat)
+
+	b := Bind(v, func(vv string) Incr[string] {
+		return m0
+	})
+
+	g := New()
+	o := Observe(g, b)
+
+	err := g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, "foobar", o.Value())
+
+	v.Set("b")
+	m0v.Set("loo")
+	err = g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, "loobar", o.Value())
 }

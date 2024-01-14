@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wcharczuk/go-incr/testutil"
 	. "github.com/wcharczuk/go-incr/testutil"
 )
 
@@ -597,7 +596,7 @@ func Test_Stabilize_bindIf(t *testing.T) {
 	i1 := Return("bar")
 
 	b := BindIf(sw, func(ctx context.Context, swv bool) (Incr[string], error) {
-		testutil.ItsBlueDye(ctx, t)
+		ItsBlueDye(ctx, t)
 		if swv {
 			return i0, nil
 		}
@@ -750,18 +749,18 @@ func Test_Stabilize_cutoffContext_error(t *testing.T) {
 	err := graph.Stabilize(
 		ctx,
 	)
-	testutil.ItsNotNil(t, err)
-	testutil.ItsEqual(t, 1, errors)
-	testutil.ItsEqual(t, 0, output.Value())
+	ItsNotNil(t, err)
+	ItsEqual(t, 1, errors)
+	ItsEqual(t, 0, output.Value())
 
 	input.Set(3.15)
 
 	err = graph.Stabilize(
 		ctx,
 	)
-	testutil.ItsNotNil(t, err)
-	testutil.ItsEqual(t, 2, errors)
-	testutil.ItsEqual(t, 0, output.Value())
+	ItsNotNil(t, err)
+	ItsEqual(t, 2, errors)
+	ItsEqual(t, 0, output.Value())
 }
 
 func epsilonFn[A, B MathTypes](eps A, oldv, newv B) bool {
@@ -864,18 +863,18 @@ func Test_Stabilize_cutoff2Context_error(t *testing.T) {
 	err := graph.Stabilize(
 		ctx,
 	)
-	testutil.ItsNotNil(t, err)
-	testutil.ItsEqual(t, 1, errors)
-	testutil.ItsEqual(t, 0, output.Value())
+	ItsNotNil(t, err)
+	ItsEqual(t, 1, errors)
+	ItsEqual(t, 0, output.Value())
 
 	input.Set(3.15)
 
 	err = graph.Stabilize(
 		ctx,
 	)
-	testutil.ItsNotNil(t, err)
-	testutil.ItsEqual(t, 2, errors)
-	testutil.ItsEqual(t, 0, output.Value())
+	ItsNotNil(t, err)
+	ItsEqual(t, 2, errors)
+	ItsEqual(t, 0, output.Value())
 }
 
 func Test_Stabilize_watch(t *testing.T) {
@@ -924,7 +923,7 @@ func Test_Stabilize_MapContext(t *testing.T) {
 
 	c0 := Return(1)
 	m := MapContext(c0, func(ictx context.Context, a int) (int, error) {
-		testutil.ItsBlueDye(ictx, t)
+		ItsBlueDye(ictx, t)
 		return a + 10, nil
 	})
 
@@ -957,7 +956,7 @@ func Test_Stabilize_Map2Context(t *testing.T) {
 	c0 := Return(1)
 	c1 := Return(2)
 	m2 := Map2Context(c0, c1, func(ictx context.Context, a, b int) (int, error) {
-		testutil.ItsBlueDye(ctx, t)
+		ItsBlueDye(ctx, t)
 		return a + b, nil
 	})
 
@@ -974,7 +973,7 @@ func Test_Stabilize_Map2Context_error(t *testing.T) {
 	c0 := Return(1)
 	c1 := Return(2)
 	m2 := Map2Context(c0, c1, func(ictx context.Context, a, b int) (int, error) {
-		testutil.ItsBlueDye(ctx, t)
+		ItsBlueDye(ctx, t)
 		return a + b, fmt.Errorf("this is just a test")
 	})
 
@@ -1010,7 +1009,7 @@ func Test_Stabilize_Map3Context(t *testing.T) {
 	c1 := Return(2)
 	c2 := Return(3)
 	m3 := Map3Context(c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
-		testutil.ItsBlueDye(ictx, t)
+		ItsBlueDye(ictx, t)
 		return a + b + c, nil
 	})
 
@@ -1028,7 +1027,7 @@ func Test_Stabilize_Map3Context_error(t *testing.T) {
 	c1 := Return(2)
 	c2 := Return(3)
 	m3 := Map3Context(c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
-		testutil.ItsBlueDye(ictx, t)
+		ItsBlueDye(ictx, t)
 		return a + b + c, fmt.Errorf("this is just a test")
 	})
 
@@ -1175,11 +1174,11 @@ func Test_Stabilize_func(t *testing.T) {
 
 	value := "hello"
 	f := Func(func(ictx context.Context) (string, error) {
-		testutil.ItsBlueDye(ictx, t)
+		ItsBlueDye(ictx, t)
 		return value, nil
 	})
 	m := MapContext(f, func(ictx context.Context, v string) (string, error) {
-		testutil.ItsBlueDye(ctx, t)
+		ItsBlueDye(ctx, t)
 		return v + " world!", nil
 	})
 
@@ -1312,22 +1311,22 @@ func Test_Stabilize_always_cutoff(t *testing.T) {
 	o := Observe(g, readFile)
 
 	err := g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, "test-1", o.Value())
+	ItsNil(t, err)
+	ItsEqual(t, "test-1", o.Value())
 
 	err = g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, "test-1", o.Value())
+	ItsNil(t, err)
+	ItsEqual(t, "test-1", o.Value())
 
 	modtime = 2
 
 	err = g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, "test-2", o.Value())
+	ItsNil(t, err)
+	ItsEqual(t, "test-2", o.Value())
 
 	err = g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, "test-2", o.Value())
+	ItsNil(t, err)
+	ItsEqual(t, "test-2", o.Value())
 }
 
 func Test_Stabilize_always_cutoff_error(t *testing.T) {
@@ -1347,10 +1346,10 @@ func Test_Stabilize_always_cutoff_error(t *testing.T) {
 	o := Observe(g, readFile)
 
 	err := g.Stabilize(ctx)
-	testutil.ItsNotNil(t, err)
-	testutil.ItsEqual(t, "", o.Value())
+	ItsNotNil(t, err)
+	ItsEqual(t, "", o.Value())
 
-	testutil.ItsEqual(t, 3, g.recomputeHeap.Len())
+	ItsEqual(t, 3, g.recomputeHeap.Len())
 }
 
 func Test_Stabilize_printsErrors(t *testing.T) {
@@ -1368,10 +1367,10 @@ func Test_Stabilize_printsErrors(t *testing.T) {
 	_ = Observe(g, gonnaPanic)
 
 	err := g.Stabilize(ctx)
-	testutil.ItsNotNil(t, err)
-	testutil.ItsNotEqual(t, 0, len(outBuf.String()))
-	testutil.ItsNotEqual(t, 0, len(errBuf.String()))
-	testutil.ItsEqual(t, true, strings.Contains(errBuf.String(), "this is only a test"))
+	ItsNotNil(t, err)
+	ItsNotEqual(t, 0, len(outBuf.String()))
+	ItsNotEqual(t, 0, len(errBuf.String()))
+	ItsEqual(t, true, strings.Contains(errBuf.String(), "this is only a test"))
 }
 
 func Test_Stabilize_handlers(t *testing.T) {
@@ -1390,17 +1389,17 @@ func Test_Stabilize_handlers(t *testing.T) {
 	graph := New()
 	_ = Observe(graph, m0)
 	graph.OnStabilizationStart(func(ictx context.Context) {
-		startWasBlueDye = testutil.HasBlueDye(ctx)
+		startWasBlueDye = HasBlueDye(ctx)
 		didCallStabilizationStart = true
 	})
 	graph.OnStabilizationEnd(func(ictx context.Context, started time.Time, err error) {
-		endWasBlueDye = testutil.HasBlueDye(ctx)
+		endWasBlueDye = HasBlueDye(ctx)
 		didCallStabilizationEnd = true
 	})
 	err := graph.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, true, didCallStabilizationStart)
-	testutil.ItsEqual(t, true, didCallStabilizationEnd)
-	testutil.ItsEqual(t, true, startWasBlueDye)
-	testutil.ItsEqual(t, true, endWasBlueDye)
+	ItsNil(t, err)
+	ItsEqual(t, true, didCallStabilizationStart)
+	ItsEqual(t, true, didCallStabilizationEnd)
+	ItsEqual(t, true, startWasBlueDye)
+	ItsEqual(t, true, endWasBlueDye)
 }
