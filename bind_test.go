@@ -343,8 +343,9 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 }
 
 func Test_Bind_nested_bindHeightsChange(t *testing.T) {
-	// ctx := testContext()
-	// g := New()
+	ctx := testContext()
+	ctx = WithTracing(ctx)
+	g := New()
 
 	/*
 		User Notes:
@@ -358,13 +359,66 @@ func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 
 		Then D gets recomputed because of its low height but the answer to B is not ready because C has not been stabilized yet.
 	*/
+
+	/*
+		Rephrased notes:
+
+		We need to create a situation where a map's height, because of it being moved around, is lower than nodes that
+		depend on it ... somehow, using binds.
+	*/
+
+	c := Map(Map(Var("hello"), mapAppend("world")), mapAppend("!"))
+	c.Node().SetLabel("c")
+
+	bv := Var("a")
+	b := Bind(bv, func(_ string) Incr[string] {
+		return c
+	})
+	b.Node().SetLabel("b")
+
+	b3v := Var("a")
+	b3 := Bind(Map(Map(b3v, mapAppend("1")), mapAppend("2")), func(vv string) Incr[string] {
+		return Map(b, mapAppend("-b3"))
+	})
+	b3.Node().SetLabel("b3")
+
+	b1v := Var("a")
+	b1 := Bind(b1v, func(vv string) Incr[string] {
+		return Map(b, mapAppend("-b1"))
+	})
+	b1.Node().SetLabel("b1")
+
+	muxVar := Var("a")
+	mux := Bind(muxVar, func(vv string) Incr[string] {
+		if vv == "a" {
+			return b3
+		}
+		return b1
+	})
+	mux.Node().SetLabel("mux")
+
+	// the goal here is to have a map with height (3)
+	final := Map2(mux, Var("-final"), concat)
+	final.Node().SetLabel("final")
+	o := Observe(g, final)
+
+	err := g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
+	testutil.ItsNil(t, dumpDot(o, "/mnt/c/Users/wcharczuk/Desktop/bind_test_00.png"))
+	testutil.ItsEqual(t, "helloworld!-b3-final", o.Value())
+
+	o.Unobserve(ctx)
+	muxVar.Set("b")
+	o = Observe(g, final)
+
+	err = g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
+	testutil.ItsNil(t, dumpDot(o, "/mnt/c/Users/wcharczuk/Desktop/bind_test_01.png"))
+	testutil.ItsEqual(t, "helloworld!-b1-final", o.Value())
 }
 
-// DumpDot dumps a graph as accessed from a node as a png
-// to a given path (which will be expanded by env).
-//
-// You _must_ have `graphviz` installed to use this;
-// this can be installed with `brew install graphviz`
 func dumpDot(root INode, path string) error {
 	dotContents := new(bytes.Buffer)
 	if err := Dot(dotContents, root); err != nil {

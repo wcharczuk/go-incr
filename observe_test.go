@@ -92,6 +92,12 @@ func Test_Observe_Unobserve_multiple(t *testing.T) {
 	testutil.ItsEqual(t, len(g.observed), g.numNodes-2, "we should have (1) less observer after unobserve!")
 	testutil.ItsNil(t, o1.Node().graph)
 
+	testutil.ItsEqual(t, 0, len(o1.Node().parents))
+	testutil.ItsEqual(t, 0, len(o1.Node().children))
+	testutil.ItsNone(t, m1.Node().children, func(n INode) bool {
+		return n.Node().ID() == o1.Node().ID()
+	})
+
 	testutil.ItsEqual(t, true, g.IsObserving(m0))
 	testutil.ItsEqual(t, true, g.IsObserving(m1))
 

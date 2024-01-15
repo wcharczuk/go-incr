@@ -15,8 +15,10 @@ func Observe[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
 	Link(o, input)
 	g.DiscoverObserver(o)
 
-	// NOTE(wc): we do this here because some """expert""" use cases
-	// require us to "discover" observers but _not_ add them to the recompute heap.
+	// NOTE(wc): we do this here because some """expert""" use cases for `DiscoverObserver`
+	// require us to add the observer to the graph observer list but _not_
+	// add it to the recompute heap.
+	//
 	// So we just add it here explicitly and don't add it implicitly
 	// in the DiscoverObserver function.
 	g.recomputeHeap.Add(o)
@@ -28,6 +30,13 @@ func Observe[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
 // of incrementals starting a given input.
 type ObserveIncr[A any] interface {
 	Incr[A]
+
+	// Unobserve effectively removes a given node from the observed ref count for a graph.
+	//
+	// As well, it unlinks the observer from its parent nodes, and as a result
+	// you should _not_ re-use the node.
+	//
+	// To observe parts of a graph again, use the `Observe(...)` helper.
 	Unobserve(context.Context)
 }
 
@@ -50,12 +59,21 @@ type observeIncr[A any] struct {
 
 func (o *observeIncr[A]) Node() *Node { return o.n }
 
-// Unobserve effectively removes a given node
-// from the observed ref count for a graph.
+// Unobserve effectively removes a given node from the observed ref count for a graph.
+//
+// As well, it unlinks the observer from its parent nodes, and as a result
+// you should _not_ re-use the node.
+//
+// To observe parts of a graph again, use the `Observe(...)` helper.
 func (o *observeIncr[A]) Unobserve(ctx context.Context) {
 	g := o.n.graph
 	g.UndiscoverNodes(ctx, o, o.input)
 	g.UndiscoverObserver(o)
+	for _, p := range o.n.parents {
+		Unlink(o, p)
+	}
+	o.n.children = nil
+	o.n.parents = nil
 	o.input = nil
 }
 
