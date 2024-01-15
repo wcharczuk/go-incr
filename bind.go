@@ -89,11 +89,6 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 			bindChanged = true
 			b.unlinkOld(ctx, oldIncr)
 			b.linkNew(ctx, newIncr)
-		} else if newIncr.Node().ShouldRecompute() {
-			// we may have swapped out and back
-			// a node that was already instantiated.
-			// we still need to recompute it potentially.
-			b.Node().graph.recomputeHeap.Add(newIncr)
 		}
 	} else if newIncr != nil {
 		bindChanged = true
@@ -103,6 +98,7 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 		b.unlinkOld(ctx, oldIncr)
 	}
 	if bindChanged {
+		// b.n.recomputeHeights() // is this important? we need a test to make sure.
 		b.n.boundAt = b.n.graph.stabilizationNum
 	}
 	return nil

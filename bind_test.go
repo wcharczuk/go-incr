@@ -1,8 +1,11 @@
 package incr
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -339,29 +342,46 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 	testutil.ItsEqual(t, "a0-0+a0-1->b->final", o.Value())
 }
 
-func Test_Bind_nested_bindUnobserved(t *testing.T) {
-	ctx := testContext()
+func Test_Bind_nested_bindHeightsChange(t *testing.T) {
+	// ctx := testContext()
+	// g := New()
 
-	v := Var("a")
+	/*
+		User Notes:
 
-	m0v := Var("foo")
+		The problem is that a bind node, B starts out with height, h.
+		Let’s say h=2. Then it gets recomputed and then it gets bound to C, which ends up h=5 after the discovery process. Great.
 
-	m0 := Map2(m0v, Return("bar"), concat)
+		Somewhere along the line in the computation because some other bind nodes, we have to link D to B through a Map.
+		Guess what? D’s pseudo height is 3!. This is because B’s height is not in sync with what it is bound to (C in this case).
+		B still thinks its height is 2.
 
-	b := Bind(v, func(vv string) Incr[string] {
-		return m0
-	})
+		Then D gets recomputed because of its low height but the answer to B is not ready because C has not been stabilized yet.
+	*/
+}
 
-	g := New()
-	o := Observe(g, b)
+// DumpDot dumps a graph as accessed from a node as a png
+// to a given path (which will be expanded by env).
+//
+// You _must_ have `graphviz` installed to use this;
+// this can be installed with `brew install graphviz`
+func dumpDot(root INode, path string) error {
+	dotContents := new(bytes.Buffer)
+	if err := Dot(dotContents, root); err != nil {
+		return err
+	}
+	dotOutput, err := os.Create(os.ExpandEnv(path))
+	if err != nil {
+		return err
+	}
+	defer func() { _ = dotOutput.Close() }()
+	dotFullPath, err := exec.LookPath("dot")
+	if err != nil {
+		return err
+	}
 
-	err := g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, "foobar", o.Value())
-
-	v.Set("b")
-	m0v.Set("loo")
-	err = g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, "loobar", o.Value())
+	cmd := exec.Command(dotFullPath, "-Tpng")
+	cmd.Stdin = dotContents
+	cmd.Stdout = dotOutput
+	return cmd.Run()
 }
