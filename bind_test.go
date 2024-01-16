@@ -304,12 +304,24 @@ func Test_Bind_nestedUnlinksBind(t *testing.T) {
 	testutil.ItsNil(t, dumpDot(g, homedir("bind_unobserve_00.png")))
 	testutil.ItsEqual(t, "b01", o.Value())
 
+	testutil.ItsEqual(t, 1, bv.Node().height)
+	testutil.ItsEqual(t, 2, b.Node().height)
+	testutil.ItsEqual(t, 3, o.Node().height)
+	testutil.ItsEqual(t, 2, b01.Node().height)
+	testutil.ItsEqual(t, 2, b00.Node().height)
+
 	bv.Set("b")
 
 	err = g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 	testutil.ItsNil(t, dumpDot(g, homedir("bind_unobserve_01.png")))
 	testutil.ItsEqual(t, "b11", o.Value())
+
+	testutil.ItsEqual(t, 1, bv.Node().height)
+	testutil.ItsEqual(t, 2, b.Node().height)
+	testutil.ItsEqual(t, 3, o.Node().height)
+	testutil.ItsEqual(t, 2, b11.Node().height)
+	testutil.ItsEqual(t, 2, b10.Node().height)
 
 	testutil.ItsEqual(t, false, g.IsObserving(b00))
 	testutil.ItsEqual(t, false, o.Node().HasParent(b00.Node().ID()))
