@@ -1,8 +1,11 @@
 package incr
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -274,6 +277,7 @@ func Test_Bind_nestedUnlinksBind(t *testing.T) {
 		return b01
 	})
 	b00.Node().SetLabel("b00")
+
 	b11 := Bind(Var("a"), func(_ string) Incr[string] {
 		return Return("b11")
 	})
@@ -297,12 +301,14 @@ func Test_Bind_nestedUnlinksBind(t *testing.T) {
 	err := g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 	testutil.ItsEqual(t, "b01", o.Value())
+	testutil.ItsNil(t, dumpDot(g, "/mnt/c/Users/wcharczuk/Desktop/bind_unobserve_00.png"))
 
 	bv.Set("b")
 
 	err = g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 	testutil.ItsEqual(t, "b11", o.Value())
+	testutil.ItsNil(t, dumpDot(g, "/mnt/c/Users/wcharczuk/Desktop/bind_unobserve_01.png"))
 
 	testutil.ItsEqual(t, false, g.IsObserving(b00))
 	testutil.ItsEqual(t, false, o.Node().HasParent(b00.Node().ID()))
@@ -319,6 +325,7 @@ func Test_Bind_nestedUnlinksBind(t *testing.T) {
 	err = g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 	testutil.ItsEqual(t, "b01", o.Value())
+	testutil.ItsNil(t, dumpDot(g, "/mnt/c/Users/wcharczuk/Desktop/bind_unobserve_02.png"))
 
 	testutil.ItsEqual(t, true, g.IsObserving(b00))
 	testutil.ItsEqual(t, true, o.Node().HasParent(b00.Node().ID()))
@@ -410,8 +417,8 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 
 func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 	ctx := testContext()
-	ctx = WithTracing(ctx)
 	g := New()
+
 	/*
 		User Notes:
 
@@ -468,6 +475,7 @@ func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 	err := g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
+	testutil.ItsNil(t, dumpDot(g, "/mnt/c/Users/wcharczuk/Desktop/bind_test_00.png"))
 	testutil.ItsEqual(t, "helloworld!-b3-final", o.Value())
 
 	muxVar.Set("b")
@@ -475,26 +483,27 @@ func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 	err = g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
+	testutil.ItsNil(t, dumpDot(g, "/mnt/c/Users/wcharczuk/Desktop/bind_test_01.png"))
 	testutil.ItsEqual(t, "helloworld!-b1-final", o.Value())
 }
 
-// func dumpDot(g *Graph, path string) error {
-// 	dotContents := new(bytes.Buffer)
-// 	if err := Dot(dotContents, g); err != nil {
-// 		return err
-// 	}
-// 	dotOutput, err := os.Create(os.ExpandEnv(path))
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer func() { _ = dotOutput.Close() }()
-// 	dotFullPath, err := exec.LookPath("dot")
-// 	if err != nil {
-// 		return err
-// 	}
+func dumpDot(g *Graph, path string) error {
+	dotContents := new(bytes.Buffer)
+	if err := Dot(dotContents, g); err != nil {
+		return err
+	}
+	dotOutput, err := os.Create(os.ExpandEnv(path))
+	if err != nil {
+		return err
+	}
+	defer func() { _ = dotOutput.Close() }()
+	dotFullPath, err := exec.LookPath("dot")
+	if err != nil {
+		return err
+	}
 
-// 	cmd := exec.Command(dotFullPath, "-Tpng")
-// 	cmd.Stdin = dotContents
-// 	cmd.Stdout = dotOutput
-// 	return cmd.Run()
-// }
+	cmd := exec.Command(dotFullPath, "-Tpng")
+	cmd.Stdin = dotContents
+	cmd.Stdout = dotOutput
+	return cmd.Run()
+}

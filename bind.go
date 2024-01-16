@@ -50,7 +50,6 @@ func BindContext[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], erro
 type BindIncr[A any] interface {
 	Incr[A]
 	IBind
-	IUnlink
 	fmt.Stringer
 }
 
@@ -105,30 +104,28 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 	return nil
 }
 
-// Unlink adds special unlinking steps for the bind.
-func (b *bindIncr[A, B]) Unlink() {
-	if b.bound != nil {
-		for _, c := range b.n.children {
-			Unlink(c, b.bound)
-		}
-		for _, o := range b.Node().observers {
-			b.Node().graph.UndiscoverNodes(o, b.bound)
-		}
-		b.bound = nil
-	}
-}
-
 func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, oldIncr INode) {
 	TracePrintf(ctx, "%v unlinking old child %v", b, oldIncr)
-
-	for _, c := range b.n.children {
-		Unlink(c, oldIncr)
+	// check if we should call a special unlink handler on the node
+	// this is largely just for nested bind nodes.
+	if typed, ok := oldIncr.(interface{ Unlink(context.Context) }); ok {
+		typed.Unlink(ctx)
 	}
 	graph := b.Node().graph
 	for _, o := range b.Node().observers {
 		graph.UndiscoverNodes(o, oldIncr)
 	}
+	for _, c := range b.n.children {
+		Unlink(c, oldIncr)
+	}
+
 	b.bound = nil
+}
+
+func (b *bindIncr[A, B]) Unlink(ctx context.Context) {
+	if b.bound != nil {
+		b.unlinkOld(ctx, b.bound)
+	}
 }
 
 func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {

@@ -216,9 +216,6 @@ func (graph *Graph) UndiscoverNodes(on IObserver, gn INode) {
 	graph.UndiscoverNode(on, gn)
 	gnn := gn.Node()
 	for _, p := range gnn.parents {
-		if !graph.IsObserving(p) {
-			continue
-		}
 		graph.UndiscoverNodes(on, p)
 	}
 }
@@ -248,7 +245,6 @@ func (graph *Graph) UndiscoverObserver(on IObserver) {
 	onn.graph = nil
 	graph.numNodes--
 	graph.recomputeHeap.Remove(on)
-
 	graph.handleAfterStabilization.Remove(on.Node().ID())
 }
 
