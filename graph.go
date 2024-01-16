@@ -187,9 +187,12 @@ func (graph *Graph) DiscoverNode(on IObserver, gn INode) {
 	gnn.detectBind(gn)
 	gnn.height = gnn.computePseudoHeight()
 
+	shouldRecompute := gnn.ShouldRecompute()
+	recomputeHeapHasNode := graph.recomputeHeap.Has(gn)
+
 	// we should add to the heap if we should recompute the node _or_ if we need to
 	// potentially adjust the height it's sitting in the heap.
-	if gnn.ShouldRecompute() || graph.recomputeHeap.Has(gn) {
+	if shouldRecompute || recomputeHeapHasNode {
 		graph.recomputeHeap.Add(gn)
 	}
 }

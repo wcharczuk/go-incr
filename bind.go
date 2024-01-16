@@ -49,7 +49,8 @@ func BindContext[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], erro
 // based on input incrementals.
 type BindIncr[A any] interface {
 	Incr[A]
-	Bind(context.Context) error
+	IBind
+	IUnlink
 	fmt.Stringer
 }
 
@@ -102,6 +103,17 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 		b.n.boundAt = b.n.graph.stabilizationNum
 	}
 	return nil
+}
+
+// Unlink adds special unlinking steps for the bind.
+func (b *bindIncr[A, B]) Unlink() {
+	if b.bound != nil {
+		fmt.Printf("%v unlinking bound node %v", b, b.bound)
+		for _, c := range b.n.children {
+			Unlink(c, b.bound)
+		}
+		b.bound = nil
+	}
 }
 
 func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, oldIncr INode) {

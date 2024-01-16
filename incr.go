@@ -25,6 +25,11 @@ type IBind interface {
 	Bind(context.Context) error
 }
 
+// IUnlink is a type that can be unlinked.
+type IUnlink interface {
+	Unlink()
+}
+
 // ICutoff is a type that determines if changes should
 // continue to propagate or not.
 type ICutoff interface {

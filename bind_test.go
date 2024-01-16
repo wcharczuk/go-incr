@@ -378,17 +378,22 @@ func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 
 	b3v := Var("a")
 	b3 := Bind(Map(Map(b3v, mapAppend("1")), mapAppend("2")), func(vv string) Incr[string] {
-		return Map(b, mapAppend("-b3"))
+		m := Map(b, mapAppend("-b3"))
+		m.Node().SetLabel("b3-map")
+		return m
 	})
 	b3.Node().SetLabel("b3")
 
 	b1v := Var("a")
 	b1 := Bind(b1v, func(vv string) Incr[string] {
-		return Map(b, mapAppend("-b1"))
+		m := Map(b, mapAppend("-b1"))
+		m.Node().SetLabel("b1-map")
+		return m
 	})
 	b1.Node().SetLabel("b1")
 
 	muxVar := Var("a")
+	muxVar.Node().SetLabel("muxVar")
 	mux := Bind(muxVar, func(vv string) Incr[string] {
 		if vv == "a" {
 			return b3
@@ -408,9 +413,7 @@ func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 	testutil.ItsNil(t, dumpDot(o, "/mnt/c/Users/wcharczuk/Desktop/bind_test_00.png"))
 	testutil.ItsEqual(t, "helloworld!-b3-final", o.Value())
 
-	o.Unobserve(ctx)
 	muxVar.Set("b")
-	o = Observe(g, final)
 
 	err = g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
