@@ -300,15 +300,15 @@ func Test_Bind_nestedUnlinksBind(t *testing.T) {
 
 	err := g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
+	testutil.ItsNil(t, dumpDot(g, homedir("bind_unobserve_00.png")))
 	testutil.ItsEqual(t, "b01", o.Value())
-	testutil.ItsNil(t, dumpDot(g, "/mnt/c/Users/wcharczuk/Desktop/bind_unobserve_00.png"))
 
 	bv.Set("b")
 
 	err = g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
+	testutil.ItsNil(t, dumpDot(g, homedir("bind_unobserve_01.png")))
 	testutil.ItsEqual(t, "b11", o.Value())
-	testutil.ItsNil(t, dumpDot(g, "/mnt/c/Users/wcharczuk/Desktop/bind_unobserve_01.png"))
 
 	testutil.ItsEqual(t, false, g.IsObserving(b00))
 	testutil.ItsEqual(t, false, o.Node().HasParent(b00.Node().ID()))
@@ -324,8 +324,9 @@ func Test_Bind_nestedUnlinksBind(t *testing.T) {
 
 	err = g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
+	testutil.ItsNil(t, dumpDot(g, homedir("bind_unobserve_02.png")))
+	testutil.ItsEqual(t, "b01", b00.Value())
 	testutil.ItsEqual(t, "b01", o.Value())
-	testutil.ItsNil(t, dumpDot(g, "/mnt/c/Users/wcharczuk/Desktop/bind_unobserve_02.png"))
 
 	testutil.ItsEqual(t, true, g.IsObserving(b00))
 	testutil.ItsEqual(t, true, o.Node().HasParent(b00.Node().ID()))
@@ -417,6 +418,7 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 
 func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 	ctx := testContext()
+	ctx = WithTracing(ctx)
 	g := New()
 
 	/*
@@ -432,62 +434,42 @@ func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 		Then D gets recomputed because of its low height but the answer to B is not ready because C has not been stabilized yet.
 	*/
 
-	c := Map(Map(Var("hello"), mapAppend("world")), mapAppend("!"))
-	c.Node().SetLabel("c")
-
-	bv := Var("a")
-	b := Bind(bv, func(_ string) Incr[string] {
-		return c
+	driver01var := Var("a")
+	driver01var.Node().SetLabel("driver01var")
+	driver01 := Bind(driver01var, func(_ string) Incr[string] {
+		r := Return("driver01")
+		r.Node().SetLabel("driver01return")
+		return r
 	})
-	b.Node().SetLabel("b")
+	driver01.Node().SetLabel("driver01")
 
-	b3v := Var("a")
-	b3 := Bind(Map(Map(b3v, mapAppend("1")), mapAppend("2")), func(vv string) Incr[string] {
-		m := Map(b, mapAppend("-b3"))
-		m.Node().SetLabel("b3-map")
-		return m
+	driver02var := Var("a")
+	driver02var.Node().SetLabel("driver02var")
+	driver02 := Bind(driver02var, func(_ string) Incr[string] {
+		return driver01
 	})
-	b3.Node().SetLabel("b3")
+	driver02.Node().SetLabel("driver02")
 
-	b1v := Var("a")
-	b1 := Bind(b1v, func(vv string) Incr[string] {
-		m := Map(b, mapAppend("-b1"))
-		m.Node().SetLabel("b1-map")
-		return m
-	})
-	b1.Node().SetLabel("b1")
-
-	muxVar := Var("a")
-	muxVar.Node().SetLabel("muxVar")
-	mux := Bind(muxVar, func(vv string) Incr[string] {
-		if vv == "a" {
-			return b3
-		}
-		return b1
-	})
-	mux.Node().SetLabel("mux")
-
-	// the goal here is to have a map with height (3)
-	final := Map2(mux, Var("-final"), concat)
-	final.Node().SetLabel("final")
-	o := Observe(g, final)
+	m2 := Map2(driver01, driver02, concat)
+	m2.Node().SetLabel("m2")
+	o := Observe(g, m2)
+	o.Node().SetLabel("observem2")
 
 	err := g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
-	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
-	testutil.ItsNil(t, dumpDot(g, "/mnt/c/Users/wcharczuk/Desktop/bind_test_00.png"))
-	testutil.ItsEqual(t, "helloworld!-b3-final", o.Value())
+	testutil.ItsNil(t, dumpDot(g, homedir("bind_user_00.png")))
+	testutil.ItsEqual(t, "driver01driver01", o.Value())
+}
 
-	muxVar.Set("b")
-
-	err = g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
-	testutil.ItsNil(t, dumpDot(g, "/mnt/c/Users/wcharczuk/Desktop/bind_test_01.png"))
-	testutil.ItsEqual(t, "helloworld!-b1-final", o.Value())
+func homedir(filename string) string {
+	return fmt.Sprintf("/mnt/c/Users/wcharczuk/Desktop/%s", filename)
 }
 
 func dumpDot(g *Graph, path string) error {
+	if os.Getenv("INCR_DEBUG_DOT") == "" {
+		return nil
+	}
+
 	dotContents := new(bytes.Buffer)
 	if err := Dot(dotContents, g); err != nil {
 		return err

@@ -57,6 +57,7 @@ func (rh *recomputeHeap) Len() int {
 func (rh *recomputeHeap) Add(nodes ...INode) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
+
 	rh.addUnsafe(nodes...)
 }
 

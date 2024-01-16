@@ -156,45 +156,11 @@ func (graph *Graph) SetStale(gn INode) {
 // DiscoverNodes initializes tracking of a given node for a given observer
 // and walks the nodes parents doing the same for any nodes seen.
 func (graph *Graph) DiscoverNodes(on IObserver, gn INode) {
-	graph.DiscoverNode(on, gn)
-	gnn := gn.Node()
-	for _, p := range gnn.parents {
-		graph.DiscoverNodes(on, p)
-	}
+	graph.discoverNodesContext(context.Background(), on, gn)
 }
 
-// DiscoverNode initializes a node and adds
-// it to the observed lookup.
 func (graph *Graph) DiscoverNode(on IObserver, gn INode) {
-	gnn := gn.Node()
-	nodeID := gnn.id
-
-	// make sure to associate the given observer with the node
-	gnn.observers[on.Node().ID()] = on
-	for _, handler := range gnn.onObservedHandlers {
-		handler(on)
-	}
-
-	// if the node is not currently observed.
-	if _, ok := graph.observed[nodeID]; !ok {
-		graph.numNodes++
-	}
-	graph.observed[nodeID] = gn
-	gnn.graph = graph
-	gnn.detectCutoff(gn)
-	gnn.detectAlways(gn)
-	gnn.detectStabilize(gn)
-	gnn.detectBind(gn)
-	gnn.height = gnn.computePseudoHeight()
-
-	shouldRecompute := gnn.ShouldRecompute()
-	recomputeHeapHasNode := graph.recomputeHeap.Has(gn)
-
-	// we should add to the heap if we should recompute the node _or_ if we need to
-	// potentially adjust the height it's sitting in the heap.
-	if shouldRecompute || recomputeHeapHasNode {
-		graph.recomputeHeap.Add(gn)
-	}
+	graph.discoverNodeContext(context.Background(), on, gn)
 }
 
 // DiscoverObserver initializes an observer node
@@ -246,6 +212,55 @@ func (graph *Graph) UndiscoverObserver(on IObserver) {
 	graph.numNodes--
 	graph.recomputeHeap.Remove(on)
 	graph.handleAfterStabilization.Remove(on.Node().ID())
+}
+
+//
+// internal discovery methods
+//
+
+// DiscoverNodes initializes tracking of a given node for a given observer
+// and walks the nodes parents doing the same for any nodes seen.
+func (graph *Graph) discoverNodesContext(ctx context.Context, on IObserver, gn INode) {
+	graph.discoverNodeContext(ctx, on, gn)
+	gnn := gn.Node()
+	for _, p := range gnn.parents {
+		graph.discoverNodesContext(ctx, on, p)
+	}
+}
+
+// DiscoverNode initializes a node and adds
+// it to the observed lookup.
+func (graph *Graph) discoverNodeContext(ctx context.Context, on IObserver, gn INode) {
+	TracePrintf(ctx, "discover node %v", gn)
+	gnn := gn.Node()
+	nodeID := gnn.id
+
+	// make sure to associate the given observer with the node
+	gnn.observers[on.Node().ID()] = on
+	for _, handler := range gnn.onObservedHandlers {
+		handler(on)
+	}
+
+	// if the node is not currently observed.
+	if _, ok := graph.observed[nodeID]; !ok {
+		graph.numNodes++
+	}
+	graph.observed[nodeID] = gn
+	gnn.graph = graph
+	gnn.detectCutoff(gn)
+	gnn.detectAlways(gn)
+	gnn.detectStabilize(gn)
+	gnn.detectBind(gn)
+	gnn.height = gnn.computePseudoHeight()
+
+	shouldRecompute := gnn.ShouldRecompute()
+	recomputeHeapHasNode := graph.recomputeHeap.Has(gn)
+
+	// we should add to the heap if we should recompute the node _or_ if we need to
+	// potentially adjust the height it's sitting in the heap.
+	if shouldRecompute || recomputeHeapHasNode {
+		graph.recomputeHeap.Add(gn)
+	}
 }
 
 // RecomputeHeight recomputes the height of a given node.

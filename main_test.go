@@ -14,7 +14,7 @@ import (
 func testContext() context.Context {
 	ctx := context.Background()
 	ctx = testutil.WithBlueDye(ctx)
-	if os.Getenv("INCR_DEBUG") != "" {
+	if os.Getenv("INCR_DEBUG_TRACING") != "" {
 		ctx = WithTracing(ctx)
 	}
 	return ctx

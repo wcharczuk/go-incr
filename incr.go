@@ -25,6 +25,20 @@ type IBind interface {
 	Bind(context.Context) error
 }
 
+// IUnlink are types that can implement custom unlinking logic.
+//
+// This is currently used for Bind nodes.
+type IUnlink interface {
+	Unlink(context.Context)
+}
+
+// ILink are types that can implement custom linking logic.
+//
+// This is currently used for Bind nodes.
+type ILink interface {
+	Link(context.Context)
+}
+
 // ICutoff is a type that determines if changes should
 // continue to propagate or not.
 type ICutoff interface {
