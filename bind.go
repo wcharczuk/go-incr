@@ -49,7 +49,8 @@ func BindContext[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], erro
 // based on input incrementals.
 type BindIncr[A any] interface {
 	Incr[A]
-	Bind(context.Context) error
+	IBind
+	IUnlink
 	fmt.Stringer
 }
 
@@ -89,11 +90,6 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 			bindChanged = true
 			b.unlinkOld(ctx, oldIncr)
 			b.linkNew(ctx, newIncr)
-		} else if newIncr.Node().ShouldRecompute() {
-			// we may have swapped out and back
-			// a node that was already instantiated.
-			// we still need to recompute it potentially.
-			b.Node().graph.recomputeHeap.Add(newIncr)
 		}
 	} else if newIncr != nil {
 		bindChanged = true
@@ -110,15 +106,55 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 
 func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, oldIncr INode) {
 	TracePrintf(ctx, "%v unlinking old child %v", b, oldIncr)
-
-	for _, c := range b.n.children {
-		Unlink(c, oldIncr)
+	// check if we should call a special unlink handler on the node
+	// this is largely just for nested bind nodes.
+	if typed, ok := oldIncr.(IUnlink); ok {
+		typed.Unlink(ctx)
 	}
 	graph := b.Node().graph
 	for _, o := range b.Node().observers {
-		graph.UndiscoverNodes(ctx, o, oldIncr)
+		graph.undiscoverNodesContext(ctx, o, oldIncr)
+	}
+	for _, c := range b.n.children {
+		Unlink(c, oldIncr)
 	}
 	b.bound = nil
+}
+
+// Unlink implements some custom unlinking steps in cases where
+// a Bind node may be _returning_ a bind node itself.
+func (b *bindIncr[A, B]) Unlink(ctx context.Context) {
+	if b.bound != nil {
+		if typed, ok := b.bound.(IUnlink); ok {
+			typed.Unlink(ctx)
+		}
+		graph := b.Node().graph
+		for _, o := range b.Node().observers {
+			graph.undiscoverNodesContext(ctx, o, b.bound)
+		}
+		for _, c := range b.n.children {
+			Unlink(c, b.bound)
+		}
+	}
+}
+
+// Link implements some custom linking steps in cases where
+// a Bind node may be _returning_ a bind node itself.
+func (b *bindIncr[A, B]) Link(ctx context.Context) {
+	b.n.boundAt = b.n.graph.stabilizationNum
+
+	if b.bound != nil {
+		for _, c := range b.n.children {
+			Link(c, b.bound)
+			c.Node().recomputeHeights()
+		}
+		for _, o := range b.Node().observers {
+			b.n.graph.discoverNodesContext(ctx, o, b.bound)
+		}
+		if typed, ok := b.bound.(ILink); ok {
+			typed.Link(ctx)
+		}
+	}
 }
 
 func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
@@ -133,10 +169,11 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
 		c.Node().recomputeHeights()
 	}
 	for _, o := range b.Node().observers {
-		b.Node().graph.DiscoverNodes(o, newIncr)
+		b.n.graph.discoverNodesContext(ctx, o, newIncr)
 	}
-	newIncr.Node().changedAt = b.Node().graph.stabilizationNum
-	b.Node().graph.recomputeHeap.Add(newIncr)
+	if typed, ok := newIncr.(ILink); ok {
+		typed.Link(ctx)
+	}
 	b.bound = newIncr
 }
 

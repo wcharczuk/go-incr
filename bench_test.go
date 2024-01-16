@@ -146,3 +146,9 @@ func benchmarkParallelSize(size int, b *testing.B) {
 func concat(a, b string) string {
 	return a + b
 }
+
+func mapAppend(suffix string) func(string) string {
+	return func(v string) string {
+		return v + suffix
+	}
+}

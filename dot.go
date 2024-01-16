@@ -3,6 +3,7 @@ package incr
 import (
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 )
 
@@ -16,7 +17,7 @@ import (
 //
 // As an for an example of a program that renders a graph with `Dot`,
 // look at `examples/benchmark/main.go`.
-func Dot(wr io.Writer, node INode) (err error) {
+func Dot(wr io.Writer, g *Graph) (err error) {
 	// NOTE(wc): a word on the below
 	// basically we panic anywhere we use the `writef` helper
 	// specifically where it can error.
@@ -33,11 +34,34 @@ func Dot(wr io.Writer, node INode) (err error) {
 	}
 
 	writef(0, "digraph {")
-	nodes := dotDiscoverNodes(node)
+	nodes := make([]INode, 0, len(g.observed)+len(g.observers))
+	for _, n := range g.observed {
+		nodes = append(nodes, n)
+	}
+	for _, n := range g.observers {
+		nodes = append(nodes, n)
+	}
+
+	slices.SortStableFunc(nodes, func(a, b INode) int {
+		if a.Node().height == b.Node().height {
+			aID := a.Node().ID().String()
+			bID := b.Node().ID().String()
+			if aID == bID {
+				return 0
+			} else if aID > bID {
+				return -1
+			}
+			return 1
+		} else if a.Node().height > b.Node().height {
+			return -1
+		}
+		return 1
+	})
+
 	nodeLabels := make(map[Identifier]string)
 	for index, n := range nodes {
 		nodeLabel := fmt.Sprintf("n%d", index+1)
-		label := fmt.Sprintf(`label="%v" shape="rect"`, n)
+		label := fmt.Sprintf(`label="%v@%d" shape="rect"`, n, n.Node().height)
 		color := ` fillcolor = "white" style="filled" fontcolor="black"`
 		if n.Node().setAt > 0 {
 			color = ` fillcolor = "red" style="filled" fontcolor="white"`
@@ -50,31 +74,12 @@ func Dot(wr io.Writer, node INode) (err error) {
 	for _, n := range nodes {
 		nodeLabel := nodeLabels[n.Node().id]
 		for _, p := range n.Node().children {
-			childLabel := nodeLabels[p.Node().id]
-			writef(1, "%s -> %s;", nodeLabel, childLabel)
+			childLabel, ok := nodeLabels[p.Node().id]
+			if ok {
+				writef(1, "%s -> %s;", nodeLabel, childLabel)
+			}
 		}
 	}
 	writef(0, "}")
-	return
-}
-
-func dotDiscoverNodes(node INode) (output []INode) {
-	seen := make(set[Identifier])
-	output = dotDiscoverNodesVisit(seen, node)
-	return
-}
-
-func dotDiscoverNodesVisit(seen set[Identifier], node INode) (output []INode) {
-	if seen.has(node.Node().id) {
-		return
-	}
-	seen.add(node.Node().id)
-	output = append(output, node)
-	for _, c := range node.Node().children {
-		output = append(output, dotDiscoverNodesVisit(seen, c)...)
-	}
-	for _, p := range node.Node().parents {
-		output = append(output, dotDiscoverNodesVisit(seen, p)...)
-	}
 	return
 }

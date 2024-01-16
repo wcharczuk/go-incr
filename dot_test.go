@@ -10,13 +10,17 @@ import (
 
 func Test_Dot(t *testing.T) {
 	golden := `digraph {
-	node [label="map2[563b29ae]" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n1
-	node [label="var[884f9774]" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n2
-	node [label="var[7f8a4e21]" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n3
+	node [label="observer[033257be]@3" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n1
+	node [label="map2[563b29ae]@2" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n2
+	node [label="var[7f8a4e21]@1" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n3
+	node [label="var[884f9774]@1" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n4
 	n2 -> n1;
-	n3 -> n1;
+	n3 -> n2;
+	n4 -> n2;
 }
 `
+
+	g := New()
 	v0 := Var("foo")
 	v0.Node().id, _ = ParseIdentifier("165382c219e24e3db77fd41a884f9774")
 	v1 := Var("bar")
@@ -24,8 +28,11 @@ func Test_Dot(t *testing.T) {
 	m0 := Map2(v0, v1, concat)
 	m0.Node().id, _ = ParseIdentifier("fc45f4a7b5c7456f852f2298563b29ae")
 
+	o := Observe(g, m0)
+	o.Node().id, _ = ParseIdentifier("507dd07419724979bb34f2ca033257be")
+
 	buf := new(bytes.Buffer)
-	err := Dot(buf, m0)
+	err := Dot(buf, g)
 	testutil.ItsNil(t, err)
 	testutil.ItsEqual(t, golden, buf.String())
 }
@@ -39,6 +46,7 @@ func (ew errorWriter) Write(_ []byte) (int, error) {
 }
 
 func Test_Dot_writeError(t *testing.T) {
+	g := New()
 	v0 := Var("foo")
 	v0.Node().id, _ = ParseIdentifier("165382c219e24e3db77fd41a884f9774")
 	v1 := Var("bar")
@@ -46,20 +54,25 @@ func Test_Dot_writeError(t *testing.T) {
 	m0 := Map2(v0, v1, concat)
 	m0.Node().id, _ = ParseIdentifier("fc45f4a7b5c7456f852f2298563b29ae")
 
+	_ = Observe(g, m0)
+
 	buf := errorWriter{fmt.Errorf("this is just a test")}
-	err := Dot(buf, m0)
+	err := Dot(buf, g)
 	testutil.ItsNotNil(t, err)
 }
 
 func Test_Dot_setAt(t *testing.T) {
 	golden := `digraph {
-	node [label="map2[563b29ae]" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n1
-	node [label="var[884f9774]" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n2
-	node [label="var[7f8a4e21]" shape="rect" fillcolor = "red" style="filled" fontcolor="white"]; n3
+	node [label="observer[033257be]@3" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n1
+	node [label="map2[563b29ae]@2" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n2
+	node [label="var[7f8a4e21]@1" shape="rect" fillcolor = "red" style="filled" fontcolor="white"]; n3
+	node [label="var[884f9774]@1" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n4
 	n2 -> n1;
-	n3 -> n1;
+	n3 -> n2;
+	n4 -> n2;
 }
 `
+	g := New()
 	v0 := Var("foo")
 	v0.Node().id, _ = ParseIdentifier("165382c219e24e3db77fd41a884f9774")
 	v1 := Var("bar")
@@ -67,22 +80,27 @@ func Test_Dot_setAt(t *testing.T) {
 	v1.Node().setAt = 1
 	m0 := Map2(v0, v1, concat)
 	m0.Node().id, _ = ParseIdentifier("fc45f4a7b5c7456f852f2298563b29ae")
+	o := Observe(g, m0)
+	o.Node().id, _ = ParseIdentifier("507dd07419724979bb34f2ca033257be")
 
 	buf := new(bytes.Buffer)
-	err := Dot(buf, m0)
+	err := Dot(buf, g)
 	testutil.ItsNil(t, err)
 	testutil.ItsEqual(t, golden, buf.String())
 }
 
 func Test_Dot_changedAt(t *testing.T) {
 	golden := `digraph {
-	node [label="map2[563b29ae]" shape="rect" fillcolor = "pink" style="filled" fontcolor="black"]; n1
-	node [label="var[884f9774]" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n2
-	node [label="var[7f8a4e21]" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n3
+	node [label="observer[033257be]@3" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n1
+	node [label="map2[563b29ae]@2" shape="rect" fillcolor = "pink" style="filled" fontcolor="black"]; n2
+	node [label="var[7f8a4e21]@1" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n3
+	node [label="var[884f9774]@1" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n4
 	n2 -> n1;
-	n3 -> n1;
+	n3 -> n2;
+	n4 -> n2;
 }
 `
+	g := New()
 	v0 := Var("foo")
 	v0.Node().id, _ = ParseIdentifier("165382c219e24e3db77fd41a884f9774")
 	v1 := Var("bar")
@@ -90,9 +108,11 @@ func Test_Dot_changedAt(t *testing.T) {
 	m0 := Map2(v0, v1, concat)
 	m0.Node().id, _ = ParseIdentifier("fc45f4a7b5c7456f852f2298563b29ae")
 	m0.Node().changedAt = 1
+	o := Observe(g, m0)
+	o.Node().id, _ = ParseIdentifier("507dd07419724979bb34f2ca033257be")
 
 	buf := new(bytes.Buffer)
-	err := Dot(buf, m0)
+	err := Dot(buf, g)
 	testutil.ItsNil(t, err)
 	testutil.ItsEqual(t, golden, buf.String())
 }

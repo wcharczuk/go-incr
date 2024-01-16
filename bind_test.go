@@ -1,8 +1,12 @@
 package incr
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -262,6 +266,80 @@ func Test_Bind_nested(t *testing.T) {
 	testutil.ItsEqual(t, "a0-0+a0-1->c->final", o.Value())
 }
 
+func Test_Bind_nestedUnlinksBind(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	b01 := Bind(Var("a"), func(_ string) Incr[string] {
+		return Return("b01")
+	})
+	b01.Node().SetLabel("b01")
+	b00 := Bind(Var("a"), func(_ string) Incr[string] {
+		return b01
+	})
+	b00.Node().SetLabel("b00")
+
+	b11 := Bind(Var("a"), func(_ string) Incr[string] {
+		return Return("b11")
+	})
+	b11.Node().SetLabel("b11")
+	b10 := Bind(Var("a"), func(_ string) Incr[string] {
+		return b11
+	})
+	b10.Node().SetLabel("b10")
+
+	bv := Var("a")
+	b := Bind(bv, func(vv string) Incr[string] {
+		if vv == "a" {
+			return b00
+		}
+		return b10
+	})
+	b.Node().SetLabel("b")
+
+	o := Observe(g, b)
+
+	err := g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsNil(t, dumpDot(g, homedir("bind_unobserve_00.png")))
+	testutil.ItsEqual(t, "b01", o.Value())
+
+	bv.Set("b")
+
+	err = g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsNil(t, dumpDot(g, homedir("bind_unobserve_01.png")))
+	testutil.ItsEqual(t, "b11", o.Value())
+
+	testutil.ItsEqual(t, false, g.IsObserving(b00))
+	testutil.ItsEqual(t, false, o.Node().HasParent(b00.Node().ID()))
+	testutil.ItsEqual(t, false, g.IsObserving(b01))
+	testutil.ItsEqual(t, false, o.Node().HasParent(b01.Node().ID()))
+
+	testutil.ItsEqual(t, true, g.IsObserving(b10))
+	testutil.ItsEqual(t, true, o.Node().HasParent(b10.Node().ID()))
+	testutil.ItsEqual(t, true, g.IsObserving(b11))
+	testutil.ItsEqual(t, true, o.Node().HasParent(b11.Node().ID()))
+
+	bv.Set("a")
+
+	err = g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsNil(t, dumpDot(g, homedir("bind_unobserve_02.png")))
+	testutil.ItsEqual(t, "b01", b00.Value())
+	testutil.ItsEqual(t, "b01", o.Value())
+
+	testutil.ItsEqual(t, true, g.IsObserving(b00))
+	testutil.ItsEqual(t, true, o.Node().HasParent(b00.Node().ID()))
+	testutil.ItsEqual(t, true, g.IsObserving(b01))
+	testutil.ItsEqual(t, true, o.Node().HasParent(b01.Node().ID()))
+
+	testutil.ItsEqual(t, false, g.IsObserving(b10))
+	testutil.ItsEqual(t, false, o.Node().HasParent(b10.Node().ID()))
+	testutil.ItsEqual(t, false, g.IsObserving(b11))
+	testutil.ItsEqual(t, false, o.Node().HasParent(b11.Node().ID()))
+}
+
 func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 	ctx := testContext()
 
@@ -339,29 +417,75 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 	testutil.ItsEqual(t, "a0-0+a0-1->b->final", o.Value())
 }
 
-func Test_Bind_nested_bindUnobserved(t *testing.T) {
+func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 	ctx := testContext()
-
-	v := Var("a")
-
-	m0v := Var("foo")
-
-	m0 := Map2(m0v, Return("bar"), concat)
-
-	b := Bind(v, func(vv string) Incr[string] {
-		return m0
-	})
-
 	g := New()
-	o := Observe(g, b)
+
+	/*
+		User Notes:
+
+		The problem is that a bind node, B starts out with height, h.
+		Let’s say h=2. Then it gets recomputed and then it gets bound to C, which ends up h=5 after the discovery process. Great.
+
+		Somewhere along the line in the computation because some other bind nodes, we have to link D to B through a Map.
+		Guess what? D’s pseudo height is 3!. This is because B’s height is not in sync with what it is bound to (C in this case).
+		B still thinks its height is 2.
+
+		Then D gets recomputed because of its low height but the answer to B is not ready because C has not been stabilized yet.
+	*/
+
+	driver01var := Var("a")
+	driver01var.Node().SetLabel("driver01var")
+	driver01 := Bind(driver01var, func(_ string) Incr[string] {
+		r := Return("driver01")
+		r.Node().SetLabel("driver01return")
+		return r
+	})
+	driver01.Node().SetLabel("driver01")
+
+	driver02var := Var("a")
+	driver02var.Node().SetLabel("driver02var")
+	driver02 := Bind(driver02var, func(_ string) Incr[string] {
+		return driver01
+	})
+	driver02.Node().SetLabel("driver02")
+
+	m2 := Map2(driver01, driver02, concat)
+	m2.Node().SetLabel("m2")
+	o := Observe(g, m2)
+	o.Node().SetLabel("observem2")
 
 	err := g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, "foobar", o.Value())
+	testutil.ItsNil(t, dumpDot(g, homedir("bind_user_00.png")))
+	testutil.ItsEqual(t, "driver01driver01", o.Value())
+}
 
-	v.Set("b")
-	m0v.Set("loo")
-	err = g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, "loobar", o.Value())
+func homedir(filename string) string {
+	return filepath.Join(os.ExpandEnv("$HOME/Desktop"), filename)
+}
+
+func dumpDot(g *Graph, path string) error {
+	if os.Getenv("INCR_DEBUG_DOT") == "" {
+		return nil
+	}
+
+	dotContents := new(bytes.Buffer)
+	if err := Dot(dotContents, g); err != nil {
+		return err
+	}
+	dotOutput, err := os.Create(os.ExpandEnv(path))
+	if err != nil {
+		return err
+	}
+	defer func() { _ = dotOutput.Close() }()
+	dotFullPath, err := exec.LookPath("dot")
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command(dotFullPath, "-Tpng")
+	cmd.Stdin = dotContents
+	cmd.Stdout = dotOutput
+	return cmd.Run()
 }
