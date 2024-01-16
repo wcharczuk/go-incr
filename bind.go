@@ -99,7 +99,6 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 		b.unlinkOld(ctx, oldIncr)
 	}
 	if bindChanged {
-		b.n.recomputeHeights()
 		b.n.boundAt = b.n.graph.stabilizationNum
 	}
 	return nil
