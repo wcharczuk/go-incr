@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -418,7 +419,6 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 
 func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 	ctx := testContext()
-	ctx = WithTracing(ctx)
 	g := New()
 
 	/*
@@ -462,7 +462,7 @@ func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 }
 
 func homedir(filename string) string {
-	return fmt.Sprintf("/mnt/c/Users/wcharczuk/Desktop/%s", filename)
+	return filepath.Join(os.ExpandEnv("$HOME/Desktop"), filename)
 }
 
 func dumpDot(g *Graph, path string) error {

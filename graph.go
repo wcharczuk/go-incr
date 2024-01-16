@@ -166,101 +166,26 @@ func (graph *Graph) DiscoverNode(on IObserver, gn INode) {
 // DiscoverObserver initializes an observer node
 // which is treated specially by the graph.
 func (graph *Graph) DiscoverObserver(on IObserver) {
-	onn := on.Node()
-	onn.graph = graph
-	if _, ok := graph.observers[onn.id]; !ok {
-		graph.numNodes++
-	}
-	onn.detectStabilize(on)
-	graph.observers[onn.id] = on
-	onn.height = onn.computePseudoHeight()
+	graph.discoverObserverContext(context.Background(), on)
 }
 
 // UndiscoverAllNodes removes a node and all its parents
 // from a observation within a graph for a given observer.
 func (graph *Graph) UndiscoverNodes(on IObserver, gn INode) {
-	graph.UndiscoverNode(on, gn)
-	gnn := gn.Node()
-	for _, p := range gnn.parents {
-		graph.UndiscoverNodes(on, p)
-	}
+	graph.undiscoverNodesContext(context.Background(), on, gn)
 }
 
 // UndiscoverNode removes the node from the graph
 // observation lookup as well as updating internal
 // stats metadata for the graph for a given observer.
 func (graph *Graph) UndiscoverNode(on IObserver, gn INode) {
-	gnn := gn.Node()
-	delete(gnn.observers, on.Node().ID())
-	for _, handler := range gnn.onUnobservedHandlers {
-		handler(on)
-	}
-	if len(gnn.observers) == 0 {
-		gnn.graph = nil
-		delete(graph.observed, gnn.id)
-		graph.numNodes--
-		graph.recomputeHeap.Remove(gn)
-		graph.handleAfterStabilization.Remove(gn.Node().ID())
-	}
+	graph.undiscoverNodeContext(context.Background(), on, gn)
 }
 
 // UndiscoverObserver removes an observer node
 // which is treated specially by the graph.
 func (graph *Graph) UndiscoverObserver(on IObserver) {
-	onn := on.Node()
-	onn.graph = nil
-	graph.numNodes--
-	graph.recomputeHeap.Remove(on)
-	graph.handleAfterStabilization.Remove(on.Node().ID())
-}
-
-//
-// internal discovery methods
-//
-
-// DiscoverNodes initializes tracking of a given node for a given observer
-// and walks the nodes parents doing the same for any nodes seen.
-func (graph *Graph) discoverNodesContext(ctx context.Context, on IObserver, gn INode) {
-	graph.discoverNodeContext(ctx, on, gn)
-	gnn := gn.Node()
-	for _, p := range gnn.parents {
-		graph.discoverNodesContext(ctx, on, p)
-	}
-}
-
-// DiscoverNode initializes a node and adds
-// it to the observed lookup.
-func (graph *Graph) discoverNodeContext(ctx context.Context, on IObserver, gn INode) {
-	TracePrintf(ctx, "discover node %v", gn)
-	gnn := gn.Node()
-	nodeID := gnn.id
-
-	// make sure to associate the given observer with the node
-	gnn.observers[on.Node().ID()] = on
-	for _, handler := range gnn.onObservedHandlers {
-		handler(on)
-	}
-
-	// if the node is not currently observed.
-	if _, ok := graph.observed[nodeID]; !ok {
-		graph.numNodes++
-	}
-	graph.observed[nodeID] = gn
-	gnn.graph = graph
-	gnn.detectCutoff(gn)
-	gnn.detectAlways(gn)
-	gnn.detectStabilize(gn)
-	gnn.detectBind(gn)
-	gnn.height = gnn.computePseudoHeight()
-
-	shouldRecompute := gnn.ShouldRecompute()
-	recomputeHeapHasNode := graph.recomputeHeap.Has(gn)
-
-	// we should add to the heap if we should recompute the node _or_ if we need to
-	// potentially adjust the height it's sitting in the heap.
-	if shouldRecompute || recomputeHeapHasNode {
-		graph.recomputeHeap.Add(gn)
-	}
+	graph.undiscoverObserverContext(context.Background(), on)
 }
 
 // RecomputeHeight recomputes the height of a given node.
@@ -411,4 +336,98 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 		}
 	}
 	return
+}
+
+//
+// internal discovery methods
+//
+
+// DiscoverNodes initializes tracking of a given node for a given observer
+// and walks the nodes parents doing the same for any nodes seen.
+func (graph *Graph) discoverNodesContext(ctx context.Context, on IObserver, gn INode) {
+	graph.discoverNodeContext(ctx, on, gn)
+	gnn := gn.Node()
+	for _, p := range gnn.parents {
+		graph.discoverNodesContext(ctx, on, p)
+	}
+}
+
+// DiscoverNode initializes a node and adds
+// it to the observed lookup.
+func (graph *Graph) discoverNodeContext(ctx context.Context, on IObserver, gn INode) {
+	TracePrintf(ctx, "discovering node %v", gn)
+	gnn := gn.Node()
+	nodeID := gnn.id
+
+	// make sure to associate the given observer with the node
+	gnn.observers[on.Node().ID()] = on
+	for _, handler := range gnn.onObservedHandlers {
+		handler(on)
+	}
+
+	// if the node is not currently observed.
+	if _, ok := graph.observed[nodeID]; !ok {
+		graph.numNodes++
+	}
+	graph.observed[nodeID] = gn
+	gnn.graph = graph
+	gnn.detectCutoff(gn)
+	gnn.detectAlways(gn)
+	gnn.detectStabilize(gn)
+	gnn.detectBind(gn)
+	gnn.height = gnn.computePseudoHeight()
+
+	shouldRecompute := gnn.ShouldRecompute()
+	recomputeHeapHasNode := graph.recomputeHeap.Has(gn)
+
+	// we should add to the heap if we should recompute the node _or_ if we need to
+	// potentially adjust the height it's sitting in the heap.
+	if shouldRecompute || recomputeHeapHasNode {
+		graph.recomputeHeap.Add(gn)
+	}
+}
+
+func (graph *Graph) discoverObserverContext(ctx context.Context, on IObserver) {
+	onn := on.Node()
+	onn.graph = graph
+	if _, ok := graph.observers[onn.id]; !ok {
+		graph.numNodes++
+	}
+	onn.detectStabilize(on)
+	graph.observers[onn.id] = on
+	onn.height = onn.computePseudoHeight()
+}
+
+func (graph *Graph) undiscoverNodesContext(ctx context.Context, on IObserver, gn INode) {
+	graph.undiscoverNodeContext(ctx, on, gn)
+	gnn := gn.Node()
+	for _, p := range gnn.parents {
+		graph.undiscoverNodesContext(ctx, on, p)
+	}
+}
+
+func (graph *Graph) undiscoverNodeContext(ctx context.Context, on IObserver, gn INode) {
+	gnn := gn.Node()
+	delete(gnn.observers, on.Node().ID())
+	for _, handler := range gnn.onUnobservedHandlers {
+		handler(on)
+	}
+	if len(gnn.observers) == 0 {
+		TracePrintf(ctx, "undiscovering node %v; removing from observed", gn)
+		gnn.graph = nil
+		delete(graph.observed, gnn.id)
+		graph.numNodes--
+		graph.recomputeHeap.Remove(gn)
+		graph.handleAfterStabilization.Remove(gn.Node().ID())
+	} else {
+		TracePrintf(ctx, "undiscovering node %v; remains observed", gn)
+	}
+}
+
+func (graph *Graph) undiscoverObserverContext(ctx context.Context, on IObserver) {
+	onn := on.Node()
+	onn.graph = nil
+	graph.numNodes--
+	graph.recomputeHeap.Remove(on)
+	graph.handleAfterStabilization.Remove(on.Node().ID())
 }

@@ -99,7 +99,7 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 		b.unlinkOld(ctx, oldIncr)
 	}
 	if bindChanged {
-		// b.n.recomputeHeights() // is this important? we need a test to make sure.
+		b.n.recomputeHeights()
 		b.n.boundAt = b.n.graph.stabilizationNum
 	}
 	return nil
@@ -114,7 +114,7 @@ func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, oldIncr INode) {
 	}
 	graph := b.Node().graph
 	for _, o := range b.Node().observers {
-		graph.UndiscoverNodes(o, oldIncr)
+		graph.undiscoverNodesContext(ctx, o, oldIncr)
 	}
 	for _, c := range b.n.children {
 		Unlink(c, oldIncr)
@@ -122,6 +122,8 @@ func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, oldIncr INode) {
 	b.bound = nil
 }
 
+// Unlink implements some custom unlinking steps in cases where
+// a Bind node may be _returning_ a bind node itself.
 func (b *bindIncr[A, B]) Unlink(ctx context.Context) {
 	if b.bound != nil {
 		if typed, ok := b.bound.(IUnlink); ok {
@@ -129,7 +131,7 @@ func (b *bindIncr[A, B]) Unlink(ctx context.Context) {
 		}
 		graph := b.Node().graph
 		for _, o := range b.Node().observers {
-			graph.UndiscoverNodes(o, b.bound)
+			graph.undiscoverNodesContext(ctx, o, b.bound)
 		}
 		for _, c := range b.n.children {
 			Unlink(c, b.bound)
@@ -137,8 +139,23 @@ func (b *bindIncr[A, B]) Unlink(ctx context.Context) {
 	}
 }
 
+// Link implements some custom linking steps in cases where
+// a Bind node may be _returning_ a bind node itself.
 func (b *bindIncr[A, B]) Link(ctx context.Context) {
 	b.n.boundAt = b.n.graph.stabilizationNum
+
+	if b.bound != nil {
+		for _, c := range b.n.children {
+			Link(c, b.bound)
+			c.Node().recomputeHeights()
+		}
+		for _, o := range b.Node().observers {
+			b.n.graph.discoverNodesContext(ctx, o, b.bound)
+		}
+		if typed, ok := b.bound.(ILink); ok {
+			typed.Link(ctx)
+		}
+	}
 }
 
 func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
@@ -151,10 +168,9 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
 	for _, c := range b.n.children {
 		Link(c, newIncr)
 		c.Node().recomputeHeights()
-		b.n.graph.SetStale(c)
 	}
 	for _, o := range b.Node().observers {
-		b.n.graph.DiscoverNodes(o, newIncr)
+		b.n.graph.discoverNodesContext(ctx, o, newIncr)
 	}
 	if typed, ok := newIncr.(ILink); ok {
 		typed.Link(ctx)
