@@ -425,13 +425,6 @@ func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 		Then D gets recomputed because of its low height but the answer to B is not ready because C has not been stabilized yet.
 	*/
 
-	/*
-		Rephrased notes:
-
-		We need to create a situation where a map's height, because of it being moved around, is lower than nodes that
-		depend on it ... somehow, using binds.
-	*/
-
 	c := Map(Map(Var("hello"), mapAppend("world")), mapAppend("!"))
 	c.Node().SetLabel("c")
 
