@@ -1,11 +1,8 @@
 package incr
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"os"
-	"os/exec"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -265,6 +262,75 @@ func Test_Bind_nested(t *testing.T) {
 	testutil.ItsEqual(t, "a0-0+a0-1->c->final", o.Value())
 }
 
+func Test_Bind_nestedUnlinksBind(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	b01 := Bind(Var("a"), func(_ string) Incr[string] {
+		return Return("b01")
+	})
+	b01.Node().SetLabel("b01")
+	b00 := Bind(Var("a"), func(_ string) Incr[string] {
+		return b01
+	})
+	b00.Node().SetLabel("b00")
+	b11 := Bind(Var("a"), func(_ string) Incr[string] {
+		return Return("b11")
+	})
+	b11.Node().SetLabel("b11")
+	b10 := Bind(Var("a"), func(_ string) Incr[string] {
+		return b11
+	})
+	b10.Node().SetLabel("b10")
+
+	bv := Var("a")
+	b := Bind(bv, func(vv string) Incr[string] {
+		if vv == "a" {
+			return b00
+		}
+		return b10
+	})
+	b.Node().SetLabel("b")
+
+	o := Observe(g, b)
+
+	err := g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, "b01", o.Value())
+
+	bv.Set("b")
+
+	err = g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, "b11", o.Value())
+
+	testutil.ItsEqual(t, false, g.IsObserving(b00))
+	testutil.ItsEqual(t, false, o.Node().HasParent(b00.Node().ID()))
+	testutil.ItsEqual(t, false, g.IsObserving(b01))
+	testutil.ItsEqual(t, false, o.Node().HasParent(b01.Node().ID()))
+
+	testutil.ItsEqual(t, true, g.IsObserving(b10))
+	testutil.ItsEqual(t, true, o.Node().HasParent(b10.Node().ID()))
+	testutil.ItsEqual(t, true, g.IsObserving(b11))
+	testutil.ItsEqual(t, true, o.Node().HasParent(b11.Node().ID()))
+
+	bv.Set("a")
+
+	err = g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, "b01", o.Value())
+
+	testutil.ItsEqual(t, true, g.IsObserving(b00))
+	testutil.ItsEqual(t, true, o.Node().HasParent(b00.Node().ID()))
+	testutil.ItsEqual(t, true, g.IsObserving(b01))
+	testutil.ItsEqual(t, true, o.Node().HasParent(b01.Node().ID()))
+
+	testutil.ItsEqual(t, false, g.IsObserving(b10))
+	testutil.ItsEqual(t, false, o.Node().HasParent(b10.Node().ID()))
+	testutil.ItsEqual(t, false, g.IsObserving(b11))
+	testutil.ItsEqual(t, false, o.Node().HasParent(b11.Node().ID()))
+}
+
 func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 	ctx := testContext()
 
@@ -346,7 +412,6 @@ func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 	ctx := testContext()
 	ctx = WithTracing(ctx)
 	g := New()
-
 	/*
 		User Notes:
 
@@ -410,7 +475,6 @@ func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 	err := g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
-	testutil.ItsNil(t, dumpDot(o, "/mnt/c/Users/wcharczuk/Desktop/bind_test_00.png"))
 	testutil.ItsEqual(t, "helloworld!-b3-final", o.Value())
 
 	muxVar.Set("b")
@@ -418,27 +482,26 @@ func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 	err = g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
-	testutil.ItsNil(t, dumpDot(o, "/mnt/c/Users/wcharczuk/Desktop/bind_test_01.png"))
 	testutil.ItsEqual(t, "helloworld!-b1-final", o.Value())
 }
 
-func dumpDot(root INode, path string) error {
-	dotContents := new(bytes.Buffer)
-	if err := Dot(dotContents, root); err != nil {
-		return err
-	}
-	dotOutput, err := os.Create(os.ExpandEnv(path))
-	if err != nil {
-		return err
-	}
-	defer func() { _ = dotOutput.Close() }()
-	dotFullPath, err := exec.LookPath("dot")
-	if err != nil {
-		return err
-	}
+// func dumpDot(g *Graph, path string) error {
+// 	dotContents := new(bytes.Buffer)
+// 	if err := Dot(dotContents, g); err != nil {
+// 		return err
+// 	}
+// 	dotOutput, err := os.Create(os.ExpandEnv(path))
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer func() { _ = dotOutput.Close() }()
+// 	dotFullPath, err := exec.LookPath("dot")
+// 	if err != nil {
+// 		return err
+// 	}
 
-	cmd := exec.Command(dotFullPath, "-Tpng")
-	cmd.Stdin = dotContents
-	cmd.Stdout = dotOutput
-	return cmd.Run()
-}
+// 	cmd := exec.Command(dotFullPath, "-Tpng")
+// 	cmd.Stdin = dotContents
+// 	cmd.Stdout = dotOutput
+// 	return cmd.Run()
+// }

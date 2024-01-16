@@ -1,7 +1,6 @@
 package incr
 
 import (
-	"context"
 	"fmt"
 )
 
@@ -37,13 +36,13 @@ type ObserveIncr[A any] interface {
 	// you should _not_ re-use the node.
 	//
 	// To observe parts of a graph again, use the `Observe(...)` helper.
-	Unobserve(context.Context)
+	Unobserve()
 }
 
 // IObserver is an INode that can be unobserved.
 type IObserver interface {
 	INode
-	Unobserve(context.Context)
+	Unobserve()
 }
 
 var (
@@ -65,9 +64,9 @@ func (o *observeIncr[A]) Node() *Node { return o.n }
 // you should _not_ re-use the node.
 //
 // To observe parts of a graph again, use the `Observe(...)` helper.
-func (o *observeIncr[A]) Unobserve(ctx context.Context) {
+func (o *observeIncr[A]) Unobserve() {
 	g := o.n.graph
-	g.UndiscoverNodes(ctx, o, o.input)
+	g.UndiscoverNodes(o, o.input)
 	g.UndiscoverObserver(o)
 	for _, p := range o.n.parents {
 		Unlink(o, p)

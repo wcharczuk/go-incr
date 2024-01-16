@@ -212,14 +212,14 @@ func (graph *Graph) DiscoverObserver(on IObserver) {
 
 // UndiscoverAllNodes removes a node and all its parents
 // from a observation within a graph for a given observer.
-func (graph *Graph) UndiscoverNodes(ctx context.Context, on IObserver, gn INode) {
+func (graph *Graph) UndiscoverNodes(on IObserver, gn INode) {
 	graph.UndiscoverNode(on, gn)
 	gnn := gn.Node()
-	for _, c := range gnn.parents {
-		if !graph.IsObserving(c) {
+	for _, p := range gnn.parents {
+		if !graph.IsObserving(p) {
 			continue
 		}
-		graph.UndiscoverNodes(ctx, on, c)
+		graph.UndiscoverNodes(on, p)
 	}
 }
 

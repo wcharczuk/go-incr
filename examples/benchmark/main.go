@@ -60,7 +60,7 @@ func main() {
 	}
 
 	buf := new(bytes.Buffer)
-	_ = incr.Dot(buf, nodes[0])
+	_ = incr.Dot(buf, graph)
 	fmt.Print(buf.String())
 }
 

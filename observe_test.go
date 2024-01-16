@@ -8,7 +8,6 @@ import (
 )
 
 func Test_Observe_Unobserve(t *testing.T) {
-	ctx := testContext()
 	g := New()
 
 	v0 := Var("hello 0")
@@ -34,7 +33,7 @@ func Test_Observe_Unobserve(t *testing.T) {
 	testutil.ItsEqual(t, "hello 0", o0.Value())
 	testutil.ItsEqual(t, "hello 1", o1.Value())
 
-	o1.Unobserve(ctx)
+	o1.Unobserve()
 
 	testutil.ItsEqual(t, len(g.observed), g.numNodes-1, "we don't observe the observer but we do track it!")
 	testutil.ItsNil(t, o1.Node().graph)
@@ -53,7 +52,6 @@ func Test_Observe_Unobserve(t *testing.T) {
 }
 
 func Test_Observe_Unobserve_multiple(t *testing.T) {
-	ctx := testContext()
 	g := New()
 
 	v0 := Var("hello 0")
@@ -87,7 +85,7 @@ func Test_Observe_Unobserve_multiple(t *testing.T) {
 	testutil.ItsEqual(t, "hello 1", o1.Value())
 	testutil.ItsEqual(t, "hello 1", o11.Value())
 
-	o1.Unobserve(ctx)
+	o1.Unobserve()
 
 	testutil.ItsEqual(t, len(g.observed), g.numNodes-2, "we should have (1) less observer after unobserve!")
 	testutil.ItsNil(t, o1.Node().graph)
@@ -117,7 +115,6 @@ func Test_Observe_Unobserve_multiple(t *testing.T) {
 }
 
 func Test_Observer_Unobserve_reobserve(t *testing.T) {
-	ctx := testContext()
 	g := New()
 	v0 := Var("hello")
 	m0 := Map(v0, ident)
@@ -126,7 +123,7 @@ func Test_Observer_Unobserve_reobserve(t *testing.T) {
 	_ = g.Stabilize(context.TODO())
 	testutil.ItsEqual(t, "hello", o0.Value())
 
-	o0.Unobserve(ctx)
+	o0.Unobserve()
 
 	_ = g.Stabilize(context.TODO())
 	testutil.ItsEqual(t, false, g.IsObserving(m0))

@@ -108,9 +108,11 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 // Unlink adds special unlinking steps for the bind.
 func (b *bindIncr[A, B]) Unlink() {
 	if b.bound != nil {
-		fmt.Printf("%v unlinking bound node %v", b, b.bound)
 		for _, c := range b.n.children {
 			Unlink(c, b.bound)
+		}
+		for _, o := range b.Node().observers {
+			b.Node().graph.UndiscoverNodes(o, b.bound)
 		}
 		b.bound = nil
 	}
@@ -124,7 +126,7 @@ func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, oldIncr INode) {
 	}
 	graph := b.Node().graph
 	for _, o := range b.Node().observers {
-		graph.UndiscoverNodes(ctx, o, oldIncr)
+		graph.UndiscoverNodes(o, oldIncr)
 	}
 	b.bound = nil
 }

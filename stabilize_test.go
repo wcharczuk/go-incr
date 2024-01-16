@@ -218,7 +218,7 @@ func Test_Stabilize_unobservedHandlers(t *testing.T) {
 	ItsEqual(t, 2, observes)
 	ItsEqual(t, 0, unobserves)
 
-	o0.Unobserve(ctx)
+	o0.Unobserve()
 	ItsEqual(t, 2, observes)
 	ItsEqual(t, 1, unobserves)
 }

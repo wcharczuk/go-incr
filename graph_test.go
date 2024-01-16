@@ -37,8 +37,6 @@ func Test_Graph_Label(t *testing.T) {
 }
 
 func Test_Graph_UndiscoverNodes(t *testing.T) {
-	ctx := testContext()
-
 	r0 := Return("hello")
 	m0 := Map(r0, ident)
 	m1 := Map(m0, ident)
@@ -63,7 +61,7 @@ func Test_Graph_UndiscoverNodes(t *testing.T) {
 	testutil.ItsEqual(t, true, g.IsObserving(am1))
 	testutil.ItsEqual(t, true, g.IsObserving(am2))
 
-	g.UndiscoverNodes(ctx, o1, m1)
+	g.UndiscoverNodes(o1, m1)
 
 	testutil.ItsEqual(t, false, g.IsObserving(r0))
 	testutil.ItsEqual(t, false, g.IsObserving(m0))
@@ -82,8 +80,6 @@ func Test_Graph_UndiscoverNodes(t *testing.T) {
 }
 
 func Test_Graph_UndiscoverNodes_notObserving(t *testing.T) {
-	ctx := testContext()
-
 	r0 := Return("hello")
 	m0 := Map(r0, ident)
 	m1 := Map(m0, ident)
@@ -107,7 +103,7 @@ func Test_Graph_UndiscoverNodes_notObserving(t *testing.T) {
 	testutil.ItsEqual(t, false, g.IsObserving(am1))
 	testutil.ItsEqual(t, false, g.IsObserving(am2))
 
-	g.UndiscoverNodes(ctx, o, am1)
+	g.UndiscoverNodes(o, am1)
 
 	testutil.ItsEqual(t, true, g.IsObserving(r0))
 	testutil.ItsEqual(t, true, g.IsObserving(m0))
