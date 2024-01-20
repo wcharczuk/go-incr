@@ -24,6 +24,9 @@ import (
 // When the bind changes from (c) to (d), (c) is unlinked, and is removed
 // as a "child" of (b), preventing it from being considered part of the
 // overall computation unless it's referenced by another node in the graph.
+//
+// More information is available at:
+// https://github.com/janestreet/incremental/blob/master/src/incremental_intf.ml#L313C1-L324C52
 func Bind[A, B any](input Incr[A], fn func(A) Incr[B]) BindIncr[B] {
 	return BindContext[A, B](input, func(_ context.Context, va A) (Incr[B], error) {
 		return fn(va), nil
