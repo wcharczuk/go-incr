@@ -50,8 +50,9 @@ func (vn *varIncr[T]) Set(v T) {
 	if vn.n.graph != nil && atomic.LoadInt32(&vn.n.graph.status) == StatusStabilizing {
 		vn.setDuringStabilizationValue = v
 		vn.setDuringStabilization = true
+
 		// NOTE(wc): this .Push call is interlocked!
-		vn.n.graph.setDuringStabilization.Push(vn.n.id, vn, vn.n.height)
+		vn.n.graph.setDuringStabilization.Push(vn.n.id, vn)
 		return
 	}
 

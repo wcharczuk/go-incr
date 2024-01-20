@@ -24,8 +24,8 @@ import (
 // When the bind changes from (c) to (d), (c) is unlinked, and is removed
 // as a "child" of (b), preventing it from being considered part of the
 // overall computation unless it's referenced by another node in the graph.
-func Bind[A, B any](a Incr[A], fn func(A) Incr[B]) BindIncr[B] {
-	return BindContext[A, B](a, func(_ context.Context, va A) (Incr[B], error) {
+func Bind[A, B any](input Incr[A], fn func(A) Incr[B]) BindIncr[B] {
+	return BindContext[A, B](input, func(_ context.Context, va A) (Incr[B], error) {
 		return fn(va), nil
 	})
 }
@@ -33,14 +33,15 @@ func Bind[A, B any](a Incr[A], fn func(A) Incr[B]) BindIncr[B] {
 // BindContext is like Bind but allows the bind delegate to take a context and return an error.
 //
 // If an error returned, the bind is aborted and the error listener(s) will fire for the node.
-func BindContext[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], error)) BindIncr[B] {
+func BindContext[A, B any](input Incr[A], fn func(context.Context, A) (Incr[B], error)) BindIncr[B] {
 	o := &bindIncr[A, B]{
-		n:  NewNode(),
-		a:  a,
-		fn: fn,
-		bt: "bind",
+		n:     NewNode(),
+		input: input,
+		fn:    fn,
+		bt:    "bind",
+		scope: new(bindScope),
 	}
-	Link(o, a)
+	Link(o, input)
 	return o
 }
 
@@ -49,9 +50,18 @@ func BindContext[A, B any](a Incr[A], fn func(context.Context, A) (Incr[B], erro
 // based on input incrementals.
 type BindIncr[A any] interface {
 	Incr[A]
-	IBind
-	IUnlink
 	fmt.Stringer
+}
+
+type bindScope struct {
+	nodes *list[Identifier, INode]
+}
+
+func (bs *bindScope) Stabilize(ctx context.Context) error {
+	bs.nodes.Each(func(n INode) {
+		n.Node().graph.recomputeHeap.Add(n)
+	})
+	return nil
 }
 
 var (
@@ -64,9 +74,9 @@ var (
 type bindIncr[A, B any] struct {
 	n     *Node
 	bt    string
-	a     Incr[A]
+	input Incr[A]
 	fn    func(context.Context, A) (Incr[B], error)
-	bound Incr[B]
+	scope *bindScope
 }
 
 func (b *bindIncr[A, B]) Node() *Node { return b.n }
@@ -78,25 +88,42 @@ func (b *bindIncr[A, B]) Value() (output B) {
 	return
 }
 
+func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
+	// recurse through the bind node's current scope
+	// invalidating (but not recomputing!) anything in the current scope.
+	if err := b.Bind(ctx); err != nil {
+		return err
+	}
+	if b.n.createdIn != nil {
+		b.n.createdIn.nodes.Each(func(n INode) {
+			b.n.graph.SetStale(n)
+		})
+	}
+	return nil
+}
+
 func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
-	oldIncr := b.bound
-	newIncr, err := b.fn(ctx, b.a.Value())
+	newIncr, err := b.fn(ctx, b.input.Value())
 	if err != nil {
 		return err
 	}
 	var bindChanged bool
-	if oldIncr != nil && newIncr != nil {
-		if oldIncr.Node().id != newIncr.Node().id {
+	if b.bound != nil && newIncr != nil {
+		if b.bound.Node().id != newIncr.Node().id {
 			bindChanged = true
-			b.unlinkOld(ctx, oldIncr)
-			b.linkNew(ctx, newIncr)
+			b.unlinkOld(ctx)
+			if err := b.linkNew(ctx, newIncr); err != nil {
+				return err
+			}
 		}
 	} else if newIncr != nil {
 		bindChanged = true
-		b.linkNew(ctx, newIncr)
-	} else if oldIncr != nil {
+		if err := b.linkNew(ctx, newIncr); err != nil {
+			return err
+		}
+	} else if b.bound != nil {
 		bindChanged = true
-		b.unlinkOld(ctx, oldIncr)
+		b.unlinkOld(ctx)
 	}
 	if bindChanged {
 		b.n.boundAt = b.n.graph.stabilizationNum
@@ -104,79 +131,66 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 	return nil
 }
 
-func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, oldIncr INode) {
-	TracePrintf(ctx, "%v unlinking old child %v", b, oldIncr)
-	// check if we should call a special unlink handler on the node
-	// this is largely just for nested bind nodes.
-	if typed, ok := oldIncr.(IUnlink); ok {
-		typed.Unlink(ctx)
-	}
-	graph := b.Node().graph
-	for _, o := range b.Node().observers {
-		graph.undiscoverNodesContext(ctx, o, oldIncr)
-	}
-	for _, c := range b.n.children {
-		Unlink(c, oldIncr)
-	}
-	b.bound = nil
+func (b *bindIncr[A, B]) unlinkOld(ctx context.Context) {
+
 }
 
-// Unlink implements some custom unlinking steps in cases where
-// a Bind node may be _returning_ a bind node itself.
-func (b *bindIncr[A, B]) Unlink(ctx context.Context) {
-	if b.bound != nil {
-		if typed, ok := b.bound.(IUnlink); ok {
-			typed.Unlink(ctx)
-		}
-		graph := b.Node().graph
-		for _, o := range b.Node().observers {
-			graph.undiscoverNodesContext(ctx, o, b.bound)
-		}
-		for _, c := range b.n.children {
-			Unlink(c, b.bound)
-		}
+func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) error {
+	if b.n.createdIn != nil {
+		b.n.createdIn.nodes.pushUnsafe(newIncr.Node().ID(), newIncr)
 	}
-}
-
-// Link implements some custom linking steps in cases where
-// a Bind node may be _returning_ a bind node itself.
-func (b *bindIncr[A, B]) Link(ctx context.Context) {
-	b.n.boundAt = b.n.graph.stabilizationNum
-
-	if b.bound != nil {
-		for _, c := range b.n.children {
-			Link(c, b.bound)
-			c.Node().recomputeHeights()
-		}
-		for _, o := range b.Node().observers {
-			b.n.graph.discoverNodesContext(ctx, o, b.bound)
-		}
-		if typed, ok := b.bound.(ILink); ok {
-			typed.Link(ctx)
-		}
+	innerBindScope := &bindScope{
+		nodes: new(list[Identifier, INode]),
 	}
-}
-
-func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
-	TracePrintf(ctx, "%v linking new child %v", b, newIncr)
-
-	// for each of the nodes that have the bind node as an input
-	// link the new incremental as an input as well (i.e. the bind node
-	// itself and the "bound" node are peers in a way).
-	// we do this mostly to keep the node heights from getting out of control.
-	for _, c := range b.n.children {
-		Link(c, newIncr)
-		c.Node().recomputeHeights()
-	}
-	for _, o := range b.Node().observers {
+	innerBindScope.nodes.pushUnsafe(newIncr.Node().ID(), newIncr)
+	b.bound = bindlhs(b.input, newIncr)
+	for _, o := range b.n.Observers() {
 		b.n.graph.discoverNodesContext(ctx, o, newIncr)
 	}
-	if typed, ok := newIncr.(ILink); ok {
-		typed.Link(ctx)
-	}
-	b.bound = newIncr
+	return nil
 }
 
 func (b *bindIncr[A, B]) String() string {
 	return b.n.String(b.bt)
+}
+
+var (
+	_ Incr[bool]     = (*bindIncr[string, bool])(nil)
+	_ BindIncr[bool] = (*bindIncr[string, bool])(nil)
+	_ INode          = (*bindIncr[string, bool])(nil)
+	_ fmt.Stringer   = (*bindIncr[string, bool])(nil)
+)
+
+func bindlhs[A, B any](left Incr[A], right Incr[B]) *bindlhsIncr[A, B] {
+	o := &bindlhsIncr[A, B]{
+		n:     NewNode(),
+		left:  left,
+		right: right,
+	}
+	Link(o, left)
+	Link(right, o)
+	return o
+}
+
+type bindlhsIncr[A, B any] struct {
+	n     *Node
+	left  Incr[A]
+	right Incr[B]
+}
+
+func (b *bindlhsIncr[A, B]) Node() *Node { return b.n }
+
+func (b *bindlhsIncr[A, B]) Value() (output B) {
+	return
+}
+
+func (b *bindlhsIncr[A, B]) Stabilize(ctx context.Context) error {
+	if err := b.n.createdIn.Stabilize(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (b *bindlhsIncr[A, B]) String() string {
+	return b.n.String("bind-lhs-change")
 }

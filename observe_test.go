@@ -92,7 +92,7 @@ func Test_Observe_Unobserve_multiple(t *testing.T) {
 
 	testutil.ItsEqual(t, 0, len(o1.Node().parents))
 	testutil.ItsEqual(t, 0, len(o1.Node().children))
-	testutil.ItsNone(t, m1.Node().children, func(n INode) bool {
+	testutil.ItsNone(t, m1.Node().Children(), func(n INode) bool {
 		return n.Node().ID() == o1.Node().ID()
 	})
 

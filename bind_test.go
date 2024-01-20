@@ -1,12 +1,8 @@
 package incr
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -473,31 +469,85 @@ func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 	testutil.ItsEqual(t, "driver01driver01", o.Value())
 }
 
-func homedir(filename string) string {
-	return filepath.Join(os.ExpandEnv("$HOME/Desktop"), filename)
-}
+func Test_Bind_regression(t *testing.T) {
+	cache := make(map[string]Incr[*int])
 
-func dumpDot(g *Graph, path string) error {
-	if os.Getenv("INCR_DEBUG_DOT") == "" {
-		return nil
+	fakeFormula := Var("fakeformula")
+	var f func(t int) Incr[*int]
+	f = func(t int) Incr[*int] {
+		key := fmt.Sprintf("f-%d", t)
+		if _, ok := cache[key]; ok {
+			return cache[key]
+		}
+		r := Bind(fakeFormula, func(formula string) Incr[*int] {
+			key := fmt.Sprintf("map-f-%d", t)
+			if _, ok := cache[key]; ok {
+				return cache[key]
+			}
+			if t == 0 {
+				out := 0
+				return Return(&out)
+			}
+			bindOutput := Map(f(t-1), func(r *int) *int {
+				out := *r + 1
+				return &out
+			})
+			bindOutput.Node().SetLabel(fmt.Sprintf("map-f-%d", t))
+			cache[key] = bindOutput
+			return bindOutput
+		})
+		r.Node().SetLabel(key)
+		cache[key] = r
+		return r
 	}
 
-	dotContents := new(bytes.Buffer)
-	if err := Dot(dotContents, g); err != nil {
-		return err
-	}
-	dotOutput, err := os.Create(os.ExpandEnv(path))
-	if err != nil {
-		return err
-	}
-	defer func() { _ = dotOutput.Close() }()
-	dotFullPath, err := exec.LookPath("dot")
-	if err != nil {
-		return err
+	g := func(t int) Incr[*int] {
+		key := fmt.Sprintf("g-%d", t)
+		if _, ok := cache[key]; ok {
+			return cache[key]
+		}
+		r := Bind(fakeFormula, func(formula string) Incr[*int] {
+			output := f(t)
+			return output
+		})
+		r.Node().SetLabel(key)
+		cache[key] = r
+		return r
 	}
 
-	cmd := exec.Command(dotFullPath, "-Tpng")
-	cmd.Stdin = dotContents
-	cmd.Stdout = dotOutput
-	return cmd.Run()
+	h := func(t int) Incr[*int] {
+		b := Bind(fakeFormula, func(formula string) Incr[*int] {
+			var m2 Incr[*int]
+			m2 = Map2(g(t), Return(10), func(l *int, r int) *int {
+				if l == nil {
+					return nil
+				}
+				out := *l * r
+				return &out
+			})
+			m2.Node().SetLabel("h-m2")
+			return m2
+		})
+		b.Node().SetLabel("h")
+		return b
+	}
+
+	o := Map3(f(2), g(2), h(2), func(first *int, second *int, third *int) *int {
+		if first == nil || second == nil || third == nil {
+			return nil
+		}
+		out := *first + *second + *third
+		return &out
+	})
+	o.Node().SetLabel("map3-final")
+
+	graph := New()
+	_ = Observe(graph, o)
+
+	ctx := testContext()
+	_ = graph.Stabilize(ctx)
+	_ = dumpDot(graph, homedir("bind_regression.png"))
+
+	testutil.ItsNotNil(t, o.Value())
+	testutil.ItsEqual(t, 24, *o.Value())
 }

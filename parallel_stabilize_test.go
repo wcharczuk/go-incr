@@ -275,8 +275,8 @@ func Test_ParallelStabilize_inconsistent_error(t *testing.T) {
 	v0 := newHeightIncr(2)
 	v1 := newHeightIncr(2)
 
-	g.recomputeHeap.lookup[v0.n.id] = &listItem[Identifier, INode]{key: v0.n.id, value: v0, height: 2}
-	g.recomputeHeap.lookup[v1.n.id] = &listItem[Identifier, INode]{key: v1.n.id, value: v1, height: 2}
+	g.recomputeHeap.lookup[v0.n.id] = &listItem[Identifier, recomputeHeapItem[INode]]{key: v0.n.id, value: recomputeHeapItem[INode]{node: v0, height: 2}}
+	g.recomputeHeap.lookup[v1.n.id] = &listItem[Identifier, recomputeHeapItem[INode]]{key: v1.n.id, value: recomputeHeapItem[INode]{node: v1, height: 2}}
 
 	g.recomputeHeap.minHeight = 1
 

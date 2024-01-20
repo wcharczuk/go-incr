@@ -3,6 +3,7 @@ package incr
 import (
 	"context"
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -43,8 +44,12 @@ type Graph struct {
 	// observed are the nodes that the graph currently observes
 	// organized by node id.
 	observed map[Identifier]INode
+	// observedMu interlocks acces to observed
+	observedMu sync.Mutex
 	// observers hold references to observers organized by node id.
 	observers map[Identifier]IObserver
+	// observersMu interlocks acces to observers
+	observersMu sync.Mutex
 
 	// recomputeHeap is the heap of nodes to be processed
 	// organized by pseudo-height. The recompute heap
@@ -126,6 +131,9 @@ func (graph *Graph) IsStabilizing() bool {
 
 // IsObserving returns if a graph is observing a given node.
 func (graph *Graph) IsObserving(gn INode) (ok bool) {
+	graph.observedMu.Lock()
+	defer graph.observedMu.Unlock()
+
 	_, ok = graph.observed[gn.Node().id]
 	return
 }
@@ -299,22 +307,16 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 		return
 	}
 	if shouldCutoff {
-		TracePrintf(ctx, "stabilization saw cutoff node %v with height %d", n, n.Node().height)
+		TracePrintf(ctx, "stabilization saw cutoff node %v", n)
 		return
 	}
 
-	TracePrintf(ctx, "stabilization is recomputing %v with height %d", n, n.Node().height)
+	TracePrintf(ctx, "stabilization is recomputing %v", n)
 	graph.numNodesChanged++
 	nn.numChanges++
 
 	// we have to propagate the "changed" or "recomputed" status to children
 	nn.changedAt = graph.stabilizationNum
-	if err = nn.maybeBind(ctx); err != nil {
-		for _, eh := range nn.onErrorHandlers {
-			eh(ctx, err)
-		}
-		return
-	}
 	if err = nn.maybeStabilize(ctx); err != nil {
 		for _, eh := range nn.onErrorHandlers {
 			eh(ctx, err)
@@ -323,7 +325,7 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	}
 
 	if len(nn.onUpdateHandlers) > 0 {
-		graph.handleAfterStabilization.Push(nn.id, nn.onUpdateHandlers, 0)
+		graph.handleAfterStabilization.Push(nn.id, nn.onUpdateHandlers)
 	}
 
 	// recompute all the children of this node, i.e. the nodes that
@@ -355,26 +357,30 @@ func (graph *Graph) discoverNodesContext(ctx context.Context, on IObserver, gn I
 // DiscoverNode initializes a node and adds
 // it to the observed lookup.
 func (graph *Graph) discoverNodeContext(ctx context.Context, on IObserver, gn INode) {
-	TracePrintf(ctx, "discovering node %v", gn)
 	gnn := gn.Node()
 	nodeID := gnn.id
 
 	// make sure to associate the given observer with the node
+	gnn.observersMu.Lock()
 	gnn.observers[on.Node().ID()] = on
+	gnn.observersMu.Unlock()
+
 	for _, handler := range gnn.onObservedHandlers {
 		handler(on)
 	}
 
 	// if the node is not currently observed.
+	graph.observedMu.Lock()
 	if _, ok := graph.observed[nodeID]; !ok {
 		graph.numNodes++
 	}
 	graph.observed[nodeID] = gn
+	graph.observedMu.Unlock()
+
 	gnn.graph = graph
 	gnn.detectCutoff(gn)
 	gnn.detectAlways(gn)
 	gnn.detectStabilize(gn)
-	gnn.detectBind(gn)
 	gnn.height = gnn.computePseudoHeight()
 
 	shouldRecompute := gnn.ShouldRecompute()
@@ -384,10 +390,15 @@ func (graph *Graph) discoverNodeContext(ctx context.Context, on IObserver, gn IN
 	// potentially adjust the height it's sitting in the heap.
 	if shouldRecompute || recomputeHeapHasNode {
 		graph.recomputeHeap.Add(gn)
+	} else if recomputeHeapHasNode {
+		graph.recomputeHeap.Fix(gnn.id)
 	}
 }
 
 func (graph *Graph) discoverObserverContext(ctx context.Context, on IObserver) {
+	graph.observersMu.Lock()
+	defer graph.observersMu.Unlock()
+
 	onn := on.Node()
 	onn.graph = graph
 	if _, ok := graph.observers[onn.id]; !ok {
@@ -408,19 +419,24 @@ func (graph *Graph) undiscoverNodesContext(ctx context.Context, on IObserver, gn
 
 func (graph *Graph) undiscoverNodeContext(ctx context.Context, on IObserver, gn INode) {
 	gnn := gn.Node()
+
+	gnn.observersMu.Lock()
+	defer gnn.observersMu.Unlock()
+
 	delete(gnn.observers, on.Node().ID())
 	for _, handler := range gnn.onUnobservedHandlers {
 		handler(on)
 	}
 	if len(gnn.observers) == 0 {
-		TracePrintf(ctx, "undiscovering node %v; removing from observed", gn)
 		gnn.graph = nil
+
+		graph.observedMu.Lock()
 		delete(graph.observed, gnn.id)
+		graph.observedMu.Unlock()
+
 		graph.numNodes--
 		graph.recomputeHeap.Remove(gn)
 		graph.handleAfterStabilization.Remove(gn.Node().ID())
-	} else {
-		TracePrintf(ctx, "undiscovering node %v; remains observed", gn)
 	}
 }
 

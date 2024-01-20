@@ -3,12 +3,15 @@ package incr
 import (
 	"context"
 	"fmt"
+	"sync"
 )
 
 // NewNode returns a new node.
 func NewNode() *Node {
 	return &Node{
 		id:        NewIdentifier(),
+		parents:   make(nodeLookup),
+		children:  make(nodeLookup),
 		observers: make(map[Identifier]IObserver),
 	}
 }
@@ -26,13 +29,19 @@ type Node struct {
 	label string
 	// parents are the nodes that this node depends on, that is
 	// parents are nodes that this node takes as inputs
-	parents []INode
+	parents nodeLookup
+	// parentsMu interlocks access to parents
+	parentsMu sync.Mutex
 	// children are the nodes that depend on this node, that is
 	// children take this node as an input
-	children []INode
+	children nodeLookup
+	// childrenMu interlocks access to children
+	childrenMu sync.Mutex
 	// observers are observer nodes that are attached to this
 	// node or its children.
 	observers map[Identifier]IObserver
+	// observersMu interlocsk access to observers
+	observersMu sync.Mutex
 	// height is the topological sort pseudo-height of the
 	// node and is used to order recomputation
 	// it is established when the graph is initialized but
@@ -72,15 +81,30 @@ type Node struct {
 	// cutoff is set during initialization and is a shortcut
 	// to the interface sniff for the node for the ICutoff interface.
 	cutoff func(context.Context) (bool, error)
-	// bind is set during observation and is a shortcut
-	// to the interface sniff for the node for the IBind interface.
-	bind func(context.Context) error
 	// always determines if we always recompute this node.
 	always bool
 	// numRecomputes is the number of times we recomputed the node
 	numRecomputes uint64
 	// numChanges is the number of times we changed the node
 	numChanges uint64
+	// createdIn is the "bind scope" the node was created in
+	createdIn *bindScope
+}
+
+func nodeSorter(a, b INode) int {
+	if a.Node().height == b.Node().height {
+		aID := a.Node().ID().String()
+		bID := b.Node().ID().String()
+		if aID == bID {
+			return 0
+		} else if aID > bID {
+			return -1
+		}
+		return 1
+	} else if a.Node().height > b.Node().height {
+		return -1
+	}
+	return 1
 }
 
 //
@@ -95,9 +119,9 @@ func (n *Node) ID() Identifier {
 // String returns a string form of the node metadata.
 func (n *Node) String(nodeType string) string {
 	if n.label != "" {
-		return fmt.Sprintf("%s[%s]:%s", nodeType, n.id.Short(), n.label)
+		return fmt.Sprintf("%s[%s]:%s@%d", nodeType, n.id.Short(), n.label, n.height)
 	}
-	return fmt.Sprintf("%s[%s]", nodeType, n.id.Short())
+	return fmt.Sprintf("%s[%s]@%d", nodeType, n.id.Short(), n.height)
 }
 
 // Set/Get properties
@@ -147,52 +171,57 @@ func (n *Node) SetMetadata(md any) {
 
 // Parents returns the node parent list.
 func (n *Node) Parents() []INode {
-	return n.parents
+	n.parentsMu.Lock()
+	defer n.parentsMu.Unlock()
+	return n.parents.Values()
 }
 
 // Parents returns the node child list.
 func (n *Node) Children() []INode {
-	return n.children
+	n.childrenMu.Lock()
+	defer n.childrenMu.Unlock()
+	return n.children.Values()
 }
 
 // HasChild returns if a child with a given identifier
 // is present in the children list.
 func (n *Node) HasChild(id Identifier) (ok bool) {
-	for _, c := range n.children {
-		if c.Node().id == id {
-			ok = true
-			return
-		}
-	}
+	n.childrenMu.Lock()
+	defer n.childrenMu.Unlock()
+	_, ok = n.children[id]
 	return
 }
 
 // HasParent returns if a parent with a given identifier
 // is present in the parents list.
 func (n *Node) HasParent(id Identifier) (ok bool) {
-	for _, p := range n.parents {
-		if p.Node().id == id {
-			ok = true
-			return
-		}
-	}
+	n.parentsMu.Lock()
+	defer n.parentsMu.Unlock()
+	_, ok = n.parents[id]
 	return
 }
 
 // IsRoot should return if the parent count, or the
 // number of nodes that this node depends on is zero.
 func (n *Node) IsRoot() bool {
+	n.parentsMu.Lock()
+	defer n.parentsMu.Unlock()
 	return len(n.parents) == 0
 }
 
 // IsLeaf should return if the child count, or the
 // number of nodes depend on this node is zero.
 func (n *Node) IsLeaf() bool {
+	n.childrenMu.Lock()
+	defer n.childrenMu.Unlock()
+
 	return len(n.children) == 0
 }
 
 // Observers returns the node observer list.
 func (n *Node) Observers() (output []IObserver) {
+	n.observersMu.Lock()
+	defer n.observersMu.Unlock()
 	output = make([]IObserver, 0, len(n.observers))
 	for _, o := range n.observers {
 		output = append(output, o)
@@ -203,12 +232,9 @@ func (n *Node) Observers() (output []IObserver) {
 // HasObserver returns if an observer with a given identifier
 // is present in the observers list.
 func (n *Node) HasObserver(id Identifier) (ok bool) {
-	for _, o := range n.observers {
-		if o.Node().id == id {
-			ok = true
-			return
-		}
-	}
+	n.observersMu.Lock()
+	defer n.observersMu.Unlock()
+	_, ok = n.observers[id]
 	return
 }
 
@@ -218,36 +244,32 @@ func (n *Node) HasObserver(id Identifier) (ok bool) {
 
 // addChildren adds node references as children to this node.
 func (n *Node) addChildren(c ...INode) {
-	n.children = append(n.children, c...)
+	n.childrenMu.Lock()
+	defer n.childrenMu.Unlock()
+	n.children.Add(c...)
 }
 
 // addParents adds node references as parents to this node.
 func (n *Node) addParents(c ...INode) {
-	n.parents = append(n.parents, c...)
+	n.parentsMu.Lock()
+	defer n.parentsMu.Unlock()
+	n.parents.Add(c...)
 }
 
 // RemoveChild removes a specific child from the node, specifically
 // a node that might have been an input to this node.
 func (n *Node) removeChild(id Identifier) {
-	var newChildren []INode
-	for _, oc := range n.children {
-		if oc.Node().id != id {
-			newChildren = append(newChildren, oc)
-		}
-	}
-	n.children = newChildren
+	n.childrenMu.Lock()
+	defer n.childrenMu.Unlock()
+	delete(n.children, id)
 }
 
 // RemoveParent removes a parent from the node, specifically
 // a node for which this node is an input.
 func (n *Node) removeParent(id Identifier) {
-	var newParents []INode
-	for _, oc := range n.parents {
-		if oc.Node().id != id {
-			newParents = append(newParents, oc)
-		}
-	}
-	n.parents = newParents
+	n.parentsMu.Lock()
+	defer n.parentsMu.Unlock()
+	delete(n.parents, id)
 }
 
 // maybeCutoff calls the cutoff delegate if it's set, otherwise
@@ -283,13 +305,6 @@ func (n *Node) detectStabilize(gn INode) {
 	}
 }
 
-// detectBind detects if an INode can be bound.
-func (n *Node) detectBind(gn INode) {
-	if typed, ok := gn.(IBind); ok {
-		n.bind = typed.Bind
-	}
-}
-
 // ShouldRecompute returns whether or not a given node needs to be recomputed.
 func (n *Node) ShouldRecompute() bool {
 	// we should always recompute on the first stabilization
@@ -300,8 +315,8 @@ func (n *Node) ShouldRecompute() bool {
 		return true
 	}
 
-	// if a node can't stabilize or bind, just exit
-	if n.stabilize == nil && n.bind == nil {
+	// if a node can't stabilize, return false
+	if n.stabilize == nil {
 		return false
 	}
 
@@ -322,6 +337,8 @@ func (n *Node) ShouldRecompute() bool {
 	// if any of the direct _inputs_ to this node have changed
 	// or updated their bind. we don't go full recursive
 	// here to prevent a bunch of extra work.
+	n.parentsMu.Lock()
+	defer n.parentsMu.Unlock()
 	for _, p := range n.parents {
 		if p.Node().changedAt > n.recomputedAt {
 			return true
@@ -331,10 +348,13 @@ func (n *Node) ShouldRecompute() bool {
 }
 
 func (n *Node) recomputeHeights() {
+	n.childrenMu.Lock()
+	defer n.childrenMu.Unlock()
+
 	oldHeight := n.height
 	n.height = n.computePseudoHeight()
 	if oldHeight != n.height && n.graph != nil && n.graph.recomputeHeap != nil && n.graph.recomputeHeap.hasKey(n.id) {
-		n.graph.recomputeHeap.fix(n.id)
+		n.graph.recomputeHeap.Fix(n.id)
 	}
 	for _, c := range n.children {
 		c.Node().recomputeHeights()
@@ -346,8 +366,12 @@ func (n *Node) recomputeHeights() {
 // it will use the maximum height _the node has ever seen_, i.e.
 // if the height is 1, then 3, then 1 again, this will return 3.
 func (n *Node) computePseudoHeight() int {
+	n.parentsMu.Lock()
+	defer n.parentsMu.Unlock()
+
 	var maxParentHeight int
 	var parentHeight int
+
 	for _, p := range n.parents {
 		parentHeight = p.Node().computePseudoHeight()
 		if parentHeight > maxParentHeight {
@@ -363,15 +387,6 @@ func (n *Node) computePseudoHeight() int {
 		return n.height
 	}
 	return maxParentHeight + 1
-}
-
-func (n *Node) maybeBind(ctx context.Context) (err error) {
-	if n.bind != nil {
-		if err = n.bind(ctx); err != nil {
-			return
-		}
-	}
-	return
 }
 
 func (n *Node) maybeStabilize(ctx context.Context) (err error) {

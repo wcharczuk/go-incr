@@ -22,7 +22,7 @@ func Test_recomputeHeap_Add(t *testing.T) {
 		ItsEqual(t, 1, rh.heights[5].Len())
 		ItsNotNil(t, rh.heights[5].head)
 		ItsNotNil(t, rh.heights[5].head.value)
-		ItsEqual(t, n50.Node().id, rh.heights[5].head.value.Node().id)
+		ItsEqual(t, n50.Node().id, rh.heights[5].head.value.node.Node().id)
 		ItsEqual(t, true, rh.Has(n50))
 		ItsEqual(t, false, rh.Has(n60))
 		ItsEqual(t, false, rh.Has(n70))
@@ -38,11 +38,11 @@ func Test_recomputeHeap_Add(t *testing.T) {
 		ItsEqual(t, 1, rh.heights[5].Len())
 		ItsNotNil(t, rh.heights[5].head)
 		ItsNotNil(t, rh.heights[5].head.value)
-		ItsEqual(t, n50.Node().id, rh.heights[5].head.value.Node().id)
+		ItsEqual(t, n50.Node().id, rh.heights[5].head.value.node.Node().id)
 		ItsEqual(t, 1, rh.heights[6].Len())
 		ItsNotNil(t, rh.heights[6].head)
 		ItsNotNil(t, rh.heights[6].head.value)
-		ItsEqual(t, n60.Node().id, rh.heights[6].head.value.Node().id)
+		ItsEqual(t, n60.Node().id, rh.heights[6].head.value.node.Node().id)
 		ItsEqual(t, true, rh.Has(n50))
 		ItsEqual(t, true, rh.Has(n50))
 		ItsEqual(t, false, rh.Has(n70))
@@ -58,15 +58,15 @@ func Test_recomputeHeap_Add(t *testing.T) {
 		ItsEqual(t, 1, rh.heights[5].Len())
 		ItsNotNil(t, rh.heights[5].head)
 		ItsNotNil(t, rh.heights[5].head.value)
-		ItsEqual(t, n50.Node().id, rh.heights[5].head.value.Node().id)
+		ItsEqual(t, n50.Node().id, rh.heights[5].head.value.node.Node().id)
 		ItsEqual(t, 1, rh.heights[6].Len())
 		ItsNotNil(t, rh.heights[6].head)
 		ItsNotNil(t, rh.heights[6].head.value)
-		ItsEqual(t, n60.Node().id, rh.heights[6].head.value.Node().id)
+		ItsEqual(t, n60.Node().id, rh.heights[6].head.value.node.Node().id)
 		ItsEqual(t, 1, rh.heights[7].Len())
 		ItsNotNil(t, rh.heights[7].head)
 		ItsNotNil(t, rh.heights[7].head.value)
-		ItsEqual(t, n70.Node().id, rh.heights[7].head.value.Node().id)
+		ItsEqual(t, n70.Node().id, rh.heights[7].head.value.node.Node().id)
 		ItsEqual(t, true, rh.Has(n50))
 		ItsEqual(t, true, rh.Has(n60))
 		ItsEqual(t, true, rh.Has(n70))
@@ -320,8 +320,8 @@ func Test_recomputeHeap_Remove(t *testing.T) {
 	ItsEqual(t, true, rh.Has(n30))
 
 	ItsEqual(t, 2, rh.heights[2].Len())
-	ItsEqual(t, n20.Node().ID(), rh.heights[2].head.value.Node().ID())
-	ItsEqual(t, n22.Node().ID(), rh.heights[2].tail.value.Node().ID())
+	ItsEqual(t, n20.Node().ID(), rh.heights[2].head.value.node.Node().ID())
+	ItsEqual(t, n22.Node().ID(), rh.heights[2].tail.value.node.Node().ID())
 
 	rh.Remove(n10)
 	rh.Remove(n11)
@@ -351,9 +351,9 @@ func Test_recomputeHeap_nextMinHeightUnsafe_pastMax(t *testing.T) {
 	rh.minHeight = 1
 	rh.maxHeight = 3
 
-	rh.lookup[r0.Node().id] = &listItem[Identifier, INode]{
+	rh.lookup[r0.Node().id] = &listItem[Identifier, recomputeHeapItem[INode]]{
 		key:   r0.Node().id,
-		value: r0,
+		value: recomputeHeapItem[INode]{node: r0, height: 0},
 	}
 	next := rh.nextMinHeightUnsafe()
 	ItsEqual(t, 0, next)
@@ -483,7 +483,7 @@ func Test_recomputeHeap_Add_regression2(t *testing.T) {
 	ItsEqual(t, true, allHeight(minHeightBlock, 1))
 }
 
-func Test_recomputeHeap_fix(t *testing.T) {
+func Test_recomputeHeap_Fix(t *testing.T) {
 	rh := newRecomputeHeap(8)
 	v0 := newHeightIncr(2)
 	rh.Add(v0)
@@ -499,7 +499,7 @@ func Test_recomputeHeap_fix(t *testing.T) {
 	ItsEqual(t, 4, rh.maxHeight)
 
 	v0.n.height = 1
-	rh.fix(v0.n.id)
+	rh.Fix(v0.n.id)
 
 	ItsEqual(t, 1, rh.minHeight)
 	ItsEqual(t, 1, rh.heights[1].Len())
@@ -508,7 +508,7 @@ func Test_recomputeHeap_fix(t *testing.T) {
 	ItsEqual(t, 1, rh.heights[4].Len())
 	ItsEqual(t, 4, rh.maxHeight)
 
-	rh.fix(v0.n.id)
+	rh.Fix(v0.n.id)
 	ItsEqual(t, 1, rh.minHeight)
 	ItsEqual(t, 1, rh.heights[1].Len())
 	ItsEqual(t, 0, rh.heights[2].Len())
@@ -517,7 +517,7 @@ func Test_recomputeHeap_fix(t *testing.T) {
 	ItsEqual(t, 4, rh.maxHeight)
 
 	v2.n.height = 5
-	rh.fix(v2.n.id)
+	rh.Fix(v2.n.id)
 
 	ItsEqual(t, 1, rh.minHeight)
 	ItsEqual(t, 1, rh.heights[1].Len())
@@ -538,7 +538,7 @@ func Test_recomputeHeap_sanityCheck_ok_badNodeHeight(t *testing.T) {
 	n_3_01 := newMockBareNodeWithHeight(3)
 	n_3_02 := newMockBareNodeWithHeight(3)
 
-	rh.heights = []*list[Identifier, INode]{
+	rh.heights = []*list[Identifier, recomputeHeapItem[INode]]{
 		nil,
 		newList(n_1_00),
 		newList(n_2_00, n_2_01),
@@ -566,14 +566,14 @@ func Test_recomputeHeap_sanityCheck_badItemHeight(t *testing.T) {
 
 	height2, height2Items := newListWithItems(n_2_00, n_2_01)
 
-	rh.heights = []*list[Identifier, INode]{
+	rh.heights = []*list[Identifier, recomputeHeapItem[INode]]{
 		nil,
 		newList(n_1_00),
 		height2,
 		newList(n_3_00, n_3_01, n_3_02),
 	}
 
-	height2Items[0].height = 1
+	height2Items[0].value.height = 1
 	err := rh.sanityCheck()
 	ItsNotNil(t, err)
 }

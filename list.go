@@ -35,17 +35,16 @@ func (l *list[K, V]) Len() int {
 }
 
 // Push appends a node to the end, or tail, of the list.
-func (l *list[K, V]) Push(k K, v V, height int) *listItem[K, V] {
+func (l *list[K, V]) Push(k K, v V) *listItem[K, V] {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	return l.pushUnsafe(k, v, height)
+	return l.pushUnsafe(k, v)
 }
 
-func (l *list[K, V]) pushUnsafe(k K, v V, height int) *listItem[K, V] {
+func (l *list[K, V]) pushUnsafe(k K, v V) *listItem[K, V] {
 	item := &listItem[K, V]{
-		key:    k,
-		value:  v,
-		height: height,
+		key:   k,
+		value: v,
 	}
 	if l.items == nil {
 		l.items = make(map[K]*listItem[K, V])
@@ -66,10 +65,21 @@ func (l *list[K, V]) pushUnsafe(k K, v V, height int) *listItem[K, V] {
 }
 
 // PushFront appends a node to the front, or head, of the list.
-func (l *list[K, V]) PushFront(k K, v V, height int) *listItem[K, V] {
+func (l *list[K, V]) PushFront(k K, v V) *listItem[K, V] {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	return l.pushFrontUnsafe(k, v, height)
+	return l.pushFrontUnsafe(k, v)
+}
+
+// Each iterates through each item in order.
+func (l *list[K, V]) Each(fn func(V)) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	cursor := l.head
+	for cursor != nil {
+		fn(cursor.value)
+		cursor = cursor.next
+	}
 }
 
 //
@@ -84,11 +94,10 @@ func (l *list[K, V]) lenUnsafe() int {
 	return len(l.items)
 }
 
-func (l *list[K, V]) pushFrontUnsafe(k K, v V, height int) *listItem[K, V] {
+func (l *list[K, V]) pushFrontUnsafe(k K, v V) *listItem[K, V] {
 	item := &listItem[K, V]{
-		key:    k,
-		value:  v,
-		height: height,
+		key:   k,
+		value: v,
 	}
 	if l.items == nil {
 		l.items = make(map[K]*listItem[K, V])
@@ -169,6 +178,7 @@ func (l *list[K, V]) popBackUnsafe() (k K, v V, ok bool) {
 func (l *list[K, V]) PopAll() (output []V) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+
 	return l.popAllUnsafe()
 }
 
@@ -284,13 +294,12 @@ func (l *list[K, V]) removeLinkedItem(item *listItem[K, V]) {
 	}
 }
 
+// listItem is a item in a list.
 type listItem[K comparable, V any] struct {
 	// key is a unique identifier
 	key K
-	// value is the INode
+	// value is the item for the list
 	value V
-	// height is used for moving node(s)
-	height int
 	// next is the pointer towards the tail
 	next *listItem[K, V]
 	// previous is the pointer towards the head

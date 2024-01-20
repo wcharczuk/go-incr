@@ -1,10 +1,13 @@
 package incr
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"math"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -115,27 +118,27 @@ func (hi heightIncr) Node() *Node {
 	return hi.n
 }
 
-func allHeight(values []INode, height int) bool {
+func allHeight(values []recomputeHeapItem[INode], height int) bool {
 	for _, v := range values {
-		if v.Node().height != height {
+		if v.node.Node().height != height {
 			return false
 		}
 	}
 	return true
 }
 
-func newList(items ...INode) *list[Identifier, INode] {
-	l := new(list[Identifier, INode])
+func newList(items ...INode) *list[Identifier, recomputeHeapItem[INode]] {
+	l := new(list[Identifier, recomputeHeapItem[INode]])
 	for _, i := range items {
-		l.Push(i.Node().id, i, i.Node().height)
+		l.Push(i.Node().id, recomputeHeapItem[INode]{node: i, height: i.Node().height})
 	}
 	return l
 }
 
-func newListWithItems(items ...INode) (l *list[Identifier, INode], outputItems []*listItem[Identifier, INode]) {
-	l = new(list[Identifier, INode])
+func newListWithItems(items ...INode) (l *list[Identifier, recomputeHeapItem[INode]], outputItems []*listItem[Identifier, recomputeHeapItem[INode]]) {
+	l = new(list[Identifier, recomputeHeapItem[INode]])
 	for _, i := range items {
-		outputItems = append(outputItems, l.Push(i.Node().id, i, i.Node().height))
+		outputItems = append(outputItems, l.Push(i.Node().id, recomputeHeapItem[INode]{node: i, height: i.Node().height}))
 	}
 	return
 }
@@ -169,4 +172,33 @@ func createDynamicBind(label string, a, b Incr[string]) (VarIncr[string], BindIn
 	})
 	bind.Node().SetLabel(fmt.Sprintf("bind - %s", label))
 	return bindVar, bind
+}
+
+func homedir(filename string) string {
+	return filepath.Join(os.ExpandEnv("$HOME/Desktop"), filename)
+}
+
+func dumpDot(g *Graph, path string) error {
+	if os.Getenv("INCR_DEBUG_DOT") == "" {
+		return nil
+	}
+
+	dotContents := new(bytes.Buffer)
+	if err := Dot(dotContents, g); err != nil {
+		return err
+	}
+	dotOutput, err := os.Create(os.ExpandEnv(path))
+	if err != nil {
+		return err
+	}
+	defer func() { _ = dotOutput.Close() }()
+	dotFullPath, err := exec.LookPath("dot")
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command(dotFullPath, "-Tpng")
+	cmd.Stdin = dotContents
+	cmd.Stdout = dotOutput
+	return cmd.Run()
 }

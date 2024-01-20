@@ -6,12 +6,12 @@ import (
 	. "github.com/wcharczuk/go-incr/testutil"
 )
 
-func idWithNode(n INode) (Identifier, INode, int) {
-	return n.Node().id, n, n.Node().height
+func idWithNode(n INode) (Identifier, recomputeHeapItem[INode]) {
+	return n.Node().id, recomputeHeapItem[INode]{node: n, height: n.Node().height}
 }
 
 func Test_list_Push_Pop(t *testing.T) {
-	q := new(list[Identifier, INode])
+	q := new(list[Identifier, recomputeHeapItem[INode]])
 
 	n0 := newHeightIncr(0)
 	n1 := newHeightIncr(0)
@@ -46,8 +46,8 @@ func Test_list_Push_Pop(t *testing.T) {
 		ItsEqual(t, false, q.Has(n1.Node().ID()))
 		ItsEqual(t, false, q.Has(n2.Node().ID()))
 		ItsEqual(t, false, q.Has(n3.Node().ID()))
-		ItsEqual(t, n0.n.id, q.head.value.Node().id)
-		ItsEqual(t, n0.n.id, q.tail.value.Node().id)
+		ItsEqual(t, n0.n.id, q.head.value.node.Node().id)
+		ItsEqual(t, n0.n.id, q.tail.value.node.Node().id)
 	}
 
 	// Region: push 1
@@ -66,12 +66,12 @@ func Test_list_Push_Pop(t *testing.T) {
 		ItsEqual(t, q.tail.previous, q.head)
 		ItsEqual(t, 2, q.Len())
 		ItsEqual(t, false, q.IsEmpty())
-		ItsEqual(t, n0.Node().ID(), q.head.value.Node().ID())
+		ItsEqual(t, n0.Node().ID(), q.head.value.node.Node().ID())
 		ItsEqual(t, true, q.Has(n0.Node().ID()))
 		ItsEqual(t, true, q.Has(n1.Node().ID()))
 		ItsEqual(t, false, q.Has(n2.Node().ID()))
 		ItsEqual(t, false, q.Has(n3.Node().ID()))
-		ItsEqual(t, n1.Node().ID(), q.tail.value.Node().ID())
+		ItsEqual(t, n1.Node().ID(), q.tail.value.node.Node().ID())
 	}
 
 	// Region: push 2
@@ -95,8 +95,8 @@ func Test_list_Push_Pop(t *testing.T) {
 		ItsEqual(t, true, q.Has(n1.Node().ID()))
 		ItsEqual(t, true, q.Has(n2.Node().ID()))
 		ItsEqual(t, false, q.Has(n3.Node().ID()))
-		ItsEqual(t, n0.Node().ID(), q.head.value.Node().ID())
-		ItsEqual(t, n2.Node().ID(), q.tail.value.Node().ID())
+		ItsEqual(t, n0.Node().ID(), q.head.value.node.Node().ID())
+		ItsEqual(t, n2.Node().ID(), q.tail.value.node.Node().ID())
 	}
 
 	// Region: push 3
@@ -122,8 +122,8 @@ func Test_list_Push_Pop(t *testing.T) {
 		ItsEqual(t, true, q.Has(n1.Node().ID()))
 		ItsEqual(t, true, q.Has(n2.Node().ID()))
 		ItsEqual(t, true, q.Has(n3.Node().ID()))
-		ItsEqual(t, n0.Node().ID(), q.head.value.Node().ID())
-		ItsEqual(t, n3.Node().ID(), q.tail.value.Node().ID())
+		ItsEqual(t, n0.Node().ID(), q.head.value.node.Node().ID())
+		ItsEqual(t, n3.Node().ID(), q.tail.value.node.Node().ID())
 	}
 
 	// Region: pop 0
@@ -131,7 +131,7 @@ func Test_list_Push_Pop(t *testing.T) {
 		id, n, ok = q.Pop()
 		ItsEqual(t, true, ok)
 		ItsEqual(t, n0.n.id, id)
-		ItsEqual(t, n0.n.id, n.Node().id)
+		ItsEqual(t, n0.n.id, n.node.Node().id)
 		ItsNotNil(t, q.head)
 		ItsNotNil(t, q.head.next)
 		ItsNotNil(t, q.head.next.next)
@@ -144,8 +144,8 @@ func Test_list_Push_Pop(t *testing.T) {
 		ItsEqual(t, true, q.Has(n1.Node().ID()))
 		ItsEqual(t, true, q.Has(n2.Node().ID()))
 		ItsEqual(t, true, q.Has(n3.Node().ID()))
-		ItsEqual(t, n1.Node().ID(), q.head.value.Node().ID())
-		ItsEqual(t, n3.Node().ID(), q.tail.value.Node().ID())
+		ItsEqual(t, n1.Node().ID(), q.head.value.node.Node().ID())
+		ItsEqual(t, n3.Node().ID(), q.tail.value.node.Node().ID())
 	}
 
 	// Region: pop 1
@@ -153,7 +153,7 @@ func Test_list_Push_Pop(t *testing.T) {
 		id, n, ok = q.Pop()
 		ItsEqual(t, true, ok)
 		ItsEqual(t, n1.n.id, id)
-		ItsEqual(t, n1.n.id, n.Node().id)
+		ItsEqual(t, n1.n.id, n.node.Node().id)
 		ItsNotNil(t, q.head)
 		ItsNotNil(t, q.head.next)
 		ItsNil(t, q.head.next.next)
@@ -168,8 +168,8 @@ func Test_list_Push_Pop(t *testing.T) {
 		ItsEqual(t, false, q.Has(n1.Node().ID()))
 		ItsEqual(t, true, q.Has(n2.Node().ID()))
 		ItsEqual(t, true, q.Has(n3.Node().ID()))
-		ItsEqual(t, n2.n.id, q.head.value.Node().id)
-		ItsEqual(t, n3.n.id, q.tail.value.Node().id)
+		ItsEqual(t, n2.n.id, q.head.value.node.Node().id)
+		ItsEqual(t, n3.n.id, q.tail.value.node.Node().id)
 	}
 
 	// Region: pop 2
@@ -177,14 +177,14 @@ func Test_list_Push_Pop(t *testing.T) {
 		id, n, ok = q.Pop()
 		ItsEqual(t, true, ok)
 		ItsEqual(t, n2.n.id, id)
-		ItsEqual(t, n2.n.id, n.Node().id)
+		ItsEqual(t, n2.n.id, n.node.Node().id)
 		ItsNotNil(t, q.head)
 		ItsNil(t, q.head.previous)
 		ItsNotNil(t, q.tail)
 		ItsEqual(t, q.head, q.tail)
 		ItsEqual(t, 1, q.Len())
-		ItsEqual(t, n3.n.id, q.head.value.Node().id)
-		ItsEqual(t, n3.n.id, q.tail.value.Node().id)
+		ItsEqual(t, n3.n.id, q.head.value.node.Node().id)
+		ItsEqual(t, n3.n.id, q.tail.value.node.Node().id)
 	}
 
 	// Region: pop 3
@@ -192,7 +192,7 @@ func Test_list_Push_Pop(t *testing.T) {
 		id, n, ok = q.Pop()
 		ItsEqual(t, true, ok)
 		ItsEqual(t, n3.n.id, id)
-		ItsEqual(t, n3.n.id, n.Node().id)
+		ItsEqual(t, n3.n.id, n.node.Node().id)
 		ItsNil(t, q.head)
 		ItsNil(t, q.tail)
 		ItsEqual(t, 0, q.Len())
@@ -205,7 +205,7 @@ func Test_list_Push_Pop(t *testing.T) {
 }
 
 func Test_list_PushFront(t *testing.T) {
-	q := new(list[Identifier, INode])
+	q := new(list[Identifier, recomputeHeapItem[INode]])
 
 	n0 := newHeightIncr(0)
 	n1 := newHeightIncr(0)
@@ -217,14 +217,14 @@ func Test_list_PushFront(t *testing.T) {
 	q.PushFront(idWithNode(n3))
 
 	all := q.PopAll()
-	ItsEqual(t, n3.Node().ID(), all[0].Node().ID())
-	ItsEqual(t, n2.Node().ID(), all[1].Node().ID())
-	ItsEqual(t, n1.Node().ID(), all[2].Node().ID())
-	ItsEqual(t, n0.Node().ID(), all[3].Node().ID())
+	ItsEqual(t, n3.Node().ID(), all[0].node.Node().ID())
+	ItsEqual(t, n2.Node().ID(), all[1].node.Node().ID())
+	ItsEqual(t, n1.Node().ID(), all[2].node.Node().ID())
+	ItsEqual(t, n0.Node().ID(), all[3].node.Node().ID())
 }
 
 func Test_list_PopBack(t *testing.T) {
-	q := new(list[Identifier, INode])
+	q := new(list[Identifier, recomputeHeapItem[INode]])
 
 	var zeroID Identifier
 	id, n, ok := q.PopBack()
@@ -245,22 +245,22 @@ func Test_list_PopBack(t *testing.T) {
 	id, n, ok = q.PopBack()
 	ItsEqual(t, true, ok)
 	ItsEqual(t, n3.Node().id, id)
-	ItsEqual(t, n3.Node().id, n.Node().id)
+	ItsEqual(t, n3.Node().id, n.node.Node().id)
 
 	id, n, ok = q.PopBack()
 	ItsEqual(t, true, ok)
 	ItsEqual(t, n2.Node().id, id)
-	ItsEqual(t, n2.Node().id, n.Node().id)
+	ItsEqual(t, n2.Node().id, n.node.Node().id)
 
 	id, n, ok = q.PopBack()
 	ItsEqual(t, true, ok)
 	ItsEqual(t, n1.Node().id, id)
-	ItsEqual(t, n1.Node().id, n.Node().id)
+	ItsEqual(t, n1.Node().id, n.node.Node().id)
 
 	id, n, ok = q.PopBack()
 	ItsEqual(t, true, ok)
 	ItsEqual(t, n0.Node().id, id)
-	ItsEqual(t, n0.Node().id, n.Node().id)
+	ItsEqual(t, n0.Node().id, n.node.Node().id)
 
 	id, n, ok = q.PopBack()
 	ItsEqual(t, false, ok)
@@ -269,7 +269,7 @@ func Test_list_PopBack(t *testing.T) {
 }
 
 func Test_list_Get(t *testing.T) {
-	q := new(list[Identifier, INode])
+	q := new(list[Identifier, recomputeHeapItem[INode]])
 
 	n0 := newHeightIncr(0)
 	n1 := newHeightIncr(0)
@@ -288,23 +288,23 @@ func Test_list_Get(t *testing.T) {
 	found, ok := q.Get(n3.Node().ID())
 	ItsEqual(t, true, ok)
 	ItsNotNil(t, found)
-	ItsEqual(t, found.Node().ID(), n3.Node().ID())
+	ItsEqual(t, found.node.Node().ID(), n3.Node().ID())
 
 	found, ok = q.Get(n2.Node().ID())
 	ItsEqual(t, true, ok)
-	ItsEqual(t, found.Node().ID(), n2.Node().ID())
+	ItsEqual(t, found.node.Node().ID(), n2.Node().ID())
 
 	found, ok = q.Get(n1.Node().ID())
 	ItsEqual(t, true, ok)
-	ItsEqual(t, found.Node().ID(), n1.Node().ID())
+	ItsEqual(t, found.node.Node().ID(), n1.Node().ID())
 
 	found, ok = q.Get(n0.Node().ID())
 	ItsEqual(t, true, ok)
-	ItsEqual(t, found.Node().ID(), n0.Node().ID())
+	ItsEqual(t, found.node.Node().ID(), n0.Node().ID())
 }
 
 func Test_list_Remove(t *testing.T) {
-	q := new(list[Identifier, INode])
+	q := new(list[Identifier, recomputeHeapItem[INode]])
 
 	n0 := newHeightIncr(0)
 	n1 := newHeightIncr(1)
@@ -370,7 +370,7 @@ func Test_List_Get(t *testing.T) {
 }
 
 func Test_list_Remove_notFound(t *testing.T) {
-	q := new(list[Identifier, INode])
+	q := new(list[Identifier, recomputeHeapItem[INode]])
 
 	n0 := newHeightIncr(0)
 	n1 := newHeightIncr(1)
@@ -392,7 +392,7 @@ func Test_list_Remove_notFound(t *testing.T) {
 }
 
 func Test_list_Remove_head(t *testing.T) {
-	q := new(list[Identifier, INode])
+	q := new(list[Identifier, recomputeHeapItem[INode]])
 
 	n0 := newHeightIncr(0)
 	n1 := newHeightIncr(1)
@@ -416,7 +416,7 @@ func Test_list_Remove_head(t *testing.T) {
 }
 
 func Test_list_Remove_tail(t *testing.T) {
-	q := new(list[Identifier, INode])
+	q := new(list[Identifier, recomputeHeapItem[INode]])
 
 	n0 := newHeightIncr(0)
 	n1 := newHeightIncr(1)
@@ -444,7 +444,7 @@ func Test_list_PopAll(t *testing.T) {
 	n1 := newHeightIncr(0)
 	n2 := newHeightIncr(0)
 
-	rhl := new(list[Identifier, INode])
+	rhl := new(list[Identifier, recomputeHeapItem[INode]])
 	rhl.Push(idWithNode(n0))
 	rhl.Push(idWithNode(n1))
 	rhl.Push(idWithNode(n2))
