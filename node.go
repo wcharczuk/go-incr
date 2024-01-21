@@ -350,7 +350,6 @@ func (n *Node) ShouldRecompute() bool {
 func (n *Node) recomputeHeights() {
 	n.childrenMu.Lock()
 	defer n.childrenMu.Unlock()
-
 	oldHeight := n.height
 	n.height = n.computePseudoHeight()
 	if oldHeight != n.height && n.graph != nil && n.graph.recomputeHeap != nil && n.graph.recomputeHeap.hasKey(n.id) {

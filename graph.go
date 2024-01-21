@@ -340,17 +340,46 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	return
 }
 
+func (g *Graph) recomputeHeights(in INode) {
+	n := in.Node()
+	n.childrenMu.Lock()
+	defer n.childrenMu.Unlock()
+	oldHeight := n.height
+	n.height = n.computePseudoHeight()
+	if oldHeight != n.height && g.recomputeHeap.hasKey(n.id) {
+		g.recomputeHeap.Fix(n.id)
+	}
+	for _, c := range n.children {
+		g.recomputeHeights(c)
+	}
+}
+
 //
 // internal discovery methods
 //
 
-// DiscoverNodes initializes tracking of a given node for a given observer
-// and walks the nodes parents doing the same for any nodes seen.
 func (graph *Graph) discoverNodesContext(ctx context.Context, on IObserver, gn INode) {
 	graph.discoverNodeContext(ctx, on, gn)
 	gnn := gn.Node()
 	for _, p := range gnn.parents {
 		graph.discoverNodesContext(ctx, on, p)
+	}
+	for _, p := range gnn.children {
+		graph.discoverNodesContext(ctx, on, p)
+	}
+}
+
+func (graph *Graph) discoverScopeNodesContext(ctx context.Context, scope *bindScope, gn INode) {
+	if gn == nil {
+		return
+	}
+	gnn := gn.Node()
+	if len(gnn.observers) == 0 {
+		return
+	}
+	scope.nodes.pushUnsafe(gnn.id, gn)
+	for _, p := range gnn.children {
+		graph.discoverScopeNodesContext(ctx, scope, p)
 	}
 }
 
