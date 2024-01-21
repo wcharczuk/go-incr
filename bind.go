@@ -188,7 +188,7 @@ type bindChangeIncr[A, B any] struct {
 func (b *bindChangeIncr[A, B]) Node() *Node { return b.n }
 
 func (b *bindChangeIncr[A, B]) Value() (output B) {
-	return
+	return b.left.Value()
 }
 
 func (b *bindChangeIncr[A, B]) Stabilize(ctx context.Context) error {
@@ -220,6 +220,7 @@ The bind height invariant is accomplished using a special "bind-lhs-change" node
 
 	-> bind when it stabilizes creates a "bind-lhs-change" node that is an input to the input to the bind, and takes the bind result as an input (?) this seems insane
 		-> i think we would want to invert that, to make the bind-lhsc the child of the lhs and the parent of the bind result, and be a value passthrough.
+		-> possible this actually is to make the heights line up such that the rhs is always higher than the lhs by at least (1) extra node?
 
 The incremental state maintains the "current scope", which is the bind whose right-hand side is currently being evaluated, or a special "top" scope if there is no bind in effect. Each node has a [created_in] field set to the scope in effect when the node is created.
 
