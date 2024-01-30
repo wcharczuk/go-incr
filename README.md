@@ -74,6 +74,10 @@ The effect of `Bind` is that "children" of a `Bind` node may have their heights 
 
 `Bind` nodes may also return `Bind` nodes themselves, creating fun and interesting implications for how an inner right-hand-side incremental needs to be propagated through multiple layers of binds, and reflect both its and the original bind children's true height through recomputations. To do this, we adopt the trick from the main ocaml library of creating two new pieces of state; a `bind-lhs-change` node that links the original bind input, and the right-hand-side (or output) incremental of the bind, making sure that the rhs respects the height of the transitive dependency of the bind's input. We also maintain a "scope", or a list of all the nodes that were created in respect to the rhs, and when the outer bind stabilizes, we also propagate changes to inner binds, regardless of where they are in the rhs graph. If this sounds complicated, it is!
 
+An example of one such case:
+
+![Bind Regression](https://github.com/wcharczuk/go-incr/blob/main/_assets/bind_regression.png)
+
 # Progress
 
 Many of the original library types are implemented, including:
