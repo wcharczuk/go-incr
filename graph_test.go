@@ -125,7 +125,6 @@ func Test_Graph_IsStabilizing(t *testing.T) {
 }
 
 func Test_Graph_RecomputeHeight(t *testing.T) {
-	ctx := testContext()
 	g := New()
 
 	n0 := emptyNode{NewNode()}
@@ -137,8 +136,7 @@ func Test_Graph_RecomputeHeight(t *testing.T) {
 	Link(n2, n1)
 	Link(n3, n2)
 
-	err := g.recomputeHeights(ctx, n1)
-	testutil.ItsNil(t, err)
+	g.recomputeHeights(n1)
 
 	testutil.ItsEqual(t, 0, n0.n.height)
 	testutil.ItsEqual(t, 2, n1.n.height)
@@ -147,7 +145,6 @@ func Test_Graph_RecomputeHeight(t *testing.T) {
 }
 
 func Test_Graph_RecomputeHeight_observed(t *testing.T) {
-	ctx := testContext()
 	g := New()
 
 	v0 := Var("a")
@@ -159,10 +156,9 @@ func Test_Graph_RecomputeHeight_observed(t *testing.T) {
 	o1 := Observe(g, m2)
 
 	m0.Node().height = 1
-	err := g.recomputeHeights(ctx, m0)
-	testutil.ItsNil(t, err)
+	g.recomputeHeights(m0)
 
-	err = g.Stabilize(context.TODO())
+	err := g.Stabilize(context.TODO())
 	testutil.ItsNil(t, err)
 
 	testutil.ItsEqual(t, "a", o0.Value())
@@ -199,7 +195,6 @@ func Test_Graph_recompute_nilNodeMetadata(t *testing.T) {
 }
 
 func Test_Graph_recomputeHeights(t *testing.T) {
-	ctx := testContext()
 	n0 := emptyNode{NewNode()}
 	n1 := emptyNode{NewNode()}
 	n2 := emptyNode{NewNode()}
@@ -210,8 +205,7 @@ func Test_Graph_recomputeHeights(t *testing.T) {
 	Link(n3, n2)
 
 	g := New()
-	err := g.recomputeHeights(ctx, n1)
-	testutil.ItsNil(t, err)
+	g.recomputeHeights(n1)
 
 	testutil.ItsEqual(t, 0, n0.n.height)
 	testutil.ItsEqual(t, 2, n1.n.height)

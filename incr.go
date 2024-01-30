@@ -29,7 +29,7 @@ type IBind interface {
 // IUnobserve is a type that may need to implement
 // extra steps when it's unobserved.
 type IUnobserve interface {
-	Unobserve(context.Context) error
+	Unobserve(context.Context)
 }
 
 // ICutoff is a type that determines if changes should

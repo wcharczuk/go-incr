@@ -22,10 +22,6 @@ func (nl *nodeList) Unlock() {
 	nl.list.mu.Unlock()
 }
 
-func (nl *nodeList) Clear() {
-	nl.list.Clear()
-}
-
 func (nl *nodeList) Len() int {
 	return nl.list.Len()
 }
@@ -54,25 +50,12 @@ func (nl *nodeList) Remove(n INode) {
 	nl.list.Remove(n.Node().id)
 }
 
-func (nl *nodeList) RemoveUnsafe(n INode) {
-	nl.list.removeUnsafe(n.Node().id)
-}
-
 func (nl *nodeList) RemoveKey(id Identifier) {
 	nl.list.Remove(id)
 }
 
-func (nl *nodeList) RemoveKeyUnsafe(id Identifier) {
-	nl.list.removeUnsafe(id)
-}
-
 func (nl *nodeList) HasKey(id Identifier) (ok bool) {
 	ok = nl.list.Has(id)
-	return
-}
-
-func (nl *nodeList) HasKeyUnsafe(id Identifier) (ok bool) {
-	ok = nl.list.hasUnsafe(id)
 	return
 }
 
@@ -83,21 +66,6 @@ func (nl *nodeList) Has(n INode) (ok bool) {
 
 func (nl *nodeList) HasUnsafe(n INode) (ok bool) {
 	ok = nl.list.hasUnsafe(n.Node().id)
-	return
-}
-
-func (nl *nodeList) Pop() (out INode, ok bool) {
-	_, out, ok = nl.list.Pop()
-	return
-}
-
-func (nl *nodeList) PopUnsafe() (out INode, ok bool) {
-	_, out, ok = nl.list.popUnsafe()
-	return
-}
-
-func (nl *nodeList) PopAll() (out []INode) {
-	out = nl.list.PopAll()
 	return
 }
 

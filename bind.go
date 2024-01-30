@@ -89,13 +89,6 @@ type bindIncr[A, B any] struct {
 
 func (b *bindIncr[A, B]) Node() *Node { return b.n }
 
-func (b *bindIncr[A, B]) RHS() INode {
-	if b.bindChange != nil {
-		return b.bindChange.rhs
-	}
-	return nil
-}
-
 func (b *bindIncr[A, B]) Value() (output B) {
 	if b.bound != nil {
 		output = b.bound.Value()
@@ -112,23 +105,15 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 	if b.bound != nil && newIncr != nil {
 		if b.bound.Node().id != newIncr.Node().id {
 			bindChanged = true
-			if err := b.unlinkOld(ctx); err != nil {
-				return err
-			}
-			if err := b.linkNew(ctx, newIncr); err != nil {
-				return err
-			}
+			b.unlinkOld(ctx)
+			b.linkNew(ctx, newIncr)
 		}
 	} else if newIncr != nil {
 		bindChanged = true
-		if err := b.linkNew(ctx, newIncr); err != nil {
-			return err
-		}
+		b.linkNew(ctx, newIncr)
 	} else if b.bindChange != nil {
 		bindChanged = true
-		if err := b.unlinkOld(ctx); err != nil {
-			return err
-		}
+		b.unlinkOld(ctx)
 	}
 	if bindChanged {
 		b.n.boundAt = b.n.graph.stabilizationNum
@@ -138,8 +123,8 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 	return nil
 }
 
-func (b *bindIncr[A, B]) Unobserve(ctx context.Context) error {
-	return b.unlinkOld(ctx)
+func (b *bindIncr[A, B]) Unobserve(ctx context.Context) {
+	b.unlinkOld(ctx)
 }
 
 func (b *bindIncr[A, B]) Link(ctx context.Context) {
@@ -149,7 +134,7 @@ func (b *bindIncr[A, B]) Link(ctx context.Context) {
 			Link(c, b.bound)
 		}
 		for _, c := range children {
-			_ = b.n.graph.recomputeHeights(ctx, c)
+			b.n.graph.recomputeHeights(c)
 		}
 		if typed, ok := b.bound.(IBind); ok {
 			typed.Link(ctx)
@@ -158,7 +143,7 @@ func (b *bindIncr[A, B]) Link(ctx context.Context) {
 }
 
 func (b *bindIncr[A, B]) Unlink(ctx context.Context) {
-	_ = b.unlinkOld(ctx)
+	b.unlinkOld(ctx)
 }
 
 func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) {
@@ -175,7 +160,7 @@ func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) {
 	b.n.graph.observeSingleNode(ctx, b.bindChange, b.n.Observers()...)
 }
 
-func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) error {
+func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
 	b.bound = newIncr
 	b.linkBindChange(ctx)
 	children := b.n.Children()
@@ -188,13 +173,10 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) error {
 	}
 	b.n.graph.observeNodes(ctx, b.bound, b.n.Observers()...)
 	for _, c := range children {
-		if err := b.n.graph.recomputeHeights(ctx, c); err != nil {
-			return err
-		}
+		b.n.graph.recomputeHeights(c)
 	}
 	b.addNodesToScope(ctx, b.scope, b.bound)
 	TracePrintf(ctx, "%v bound new rhs %v", b, b.bound)
-	return nil
 }
 
 func (b *bindIncr[A, B]) unlinkBindChange(ctx context.Context) {
@@ -204,7 +186,7 @@ func (b *bindIncr[A, B]) unlinkBindChange(ctx context.Context) {
 	b.bindChange = nil
 }
 
-func (b *bindIncr[A, B]) unlinkOld(ctx context.Context) error {
+func (b *bindIncr[A, B]) unlinkOld(ctx context.Context) {
 	if b.bound != nil {
 		TracePrintf(ctx, "%v unbinding node %v", b, b.bound)
 		b.unlinkBindChange(ctx)
@@ -217,7 +199,6 @@ func (b *bindIncr[A, B]) unlinkOld(ctx context.Context) error {
 		b.scope = nil
 		b.bound = nil
 	}
-	return nil
 }
 
 func (b *bindIncr[A, B]) addNodesToScope(ctx context.Context, scope *bindScope, gn INode) {

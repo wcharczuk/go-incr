@@ -25,7 +25,7 @@ type IExpertGraph interface {
 	RecomputeHeapLen() int
 	RecomputeHeap() []Identifier
 
-	RecomputeHeights(context.Context, INode) error
+	RecomputeHeights(INode)
 
 	ObserveNodes(context.Context, INode, ...IObserver)
 	UnobserveNodes(context.Context, INode, ...IObserver)
@@ -80,8 +80,8 @@ func (eg *expertGraph) RecomputeHeap() []Identifier {
 	return output
 }
 
-func (eg *expertGraph) RecomputeHeights(ctx context.Context, n INode) error {
-	return eg.graph.recomputeHeights(ctx, n)
+func (eg *expertGraph) RecomputeHeights(n INode) {
+	eg.graph.recomputeHeights(n)
 }
 
 func (eg *expertGraph) ObserveNodes(ctx context.Context, n INode, observers ...IObserver) {

@@ -3,6 +3,7 @@ package incr
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -658,4 +659,29 @@ func Test_Node_HasObserver(t *testing.T) {
 	testutil.ItsEqual(t, true, n.HasObserver(one.Node().ID()))
 	testutil.ItsEqual(t, true, n.HasObserver(two.Node().ID()))
 	testutil.ItsEqual(t, false, n.HasObserver(three.Node().ID()))
+}
+
+func Test_nodeSorter(t *testing.T) {
+	a := newMockBareNode()
+	a.Node().height = 1
+	a.Node().id, _ = ParseIdentifier(strings.Repeat("0", 32))
+
+	b := newMockBareNode()
+	b.Node().height = 1
+	b.Node().id, _ = ParseIdentifier(strings.Repeat("1", 32))
+
+	c := newMockBareNode()
+	c.Node().height = 1
+	c.Node().id, _ = ParseIdentifier(strings.Repeat("2", 32))
+
+	d := newMockBareNode()
+	d.Node().height = 2
+	d.Node().id, _ = ParseIdentifier(strings.Repeat("3", 32))
+
+	testutil.ItsEqual(t, true, "00000000000000000000000000000000" < "11111111111111111111111111111111")
+	testutil.ItsEqual(t, 0, nodeSorter(a, a))
+	testutil.ItsEqual(t, 1, nodeSorter(a, b))
+	testutil.ItsEqual(t, -1, nodeSorter(c, b))
+	testutil.ItsEqual(t, -1, nodeSorter(d, c))
+	testutil.ItsEqual(t, 1, nodeSorter(a, d))
 }

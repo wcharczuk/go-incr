@@ -268,7 +268,7 @@ func (graph *Graph) unobserveNode(ctx context.Context, gn INode, observers ...IO
 	// steps so we check for that here and call
 	// their handler if they implement the interface.
 	if typed, ok := gn.(IUnobserve); ok {
-		_ = typed.Unobserve(ctx)
+		typed.Unobserve(ctx)
 	}
 
 	remainingObserverCount := graph.removeNodeObservers(ctx, gn, observers...)
@@ -449,21 +449,18 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 }
 
 //
-// internal discovery methods
+// internal height management methods
 //
 
-func (graph *Graph) recomputeHeights(ctx context.Context, in INode) error {
+func (graph *Graph) recomputeHeights(in INode) {
 	n := in.Node()
 	oldHeight := n.height
 	n.height = n.computePseudoHeight()
 	children := n.Children()
 	for _, c := range children {
-		if err := graph.recomputeHeights(ctx, c); err != nil {
-			return err
-		}
+		graph.recomputeHeights(c)
 	}
 	if oldHeight != n.height {
 		graph.adjustHeightsHeap.Push(in)
 	}
-	return nil
 }

@@ -198,6 +198,74 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.ItsEqual(t, "hello", o.Value())
 }
 
+func Test_Bind_rebind(t *testing.T) {
+	ctx := testContext()
+
+	bindVar := Var("a")
+	bindVar.Node().SetLabel("bindVar")
+
+	av := Var("a-value")
+	av.Node().SetLabel("av")
+	a0 := Map(av, ident)
+	a0.Node().SetLabel("a0")
+	a1 := Map(a0, ident)
+	a1.Node().SetLabel("a1")
+
+	bv := Var("b-value")
+	bv.Node().SetLabel("bv")
+	b0 := Map(bv, ident)
+	b0.Node().SetLabel("b0")
+	b1 := Map(b0, ident)
+	b1.Node().SetLabel("b1")
+	b2 := Map(b1, ident)
+	b2.Node().SetLabel("b2")
+
+	bind := Bind(bindVar, func(which string) Incr[string] {
+		if which == "a" {
+			return a1
+		}
+		if which == "b" {
+			return b2
+		}
+		return nil
+	})
+
+	bind.Node().SetLabel("bind")
+
+	testutil.ItMatches(t, "bind\\[(.*)\\]:bind", bind.String())
+
+	s0 := Return("hello")
+	s0.Node().SetLabel("s0")
+	s1 := Map(s0, ident)
+	s1.Node().SetLabel("s1")
+
+	o := Map2(bind, s1, concat)
+	o.Node().SetLabel("o")
+
+	g := New()
+	_ = ObserveContext(ctx, g, o)
+
+	var err error
+
+	err = g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, 1, bind.Node().boundAt)
+
+	testutil.ItsEqual(t, "a-value", av.Value())
+	testutil.ItsEqual(t, "b-value", bv.Value())
+	testutil.ItsEqual(t, "a-valuehello", o.Value())
+
+	bindVar.Set("a")
+
+	err = g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, 1, bind.Node().boundAt)
+
+	testutil.ItsEqual(t, "a-value", av.Value())
+	testutil.ItsEqual(t, "b-value", bv.Value())
+	testutil.ItsEqual(t, "a-valuehello", o.Value())
+}
+
 func Test_Bind_error(t *testing.T) {
 	ctx := testContext()
 
@@ -524,7 +592,6 @@ func Test_Bind_regression(t *testing.T) {
 			hr.Node().SetLabel(fmt.Sprintf("h-r-%d", t))
 			hm2 := Map2(g(t), hr, func(l *int, r int) *int {
 				if l == nil {
-					println(fmt.Sprintf("at h-m2 fn g(%d) is unset", t))
 					return nil
 				}
 				out := *l * r
@@ -555,4 +622,106 @@ func Test_Bind_regression(t *testing.T) {
 
 	testutil.ItsNotNil(t, o.Value())
 	testutil.ItsEqual(t, 24, *o.Value())
+}
+
+func Test_Bind_regression_parallel(t *testing.T) {
+	cache := make(map[string]Incr[*int])
+
+	fakeFormula := Var("fakeformula")
+	fakeFormula.Node().SetLabel("fakeformula")
+	var f func(t int) Incr[*int]
+	f = func(t int) Incr[*int] {
+		key := fmt.Sprintf("f-%d", t)
+		if _, ok := cache[key]; ok {
+			return cache[key]
+		}
+		r := Bind(fakeFormula, func(formula string) Incr[*int] {
+			key := fmt.Sprintf("map-f-%d", t)
+			if _, ok := cache[key]; ok {
+				return cache[key]
+			}
+			if t == 0 {
+				out := 0
+				r := Return(&out)
+				r.Node().SetLabel("f-0")
+				return r
+			}
+			bindOutput := Map(f(t-1), func(r *int) *int {
+				out := *r + 1
+				return &out
+			})
+			bindOutput.Node().SetLabel(fmt.Sprintf("map-f-%d", t))
+			cache[key] = bindOutput
+			return bindOutput
+		})
+		r.Node().SetLabel(key)
+		cache[key] = r
+		return r
+	}
+
+	g := func(t int) Incr[*int] {
+		key := fmt.Sprintf("g-%d", t)
+		if _, ok := cache[key]; ok {
+			return cache[key]
+		}
+		r := Bind(fakeFormula, func(formula string) Incr[*int] {
+			output := f(t)
+			return output
+		})
+		r.Node().SetLabel(key)
+		cache[key] = r
+		return r
+	}
+
+	h := func(t int) Incr[*int] {
+		b := Bind(fakeFormula, func(formula string) Incr[*int] {
+			hr := Return(10)
+			hr.Node().SetLabel(fmt.Sprintf("h-r-%d", t))
+			hm2 := Map2(g(t), hr, func(l *int, r int) *int {
+				if l == nil {
+					return nil
+				}
+				out := *l * r
+				return &out
+			})
+			hm2.Node().SetLabel("h-m2")
+			return hm2
+		})
+		b.Node().SetLabel(fmt.Sprintf("h-%d", 2))
+		return b
+	}
+
+	o := Map3(f(2), g(2), h(2), func(first *int, second *int, third *int) *int {
+		if first == nil || second == nil || third == nil {
+			return nil
+		}
+		out := *first + *second + *third
+		return &out
+	})
+	o.Node().SetLabel("map3-final")
+
+	graph := New()
+	_ = Observe(graph, o)
+
+	ctx := testContext()
+	err := graph.ParallelStabilize(ctx)
+	testutil.ItsNil(t, err)
+	_ = dumpDot(graph, homedir("bind_regression.png"))
+
+	testutil.ItsNotNil(t, o.Value())
+	testutil.ItsEqual(t, 24, *o.Value())
+}
+
+func Test_bindChange_value(t *testing.T) {
+	bc := &bindChangeIncr[string, string]{
+		rhs: nil,
+	}
+
+	testutil.ItsEqual(t, "", bc.Value())
+
+	bc.rhs = &returnIncr[string]{
+		v: "hello",
+	}
+
+	testutil.ItsEqual(t, "hello", bc.Value())
 }
