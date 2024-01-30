@@ -78,8 +78,8 @@ func (nl *nodeList) ConsumeEach(fn func(INode)) {
 	nl.list.ConsumeEach(fn)
 }
 
-func (nl *nodeList) Each(fn func(INode) error) error {
-	return nl.list.Each(fn)
+func (nl *nodeList) Each(fn func(INode)) {
+	nl.list.Each(fn)
 }
 
 func (nl *nodeList) Values() (out []INode) {

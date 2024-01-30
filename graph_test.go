@@ -22,6 +22,12 @@ func Test_New(t *testing.T) {
 	testutil.ItsEqual(t, false, g.IsObserving(m1))
 }
 
+func Test_New_options(t *testing.T) {
+	g := New(GraphMaxRecomputeHeapHeight(1024))
+	testutil.ItsNotEqual(t, 1024, DefaultMaxRecomputeHeapHeight)
+	testutil.ItsEqual(t, 1024, len(g.recomputeHeap.heights))
+}
+
 func Test_Graph_Metadata(t *testing.T) {
 	g := New()
 	testutil.ItsNil(t, g.Metadata())

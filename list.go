@@ -38,13 +38,6 @@ func (l *list[K, V]) Len() int {
 	return l.lenUnsafe()
 }
 
-// Clear empties the list fully.
-func (l *list[K, V]) Clear() {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.clearUnsafe()
-}
-
 // Push appends a node to the end, or tail, of the list.
 func (l *list[K, V]) Push(k K, v V) *listItem[K, V] {
 	l.mu.Lock()
@@ -60,10 +53,10 @@ func (l *list[K, V]) PushFront(k K, v V) *listItem[K, V] {
 }
 
 // Each iterates through each item in order.
-func (l *list[K, V]) Each(fn func(V) error) error {
+func (l *list[K, V]) Each(fn func(V)) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	return l.eachUnsafe(fn)
+	l.eachUnsafe(fn)
 }
 
 // ConsumeEach iterates through each item in order
@@ -246,13 +239,6 @@ func (l *list[K, V]) popBackUnsafe() (k K, v V, ok bool) {
 	return
 }
 
-func (l *list[K, V]) clearUnsafe() {
-	l.head = nil
-	l.tail = nil
-	clear(l.items)
-	return
-}
-
 func (l *list[K, V]) popAllUnsafe() (output []V) {
 	ptr := l.head
 	for ptr != nil {
@@ -265,12 +251,10 @@ func (l *list[K, V]) popAllUnsafe() (output []V) {
 	return
 }
 
-func (l *list[K, V]) eachUnsafe(fn func(V) error) (err error) {
+func (l *list[K, V]) eachUnsafe(fn func(V)) {
 	cursor := l.head
 	for cursor != nil {
-		if err = fn(cursor.value); err != nil {
-			return
-		}
+		fn(cursor.value)
 		cursor = cursor.next
 	}
 	return

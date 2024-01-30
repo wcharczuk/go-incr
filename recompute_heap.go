@@ -138,14 +138,6 @@ func (rh *recomputeHeap) Remove(s INode) (ok bool) {
 // utils
 //
 
-// hasKey returns if a given node id exists in the recompute heap lookup.
-func (rh *recomputeHeap) hasKey(id Identifier) (ok bool) {
-	rh.mu.Lock()
-	defer rh.mu.Unlock()
-	_, ok = rh.lookup[id]
-	return
-}
-
 func (rh *recomputeHeap) addUnsafe(nodes ...INode) {
 	for _, s := range nodes {
 		sn := s.Node()
@@ -249,11 +241,9 @@ func (rh *recomputeHeap) String() string {
 			continue
 		}
 		fmt.Fprintf(output, "\t%d: [", heightIndex)
-
 		lineParts := make([]string, 0, heightList.Len())
-		_ = heightList.Each(func(li recomputeHeapItem[INode]) error {
+		heightList.Each(func(li recomputeHeapItem[INode]) {
 			lineParts = append(lineParts, fmt.Sprint(li.node))
-			return nil
 		})
 		fmt.Fprintf(output, "%s],\n", strings.Join(lineParts, ", "))
 	}
