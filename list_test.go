@@ -27,7 +27,7 @@ func Test_list_Push_Pop(t *testing.T) {
 		ItsNil(t, q.head)
 		ItsNil(t, q.tail)
 		ItsEqual(t, zeroID, id)
-		ItsNil(t, n)
+		ItsNil(t, n.node)
 		ItsEqual(t, 0, q.Len())
 		ItsEqual(t, true, q.IsEmpty())
 	}
@@ -230,7 +230,7 @@ func Test_list_PopBack(t *testing.T) {
 	id, n, ok := q.PopBack()
 	ItsEqual(t, false, ok)
 	ItsEqual(t, zeroID, id)
-	ItsNil(t, n)
+	ItsNil(t, n.node)
 
 	n0 := newHeightIncrLabel(0, "n0")
 	n1 := newHeightIncrLabel(0, "n1")
@@ -265,7 +265,7 @@ func Test_list_PopBack(t *testing.T) {
 	id, n, ok = q.PopBack()
 	ItsEqual(t, false, ok)
 	ItsEqual(t, zeroID, id)
-	ItsNil(t, n)
+	ItsNil(t, n.node)
 }
 
 func Test_list_Get(t *testing.T) {

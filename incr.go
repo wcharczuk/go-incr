@@ -20,23 +20,16 @@ type IStabilize interface {
 	Stabilize(context.Context) error
 }
 
-// IBind is a type that can be bound.
+// IBind implements bind steps for nested actions.
 type IBind interface {
-	Bind(context.Context) error
-}
-
-// IUnlink are types that can implement custom unlinking logic.
-//
-// This is currently used for Bind nodes.
-type IUnlink interface {
+	Link(context.Context)
 	Unlink(context.Context)
 }
 
-// ILink are types that can implement custom linking logic.
-//
-// This is currently used for Bind nodes.
-type ILink interface {
-	Link(context.Context)
+// IUnobserve is a type that may need to implement
+// extra steps when it's unobserved.
+type IUnobserve interface {
+	Unobserve(context.Context) error
 }
 
 // ICutoff is a type that determines if changes should

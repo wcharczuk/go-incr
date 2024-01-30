@@ -1,5 +1,7 @@
 package incr
 
+import "context"
+
 // ExpertGraph returns an "expert" interface to modify
 // internal fields of the graph type.
 //
@@ -18,9 +20,15 @@ type IExpertGraph interface {
 	NumNodesChanged() uint64
 	StabilizationNum() uint64
 	SetStabilizationNum(uint64)
+
 	RecomputeHeapAdd(...INode)
 	RecomputeHeapLen() int
 	RecomputeHeap() []Identifier
+
+	RecomputeHeights(context.Context, INode) error
+
+	ObserveNodes(context.Context, INode, ...IObserver)
+	UnobserveNodes(context.Context, INode, ...IObserver)
 }
 
 type expertGraph struct {
@@ -70,4 +78,16 @@ func (eg *expertGraph) RecomputeHeap() []Identifier {
 		}
 	}
 	return output
+}
+
+func (eg *expertGraph) RecomputeHeights(ctx context.Context, n INode) error {
+	return eg.graph.recomputeHeights(ctx, n)
+}
+
+func (eg *expertGraph) ObserveNodes(ctx context.Context, n INode, observers ...IObserver) {
+	eg.graph.observeNodes(ctx, n, observers...)
+}
+
+func (eg *expertGraph) UnobserveNodes(ctx context.Context, n INode, observers ...IObserver) {
+	eg.graph.unobserveNodes(ctx, n, observers...)
 }

@@ -10,9 +10,10 @@ import (
 func NewNode() *Node {
 	return &Node{
 		id:        NewIdentifier(),
-		parents:   make(nodeLookup),
-		children:  make(nodeLookup),
+		parents:   newNodeList(),
+		children:  newNodeList(),
 		observers: make(map[Identifier]IObserver),
+		createdIn: make(map[Identifier]*bindScope),
 	}
 }
 
@@ -29,14 +30,10 @@ type Node struct {
 	label string
 	// parents are the nodes that this node depends on, that is
 	// parents are nodes that this node takes as inputs
-	parents nodeLookup
-	// parentsMu interlocks access to parents
-	parentsMu sync.Mutex
+	parents *nodeList
 	// children are the nodes that depend on this node, that is
 	// children take this node as an input
-	children nodeLookup
-	// childrenMu interlocks access to children
-	childrenMu sync.Mutex
+	children *nodeList
 	// observers are observer nodes that are attached to this
 	// node or its children.
 	observers map[Identifier]IObserver
@@ -88,7 +85,7 @@ type Node struct {
 	// numChanges is the number of times we changed the node
 	numChanges uint64
 	// createdIn is the "bind scope" the node was created in
-	createdIn *bindScope
+	createdIn map[Identifier]*bindScope
 }
 
 func nodeSorter(a, b INode) int {
@@ -171,51 +168,38 @@ func (n *Node) SetMetadata(md any) {
 
 // Parents returns the node parent list.
 func (n *Node) Parents() []INode {
-	n.parentsMu.Lock()
-	defer n.parentsMu.Unlock()
 	return n.parents.Values()
 }
 
 // Parents returns the node child list.
 func (n *Node) Children() []INode {
-	n.childrenMu.Lock()
-	defer n.childrenMu.Unlock()
 	return n.children.Values()
 }
 
 // HasChild returns if a child with a given identifier
 // is present in the children list.
 func (n *Node) HasChild(id Identifier) (ok bool) {
-	n.childrenMu.Lock()
-	defer n.childrenMu.Unlock()
-	_, ok = n.children[id]
+	ok = n.children.HasKey(id)
 	return
 }
 
 // HasParent returns if a parent with a given identifier
 // is present in the parents list.
 func (n *Node) HasParent(id Identifier) (ok bool) {
-	n.parentsMu.Lock()
-	defer n.parentsMu.Unlock()
-	_, ok = n.parents[id]
+	ok = n.parents.HasKey(id)
 	return
 }
 
 // IsRoot should return if the parent count, or the
 // number of nodes that this node depends on is zero.
 func (n *Node) IsRoot() bool {
-	n.parentsMu.Lock()
-	defer n.parentsMu.Unlock()
-	return len(n.parents) == 0
+	return n.parents.IsEmpty()
 }
 
 // IsLeaf should return if the child count, or the
 // number of nodes depend on this node is zero.
 func (n *Node) IsLeaf() bool {
-	n.childrenMu.Lock()
-	defer n.childrenMu.Unlock()
-
-	return len(n.children) == 0
+	return n.children.IsEmpty()
 }
 
 // Observers returns the node observer list.
@@ -244,32 +228,24 @@ func (n *Node) HasObserver(id Identifier) (ok bool) {
 
 // addChildren adds node references as children to this node.
 func (n *Node) addChildren(c ...INode) {
-	n.childrenMu.Lock()
-	defer n.childrenMu.Unlock()
-	n.children.Add(c...)
+	n.children.Push(c...)
 }
 
 // addParents adds node references as parents to this node.
 func (n *Node) addParents(c ...INode) {
-	n.parentsMu.Lock()
-	defer n.parentsMu.Unlock()
-	n.parents.Add(c...)
+	n.parents.Push(c...)
 }
 
 // RemoveChild removes a specific child from the node, specifically
 // a node that might have been an input to this node.
 func (n *Node) removeChild(id Identifier) {
-	n.childrenMu.Lock()
-	defer n.childrenMu.Unlock()
-	delete(n.children, id)
+	n.children.RemoveKey(id)
 }
 
 // RemoveParent removes a parent from the node, specifically
 // a node for which this node is an input.
 func (n *Node) removeParent(id Identifier) {
-	n.parentsMu.Lock()
-	defer n.parentsMu.Unlock()
-	delete(n.parents, id)
+	n.parents.RemoveKey(id)
 }
 
 // maybeCutoff calls the cutoff delegate if it's set, otherwise
@@ -337,27 +313,14 @@ func (n *Node) ShouldRecompute() bool {
 	// if any of the direct _inputs_ to this node have changed
 	// or updated their bind. we don't go full recursive
 	// here to prevent a bunch of extra work.
-	n.parentsMu.Lock()
-	defer n.parentsMu.Unlock()
-	for _, p := range n.parents {
-		if p.Node().changedAt > n.recomputedAt {
+	n.parents.Lock()
+	defer n.parents.Unlock()
+	for _, p := range n.parents.list.items {
+		if p.value.Node().changedAt > n.recomputedAt || p.value.Node().boundAt > n.recomputedAt {
 			return true
 		}
 	}
 	return false
-}
-
-func (n *Node) recomputeHeights() {
-	n.childrenMu.Lock()
-	defer n.childrenMu.Unlock()
-	oldHeight := n.height
-	n.height = n.computePseudoHeight()
-	if oldHeight != n.height && n.graph != nil && n.graph.recomputeHeap != nil && n.graph.recomputeHeap.hasKey(n.id) {
-		n.graph.recomputeHeap.Fix(n.id)
-	}
-	for _, c := range n.children {
-		c.Node().recomputeHeights()
-	}
 }
 
 // computePseudoHeight calculates the nodes height in respect to its parents.
@@ -365,14 +328,14 @@ func (n *Node) recomputeHeights() {
 // it will use the maximum height _the node has ever seen_, i.e.
 // if the height is 1, then 3, then 1 again, this will return 3.
 func (n *Node) computePseudoHeight() int {
-	n.parentsMu.Lock()
-	defer n.parentsMu.Unlock()
+	n.parents.Lock()
+	defer n.parents.Unlock()
 
 	var maxParentHeight int
 	var parentHeight int
 
-	for _, p := range n.parents {
-		parentHeight = p.Node().computePseudoHeight()
+	for _, p := range n.parents.list.items {
+		parentHeight = p.value.Node().computePseudoHeight()
 		if parentHeight > maxParentHeight {
 			maxParentHeight = parentHeight
 		}

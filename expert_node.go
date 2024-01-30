@@ -1,10 +1,12 @@
 package incr
 
+import "reflect"
+
 // ExpertNode returns an "expert" interface to interact with nodes.
 //
 // USE AT YOUR OWN RISK.
 func ExpertNode(in INode) IExpertNode {
-	return &expertNode{node: in.Node()}
+	return &expertNode{incr: in, node: in.Node()}
 }
 
 // IExpertNode is an expert interface for nodes.
@@ -29,9 +31,14 @@ type IExpertNode interface {
 	RemoveParent(Identifier)
 
 	ComputePseudoheight() int
+
+	// Value returns the underlying value of the node
+	// as an untyped `interface{}` for use in debugging.
+	Value() any
 }
 
 type expertNode struct {
+	incr INode
 	node *Node
 }
 
@@ -93,4 +100,14 @@ func (en *expertNode) RemoveParent(id Identifier) {
 
 func (en *expertNode) ComputePseudoheight() int {
 	return en.node.computePseudoHeight()
+}
+
+func (en *expertNode) Value() any {
+	rv := reflect.ValueOf(en.incr)
+	valueMethod := rv.MethodByName("Value")
+	res := valueMethod.Call(nil)
+	if len(res) > 0 {
+		return res[0].Interface()
+	}
+	return nil
 }

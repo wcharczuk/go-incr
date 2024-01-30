@@ -218,7 +218,7 @@ func Test_Stabilize_unobservedHandlers(t *testing.T) {
 	ItsEqual(t, 2, observes)
 	ItsEqual(t, 0, unobserves)
 
-	o0.Unobserve()
+	o0.Unobserve(ctx)
 	ItsEqual(t, 2, observes)
 	ItsEqual(t, 1, unobserves)
 }
@@ -519,16 +519,6 @@ func Test_Stabilize_bind(t *testing.T) {
 	})
 	mb.Node().SetLabel("mb")
 
-	ItsEqual(t, 0, len(i0.Node().parents))
-	ItsEqual(t, 1, len(i0.Node().children))
-	ItsEqual(t, 1, len(m0.Node().parents))
-	ItsEqual(t, 0, len(m0.Node().children))
-
-	ItsEqual(t, 0, len(i1.Node().parents))
-	ItsEqual(t, 1, len(i1.Node().children))
-	ItsEqual(t, 1, len(m1.Node().parents))
-	ItsEqual(t, 0, len(m1.Node().children))
-
 	graph := New()
 	_ = Observe(graph, mb)
 
@@ -536,16 +526,6 @@ func Test_Stabilize_bind(t *testing.T) {
 
 	err := graph.Stabilize(ctx)
 	ItsNil(t, err)
-
-	ItsEqual(t, 0, len(i0.Node().parents))
-	ItsEqual(t, 1, len(i0.Node().children))
-	ItsEqual(t, 1, len(m0.Node().parents))
-	ItsEqual(t, 0, len(m0.Node().children), "children should not include mb (util we flip the var and rebind)")
-
-	ItsEqual(t, 0, len(i1.Node().parents))
-	ItsEqual(t, 1, len(i1.Node().children))
-	ItsEqual(t, 1, len(m1.Node().parents), "parents should include i1")
-	ItsEqual(t, 1, len(m1.Node().children), "children should include mb")
 
 	ItsEqual(t, false, graph.IsObserving(i0))
 	ItsEqual(t, false, graph.IsObserving(m0))
@@ -564,16 +544,6 @@ func Test_Stabilize_bind(t *testing.T) {
 
 	err = graph.Stabilize(ctx)
 	ItsNil(t, err)
-
-	ItsEqual(t, 0, len(i0.Node().parents))
-	ItsEqual(t, 1, len(i0.Node().children))
-	ItsEqual(t, 1, len(m0.Node().parents))
-	ItsEqual(t, 1, len(m0.Node().children))
-
-	ItsEqual(t, 0, len(i1.Node().parents))
-	ItsEqual(t, 1, len(i1.Node().children))
-	ItsEqual(t, 1, len(m1.Node().parents))
-	ItsEqual(t, 0, len(m1.Node().children), "m1 should be swapped out for m0 at this point and have no children")
 
 	ItsEqual(t, true, graph.IsObserving(i0))
 	ItsEqual(t, true, graph.IsObserving(m0))

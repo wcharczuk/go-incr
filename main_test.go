@@ -145,7 +145,9 @@ func newListWithItems(items ...INode) (l *list[Identifier, recomputeHeapItem[INo
 
 func createDynamicMaps(label string) Incr[string] {
 	mapVar0 := Var(fmt.Sprintf("%s-0", label))
+	mapVar0.Node().SetLabel(fmt.Sprintf("%sv-0", label))
 	mapVar1 := Var(fmt.Sprintf("%s-1", label))
+	mapVar1.Node().SetLabel(fmt.Sprintf("%sv-1", label))
 	m := Map2(mapVar0, mapVar1, func(a, b string) string {
 		return a + "+" + b
 	})
@@ -179,7 +181,7 @@ func homedir(filename string) string {
 }
 
 func dumpDot(g *Graph, path string) error {
-	if os.Getenv("INCR_DEBUG_DOT") == "" {
+	if os.Getenv("INCR_DEBUG_DOT") != "true" {
 		return nil
 	}
 
@@ -197,8 +199,13 @@ func dumpDot(g *Graph, path string) error {
 		return err
 	}
 
+	errOut := new(bytes.Buffer)
 	cmd := exec.Command(dotFullPath, "-Tpng")
 	cmd.Stdin = dotContents
 	cmd.Stdout = dotOutput
-	return cmd.Run()
+	cmd.Stderr = errOut
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("%v; %w", errOut.String(), err)
+	}
+	return nil
 }

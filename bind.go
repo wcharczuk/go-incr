@@ -43,7 +43,6 @@ func BindContext[A, B any](input Incr[A], fn func(context.Context, A) (Incr[B], 
 		input: input,
 		fn:    fn,
 		bt:    "bind",
-		scope: newBindScope(input),
 	}
 	Link(o, input)
 	return o
@@ -54,26 +53,21 @@ func BindContext[A, B any](input Incr[A], fn func(context.Context, A) (Incr[B], 
 // based on input incrementals.
 type BindIncr[A any] interface {
 	Incr[A]
+	IBind
+	IUnobserve
 	fmt.Stringer
 }
 
-func newBindScope(lhs INode) *bindScope {
-	return &bindScope{
-		lhs:   lhs,
-		nodes: new(list[Identifier, INode]),
-	}
-}
-
 type bindScope struct {
-	lhs   INode
-	nodes *list[Identifier, INode]
+	lhs      INode
+	rhsNodes *nodeList
 }
 
-func (bs *bindScope) Stabilize(ctx context.Context) error {
-	bs.nodes.Each(func(n INode) {
-		n.Node().graph.recomputeHeap.Add(n)
-	})
-	return nil
+func (bs bindScope) Height() int {
+	if bs.lhs == nil {
+		return -1
+	}
+	return bs.lhs.Node().height
 }
 
 var (
@@ -84,15 +78,23 @@ var (
 )
 
 type bindIncr[A, B any] struct {
-	n     *Node
-	bt    string
-	input Incr[A]
-	fn    func(context.Context, A) (Incr[B], error)
-	scope *bindScope
-	bound *bindChangeIncr[A, B]
+	n          *Node
+	bt         string
+	input      Incr[A]
+	fn         func(context.Context, A) (Incr[B], error)
+	scope      *bindScope
+	bindChange *bindChangeIncr[A, B]
+	bound      Incr[B]
 }
 
 func (b *bindIncr[A, B]) Node() *Node { return b.n }
+
+func (b *bindIncr[A, B]) RHS() INode {
+	if b.bindChange != nil {
+		return b.bindChange.rhs
+	}
+	return nil
+}
 
 func (b *bindIncr[A, B]) Value() (output B) {
 	if b.bound != nil {
@@ -102,20 +104,6 @@ func (b *bindIncr[A, B]) Value() (output B) {
 }
 
 func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
-	// recurse through the bind node's current scope
-	// invalidating (but not recomputing!) anything in the current scope.
-	if err := b.Bind(ctx); err != nil {
-		return err
-	}
-	if b.n.createdIn != nil {
-		b.n.createdIn.nodes.Each(func(n INode) {
-			b.n.graph.SetStale(n)
-		})
-	}
-	return nil
-}
-
-func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 	newIncr, err := b.fn(ctx, b.input.Value())
 	if err != nil {
 		return err
@@ -124,7 +112,9 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 	if b.bound != nil && newIncr != nil {
 		if b.bound.Node().id != newIncr.Node().id {
 			bindChanged = true
-			b.unlinkOld(ctx)
+			if err := b.unlinkOld(ctx); err != nil {
+				return err
+			}
 			if err := b.linkNew(ctx, newIncr); err != nil {
 				return err
 			}
@@ -134,27 +124,125 @@ func (b *bindIncr[A, B]) Bind(ctx context.Context) error {
 		if err := b.linkNew(ctx, newIncr); err != nil {
 			return err
 		}
-	} else if b.bound != nil {
+	} else if b.bindChange != nil {
 		bindChanged = true
-		b.unlinkOld(ctx)
+		if err := b.unlinkOld(ctx); err != nil {
+			return err
+		}
 	}
 	if bindChanged {
 		b.n.boundAt = b.n.graph.stabilizationNum
+	} else {
+		TracePrintf(ctx, "%v unchanged after stabilization", b)
 	}
 	return nil
 }
 
-func (b *bindIncr[A, B]) unlinkOld(ctx context.Context) {
+func (b *bindIncr[A, B]) Unobserve(ctx context.Context) error {
+	return b.unlinkOld(ctx)
+}
 
+func (b *bindIncr[A, B]) Link(ctx context.Context) {
+	if b.bound != nil {
+		children := b.n.Children()
+		for _, c := range children {
+			Link(c, b.bound)
+		}
+		for _, c := range children {
+			_ = b.n.graph.recomputeHeights(ctx, c)
+		}
+		if typed, ok := b.bound.(IBind); ok {
+			typed.Link(ctx)
+		}
+	}
+}
+
+func (b *bindIncr[A, B]) Unlink(ctx context.Context) {
+	_ = b.unlinkOld(ctx)
+}
+
+func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) {
+	b.bindChange = &bindChangeIncr[A, B]{
+		n:   NewNode(),
+		lhs: b.input,
+		rhs: b.bound,
+	}
+	if b.n.label != "" {
+		b.bindChange.n.SetLabel(fmt.Sprintf("%s-change", b.n.label))
+	}
+	Link(b.bindChange, b.input)
+	Link(b.bound, b.bindChange)
+	b.n.graph.observeSingleNode(ctx, b.bindChange, b.n.Observers()...)
 }
 
 func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) error {
-	b.bound = bindChange(b.input, newIncr)
-	b.scope = &bindScope{
-		nodes: new(list[Identifier, INode]),
+	b.bound = newIncr
+	b.linkBindChange(ctx)
+	children := b.n.Children()
+	for _, c := range children {
+		Link(c, b.bound)
 	}
-	b.n.graph.discoverScopeNodesContext(ctx, b.scope, newIncr)
+	b.scope = &bindScope{
+		lhs:      b.input,
+		rhsNodes: newNodeList(),
+	}
+	b.n.graph.observeNodes(ctx, b.bound, b.n.Observers()...)
+	for _, c := range children {
+		if err := b.n.graph.recomputeHeights(ctx, c); err != nil {
+			return err
+		}
+	}
+	b.addNodesToScope(ctx, b.scope, b.bound)
+	TracePrintf(ctx, "%v bound new rhs %v", b, b.bound)
 	return nil
+}
+
+func (b *bindIncr[A, B]) unlinkBindChange(ctx context.Context) {
+	Unlink(b.bindChange, b.input)
+	Unlink(b.bound, b.bindChange)
+	b.n.graph.unobserveNode(ctx, b.bindChange, b.n.Observers()...)
+	b.bindChange = nil
+}
+
+func (b *bindIncr[A, B]) unlinkOld(ctx context.Context) error {
+	if b.bound != nil {
+		TracePrintf(ctx, "%v unbinding node %v", b, b.bound)
+		b.unlinkBindChange(ctx)
+		b.removeNodesFromScope(ctx, b.scope)
+		b.n.graph.unobserveNodes(ctx, b.bound, b.n.Observers()...)
+		for _, c := range b.n.Children() {
+			Unlink(c, b.bound)
+		}
+		b.bindChange = nil
+		b.scope = nil
+		b.bound = nil
+	}
+	return nil
+}
+
+func (b *bindIncr[A, B]) addNodesToScope(ctx context.Context, scope *bindScope, gn INode) {
+	gnn := gn.Node()
+	scope.rhsNodes.Push(gn)
+	parents := gnn.Parents()
+	for _, p := range parents {
+		b.addNodesToScope(ctx, scope, p)
+	}
+	if typed, ok := gn.(IBind); ok {
+		typed.Link(ctx)
+	}
+	gnn.createdIn[b.n.id] = scope
+}
+
+func (b *bindIncr[A, B]) removeNodesFromScope(ctx context.Context, scope *bindScope) {
+	rhsNodes := scope.rhsNodes.Values()
+	for _, n := range rhsNodes {
+		delete(n.Node().createdIn, b.n.id)
+		if len(n.Node().createdIn) == 0 {
+			if typed, ok := n.(IBind); ok {
+				typed.Unlink(ctx)
+			}
+		}
+	}
 }
 
 func (b *bindIncr[A, B]) String() string {
@@ -162,39 +250,27 @@ func (b *bindIncr[A, B]) String() string {
 }
 
 var (
-	_ Incr[bool]     = (*bindIncr[string, bool])(nil)
-	_ BindIncr[bool] = (*bindIncr[string, bool])(nil)
-	_ INode          = (*bindIncr[string, bool])(nil)
-	_ fmt.Stringer   = (*bindIncr[string, bool])(nil)
+	_ Incr[bool]   = (*bindChangeIncr[string, bool])(nil)
+	_ INode        = (*bindChangeIncr[string, bool])(nil)
+	_ fmt.Stringer = (*bindChangeIncr[string, bool])(nil)
 )
 
-func bindChange[A, B any](left Incr[A], right Incr[B]) *bindChangeIncr[A, B] {
-	o := &bindChangeIncr[A, B]{
-		n:     NewNode(),
-		left:  left,
-		right: right,
-	}
-	Link(o, left)
-	Link(right, o)
-	return o
-}
-
 type bindChangeIncr[A, B any] struct {
-	n     *Node
-	left  Incr[A]
-	right Incr[B]
+	n   *Node
+	lhs Incr[A]
+	rhs Incr[B]
 }
 
 func (b *bindChangeIncr[A, B]) Node() *Node { return b.n }
 
 func (b *bindChangeIncr[A, B]) Value() (output B) {
-	return b.left.Value()
+	if b.rhs != nil {
+		output = b.rhs.Value()
+	}
+	return
 }
 
 func (b *bindChangeIncr[A, B]) Stabilize(ctx context.Context) error {
-	if err := b.n.createdIn.Stabilize(ctx); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -216,11 +292,13 @@ Furthermore, if the left-hand side's value changes, stabilization marks all the 
 
 	-> if the bind input changes, _all_ the children of the incr that is returned by the bind should be marked as stale.
 
-The bind height invariant is accomplished using a special "bind-lhs-change" node, which is a parent of the bind-lhs and a child of the bind result.
+The bind height invariant is accomplished using a special "bind-lhs-change" node, which is a ~parent~ child of the bind-lhs and a ~child~ parent of the bind result.
 
 	-> bind when it stabilizes creates a "bind-lhs-change" node that is an input to the input to the bind, and takes the bind result as an input (?) this seems insane
 		-> i think we would want to invert that, to make the bind-lhsc the child of the lhs and the parent of the bind result, and be a value passthrough.
 		-> possible this actually is to make the heights line up such that the rhs is always higher than the lhs by at least (1) extra node?
+		-> reading `is_stale` i think the incr authors have an inverted definition of children and parents, we consider parents "inputs" to the nodes, so i think
+			we just need to interpret this as the bind-lhs-change is a child of the bind-lhs and a parent of the bind result / rhs.
 
 The incremental state maintains the "current scope", which is the bind whose right-hand side is currently being evaluated, or a special "top" scope if there is no bind in effect. Each node has a [created_in] field set to the scope in effect when the node is created.
 

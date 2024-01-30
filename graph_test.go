@@ -36,7 +36,9 @@ func Test_Graph_Label(t *testing.T) {
 	testutil.ItsEqual(t, "hello", g.Label())
 }
 
-func Test_Graph_UndiscoverNodes(t *testing.T) {
+func Test_Graph_UnobserveNodes(t *testing.T) {
+	ctx := testContext()
+
 	r0 := Return("hello")
 	m0 := Map(r0, ident)
 	m1 := Map(m0, ident)
@@ -61,7 +63,7 @@ func Test_Graph_UndiscoverNodes(t *testing.T) {
 	testutil.ItsEqual(t, true, g.IsObserving(am1))
 	testutil.ItsEqual(t, true, g.IsObserving(am2))
 
-	g.UndiscoverNodes(o1, m1)
+	g.unobserveNodes(ctx, m1, o1)
 
 	testutil.ItsEqual(t, false, g.IsObserving(r0))
 	testutil.ItsEqual(t, false, g.IsObserving(m0))
@@ -79,7 +81,9 @@ func Test_Graph_UndiscoverNodes(t *testing.T) {
 	testutil.ItsEqual(t, true, g.IsObserving(am2))
 }
 
-func Test_Graph_UndiscoverNodes_notObserving(t *testing.T) {
+func Test_Graph_UnobserveNodes_notObserving(t *testing.T) {
+	ctx := testContext()
+
 	r0 := Return("hello")
 	m0 := Map(r0, ident)
 	m1 := Map(m0, ident)
@@ -103,7 +107,7 @@ func Test_Graph_UndiscoverNodes_notObserving(t *testing.T) {
 	testutil.ItsEqual(t, false, g.IsObserving(am1))
 	testutil.ItsEqual(t, false, g.IsObserving(am2))
 
-	g.UndiscoverNodes(o, am1)
+	g.unobserveNodes(ctx, am1, o)
 
 	testutil.ItsEqual(t, true, g.IsObserving(r0))
 	testutil.ItsEqual(t, true, g.IsObserving(m0))
@@ -121,6 +125,7 @@ func Test_Graph_IsStabilizing(t *testing.T) {
 }
 
 func Test_Graph_RecomputeHeight(t *testing.T) {
+	ctx := testContext()
 	g := New()
 
 	n0 := emptyNode{NewNode()}
@@ -132,7 +137,8 @@ func Test_Graph_RecomputeHeight(t *testing.T) {
 	Link(n2, n1)
 	Link(n3, n2)
 
-	g.RecomputeHeight(n1)
+	err := g.recomputeHeights(ctx, n1)
+	testutil.ItsNil(t, err)
 
 	testutil.ItsEqual(t, 0, n0.n.height)
 	testutil.ItsEqual(t, 2, n1.n.height)
@@ -141,6 +147,7 @@ func Test_Graph_RecomputeHeight(t *testing.T) {
 }
 
 func Test_Graph_RecomputeHeight_observed(t *testing.T) {
+	ctx := testContext()
 	g := New()
 
 	v0 := Var("a")
@@ -152,15 +159,18 @@ func Test_Graph_RecomputeHeight_observed(t *testing.T) {
 	o1 := Observe(g, m2)
 
 	m0.Node().height = 1
-	g.RecomputeHeight(m0)
+	err := g.recomputeHeights(ctx, m0)
+	testutil.ItsNil(t, err)
 
-	_ = g.Stabilize(context.TODO())
+	err = g.Stabilize(context.TODO())
+	testutil.ItsNil(t, err)
 
 	testutil.ItsEqual(t, "a", o0.Value())
 	testutil.ItsEqual(t, "a", o1.Value())
 }
 
-func Test_Graph_DiscoverObserver_rediscover(t *testing.T) {
+func Test_Graph_discoverObserver_rediscover(t *testing.T) {
+	ctx := testContext()
 	g := New()
 
 	v := Var("hello")
@@ -173,7 +183,7 @@ func Test_Graph_DiscoverObserver_rediscover(t *testing.T) {
 	g.recomputeHeap.Remove(o)
 	testutil.ItsEqual(t, false, g.recomputeHeap.Has(o))
 
-	g.DiscoverObserver(o)
+	g.discoverObserver(ctx, o)
 	testutil.ItsEqual(t, 2, g.numNodes)
 	testutil.ItsEqual(t, 2, o.Node().height)
 	testutil.ItsEqual(t, false, g.recomputeHeap.Has(o))
@@ -186,4 +196,25 @@ func Test_Graph_recompute_nilNodeMetadata(t *testing.T) {
 	n.n = nil
 	err := g.recompute(testContext(), n)
 	testutil.ItsNotNil(t, err)
+}
+
+func Test_Graph_recomputeHeights(t *testing.T) {
+	ctx := testContext()
+	n0 := emptyNode{NewNode()}
+	n1 := emptyNode{NewNode()}
+	n2 := emptyNode{NewNode()}
+	n3 := emptyNode{NewNode()}
+
+	Link(n1, n0)
+	Link(n2, n1)
+	Link(n3, n2)
+
+	g := New()
+	err := g.recomputeHeights(ctx, n1)
+	testutil.ItsNil(t, err)
+
+	testutil.ItsEqual(t, 0, n0.n.height)
+	testutil.ItsEqual(t, 2, n1.n.height)
+	testutil.ItsEqual(t, 3, n2.n.height)
+	testutil.ItsEqual(t, 4, n3.n.height)
 }

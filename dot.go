@@ -34,10 +34,11 @@ func Dot(wr io.Writer, g *Graph) (err error) {
 	}
 
 	writef(0, "digraph {")
-	nodes := make([]INode, 0, len(g.observed)+len(g.observers))
-	for _, n := range g.observed {
+	nodes := make([]INode, 0, g.observed.Len()+len(g.observers))
+	_ = g.observed.Each(func(n INode) error {
 		nodes = append(nodes, n)
-	}
+		return nil
+	})
 	for _, n := range g.observers {
 		nodes = append(nodes, n)
 	}
@@ -47,7 +48,7 @@ func Dot(wr io.Writer, g *Graph) (err error) {
 	nodeLabels := make(map[Identifier]string)
 	for index, n := range nodes {
 		nodeLabel := fmt.Sprintf("n%d", index+1)
-		label := fmt.Sprintf(`label="%v@%d" shape="rect"`, n, n.Node().height)
+		label := fmt.Sprintf(`label="%v" shape="rect"`, n)
 		color := ` fillcolor = "white" style="filled" fontcolor="black"`
 		if n.Node().setAt > 0 {
 			color = ` fillcolor = "red" style="filled" fontcolor="white"`
@@ -59,12 +60,13 @@ func Dot(wr io.Writer, g *Graph) (err error) {
 	}
 	for _, n := range nodes {
 		nodeLabel := nodeLabels[n.Node().id]
-		for _, p := range n.Node().children {
+		_ = n.Node().children.Each(func(p INode) error {
 			childLabel, ok := nodeLabels[p.Node().id]
 			if ok {
 				writef(1, "%s -> %s;", nodeLabel, childLabel)
 			}
-		}
+			return nil
+		})
 	}
 	writef(0, "}")
 	return

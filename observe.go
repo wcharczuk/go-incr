@@ -1,27 +1,35 @@
 package incr
 
 import (
+	"context"
 	"fmt"
 )
 
 // Observe observes a node, specifically including it for computation
 // as well as all of its parents.
 func Observe[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
+	return ObserveContext(context.Background(), g, input)
+}
+
+// ObserveContext observes a node, specifically including it for computation
+// as well as all of its parents.
+func ObserveContext[A any](ctx context.Context, g *Graph, input Incr[A]) ObserveIncr[A] {
 	o := &observeIncr[A]{
 		n:     NewNode(),
 		input: input,
 	}
 	Link(o, input)
-	g.DiscoverObserver(o)
+	g.discoverObserver(ctx, o)
 
-	// NOTE(wc): we do this here because some """expert""" use cases for `DiscoverObserver`
+	// NOTE(wc): we do this here because some """expert""" use cases for `ExpertGraph::DiscoverObserver`
 	// require us to add the observer to the graph observer list but _not_
 	// add it to the recompute heap.
 	//
 	// So we just add it here explicitly and don't add it implicitly
 	// in the DiscoverObserver function.
+	TracePrintf(ctx, "adding observer %v to recompute heap", o)
 	g.recomputeHeap.Add(o)
-	g.DiscoverNodes(o, input)
+	g.observeNodes(ctx, input, o)
 	return o
 }
 
@@ -36,13 +44,13 @@ type ObserveIncr[A any] interface {
 	// you should _not_ re-use the node.
 	//
 	// To observe parts of a graph again, use the `Observe(...)` helper.
-	Unobserve()
+	Unobserve(context.Context)
 }
 
 // IObserver is an INode that can be unobserved.
 type IObserver interface {
 	INode
-	Unobserve()
+	Unobserve(context.Context)
 }
 
 var (
@@ -64,15 +72,16 @@ func (o *observeIncr[A]) Node() *Node { return o.n }
 // you should _not_ re-use the node.
 //
 // To observe parts of a graph again, use the `Observe(...)` helper.
-func (o *observeIncr[A]) Unobserve() {
+func (o *observeIncr[A]) Unobserve(ctx context.Context) {
 	g := o.n.graph
-	g.UndiscoverNodes(o, o.input)
-	g.UndiscoverObserver(o)
-	for _, p := range o.n.parents {
+	g.unobserveNodes(ctx, o.input, o)
+	g.undiscoverObserver(ctx, o)
+	parents := o.n.parents.Values()
+	for _, p := range parents {
 		Unlink(o, p)
 	}
-	o.n.children = nil
-	o.n.parents = nil
+	o.n.children = newNodeList()
+	o.n.parents = newNodeList()
 	o.input = nil
 }
 

@@ -109,7 +109,6 @@ func (rh *recomputeHeap) RemoveMin() INode {
 func (rh *recomputeHeap) RemoveMinHeight() (nodes []recomputeHeapItem[INode]) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
-
 	if rh.heights[rh.minHeight] != nil && rh.heights[rh.minHeight].lenUnsafe() > 0 {
 		nodes = rh.heights[rh.minHeight].popAllUnsafe()
 		for _, n := range nodes {
@@ -252,8 +251,9 @@ func (rh *recomputeHeap) String() string {
 		fmt.Fprintf(output, "\t%d: [", heightIndex)
 
 		lineParts := make([]string, 0, heightList.Len())
-		heightList.Each(func(li recomputeHeapItem[INode]) {
+		_ = heightList.Each(func(li recomputeHeapItem[INode]) error {
 			lineParts = append(lineParts, fmt.Sprint(li.node))
+			return nil
 		})
 		fmt.Fprintf(output, "%s],\n", strings.Join(lineParts, ", "))
 	}
