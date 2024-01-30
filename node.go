@@ -236,6 +236,20 @@ func (n *Node) addParents(c ...INode) {
 	n.parents.Push(c...)
 }
 
+// addObservers adds observers to the node, calling
+// onObserved handlers with a separate invocation
+// for each observer that is added.
+func (n *Node) addObservers(observers ...IObserver) {
+	n.observersMu.Lock()
+	defer n.observersMu.Unlock()
+	for _, o := range observers {
+		n.observers[o.Node().id] = o
+		for _, handler := range n.onObservedHandlers {
+			handler(o)
+		}
+	}
+}
+
 // RemoveChild removes a specific child from the node, specifically
 // a node that might have been an input to this node.
 func (n *Node) removeChild(id Identifier) {
@@ -328,18 +342,15 @@ func (n *Node) ShouldRecompute() bool {
 // it will use the maximum height _the node has ever seen_, i.e.
 // if the height is 1, then 3, then 1 again, this will return 3.
 func (n *Node) computePseudoHeight() int {
-	n.parents.Lock()
-	defer n.parents.Unlock()
-
 	var maxParentHeight int
 	var parentHeight int
 
-	for _, p := range n.parents.list.items {
-		parentHeight = p.value.Node().computePseudoHeight()
+	n.parents.Each(func(p INode) {
+		parentHeight = p.Node().computePseudoHeight()
 		if parentHeight > maxParentHeight {
 			maxParentHeight = parentHeight
 		}
-	}
+	})
 
 	// we do this to prevent the height
 	// changing a bunch with bind nodes.

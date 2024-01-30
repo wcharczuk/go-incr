@@ -201,18 +201,9 @@ func (graph *Graph) observeNodes(ctx context.Context, gn INode, observers ...IOb
 func (graph *Graph) observeSingleNode(ctx context.Context, gn INode, observers ...IObserver) {
 	gnn := gn.Node()
 
-	// make sure to associate the given observer with the node
-	gnn.observersMu.Lock()
-	defer gnn.observersMu.Unlock()
-	for _, o := range observers {
-		gnn.observers[o.Node().id] = o
-		for _, handler := range gnn.onObservedHandlers {
-			handler(o)
-		}
-	}
-
-	alreadyObserved := graph.pushNodeObserved(gn)
-	if alreadyObserved {
+	gnn.addObservers(observers...)
+	alreadyObservedByGraph := graph.maybeAddObservedNode(gn)
+	if alreadyObservedByGraph {
 		return
 	}
 	graph.numNodes++
@@ -221,14 +212,12 @@ func (graph *Graph) observeSingleNode(ctx context.Context, gn INode, observers .
 	gnn.detectAlways(gn)
 	gnn.detectStabilize(gn)
 	gnn.height = gnn.computePseudoHeight()
-
-	shouldRecompute := gnn.ShouldRecompute()
-	if shouldRecompute {
+	if gnn.ShouldRecompute() {
 		graph.recomputeHeap.Add(gn)
 	}
 }
 
-func (graph *Graph) pushNodeObserved(gn INode) bool {
+func (graph *Graph) maybeAddObservedNode(gn INode) bool {
 	graph.observed.Lock()
 	defer graph.observed.Unlock()
 	if graph.observed.HasUnsafe(gn) {
@@ -435,16 +424,20 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 		graph.handleAfterStabilization.Push(nn.id, nn.onUpdateHandlers)
 	}
 
-	// recompute all the children of this node, i.e. the nodes that
-	// depend on this node if they need to be recomputed.
-	children := nn.Children()
-	for _, c := range children {
+	// iterate over each child node of this node, or nodes that take
+	// this node as an input, and if the node is "necessary" and
+	// dirty add it to the recompute heap.
+	//
+	// we use the `each` from here to hold the lock while we process
+	// the list, preventing a race condition around missed nodes,
+	// but more to prevent us from reading the children list twice.
+	nn.children.Each(func(c INode) {
 		isObserving := graph.IsObserving(c)
 		shouldRecompute := c.Node().ShouldRecompute()
 		if isObserving && shouldRecompute {
 			graph.recomputeHeap.Add(c)
 		}
-	}
+	})
 	return
 }
 
@@ -456,10 +449,11 @@ func (graph *Graph) recomputeHeights(in INode) {
 	n := in.Node()
 	oldHeight := n.height
 	n.height = n.computePseudoHeight()
-	children := n.Children()
-	for _, c := range children {
-		graph.recomputeHeights(c)
-	}
+
+	// we use `each` here to prevent iterating
+	// over the list twice, and we should only ever
+	// see a node (1) time, so this _shouldnt_ deadlock.
+	n.children.Each(graph.recomputeHeights)
 	if oldHeight != n.height {
 		graph.adjustHeightsHeap.Push(in)
 	}
