@@ -240,6 +240,7 @@ func (l *list[K, V]) popBackUnsafe() (k K, v V, ok bool) {
 }
 
 func (l *list[K, V]) popAllUnsafe() (output []V) {
+	output = make([]V, 0, len(l.items))
 	ptr := l.head
 	for ptr != nil {
 		output = append(output, ptr.value)

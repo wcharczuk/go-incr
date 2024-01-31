@@ -37,6 +37,7 @@ func (nl *nodeList) IsEmptyUnsafe() bool {
 func (nl *nodeList) Push(nodes ...INode) {
 	nl.Lock()
 	defer nl.Unlock()
+
 	nl.PushUnsafe(nodes...)
 }
 
@@ -47,20 +48,32 @@ func (nl *nodeList) PushUnsafe(nodes ...INode) {
 }
 
 func (nl *nodeList) Remove(n INode) {
-	nl.list.Remove(n.Node().id)
+	nl.Lock()
+	defer nl.Unlock()
+
+	nl.list.removeUnsafe(n.Node().id)
 }
 
 func (nl *nodeList) RemoveKey(id Identifier) {
-	nl.list.Remove(id)
+	nl.Lock()
+	defer nl.Unlock()
+
+	nl.list.removeUnsafe(id)
 }
 
 func (nl *nodeList) HasKey(id Identifier) (ok bool) {
-	ok = nl.list.Has(id)
+	nl.Lock()
+	defer nl.Unlock()
+
+	ok = nl.list.hasUnsafe(id)
 	return
 }
 
 func (nl *nodeList) Has(n INode) (ok bool) {
-	ok = nl.list.Has(n.Node().id)
+	nl.Lock()
+	defer nl.Unlock()
+
+	ok = nl.list.hasUnsafe(n.Node().id)
 	return
 }
 
@@ -75,14 +88,22 @@ func (nl *nodeList) PopAllUnsafe() (out []INode) {
 }
 
 func (nl *nodeList) ConsumeEach(fn func(INode)) {
-	nl.list.ConsumeEach(fn)
+	nl.Lock()
+	defer nl.Unlock()
+
+	nl.list.consumeEachUnsafe(fn)
 }
 
 func (nl *nodeList) Each(fn func(INode)) {
-	nl.list.Each(fn)
+	nl.Lock()
+	defer nl.Unlock()
+
+	nl.list.eachUnsafe(fn)
 }
 
 func (nl *nodeList) Values() (out []INode) {
-	out = nl.list.Values()
+	nl.Lock()
+	defer nl.Unlock()
+	out = nl.list.valuesUnsafe()
 	return
 }

@@ -30,7 +30,7 @@ func New(opts ...GraphOption) *Graph {
 		observed:                 newNodeList(),
 		observers:                make(map[Identifier]IObserver),
 		recomputeHeap:            newRecomputeHeap(options.MaxRecomputeHeapHeight),
-		adjustHeightsHeap:        newNodeList(),
+		adjustHeightsList:        newNodeList(),
 		setDuringStabilization:   newNodeList(),
 		handleAfterStabilization: new(list[Identifier, []func(context.Context)]),
 	}
@@ -82,7 +82,10 @@ type Graph struct {
 	// itself is concurrent safe.
 	recomputeHeap *recomputeHeap
 
-	adjustHeightsHeap *nodeList
+	// adjustHeightsList is a list of nodes that are
+	// queued to have their heights recalculated after
+	// a level of the recompute heap is recomputed
+	adjustHeightsList *nodeList
 
 	// setDuringStabilization is a list of nodes that were
 	// set during stabilization
@@ -254,7 +257,7 @@ func (graph *Graph) unobserveSingleNode(ctx context.Context, gn INode, observers
 	graph.observed.Remove(gn)
 	graph.numNodes--
 	graph.recomputeHeap.Remove(gn)
-	graph.adjustHeightsHeap.Remove(gn)
+	graph.adjustHeightsList.Remove(gn)
 	graph.handleAfterStabilization.Remove(gn.Node().ID())
 }
 
@@ -446,6 +449,16 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 // internal height management methods
 //
 
+func (graph *Graph) fixAdjustHeightsList() {
+	if graph.adjustHeightsList.Len() > 0 {
+		graph.recomputeHeap.mu.Lock()
+		defer graph.recomputeHeap.mu.Unlock()
+		graph.adjustHeightsList.ConsumeEach(func(n INode) {
+			graph.recomputeHeap.fixUnsafe(n.Node().id)
+		})
+	}
+}
+
 func (graph *Graph) recomputeHeights(in INode) {
 	graph.recomputeHeightsCached(make(map[Identifier]int), in)
 }
@@ -462,7 +475,7 @@ func (graph *Graph) recomputeHeightsCached(cache map[Identifier]int, in INode) {
 		graph.recomputeHeightsCached(cache, c)
 	})
 	if oldHeight != n.height {
-		graph.adjustHeightsHeap.Push(in)
+		graph.adjustHeightsList.Push(in)
 	}
 }
 

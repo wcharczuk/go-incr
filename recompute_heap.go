@@ -71,14 +71,10 @@ func (rh *recomputeHeap) Add(nodes ...INode) {
 }
 
 // Fix moves an existing node around in the height lists if its height has changed.
-func (rh *recomputeHeap) Fix(id Identifier) {
+func (rh *recomputeHeap) Fix(ids ...Identifier) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
-
-	if item, ok := rh.lookup[id]; ok {
-		_ = rh.heights[item.value.height].removeUnsafe(item.key)
-		rh.addNodeUnsafe(item.value.node)
-	}
+	rh.fixUnsafe(ids...)
 }
 
 // Has returns if a given node exists in the recompute heap at its height by id.
@@ -109,7 +105,8 @@ func (rh *recomputeHeap) RemoveMin() INode {
 func (rh *recomputeHeap) RemoveMinHeight() (nodes []recomputeHeapItem[INode]) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
-	if rh.heights[rh.minHeight] != nil && rh.heights[rh.minHeight].lenUnsafe() > 0 {
+
+	if rh.heights[rh.minHeight] != nil && len(rh.heights[rh.minHeight].items) > 0 {
 		nodes = rh.heights[rh.minHeight].popAllUnsafe()
 		for _, n := range nodes {
 			delete(rh.lookup, n.node.Node().id)
@@ -137,6 +134,15 @@ func (rh *recomputeHeap) Remove(s INode) (ok bool) {
 //
 // utils
 //
+
+func (rh *recomputeHeap) fixUnsafe(ids ...Identifier) {
+	for _, id := range ids {
+		if item, ok := rh.lookup[id]; ok {
+			_ = rh.heights[item.value.height].removeUnsafe(item.key)
+			rh.addNodeUnsafe(item.value.node)
+		}
+	}
+}
 
 func (rh *recomputeHeap) addUnsafe(nodes ...INode) {
 	for _, s := range nodes {

@@ -34,11 +34,7 @@ func (graph *Graph) Stabilize(ctx context.Context) (err error) {
 		if err != nil {
 			break
 		}
-		if graph.adjustHeightsHeap.Len() > 0 {
-			graph.adjustHeightsHeap.ConsumeEach(func(n INode) {
-				graph.recomputeHeap.Fix(n.Node().id)
-			})
-		}
+		graph.fixAdjustHeightsList()
 	}
 	graph.recomputeHeap.Add(immediateRecompute...)
 	return
