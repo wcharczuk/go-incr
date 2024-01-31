@@ -235,8 +235,8 @@ func (n *Node) addChildren(c ...INode) {
 }
 
 // addParents adds node references as parents to this node.
-func (n *Node) addParents(c ...INode) {
-	n.parents.Push(c...)
+func (n *Node) addParents(parents ...INode) {
+	n.parents.Push(parents...)
 }
 
 // addObservers adds observers to the node, calling

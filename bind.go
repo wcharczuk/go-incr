@@ -43,6 +43,10 @@ func BindContext[A, B any](input Incr[A], fn func(context.Context, A) (Incr[B], 
 		input: input,
 		fn:    fn,
 		bt:    "bind",
+		scope: &bindScope{
+			lhs:      input,
+			rhsNodes: newNodeList(),
+		},
 	}
 	Link(o, input)
 	return o
@@ -90,6 +94,8 @@ func (b *bindIncr[A, B]) Value() (output B) {
 }
 
 func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
+	// TODO (wc): we have to somehow threads that the scope we care about is ambient ...
+	// ... somehow.
 	newIncr, err := b.fn(ctx, b.input.Value())
 	if err != nil {
 		return err
@@ -159,10 +165,6 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
 	children := b.n.Children()
 	for _, c := range children {
 		Link(c, b.bound)
-	}
-	b.scope = &bindScope{
-		lhs:      b.input,
-		rhsNodes: newNodeList(),
 	}
 	b.n.graph.observeNodes(ctx, b.bound, b.n.Observers()...)
 	for _, c := range children {

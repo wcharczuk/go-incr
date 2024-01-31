@@ -198,6 +198,41 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.ItsEqual(t, "hello", o.Value())
 }
 
+func Test_Bind_scopes(t *testing.T) {
+	/*
+	   {[
+	   	let t1 = map ... in
+	   	bind t2 ~f:(fun _ ->
+	   	let t3 = map ... in
+	   	map2 t1 t3 ~f:(...))
+	   ]}
+
+	   In this example, [t1] is created outside of [bind t2], whereas [t3] is created by the
+	   right-hand side of [bind t2].  So, [t3] depends on [t2] (and has a greater height),
+	   whereas [t1] does not.  And, in a stabilization in which [t2] changes, we are
+	   guaranteed to not recompute the old [t3], but we have no such guarantee about [t1].
+	   Furthermore, when [t2] changes, the old [t3] will be invalidated, whereas [t1] will
+	   not.
+
+	*/
+
+	ctx := testContext()
+
+	t1 := Map(Return("t1"), mapAppend("-mapped"))
+	t2 := Bind(Return("t2"), func(_ string) Incr[string] {
+		t3 := Map(Return("t3"), mapAppend("-mapped"))
+		return Map2(t1, t3, concat)
+	})
+
+	g := New()
+	o := Observe(g, t2)
+
+	err := g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, "t1-mappedt3-mapped", o.Value())
+	testutil.ItsEqual(t, 0, len(t1.Node().createdIn))
+}
+
 func Test_Bind_rebind(t *testing.T) {
 	ctx := testContext()
 

@@ -8,6 +8,11 @@ package incr
 // The reverse of this is `Unlink` on the child node, which
 // removes the inputs as "parents" of the "child" node.
 func Link(child INode, inputs ...INode) {
+	for _, p := range inputs {
+		if err := DetectCycleIfLinked(child, p); err != nil {
+			panic(err)
+		}
+	}
 	child.Node().addParents(inputs...)
 	for _, input := range inputs {
 		input.Node().addChildren(child)
