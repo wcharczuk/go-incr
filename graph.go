@@ -280,13 +280,6 @@ func (graph *Graph) removeNodeObservers(ctx context.Context, gn INode, observers
 	return
 }
 
-func mapFirst[K comparable, V any](m map[K]V) (out V) {
-	for _, out = range m {
-		break
-	}
-	return
-}
-
 func (graph *Graph) addObserver(ctx context.Context, on IObserver) {
 	graph.observersMu.Lock()
 	defer graph.observersMu.Unlock()

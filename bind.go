@@ -63,13 +63,6 @@ type bindScope struct {
 	rhsNodes *nodeList
 }
 
-func (bs bindScope) Height() int {
-	if bs.lhs == nil {
-		return -1
-	}
-	return bs.lhs.Node().height
-}
-
 var (
 	_ Incr[bool]     = (*bindIncr[string, bool])(nil)
 	_ BindIncr[bool] = (*bindIncr[string, bool])(nil)
