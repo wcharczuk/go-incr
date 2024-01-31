@@ -4,9 +4,7 @@ func newNodeList(nodes ...INode) *nodeList {
 	nl := &nodeList{
 		list: new(list[Identifier, INode]),
 	}
-	for _, n := range nodes {
-		nl.PushUnsafe(n)
-	}
+	nl.PushUnsafe(nodes...)
 	return nl
 }
 
