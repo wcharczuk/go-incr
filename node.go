@@ -86,6 +86,9 @@ type Node struct {
 	numChanges uint64
 	// createdIn is the "bind scope" the node was created in
 	createdIn map[Identifier]*bindScope
+	// numComputePseudoheights is the number of times we call "computePseudoheight"
+	// on this particular node
+	numComputePseudoheights uint64
 }
 
 func nodeSorter(a, b INode) int {
@@ -335,31 +338,6 @@ func (n *Node) ShouldRecompute() bool {
 		}
 	}
 	return false
-}
-
-// computePseudoHeight calculates the nodes height in respect to its parents.
-//
-// it will use the maximum height _the node has ever seen_, i.e.
-// if the height is 1, then 3, then 1 again, this will return 3.
-func (n *Node) computePseudoHeight() int {
-	var maxParentHeight int
-	var parentHeight int
-
-	n.parents.Each(func(p INode) {
-		parentHeight = p.Node().computePseudoHeight()
-		if parentHeight > maxParentHeight {
-			maxParentHeight = parentHeight
-		}
-	})
-
-	// we do this to prevent the height
-	// changing a bunch with bind nodes.
-	// basically just stick with the overall maximum
-	// height the node has seen ever.
-	if n.height > maxParentHeight {
-		return n.height
-	}
-	return maxParentHeight + 1
 }
 
 func (n *Node) maybeStabilize(ctx context.Context) (err error) {

@@ -7,7 +7,11 @@ import (
 )
 
 // DependencyGraph is a list of dependencies that
-// can be resolved incrementally using an action.
+// can be resolved incrementally using a action function.
+//
+// The goal with DependencyGraph is to show how you can build up
+// abstractions above incremental, e.g. how you'd represent a specific
+// type of directed graph.
 type DependencyGraph[Result any] struct {
 	Dependencies []Dependency
 	Action       func(context.Context, Dependency) (Result, error)

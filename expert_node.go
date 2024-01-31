@@ -30,8 +30,6 @@ type IExpertNode interface {
 	RemoveChild(Identifier)
 	RemoveParent(Identifier)
 
-	ComputePseudoheight() int
-
 	// Value returns the underlying value of the node
 	// as an untyped `interface{}` for use in debugging.
 	Value() any
@@ -96,10 +94,6 @@ func (en *expertNode) RemoveChild(id Identifier) {
 
 func (en *expertNode) RemoveParent(id Identifier) {
 	en.node.removeParent(id)
-}
-
-func (en *expertNode) ComputePseudoheight() int {
-	return en.node.computePseudoHeight()
 }
 
 func (en *expertNode) Value() any {

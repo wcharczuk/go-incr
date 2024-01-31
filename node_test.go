@@ -357,27 +357,6 @@ func Test_Node_shouldRecompute(t *testing.T) {
 	testutil.ItsEqual(t, false, n.ShouldRecompute())
 }
 
-func Test_Node_computePseudoHeight(t *testing.T) {
-	c010 := newMockBareNode()
-	c10 := newMockBareNode()
-	c00 := newMockBareNode()
-	c01 := newMockBareNode()
-	c0 := newMockBareNode()
-	c1 := newMockBareNode()
-	c2 := newMockBareNode()
-	p := newMockBareNode()
-
-	Link(c01, c010)
-	Link(c0, c00, c01)
-	Link(c1, c10)
-	Link(p, c0, c1, c2)
-
-	testutil.ItsEqual(t, 4, p.n.computePseudoHeight())
-	testutil.ItsEqual(t, 3, c0.n.computePseudoHeight())
-	testutil.ItsEqual(t, 2, c1.n.computePseudoHeight())
-	testutil.ItsEqual(t, 1, c2.n.computePseudoHeight())
-}
-
 func Test_Node_recompute(t *testing.T) {
 	ctx := testContext()
 
