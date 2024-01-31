@@ -81,7 +81,7 @@ An example of one such case:
 # Progress
 
 Many of the original library types are implemented, including:
-- Always
+- Always|Timer
 - Bind(If)
 - Cutoff(2)
 - Freeze
