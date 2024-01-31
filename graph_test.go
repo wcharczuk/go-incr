@@ -171,7 +171,7 @@ func Test_Graph_RecomputeHeight_observed(t *testing.T) {
 	testutil.ItsEqual(t, "a", o1.Value())
 }
 
-func Test_Graph_discoverObserver_rediscover(t *testing.T) {
+func Test_Graph_addObserver_rediscover(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
@@ -185,7 +185,7 @@ func Test_Graph_discoverObserver_rediscover(t *testing.T) {
 	g.recomputeHeap.Remove(o)
 	testutil.ItsEqual(t, false, g.recomputeHeap.Has(o))
 
-	g.discoverObserver(ctx, o)
+	g.addObserver(ctx, o)
 	testutil.ItsEqual(t, 2, g.numNodes)
 	testutil.ItsEqual(t, 2, o.Node().height)
 	testutil.ItsEqual(t, false, g.recomputeHeap.Has(o))

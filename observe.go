@@ -19,7 +19,7 @@ func ObserveContext[A any](ctx context.Context, g *Graph, input Incr[A]) Observe
 		input: input,
 	}
 	Link(o, input)
-	g.discoverObserver(ctx, o)
+	g.addObserver(ctx, o)
 
 	// NOTE(wc): we do this here because some """expert""" use cases for `ExpertGraph::DiscoverObserver`
 	// require us to add the observer to the graph observer list but _not_
@@ -75,7 +75,7 @@ func (o *observeIncr[A]) Node() *Node { return o.n }
 func (o *observeIncr[A]) Unobserve(ctx context.Context) {
 	g := o.n.graph
 	g.unobserveNodes(ctx, o.input, o)
-	g.undiscoverObserver(ctx, o)
+	g.removeObserver(ctx, o)
 	parents := o.n.parents.Values()
 	for _, p := range parents {
 		Unlink(o, p)

@@ -1,6 +1,7 @@
 package incr
 
 import (
+	"context"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -62,4 +63,47 @@ func Test_ExpertGraph_RecomputeHeap(t *testing.T) {
 	testutil.ItsEqual(t, 2, len(recomputeHeapIDs))
 	testutil.ItsAny(t, recomputeHeapIDs, func(id Identifier) bool { return id == n1.n.id })
 	testutil.ItsAny(t, recomputeHeapIDs, func(id Identifier) bool { return id == n2.n.id })
+}
+
+func Test_ExpertGraph_Observe(t *testing.T) {
+	g := New()
+	eg := ExpertGraph(g)
+
+	n1 := newMockBareNode()
+	n2 := newMockBareNode()
+
+	o1 := mockObserver()
+	o2 := mockObserver()
+
+	eg.ObserveNodes(context.TODO(), n1, o1, o2)
+
+	testutil.ItsEqual(t, 2, len(n1.n.observers))
+	testutil.ItsEqual(t, 0, len(n2.n.observers))
+
+	eg.UnobserveNodes(context.TODO(), n1, o1, o2)
+
+	testutil.ItsEqual(t, 0, len(n1.n.observers))
+	testutil.ItsEqual(t, 0, len(n2.n.observers))
+}
+
+func Test_ExpertGraph_AddObserver(t *testing.T) {
+	g := New()
+	eg := ExpertGraph(g)
+	o0 := mockObserver()
+	o1 := mockObserver()
+
+	eg.AddObserver(context.TODO(), o1)
+
+	testutil.ItsEqual(t, false, mapHas(g.observers, o0.Node().id))
+	testutil.ItsEqual(t, true, mapHas(g.observers, o1.Node().id))
+
+	eg.RemoveObserver(context.TODO(), o1)
+
+	testutil.ItsEqual(t, false, mapHas(g.observers, o0.Node().id))
+	testutil.ItsEqual(t, false, mapHas(g.observers, o1.Node().id))
+}
+
+func mapHas[K comparable, V any](m map[K]V, k K) (ok bool) {
+	_, ok = m[k]
+	return
 }

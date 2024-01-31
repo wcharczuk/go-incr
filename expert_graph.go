@@ -27,6 +27,9 @@ type IExpertGraph interface {
 
 	RecomputeHeights(INode)
 
+	AddObserver(context.Context, IObserver)
+	RemoveObserver(context.Context, IObserver)
+
 	ObserveNodes(context.Context, INode, ...IObserver)
 	UnobserveNodes(context.Context, INode, ...IObserver)
 }
@@ -90,4 +93,12 @@ func (eg *expertGraph) ObserveNodes(ctx context.Context, n INode, observers ...I
 
 func (eg *expertGraph) UnobserveNodes(ctx context.Context, n INode, observers ...IObserver) {
 	eg.graph.unobserveNodes(ctx, n, observers...)
+}
+
+func (eg *expertGraph) AddObserver(ctx context.Context, on IObserver) {
+	eg.graph.addObserver(ctx, on)
+}
+
+func (eg *expertGraph) RemoveObserver(ctx context.Context, on IObserver) {
+	eg.graph.removeObserver(ctx, on)
 }

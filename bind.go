@@ -182,7 +182,7 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
 func (b *bindIncr[A, B]) unlinkBindChange(ctx context.Context) {
 	Unlink(b.bindChange, b.input)
 	Unlink(b.bound, b.bindChange)
-	b.n.graph.unobserveNode(ctx, b.bindChange, b.n.Observers()...)
+	b.n.graph.unobserveSingleNode(ctx, b.bindChange, b.n.Observers()...)
 	b.bindChange = nil
 }
 

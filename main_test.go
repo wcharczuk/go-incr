@@ -64,6 +64,12 @@ func identMany[T any](v ...T) (out T) {
 
 var _ Incr[any] = (*mockBareNode)(nil)
 
+func mockObserver() IObserver {
+	return &observeIncr[any]{
+		n: NewNode(),
+	}
+}
+
 func newMockBareNodeWithHeight(height int) *mockBareNode {
 	mbn := &mockBareNode{
 		n: NewNode(),

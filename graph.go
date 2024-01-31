@@ -227,22 +227,8 @@ func (graph *Graph) maybeAddObservedNode(gn INode) bool {
 	return false
 }
 
-func (graph *Graph) discoverObserver(ctx context.Context, on IObserver) {
-	graph.observersMu.Lock()
-	defer graph.observersMu.Unlock()
-
-	onn := on.Node()
-	onn.graph = graph
-	if _, ok := graph.observers[onn.id]; !ok {
-		graph.numNodes++
-	}
-	onn.detectStabilize(on)
-	graph.observers[onn.id] = on
-	onn.height = onn.computePseudoHeight()
-}
-
 func (graph *Graph) unobserveNodes(ctx context.Context, gn INode, observers ...IObserver) {
-	graph.unobserveNode(ctx, gn, observers...)
+	graph.unobserveSingleNode(ctx, gn, observers...)
 	gnn := gn.Node()
 	parents := gnn.Parents()
 	for _, p := range parents {
@@ -250,7 +236,7 @@ func (graph *Graph) unobserveNodes(ctx context.Context, gn INode, observers ...I
 	}
 }
 
-func (graph *Graph) unobserveNode(ctx context.Context, gn INode, observers ...IObserver) {
+func (graph *Graph) unobserveSingleNode(ctx context.Context, gn INode, observers ...IObserver) {
 	gnn := gn.Node()
 
 	// nodes may implement custom observe/unobserve
@@ -262,10 +248,8 @@ func (graph *Graph) unobserveNode(ctx context.Context, gn INode, observers ...IO
 
 	remainingObserverCount := graph.removeNodeObservers(ctx, gn, observers...)
 	if remainingObserverCount > 0 {
-		TracePrintf(ctx, "unobserving node %v; still observed by %v", gn, mapFirst(gnn.observers))
 		return
 	}
-	TracePrintf(ctx, "unobserving node %v; unobserved, removing from graph", gn)
 	gnn.graph = nil
 	graph.observed.Remove(gn)
 	graph.numNodes--
@@ -295,12 +279,29 @@ func mapFirst[K comparable, V any](m map[K]V) (out V) {
 	return
 }
 
-func (graph *Graph) undiscoverObserver(ctx context.Context, on IObserver) {
+func (graph *Graph) addObserver(ctx context.Context, on IObserver) {
+	graph.observersMu.Lock()
+	defer graph.observersMu.Unlock()
+
+	onn := on.Node()
+	onn.graph = graph
+	if _, ok := graph.observers[onn.id]; !ok {
+		graph.numNodes++
+	}
+	onn.detectStabilize(on)
+	graph.observers[onn.id] = on
+	onn.height = onn.computePseudoHeight()
+}
+
+func (graph *Graph) removeObserver(ctx context.Context, on IObserver) {
+	graph.observersMu.Lock()
+	defer graph.observersMu.Unlock()
 	onn := on.Node()
 	onn.graph = nil
 	graph.numNodes--
 	graph.recomputeHeap.Remove(on)
 	graph.handleAfterStabilization.Remove(on.Node().ID())
+	delete(graph.observers, onn.id)
 }
 
 //
