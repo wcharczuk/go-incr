@@ -42,7 +42,7 @@ func (graph *Graph) parallelStabilize(ctx context.Context) (err error) {
 	workerPool.SetLimit(runtime.NumCPU())
 
 	var immediateRecompute []INode
-	var minHeightBlock []recomputeHeapItem[INode]
+	var minHeightBlock []*recomputeHeapItem
 	for graph.recomputeHeap.Len() > 0 {
 		minHeightBlock = graph.recomputeHeap.RemoveMinHeight()
 		if len(minHeightBlock) == 0 {

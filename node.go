@@ -332,8 +332,8 @@ func (n *Node) ShouldRecompute() bool {
 	// here to prevent a bunch of extra work.
 	n.parents.Lock()
 	defer n.parents.Unlock()
-	for _, p := range n.parents.list.items {
-		if p.value.Node().changedAt > n.recomputedAt || p.value.Node().boundAt > n.recomputedAt {
+	for _, p := range n.parents.list {
+		if p.Node().changedAt > n.recomputedAt || p.Node().boundAt > n.recomputedAt {
 			return true
 		}
 	}

@@ -124,7 +124,7 @@ func (hi heightIncr) Node() *Node {
 	return hi.n
 }
 
-func allHeight(values []recomputeHeapItem[INode], height int) bool {
+func allHeight(values []*recomputeHeapItem, height int) bool {
 	for _, v := range values {
 		if v.node.Node().height != height {
 			return false
@@ -133,18 +133,20 @@ func allHeight(values []recomputeHeapItem[INode], height int) bool {
 	return true
 }
 
-func newList(items ...INode) *list[Identifier, recomputeHeapItem[INode]] {
-	l := new(list[Identifier, recomputeHeapItem[INode]])
+func newList(items ...INode) map[Identifier]*recomputeHeapItem {
+	l := make(map[Identifier]*recomputeHeapItem, len(items))
 	for _, i := range items {
-		l.Push(i.Node().id, recomputeHeapItem[INode]{node: i, height: i.Node().height})
+		l[i.Node().id] = &recomputeHeapItem{node: i, height: i.Node().height}
 	}
 	return l
 }
 
-func newListWithItems(items ...INode) (l *list[Identifier, recomputeHeapItem[INode]], outputItems []*listItem[Identifier, recomputeHeapItem[INode]]) {
-	l = new(list[Identifier, recomputeHeapItem[INode]])
+func newListWithItems(items ...INode) (l map[Identifier]*recomputeHeapItem, outputItems []*recomputeHeapItem) {
+	l = make(map[Identifier]*recomputeHeapItem)
 	for _, i := range items {
-		outputItems = append(outputItems, l.Push(i.Node().id, recomputeHeapItem[INode]{node: i, height: i.Node().height}))
+		newItem := &recomputeHeapItem{node: i, height: i.Node().height}
+		l[i.Node().id] = newItem
+		outputItems = append(outputItems, newItem)
 	}
 	return
 }

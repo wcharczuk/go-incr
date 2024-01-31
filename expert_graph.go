@@ -23,7 +23,7 @@ type IExpertGraph interface {
 
 	RecomputeHeapAdd(...INode)
 	RecomputeHeapLen() int
-	RecomputeHeap() []Identifier
+	RecomputeHeapIDs() []Identifier
 
 	RecomputeHeights(INode)
 
@@ -70,13 +70,13 @@ func (eg *expertGraph) RecomputeHeapLen() int {
 	return eg.graph.recomputeHeap.Len()
 }
 
-func (eg *expertGraph) RecomputeHeap() []Identifier {
+func (eg *expertGraph) RecomputeHeapIDs() []Identifier {
 	output := make([]Identifier, 0, len(eg.graph.recomputeHeap.lookup))
 	for _, height := range eg.graph.recomputeHeap.heights {
 		if height == nil {
 			continue
 		}
-		for id := range height.items {
+		for id := range height {
 			output = append(output, id)
 		}
 	}

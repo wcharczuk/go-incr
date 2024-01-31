@@ -19,7 +19,7 @@ func (graph *Graph) Stabilize(ctx context.Context) (err error) {
 	}()
 
 	var immediateRecompute []INode
-	var next []recomputeHeapItem[INode]
+	var next []*recomputeHeapItem
 
 	for len(graph.recomputeHeap.lookup) > 0 {
 		next = graph.recomputeHeap.RemoveMinHeight()

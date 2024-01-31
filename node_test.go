@@ -104,8 +104,7 @@ func Test_SetStale(t *testing.T) {
 	testutil.ItsEqual(t, true, n.n.graph.recomputeHeap.Has(n))
 
 	// find the node in the recompute heap layer
-	testutil.ItsEqual(t, 1, n.n.graph.recomputeHeap.heights[1].Len())
-	testutil.ItsEqual(t, n.n.id, n.n.graph.recomputeHeap.heights[1].head.key)
+	testutil.ItsEqual(t, 1, len(n.n.graph.recomputeHeap.heights[1]))
 
 	g.SetStale(n)
 
@@ -115,8 +114,7 @@ func Test_SetStale(t *testing.T) {
 
 	testutil.ItsEqual(t, true, n.n.graph.recomputeHeap.Has(n))
 
-	testutil.ItsEqual(t, 1, n.n.graph.recomputeHeap.heights[1].Len())
-	testutil.ItsEqual(t, n.n.id, n.n.graph.recomputeHeap.heights[1].head.key)
+	testutil.ItsEqual(t, 1, len(n.n.graph.recomputeHeap.heights[1]))
 }
 
 func Test_Node_OnUpdate(t *testing.T) {
@@ -406,12 +404,9 @@ func Test_Node_recompute(t *testing.T) {
 	testutil.ItsEqual(t, false, calledErrorHandler0)
 	testutil.ItsEqual(t, false, calledErrorHandler1)
 
-	testutil.ItsEqual(t, 1, g.handleAfterStabilization.Len())
-	testutil.ItsEqual(t, 2, len(g.handleAfterStabilization.head.value))
+	testutil.ItsEqual(t, 1, len(g.handleAfterStabilization))
 
-	var handlers []func(context.Context)
-	for g.handleAfterStabilization.Len() > 0 {
-		_, handlers, _ = g.handleAfterStabilization.Pop()
+	for _, handlers := range g.handleAfterStabilization {
 		for _, h := range handlers {
 			h(ctx)
 		}

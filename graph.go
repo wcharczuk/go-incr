@@ -32,7 +32,7 @@ func New(opts ...GraphOption) *Graph {
 		recomputeHeap:            newRecomputeHeap(options.MaxRecomputeHeapHeight),
 		adjustHeightsList:        newNodeList(),
 		setDuringStabilization:   newNodeList(),
-		handleAfterStabilization: new(list[Identifier, []func(context.Context)]),
+		handleAfterStabilization: make(map[Identifier][]func(context.Context)),
 	}
 	return g
 }
@@ -93,7 +93,9 @@ type Graph struct {
 
 	// handleAfterStabilization is a list of update
 	// handlers that need to run after stabilization is done.
-	handleAfterStabilization *list[Identifier, []func(context.Context)]
+	handleAfterStabilization map[Identifier][]func(context.Context)
+	// handleAfterStabilizationMu coordinates access to handleAfterStabilization
+	handleAfterStabilizationMu sync.Mutex
 
 	// stabilizationNum is the version
 	// of the graph in respect to when
@@ -258,7 +260,10 @@ func (graph *Graph) unobserveSingleNode(ctx context.Context, gn INode, observers
 	graph.numNodes--
 	graph.recomputeHeap.Remove(gn)
 	graph.adjustHeightsList.Remove(gn)
-	graph.handleAfterStabilization.Remove(gn.Node().ID())
+
+	graph.handleAfterStabilizationMu.Lock()
+	delete(graph.handleAfterStabilization, gn.Node().ID())
+	graph.handleAfterStabilizationMu.Unlock()
 }
 
 func (graph *Graph) removeNodeObservers(ctx context.Context, gn INode, observers ...IObserver) (remainingObserverCount int) {
@@ -297,14 +302,18 @@ func (graph *Graph) addObserver(ctx context.Context, on IObserver) {
 }
 
 func (graph *Graph) removeObserver(ctx context.Context, on IObserver) {
-	graph.observersMu.Lock()
-	defer graph.observersMu.Unlock()
 	onn := on.Node()
 	onn.graph = nil
 	graph.numNodes--
 	graph.recomputeHeap.Remove(on)
-	graph.handleAfterStabilization.Remove(on.Node().ID())
+
+	graph.handleAfterStabilizationMu.Lock()
+	delete(graph.handleAfterStabilization, on.Node().ID())
+	graph.handleAfterStabilizationMu.Unlock()
+
+	graph.observersMu.Lock()
 	delete(graph.observers, onn.id)
+	graph.observersMu.Unlock()
 }
 
 //
@@ -362,26 +371,22 @@ func (graph *Graph) stabilizeEndHandleSetDuringStabilization(ctx context.Context
 }
 
 func (graph *Graph) stabilizeEndRunUpdateHandlers(ctx context.Context) {
-	graph.handleAfterStabilization.mu.Lock()
-	defer graph.handleAfterStabilization.mu.Unlock()
+	graph.handleAfterStabilizationMu.Lock()
+	defer graph.handleAfterStabilizationMu.Unlock()
 
 	atomic.StoreInt32(&graph.status, StatusRunningUpdateHandlers)
-
-	if !graph.handleAfterStabilization.isEmptyUnsafe() {
+	if len(graph.handleAfterStabilization) > 0 {
 		TracePrintln(ctx, "stabilization calling user update handlers starting")
 		defer func() {
 			TracePrintln(ctx, "stabilization calling user update handlers complete")
 		}()
 	}
-	var updateHandlers [][]func(context.Context)
-	for !graph.handleAfterStabilization.isEmptyUnsafe() {
-		updateHandlers = graph.handleAfterStabilization.popAllUnsafe()
-		for _, uhGroup := range updateHandlers {
-			for _, uh := range uhGroup {
-				uh(ctx)
-			}
+	for _, uhGroup := range graph.handleAfterStabilization {
+		for _, uh := range uhGroup {
+			uh(ctx)
 		}
 	}
+	clear(graph.handleAfterStabilization)
 }
 
 // recompute starts the recompute cycle for the node
@@ -425,7 +430,7 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	}
 
 	if len(nn.onUpdateHandlers) > 0 {
-		graph.handleAfterStabilization.Push(nn.id, nn.onUpdateHandlers)
+		graph.handleAfterStabilization[nn.id] = append(graph.handleAfterStabilization[nn.id], nn.onUpdateHandlers...)
 	}
 
 	// iterate over each child node of this node, or nodes that take

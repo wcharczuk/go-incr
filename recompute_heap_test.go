@@ -19,10 +19,7 @@ func Test_recomputeHeap_Add(t *testing.T) {
 	// assertions post add n50
 	{
 		ItsEqual(t, 1, rh.Len())
-		ItsEqual(t, 1, rh.heights[5].Len())
-		ItsNotNil(t, rh.heights[5].head)
-		ItsNotNil(t, rh.heights[5].head.value)
-		ItsEqual(t, n50.Node().id, rh.heights[5].head.value.node.Node().id)
+		ItsEqual(t, 1, len(rh.heights[5]))
 		ItsEqual(t, true, rh.Has(n50))
 		ItsEqual(t, false, rh.Has(n60))
 		ItsEqual(t, false, rh.Has(n70))
@@ -35,14 +32,8 @@ func Test_recomputeHeap_Add(t *testing.T) {
 	// assertions post add n60
 	{
 		ItsEqual(t, 2, rh.Len())
-		ItsEqual(t, 1, rh.heights[5].Len())
-		ItsNotNil(t, rh.heights[5].head)
-		ItsNotNil(t, rh.heights[5].head.value)
-		ItsEqual(t, n50.Node().id, rh.heights[5].head.value.node.Node().id)
-		ItsEqual(t, 1, rh.heights[6].Len())
-		ItsNotNil(t, rh.heights[6].head)
-		ItsNotNil(t, rh.heights[6].head.value)
-		ItsEqual(t, n60.Node().id, rh.heights[6].head.value.node.Node().id)
+		ItsEqual(t, 1, len(rh.heights[5]))
+		ItsEqual(t, 1, len(rh.heights[6]))
 		ItsEqual(t, true, rh.Has(n50))
 		ItsEqual(t, true, rh.Has(n50))
 		ItsEqual(t, false, rh.Has(n70))
@@ -55,124 +46,15 @@ func Test_recomputeHeap_Add(t *testing.T) {
 	// assertions post add n70
 	{
 		ItsEqual(t, 3, rh.Len())
-		ItsEqual(t, 1, rh.heights[5].Len())
-		ItsNotNil(t, rh.heights[5].head)
-		ItsNotNil(t, rh.heights[5].head.value)
-		ItsEqual(t, n50.Node().id, rh.heights[5].head.value.node.Node().id)
-		ItsEqual(t, 1, rh.heights[6].Len())
-		ItsNotNil(t, rh.heights[6].head)
-		ItsNotNil(t, rh.heights[6].head.value)
-		ItsEqual(t, n60.Node().id, rh.heights[6].head.value.node.Node().id)
-		ItsEqual(t, 1, rh.heights[7].Len())
-		ItsNotNil(t, rh.heights[7].head)
-		ItsNotNil(t, rh.heights[7].head.value)
-		ItsEqual(t, n70.Node().id, rh.heights[7].head.value.node.Node().id)
+		ItsEqual(t, 1, len(rh.heights[5]))
+		ItsEqual(t, 1, len(rh.heights[6]))
+		ItsEqual(t, 1, len(rh.heights[7]))
 		ItsEqual(t, true, rh.Has(n50))
 		ItsEqual(t, true, rh.Has(n60))
 		ItsEqual(t, true, rh.Has(n70))
 		ItsEqual(t, 5, rh.MinHeight())
 		ItsEqual(t, 7, rh.MaxHeight())
 	}
-}
-
-func Test_recomputeHeap_RemoveMin(t *testing.T) {
-	rh := newRecomputeHeap(32)
-
-	ItsNil(t, rh.RemoveMin())
-
-	n00 := newHeightIncr(0)
-	n01 := newHeightIncr(0)
-	n10 := newHeightIncr(1)
-	n100 := newHeightIncr(10)
-
-	rh.Add(n00)
-	ItsEqual(t, 1, rh.Len())
-	ItsEqual(t, 32, len(rh.heights))
-	ItsEqual(t, 1, rh.heights[0].Len())
-	rh.Add(n01)
-	ItsEqual(t, 2, rh.Len())
-	ItsEqual(t, 32, len(rh.heights))
-	ItsEqual(t, 2, rh.heights[0].Len())
-
-	ItsEqual(t, 0, rh.minHeight)
-	ItsEqual(t, 0, rh.maxHeight)
-
-	rh.Add(n10)
-	ItsEqual(t, 3, rh.Len())
-	ItsEqual(t, 32, len(rh.heights))
-	ItsEqual(t, 2, rh.heights[0].Len())
-	ItsEqual(t, 1, rh.heights[1].Len())
-	ItsEqual(t, 0, rh.minHeight)
-	ItsEqual(t, 1, rh.maxHeight)
-
-	rh.Add(n100)
-	ItsEqual(t, 4, rh.Len())
-	ItsEqual(t, 32, len(rh.heights))
-	ItsEqual(t, 2, rh.heights[0].Len())
-	ItsEqual(t, 1, rh.heights[1].Len())
-	ItsEqual(t, 1, rh.heights[10].Len())
-	ItsEqual(t, 0, rh.minHeight)
-	ItsEqual(t, 10, rh.maxHeight)
-
-	r00 := rh.RemoveMin()
-	ItsNotNil(t, r00)
-	ItsNotNil(t, r00.Node())
-	ItsEqual(t, n00.n.id, r00.Node().id)
-	ItsEqual(t, 3, rh.Len())
-	ItsEqual(t, false, rh.Has(n00))
-	ItsEqual(t, true, rh.Has(n01))
-	ItsEqual(t, true, rh.Has(n10))
-	ItsEqual(t, true, rh.Has(n100))
-	ItsEqual(t, 1, rh.heights[0].Len())
-	ItsEqual(t, 1, rh.heights[1].Len())
-	ItsEqual(t, 1, rh.heights[10].Len())
-	ItsEqual(t, 0, rh.minHeight)
-	ItsEqual(t, 10, rh.maxHeight)
-
-	r01 := rh.RemoveMin()
-	ItsNotNil(t, r01)
-	ItsNotNil(t, r01.Node())
-	ItsEqual(t, n01.n.id, r01.Node().id)
-	ItsEqual(t, 2, rh.Len())
-	ItsEqual(t, false, rh.Has(n00))
-	ItsEqual(t, false, rh.Has(n01))
-	ItsEqual(t, true, rh.Has(n10))
-	ItsEqual(t, true, rh.Has(n100))
-	ItsEqual(t, 0, rh.heights[0].Len())
-	ItsEqual(t, 1, rh.heights[1].Len())
-	ItsEqual(t, 1, rh.heights[10].Len())
-	ItsEqual(t, 1, rh.minHeight)
-	ItsEqual(t, 10, rh.maxHeight)
-
-	r10 := rh.RemoveMin()
-	ItsNotNil(t, r10)
-	ItsNotNil(t, r10.Node())
-	ItsEqual(t, n10.n.id, r10.Node().id)
-	ItsEqual(t, 1, rh.Len())
-	ItsEqual(t, false, rh.Has(n00))
-	ItsEqual(t, false, rh.Has(n01))
-	ItsEqual(t, false, rh.Has(n10))
-	ItsEqual(t, true, rh.Has(n100))
-	ItsEqual(t, 0, rh.heights[0].Len())
-	ItsEqual(t, 0, rh.heights[1].Len())
-	ItsEqual(t, 1, rh.heights[10].Len())
-	ItsEqual(t, 10, rh.minHeight)
-	ItsEqual(t, 10, rh.maxHeight)
-
-	r100 := rh.RemoveMin()
-	ItsNotNil(t, r100)
-	ItsNotNil(t, r100.Node())
-	ItsEqual(t, n100.n.id, r100.Node().id)
-	ItsEqual(t, 0, rh.Len())
-	ItsEqual(t, false, rh.Has(n00))
-	ItsEqual(t, false, rh.Has(n01))
-	ItsEqual(t, false, rh.Has(n10))
-	ItsEqual(t, false, rh.Has(n100))
-	ItsEqual(t, 0, rh.heights[0].Len())
-	ItsEqual(t, 0, rh.heights[1].Len())
-	ItsEqual(t, 0, rh.heights[10].Len())
-	ItsEqual(t, 0, rh.minHeight)
-	ItsEqual(t, 10, rh.maxHeight)
 }
 
 func Test_recomputeHeap_RemoveMinHeight(t *testing.T) {
@@ -214,15 +96,9 @@ func Test_recomputeHeap_RemoveMinHeight(t *testing.T) {
 	ItsNil(t, rh.sanityCheck())
 	ItsEqual(t, 9, rh.Len())
 	ItsEqual(t, 3, len(output))
-	ItsNil(t, rh.heights[0].head)
-	ItsNil(t, rh.heights[0].tail)
-	ItsEqual(t, 0, rh.heights[0].Len())
-	ItsNotNil(t, rh.heights[1].head)
-	ItsNotNil(t, rh.heights[1].tail)
-	ItsEqual(t, 4, rh.heights[1].Len())
-	ItsNotNil(t, rh.heights[5].head)
-	ItsNotNil(t, rh.heights[5].tail)
-	ItsEqual(t, 5, rh.heights[5].Len())
+	ItsEqual(t, 0, len(rh.heights[0]))
+	ItsEqual(t, 4, len(rh.heights[1]))
+	ItsEqual(t, 5, len(rh.heights[5]))
 
 	ItsEqual(t, 1, rh.MinHeight())
 	ItsEqual(t, 5, rh.MaxHeight())
@@ -231,29 +107,17 @@ func Test_recomputeHeap_RemoveMinHeight(t *testing.T) {
 	ItsNil(t, rh.sanityCheck())
 	ItsEqual(t, 5, rh.Len())
 	ItsEqual(t, 4, len(output))
-	ItsNil(t, rh.heights[0].head)
-	ItsNil(t, rh.heights[0].tail)
-	ItsEqual(t, 0, rh.heights[0].Len())
-	ItsNil(t, rh.heights[1].head)
-	ItsNil(t, rh.heights[1].tail)
-	ItsEqual(t, 0, rh.heights[1].Len())
-	ItsNotNil(t, rh.heights[5].head)
-	ItsNotNil(t, rh.heights[5].tail)
-	ItsEqual(t, 5, rh.heights[5].Len())
+	ItsEqual(t, 0, len(rh.heights[0]))
+	ItsEqual(t, 0, len(rh.heights[1]))
+	ItsEqual(t, 5, len(rh.heights[5]))
 
 	output = rh.RemoveMinHeight()
 	ItsNil(t, rh.sanityCheck())
 	ItsEqual(t, 0, rh.Len())
 	ItsEqual(t, 5, len(output))
-	ItsNil(t, rh.heights[0].head)
-	ItsNil(t, rh.heights[0].tail)
-	ItsEqual(t, 0, rh.heights[0].Len())
-	ItsNil(t, rh.heights[1].head)
-	ItsNil(t, rh.heights[1].tail)
-	ItsEqual(t, 0, rh.heights[1].Len())
-	ItsNil(t, rh.heights[5].head)
-	ItsNil(t, rh.heights[5].tail)
-	ItsEqual(t, 0, rh.heights[5].Len())
+	ItsEqual(t, 0, len(rh.heights[0]))
+	ItsEqual(t, 0, len(rh.heights[1]))
+	ItsEqual(t, 0, len(rh.heights[5]))
 
 	rh.Add(n50)
 	rh.Add(n51)
@@ -270,15 +134,9 @@ func Test_recomputeHeap_RemoveMinHeight(t *testing.T) {
 	ItsNil(t, rh.sanityCheck())
 	ItsEqual(t, 0, rh.Len())
 	ItsEqual(t, 5, len(output))
-	ItsNil(t, rh.heights[0].head)
-	ItsNil(t, rh.heights[0].tail)
-	ItsEqual(t, 0, rh.heights[0].Len())
-	ItsNil(t, rh.heights[1].head)
-	ItsNil(t, rh.heights[1].tail)
-	ItsEqual(t, 0, rh.heights[1].Len())
-	ItsNil(t, rh.heights[5].head)
-	ItsNil(t, rh.heights[5].tail)
-	ItsEqual(t, 0, rh.heights[5].Len())
+	ItsEqual(t, 0, len(rh.heights[0]))
+	ItsEqual(t, 0, len(rh.heights[1]))
+	ItsEqual(t, 0, len(rh.heights[5]))
 }
 
 func Test_recomputeHeap_Remove(t *testing.T) {
@@ -319,18 +177,14 @@ func Test_recomputeHeap_Remove(t *testing.T) {
 	ItsEqual(t, true, rh.Has(n22))
 	ItsEqual(t, true, rh.Has(n30))
 
-	ItsEqual(t, 2, rh.heights[2].Len())
-	ItsEqual(t, n20.Node().ID(), rh.heights[2].head.value.node.Node().ID())
-	ItsEqual(t, n22.Node().ID(), rh.heights[2].tail.value.node.Node().ID())
+	ItsEqual(t, 2, len(rh.heights[2]))
 
 	rh.Remove(n10)
 	rh.Remove(n11)
 
 	ItsNil(t, rh.sanityCheck())
 	ItsEqual(t, 3, rh.Len())
-	ItsEqual(t, 0, rh.heights[1].Len())
-	ItsNil(t, rh.heights[1].head)
-	ItsNil(t, rh.heights[1].tail)
+	ItsEqual(t, 0, len(rh.heights[1]))
 	ItsEqual(t, 2, rh.MinHeight())
 	ItsEqual(t, 3, rh.MaxHeight())
 }
@@ -351,10 +205,7 @@ func Test_recomputeHeap_nextMinHeightUnsafe_pastMax(t *testing.T) {
 	rh.minHeight = 1
 	rh.maxHeight = 3
 
-	rh.lookup[r0.Node().id] = &listItem[Identifier, recomputeHeapItem[INode]]{
-		key:   r0.Node().id,
-		value: recomputeHeapItem[INode]{node: r0, height: 0},
-	}
+	rh.lookup[r0.Node().id] = &recomputeHeapItem{node: r0, height: 0}
 	next := rh.nextMinHeightUnsafe()
 	ItsEqual(t, 0, next)
 }
@@ -381,43 +232,6 @@ func Test_recomputeHeap_Add_adjustsHeights(t *testing.T) {
 	ItsEqual(t, 65, len(rh.heights))
 	ItsEqual(t, 32, rh.minHeight)
 	ItsEqual(t, 64, rh.maxHeight)
-}
-
-func Test_recomuteHeap_Add_regression(t *testing.T) {
-	// real world use case! it's insane!
-	rh := newRecomputeHeap(8)
-
-	v0 := newHeightIncr(1)
-	v1 := newHeightIncr(1)
-	m1 := newHeightIncr(0)
-	o2 := newHeightIncr(3)
-
-	rh.addUnsafe(m1)
-	rh.addUnsafe(m1)
-	rh.addUnsafe(o2)
-	m1.n.height = 2
-	rh.addUnsafe(m1)
-	rh.addUnsafe(v0)
-	rh.addUnsafe(v1)
-	rh.addUnsafe(o2)
-
-	ItsEqual(t, 1, rh.minHeight)
-
-	var nodesInLists int
-	for _, l := range rh.heights {
-		if l != nil {
-			nodesInLists += l.Len()
-		}
-	}
-	ItsEqual(t, len(rh.lookup), nodesInLists)
-
-	var seen []Identifier
-	for len(rh.lookup) > 0 {
-		n := rh.RemoveMin()
-		ItsNotNil(t, n)
-		seen = append(seen, n.Node().id)
-	}
-	ItsEqual(t, []Identifier{v0.n.id, v1.n.id, m1.n.id, o2.n.id}, seen)
 }
 
 func Test_recomputeHeap_Add_regression2(t *testing.T) {
@@ -476,7 +290,7 @@ func Test_recomputeHeap_Add_regression2(t *testing.T) {
 	// now start """stabilization"""
 
 	ItsEqual(t, 1, rh.minHeight)
-	ItsEqual(t, 5, rh.heights[1].Len())
+	ItsEqual(t, 5, len(rh.heights[1]))
 
 	minHeightBlock := rh.RemoveMinHeight()
 	ItsEqual(t, 5, len(minHeightBlock))
@@ -493,38 +307,38 @@ func Test_recomputeHeap_Fix(t *testing.T) {
 	rh.Add(v2)
 
 	ItsEqual(t, 2, rh.minHeight)
-	ItsEqual(t, 1, rh.heights[2].Len())
-	ItsEqual(t, 1, rh.heights[3].Len())
-	ItsEqual(t, 1, rh.heights[4].Len())
+	ItsEqual(t, 1, len(rh.heights[2]))
+	ItsEqual(t, 1, len(rh.heights[3]))
+	ItsEqual(t, 1, len(rh.heights[4]))
 	ItsEqual(t, 4, rh.maxHeight)
 
 	v0.n.height = 1
 	rh.Fix(v0.n.id)
 
 	ItsEqual(t, 1, rh.minHeight)
-	ItsEqual(t, 1, rh.heights[1].Len())
-	ItsEqual(t, 0, rh.heights[2].Len())
-	ItsEqual(t, 1, rh.heights[3].Len())
-	ItsEqual(t, 1, rh.heights[4].Len())
+	ItsEqual(t, 1, len(rh.heights[1]))
+	ItsEqual(t, 0, len(rh.heights[2]))
+	ItsEqual(t, 1, len(rh.heights[3]))
+	ItsEqual(t, 1, len(rh.heights[4]))
 	ItsEqual(t, 4, rh.maxHeight)
 
 	rh.Fix(v0.n.id)
 	ItsEqual(t, 1, rh.minHeight)
-	ItsEqual(t, 1, rh.heights[1].Len())
-	ItsEqual(t, 0, rh.heights[2].Len())
-	ItsEqual(t, 1, rh.heights[3].Len())
-	ItsEqual(t, 1, rh.heights[4].Len())
+	ItsEqual(t, 1, len(rh.heights[1]))
+	ItsEqual(t, 0, len(rh.heights[2]))
+	ItsEqual(t, 1, len(rh.heights[3]))
+	ItsEqual(t, 1, len(rh.heights[4]))
 	ItsEqual(t, 4, rh.maxHeight)
 
 	v2.n.height = 5
 	rh.Fix(v2.n.id)
 
 	ItsEqual(t, 1, rh.minHeight)
-	ItsEqual(t, 1, rh.heights[1].Len())
-	ItsEqual(t, 0, rh.heights[2].Len())
-	ItsEqual(t, 1, rh.heights[3].Len())
-	ItsEqual(t, 0, rh.heights[4].Len())
-	ItsEqual(t, 1, rh.heights[5].Len())
+	ItsEqual(t, 1, len(rh.heights[1]))
+	ItsEqual(t, 0, len(rh.heights[2]))
+	ItsEqual(t, 1, len(rh.heights[3]))
+	ItsEqual(t, 0, len(rh.heights[4]))
+	ItsEqual(t, 1, len(rh.heights[5]))
 	ItsEqual(t, 5, rh.maxHeight)
 }
 
@@ -538,7 +352,7 @@ func Test_recomputeHeap_sanityCheck_ok_badNodeHeight(t *testing.T) {
 	n_3_01 := newMockBareNodeWithHeight(3)
 	n_3_02 := newMockBareNodeWithHeight(3)
 
-	rh.heights = []*list[Identifier, recomputeHeapItem[INode]]{
+	rh.heights = []map[Identifier]*recomputeHeapItem{
 		nil,
 		newList(n_1_00),
 		newList(n_2_00, n_2_01),
@@ -566,14 +380,14 @@ func Test_recomputeHeap_sanityCheck_badItemHeight(t *testing.T) {
 
 	height2, height2Items := newListWithItems(n_2_00, n_2_01)
 
-	rh.heights = []*list[Identifier, recomputeHeapItem[INode]]{
+	rh.heights = []map[Identifier]*recomputeHeapItem{
 		nil,
 		newList(n_1_00),
 		height2,
 		newList(n_3_00, n_3_01, n_3_02),
 	}
 
-	height2Items[0].value.height = 1
+	height2Items[0].height = 1
 	err := rh.sanityCheck()
 	ItsNotNil(t, err)
 }
