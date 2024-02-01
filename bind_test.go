@@ -219,10 +219,14 @@ func Test_Bind_scopes(t *testing.T) {
 	ctx := testContext()
 
 	t1 := Map(Return("t1"), mapAppend("-mapped"))
+	t1.Node().SetLabel("t1")
 	t2 := Bind(Return("t2"), func(_ string) Incr[string] {
 		t3 := Map(Return("t3"), mapAppend("-mapped"))
-		return Map2(t1, t3, concat)
+		t3.Node().SetLabel("t3")
+		r := Map2(t1, t3, concat)
+		return r
 	})
+	t2.Node().SetLabel("t2")
 
 	g := New()
 	o := Observe(g, t2)

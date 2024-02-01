@@ -211,6 +211,8 @@ func (graph *Graph) observeSingleNode(ctx context.Context, gn INode, observers .
 	if alreadyObservedByGraph {
 		return
 	}
+
+	TracePrintf(ctx, "observing node %v", gn)
 	graph.numNodes++
 	gnn.graph = graph
 	gnn.detectCutoff(gn)
