@@ -508,7 +508,7 @@ func Test_Stabilize_bind(t *testing.T) {
 	i1.Node().SetLabel("i1")
 	m1 := Map(i1, func(v0 string) string { return v0 + "-loo" })
 	m1.Node().SetLabel("m1")
-	b := Bind(sw, func(swv bool) Incr[string] {
+	b := Bind(sw, func(_ context.Context, swv bool) Incr[string] {
 		if swv {
 			return m0
 		}

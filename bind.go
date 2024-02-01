@@ -28,9 +28,9 @@ import (
 // More information is available at:
 //
 //	https://github.com/janestreet/incremental/blob/master/src/incremental_intf.ml
-func Bind[A, B any](input Incr[A], fn func(A) Incr[B]) BindIncr[B] {
-	return BindContext[A, B](input, func(_ context.Context, va A) (Incr[B], error) {
-		return fn(va), nil
+func Bind[A, B any](input Incr[A], fn func(context.Context, A) Incr[B]) BindIncr[B] {
+	return BindContext[A, B](input, func(ctx context.Context, va A) (Incr[B], error) {
+		return fn(ctx, va), nil
 	})
 }
 
@@ -43,10 +43,11 @@ func BindContext[A, B any](input Incr[A], fn func(context.Context, A) (Incr[B], 
 		input: input,
 		fn:    fn,
 		bt:    "bind",
-		scope: &bindScope{
-			lhs:      input,
-			rhsNodes: newNodeList(),
-		},
+	}
+	o.scope = &bindScope{
+		lhs:      input,
+		bind:     o,
+		rhsNodes: newNodeList(),
 	}
 	Link(o, input)
 	return o
@@ -60,11 +61,6 @@ type BindIncr[A any] interface {
 	IBind
 	IUnobserve
 	fmt.Stringer
-}
-
-type bindScope struct {
-	lhs      INode
-	rhsNodes *nodeList
 }
 
 var (
@@ -94,7 +90,7 @@ func (b *bindIncr[A, B]) Value() (output B) {
 }
 
 func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
-	newIncr, err := b.fn(ctx, b.input.Value())
+	newIncr, err := b.fn(withBindScope(ctx, b.scope), b.input.Value())
 	if err != nil {
 		return err
 	}
@@ -159,8 +155,6 @@ func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) {
 
 func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
 	b.bound = newIncr
-	b.addNodesToScope(ctx, b.scope, b.bound)
-
 	b.linkBindChange(ctx)
 	children := b.n.Children()
 	for _, c := range children {
@@ -193,22 +187,6 @@ func (b *bindIncr[A, B]) unlinkOld(ctx context.Context) {
 		b.scope = nil
 		b.bound = nil
 	}
-}
-
-func (b *bindIncr[A, B]) addNodesToScope(ctx context.Context, scope *bindScope, gn INode) {
-	gnn := gn.Node()
-	if !b.n.graph.IsObserving(gn) {
-		TracePrintf(ctx, "%v adding node to scope %v", b, gn)
-		scope.rhsNodes.Push(gn)
-	}
-	parents := gnn.Parents()
-	for _, p := range parents {
-		b.addNodesToScope(ctx, scope, p)
-	}
-	if typed, ok := gn.(IBind); ok {
-		typed.Link(ctx)
-	}
-	gnn.createdIn[b.n.id] = scope
 }
 
 func (b *bindIncr[A, B]) removeNodesFromScope(ctx context.Context, scope *bindScope) {
