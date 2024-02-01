@@ -200,19 +200,19 @@ func Test_Bind_basic(t *testing.T) {
 
 func Test_Bind_scopes(t *testing.T) {
 	/*
-	   {[
-	   	let t1 = map ... in
-	   	bind t2 ~f:(fun _ ->
-	   	let t3 = map ... in
-	   	map2 t1 t3 ~f:(...))
-	   ]}
+		   {[
+				let t1 = map ... in
+		   		bind t2 ~f:(fun _ ->
+		   			let t3 = map ... in
+		   			map2 t1 t3 ~f:(...))
+		   ]}
 
-	   In this example, [t1] is created outside of [bind t2], whereas [t3] is created by the
-	   right-hand side of [bind t2].  So, [t3] depends on [t2] (and has a greater height),
-	   whereas [t1] does not.  And, in a stabilization in which [t2] changes, we are
-	   guaranteed to not recompute the old [t3], but we have no such guarantee about [t1].
-	   Furthermore, when [t2] changes, the old [t3] will be invalidated, whereas [t1] will
-	   not.
+		   In this example, [t1] is created outside of [bind t2], whereas [t3] is created by the
+		   right-hand side of [bind t2].  So, [t3] depends on [t2] (and has a greater height),
+		   whereas [t1] does not.  And, in a stabilization in which [t2] changes, we are
+		   guaranteed to not recompute the old [t3], but we have no such guarantee about [t1].
+		   Furthermore, when [t2] changes, the old [t3] will be invalidated, whereas [t1] will
+		   not.
 
 	*/
 
