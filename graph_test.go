@@ -1,16 +1,16 @@
 package incr
 
 import (
-	"context"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
 )
 
 func Test_New(t *testing.T) {
-	r0 := Return("hello")
-	r1 := Return("world!")
-	m0 := Map2(r0, r1, func(v0, v1 string) string { return v0 + v1 })
+	ctx := testContext()
+	r0 := Return(ctx, "hello")
+	r1 := Return(ctx, "world!")
+	m0 := Map2(ctx, r0, r1, func(v0, v1 string) string { return v0 + v1 })
 	g := New()
 	_ = Observe(g, m0)
 
@@ -18,7 +18,7 @@ func Test_New(t *testing.T) {
 	testutil.ItsEqual(t, true, g.IsObserving(r1))
 	testutil.ItsEqual(t, true, g.IsObserving(m0))
 
-	m1 := Map2(r0, r1, func(v0, v1 string) string { return v0 + v1 })
+	m1 := Map2(ctx, r0, r1, func(v0, v1 string) string { return v0 + v1 })
 	testutil.ItsEqual(t, false, g.IsObserving(m1))
 }
 
@@ -45,15 +45,15 @@ func Test_Graph_Label(t *testing.T) {
 func Test_Graph_UnobserveNodes(t *testing.T) {
 	ctx := testContext()
 
-	r0 := Return("hello")
-	m0 := Map(r0, ident)
-	m1 := Map(m0, ident)
-	m2 := Map(m1, ident)
+	r0 := Return(ctx, "hello")
+	m0 := Map(ctx, r0, ident)
+	m1 := Map(ctx, m0, ident)
+	m2 := Map(ctx, m1, ident)
 
-	ar0 := Return("hello")
-	am0 := Map(ar0, ident)
-	am1 := Map(am0, ident)
-	am2 := Map(am1, ident)
+	ar0 := Return(ctx, "hello")
+	am0 := Map(ctx, ar0, ident)
+	am1 := Map(ctx, am0, ident)
+	am2 := Map(ctx, am1, ident)
 
 	g := New()
 	o1 := Observe(g, m1)
@@ -90,15 +90,15 @@ func Test_Graph_UnobserveNodes(t *testing.T) {
 func Test_Graph_UnobserveNodes_notObserving(t *testing.T) {
 	ctx := testContext()
 
-	r0 := Return("hello")
-	m0 := Map(r0, ident)
-	m1 := Map(m0, ident)
-	m2 := Map(m1, ident)
+	r0 := Return(ctx, "hello")
+	m0 := Map(ctx, r0, ident)
+	m1 := Map(ctx, m0, ident)
+	m2 := Map(ctx, m1, ident)
 
-	ar0 := Return("hello")
-	am0 := Map(ar0, ident)
-	am1 := Map(am0, ident)
-	am2 := Map(am1, ident)
+	ar0 := Return(ctx, "hello")
+	am0 := Map(ctx, ar0, ident)
+	am1 := Map(ctx, am0, ident)
+	am2 := Map(ctx, am1, ident)
 
 	g := New()
 	o := Observe(g, m1)
@@ -156,20 +156,21 @@ func Test_Graph_recomputeHeights(t *testing.T) {
 }
 
 func Test_Graph_recomputeHeights_observed(t *testing.T) {
+	ctx := testContext()
 	g := New()
 
-	v0 := Var("a")
-	m0 := Map(v0, ident)
+	v0 := Var(ctx, "a")
+	m0 := Map(ctx, v0, ident)
 	o0 := Observe(g, m0)
 
-	m1 := Map(m0, ident)
-	m2 := Map(m1, ident)
+	m1 := Map(ctx, m0, ident)
+	m2 := Map(ctx, m1, ident)
 	o1 := Observe(g, m2)
 
 	m0.Node().height = 1
 	g.recomputeHeights(m0)
 
-	err := g.Stabilize(context.TODO())
+	err := g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 
 	testutil.ItsEqual(t, "a", o0.Value())
@@ -180,7 +181,7 @@ func Test_Graph_addObserver_rediscover(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
-	v := Var("hello")
+	v := Var(ctx, "hello")
 	o := Observe(g, v)
 	_, ok := g.observers[o.Node().ID()]
 	testutil.ItsEqual(t, true, ok)

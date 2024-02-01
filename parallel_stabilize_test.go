@@ -14,9 +14,9 @@ import (
 func Test_ParallelStabilize(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var("foo")
-	v1 := Var("bar")
-	m0 := Map2(v0, v1, func(a, b string) string {
+	v0 := Var(ctx, "foo")
+	v1 := Var(ctx, "bar")
+	m0 := Map2(ctx, v0, v1, func(a, b string) string {
 		return a + " " + b
 	})
 
@@ -83,8 +83,9 @@ func Test_ParallelStabilize_jsDocs(t *testing.T) {
 		{"4", now.Add(4 * time.Second)},
 	}
 
-	i := Var(data)
+	i := Var(ctx, data)
 	output := Map(
+		ctx,
 		i,
 		func(entries []Entry) (output []string) {
 			for _, e := range entries {
@@ -119,8 +120,8 @@ func Test_ParallelStabilize_jsDocs(t *testing.T) {
 func Test_ParallelStabilize_error(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var("foo")
-	m0 := MapContext(v0, func(ctx context.Context, a string) (string, error) {
+	v0 := Var(ctx, "foo")
+	m0 := MapContext(ctx, v0, func(ctx context.Context, a string) (string, error) {
 		return "", fmt.Errorf("this is only a test")
 	})
 
@@ -180,10 +181,11 @@ func Test_parallelBatch_SetLimit(t *testing.T) {
 }
 
 func Test_ParallelStabilize_Always(t *testing.T) {
-	v := Var("foo")
-	m0 := Map(v, ident)
-	a := Always(m0)
-	m1 := Map(a, ident)
+	ctx := testContext()
+	v := Var(ctx, "foo")
+	m0 := Map(ctx, v, ident)
+	a := Always(ctx, m0)
+	m1 := Map(ctx, a, ident)
 
 	var updates int
 	m1.Node().OnUpdate(func(_ context.Context) {
@@ -193,19 +195,19 @@ func Test_ParallelStabilize_Always(t *testing.T) {
 	g := New()
 	o := Observe(g, m1)
 
-	_ = g.ParallelStabilize(context.TODO())
+	_ = g.ParallelStabilize(ctx)
 
 	testutil.ItsEqual(t, "foo", o.Value())
 	testutil.ItsEqual(t, 1, updates)
 
-	_ = g.ParallelStabilize(context.TODO())
+	_ = g.ParallelStabilize(ctx)
 
 	testutil.ItsEqual(t, "foo", o.Value())
 	testutil.ItsEqual(t, 2, updates)
 
 	v.Set("bar")
 
-	_ = g.ParallelStabilize(context.TODO())
+	_ = g.ParallelStabilize(ctx)
 
 	testutil.ItsEqual(t, "bar", o.Value())
 	testutil.ItsEqual(t, 3, updates)
@@ -215,14 +217,14 @@ func Test_ParallelStabilize_always_cutoff(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
-	filename := Var("test")
-	filenameAlways := Always(filename)
+	filename := Var(ctx, "test")
+	filenameAlways := Always(ctx, filename)
 	modtime := 1
-	statfile := Map(filenameAlways, func(s string) int { return modtime })
-	statfileCutoff := Cutoff(statfile, func(ov, nv int) bool {
+	statfile := Map(ctx, filenameAlways, func(s string) int { return modtime })
+	statfileCutoff := Cutoff(ctx, statfile, func(ov, nv int) bool {
 		return ov == nv
 	})
-	readFile := Map2(filename, statfileCutoff, func(p string, mt int) string {
+	readFile := Map2(ctx, filename, statfileCutoff, func(p string, mt int) string {
 		return fmt.Sprintf("%s-%d", p, mt)
 	})
 	o := Observe(g, readFile)
@@ -250,14 +252,14 @@ func Test_ParallelStabilize_always_cutoff_error(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
-	filename := Var("test")
-	filenameAlways := Always(filename)
+	filename := Var(ctx, "test")
+	filenameAlways := Always(ctx, filename)
 	modtime := 1
-	statfile := Map(filenameAlways, func(s string) int { return modtime })
-	statfileCutoff := CutoffContext(statfile, func(_ context.Context, ov, nv int) (bool, error) {
+	statfile := Map(ctx, filenameAlways, func(s string) int { return modtime })
+	statfileCutoff := CutoffContext(ctx, statfile, func(_ context.Context, ov, nv int) (bool, error) {
 		return false, fmt.Errorf("this is only a test")
 	})
-	readFile := Map2(filename, statfileCutoff, func(p string, mt int) string {
+	readFile := Map2(ctx, filename, statfileCutoff, func(p string, mt int) string {
 		return fmt.Sprintf("%s-%d", p, mt)
 	})
 	o := Observe(g, readFile)
@@ -285,10 +287,11 @@ func Test_ParallelStabilize_inconsistent_error(t *testing.T) {
 }
 
 func Test_ParallelStabilize_recoversPanics(t *testing.T) {
+	ctx := testContext()
 	g := New()
 
-	v0 := Var("hello")
-	gonnaPanic := Map(v0, func(_ string) string {
+	v0 := Var(ctx, "hello")
+	gonnaPanic := Map(ctx, v0, func(_ string) string {
 		panic("help!")
 	})
 	_ = Observe(g, gonnaPanic)
@@ -297,14 +300,15 @@ func Test_ParallelStabilize_recoversPanics(t *testing.T) {
 }
 
 func Test_ParallelStabilize_printsErrors(t *testing.T) {
+	ctx := context.Background()
 	g := New()
 
 	outBuf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	ctx := WithTracingOutputs(context.Background(), outBuf, errBuf)
+	ctx = WithTracingOutputs(ctx, outBuf, errBuf)
 
-	v0 := Var("hello")
-	gonnaPanic := MapContext(v0, func(_ context.Context, _ string) (string, error) {
+	v0 := Var(ctx, "hello")
+	gonnaPanic := MapContext(ctx, v0, func(_ context.Context, _ string) (string, error) {
 		return "", fmt.Errorf("this is only a test")
 	})
 	_ = Observe(g, gonnaPanic)

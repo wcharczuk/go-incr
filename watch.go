@@ -7,13 +7,13 @@ import (
 
 // Watch returns a new watch incremental that tracks
 // values for a given incremental.
-func Watch[A any](i Incr[A]) WatchIncr[A] {
+func Watch[A any](ctx context.Context, i Incr[A]) WatchIncr[A] {
 	o := &watchIncr[A]{
 		n:    NewNode(),
 		incr: i,
 	}
 	Link(o, i)
-	return o
+	return WithBindScope(ctx, o)
 }
 
 // WatchIncr is a type that implements the watch interface.

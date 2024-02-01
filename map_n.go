@@ -7,15 +7,15 @@ import (
 
 // MapN applies a function to given list of input incrementals and returns
 // a new incremental of the output type of that function.
-func MapN[A, B any](fn MapNFunc[A, B], inputs ...Incr[A]) MapNIncr[A, B] {
-	return MapNContext(func(_ context.Context, i ...A) (B, error) {
+func MapN[A, B any](ctx context.Context, fn MapNFunc[A, B], inputs ...Incr[A]) MapNIncr[A, B] {
+	return MapNContext(ctx, func(_ context.Context, i ...A) (B, error) {
 		return fn(i...), nil
 	}, inputs...)
 }
 
 // MapNContext applies a function to given list of input incrementals and returns
 // a new incremental of the output type of that function.
-func MapNContext[A, B any](fn MapNContextFunc[A, B], inputs ...Incr[A]) MapNIncr[A, B] {
+func MapNContext[A, B any](ctx context.Context, fn MapNContextFunc[A, B], inputs ...Incr[A]) MapNIncr[A, B] {
 	o := &mapNIncr[A, B]{
 		n:      NewNode(),
 		inputs: inputs,
@@ -24,7 +24,7 @@ func MapNContext[A, B any](fn MapNContextFunc[A, B], inputs ...Incr[A]) MapNIncr
 	for _, i := range inputs {
 		Link(o, i)
 	}
-	return o
+	return WithBindScope(ctx, o)
 }
 
 // MapNFunc is the function that the ApplyN incremental applies.

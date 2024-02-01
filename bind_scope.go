@@ -14,8 +14,8 @@ type bindScope struct {
 	rhsNodes *nodeList
 }
 
-// InBindScope is a hack because go can't have nice things.
-func InBindScope[A INode](ctx context.Context, node A) A {
+// WithBindScope is a hack because go can't have nice things.
+func WithBindScope[A INode](ctx context.Context, node A) A {
 	if value := ctx.Value(bindScopeKey{}); value != nil {
 		if scope, ok := value.(*bindScope); ok {
 			addNodeToBindScope(ctx, node, scope)

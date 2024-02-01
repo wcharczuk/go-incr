@@ -90,7 +90,7 @@ func (dg DependencyGraph[Result]) mapOnUpdate(d Dependency) func(context.Context
 }
 
 func (dg DependencyGraph[Result]) createDependencyIncr(d Dependency) DependencyIncr[Result] {
-	output := incr.MapNContext[Result, Result](dg.mapAction(d))
+	output := incr.MapNContext[Result, Result](context.Background(), dg.mapAction(d))
 	if dg.OnUpdate != nil {
 		output.Node().OnUpdate(dg.mapOnUpdate(d))
 	}

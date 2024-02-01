@@ -20,7 +20,6 @@ func ObserveContext[A any](ctx context.Context, g *Graph, input Incr[A]) Observe
 	}
 	Link(o, input)
 	g.addObserver(ctx, o)
-
 	// NOTE(wc): we do this here because some """expert""" use cases for `ExpertGraph::DiscoverObserver`
 	// require us to add the observer to the graph observer list but _not_
 	// add it to the recompute heap.
@@ -30,7 +29,7 @@ func ObserveContext[A any](ctx context.Context, g *Graph, input Incr[A]) Observe
 	TracePrintf(ctx, "adding observer %v to recompute heap", o)
 	g.recomputeHeap.Add(o)
 	g.observeNodes(ctx, input, o)
-	return o
+	return WithBindScope(ctx, o)
 }
 
 // ObserveIncr is an incremental that observes a graph

@@ -28,8 +28,8 @@ import (
 // More information is available at:
 //
 //	https://github.com/janestreet/incremental/blob/master/src/incremental_intf.ml
-func Bind[A, B any](input Incr[A], fn func(context.Context, A) Incr[B]) BindIncr[B] {
-	return BindContext[A, B](input, func(ctx context.Context, va A) (Incr[B], error) {
+func Bind[A, B any](ctx context.Context, input Incr[A], fn func(context.Context, A) Incr[B]) BindIncr[B] {
+	return BindContext[A, B](ctx, input, func(ctx context.Context, va A) (Incr[B], error) {
 		return fn(ctx, va), nil
 	})
 }
@@ -37,7 +37,7 @@ func Bind[A, B any](input Incr[A], fn func(context.Context, A) Incr[B]) BindIncr
 // BindContext is like Bind but allows the bind delegate to take a context and return an error.
 //
 // If an error returned, the bind is aborted and the error listener(s) will fire for the node.
-func BindContext[A, B any](input Incr[A], fn func(context.Context, A) (Incr[B], error)) BindIncr[B] {
+func BindContext[A, B any](ctx context.Context, input Incr[A], fn func(context.Context, A) (Incr[B], error)) BindIncr[B] {
 	o := &bindIncr[A, B]{
 		n:     NewNode(),
 		input: input,
@@ -50,7 +50,7 @@ func BindContext[A, B any](input Incr[A], fn func(context.Context, A) (Incr[B], 
 		rhsNodes: newNodeList(),
 	}
 	Link(o, input)
-	return o
+	return WithBindScope(ctx, o)
 }
 
 // BindIncr is a node that implements Bind, which

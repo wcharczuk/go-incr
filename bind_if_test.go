@@ -9,9 +9,10 @@ import (
 )
 
 func Test_BindIf_regression(t *testing.T) {
+	ctx := testContext()
 	threshold := 2
 	cache := make(map[string]Incr[*int])
-	fakeFormula := Var("fakeformula")
+	fakeFormula := Var(ctx, "fakeformula")
 
 	var f func(context.Context, int) Incr[*int]
 	f = func(ctx context.Context, t int) Incr[*int] {
@@ -19,16 +20,16 @@ func Test_BindIf_regression(t *testing.T) {
 		if _, ok := cache[key]; ok {
 			return cache[key]
 		}
-		r := InBindScope(ctx, Bind(fakeFormula, func(ctx context.Context, formula string) Incr[*int] {
+		r := Bind(ctx, fakeFormula, func(ctx context.Context, formula string) Incr[*int] {
 			if t <= 0 {
 				out := 0
-				return InBindScope(ctx, Return(&out))
+				return Return(ctx, &out)
 			}
-			return InBindScope(ctx, Map(f(ctx, t-1), func(r *int) *int {
+			return Map(ctx, f(ctx, t-1), func(r *int) *int {
 				out := *r + 1
 				return &out
-			}))
-		}))
+			})
+		})
 		cache[key] = r
 		return r
 	}
@@ -38,13 +39,13 @@ func Test_BindIf_regression(t *testing.T) {
 		for i := range incrs {
 			incrs[i] = f(ctx, start+i)
 		}
-		return InBindScope(ctx, MapN[*int, []*int](func(vals ...*int) []*int {
+		return MapN[*int, []*int](ctx, func(vals ...*int) []*int {
 			return vals
-		}, incrs...))
+		}, incrs...)
 	}
 
 	// f_range(0,4) = [0, 1, 2, 3]
-	predicateIncr := Map(f_range(testContext(), 0, 4), func(vals []*int) bool {
+	predicateIncr := Map(ctx, f_range(testContext(), 0, 4), func(vals []*int) bool {
 		res := false
 		for _, val := range vals {
 			res = *val >= threshold || res
@@ -52,7 +53,7 @@ func Test_BindIf_regression(t *testing.T) {
 		return res
 	})
 
-	o := BindIf(predicateIncr, func(ctx context.Context, b bool) (Incr[*int], error) {
+	o := BindIf(ctx, predicateIncr, func(ctx context.Context, b bool) (Incr[*int], error) {
 		if b {
 			return f(ctx, 2), nil
 		} else {
@@ -63,7 +64,6 @@ func Test_BindIf_regression(t *testing.T) {
 	graph := New()
 	_ = Observe(graph, o)
 
-	ctx := testContext()
 	err := graph.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 	testutil.ItsNotNil(t, o.Value())

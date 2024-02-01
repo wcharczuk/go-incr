@@ -11,26 +11,26 @@ import (
 func Test_Bind_basic(t *testing.T) {
 	ctx := testContext()
 
-	bindVar := Var("a")
+	bindVar := Var(ctx, "a")
 	bindVar.Node().SetLabel("bindVar")
 
-	av := Var("a-value")
+	av := Var(ctx, "a-value")
 	av.Node().SetLabel("av")
-	a0 := Map(av, ident)
+	a0 := Map(ctx, av, ident)
 	a0.Node().SetLabel("a0")
-	a1 := Map(a0, ident)
+	a1 := Map(ctx, a0, ident)
 	a1.Node().SetLabel("a1")
 
-	bv := Var("b-value")
+	bv := Var(ctx, "b-value")
 	bv.Node().SetLabel("bv")
-	b0 := Map(bv, ident)
+	b0 := Map(ctx, bv, ident)
 	b0.Node().SetLabel("b0")
-	b1 := Map(b0, ident)
+	b1 := Map(ctx, b0, ident)
 	b1.Node().SetLabel("b1")
-	b2 := Map(b1, ident)
+	b2 := Map(ctx, b1, ident)
 	b2.Node().SetLabel("b2")
 
-	bind := Bind(bindVar, func(_ context.Context, which string) Incr[string] {
+	bind := Bind(ctx, bindVar, func(_ context.Context, which string) Incr[string] {
 		if which == "a" {
 			return a1
 		}
@@ -44,12 +44,12 @@ func Test_Bind_basic(t *testing.T) {
 
 	testutil.ItMatches(t, "bind\\[(.*)\\]:bind", bind.String())
 
-	s0 := Return("hello")
+	s0 := Return(ctx, "hello")
 	s0.Node().SetLabel("s0")
-	s1 := Map(s0, ident)
+	s1 := Map(ctx, s0, ident)
 	s1.Node().SetLabel("s1")
 
-	o := Map2(bind, s1, concat)
+	o := Map2(ctx, bind, s1, concat)
 	o.Node().SetLabel("o")
 
 	g := New()
@@ -218,12 +218,12 @@ func Test_Bind_scopes(t *testing.T) {
 
 	ctx := testContext()
 
-	t1 := Map(Return("t1"), mapAppend("-mapped"))
+	t1 := Map(ctx, Return(ctx, "t1"), mapAppend("-mapped"))
 	t1.Node().SetLabel("t1")
-	t2 := Bind(Return("t2"), func(ctx context.Context, _ string) Incr[string] {
-		t3 := InBindScope(ctx, Map(Return("t3"), mapAppend("-mapped")))
+	t2 := Bind(ctx, Return(ctx, "t2"), func(ctx context.Context, _ string) Incr[string] {
+		t3 := Map(ctx, Return(ctx, "t3"), mapAppend("-mapped"))
 		t3.Node().SetLabel("t3")
-		r := InBindScope(ctx, Map2(t1, t3, concat))
+		r := Map2(ctx, t1, t3, concat)
 		return r
 	})
 	t2.Node().SetLabel("t2")
@@ -234,32 +234,32 @@ func Test_Bind_scopes(t *testing.T) {
 	err := g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 	testutil.ItsEqual(t, "t1-mappedt3-mapped", o.Value())
-	testutil.ItsEqual(t, 0, len(t1.Node().createdIn))
+	testutil.ItsEqual(t, 0, len(t1.Node().createdIn), "t1 should have an empty scope list as it was created outside a bind")
 }
 
 func Test_Bind_rebind(t *testing.T) {
 	ctx := testContext()
 
-	bindVar := Var("a")
+	bindVar := Var(ctx, "a")
 	bindVar.Node().SetLabel("bindVar")
 
-	av := Var("a-value")
+	av := Var(ctx, "a-value")
 	av.Node().SetLabel("av")
-	a0 := Map(av, ident)
+	a0 := Map(ctx, av, ident)
 	a0.Node().SetLabel("a0")
-	a1 := Map(a0, ident)
+	a1 := Map(ctx, a0, ident)
 	a1.Node().SetLabel("a1")
 
-	bv := Var("b-value")
+	bv := Var(ctx, "b-value")
 	bv.Node().SetLabel("bv")
-	b0 := Map(bv, ident)
+	b0 := Map(ctx, bv, ident)
 	b0.Node().SetLabel("b0")
-	b1 := Map(b0, ident)
+	b1 := Map(ctx, b0, ident)
 	b1.Node().SetLabel("b1")
-	b2 := Map(b1, ident)
+	b2 := Map(ctx, b1, ident)
 	b2.Node().SetLabel("b2")
 
-	bind := Bind(bindVar, func(_ context.Context, which string) Incr[string] {
+	bind := Bind(ctx, bindVar, func(_ context.Context, which string) Incr[string] {
 		if which == "a" {
 			return a1
 		}
@@ -273,12 +273,12 @@ func Test_Bind_rebind(t *testing.T) {
 
 	testutil.ItMatches(t, "bind\\[(.*)\\]:bind", bind.String())
 
-	s0 := Return("hello")
+	s0 := Return(ctx, "hello")
 	s0.Node().SetLabel("s0")
-	s1 := Map(s0, ident)
+	s1 := Map(ctx, s0, ident)
 	s1.Node().SetLabel("s1")
 
-	o := Map2(bind, s1, concat)
+	o := Map2(ctx, bind, s1, concat)
 	o.Node().SetLabel("o")
 
 	g := New()
@@ -308,8 +308,8 @@ func Test_Bind_rebind(t *testing.T) {
 func Test_Bind_error(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var("a")
-	bind := BindContext(v0, func(_ context.Context, which string) (Incr[string], error) {
+	v0 := Var(ctx, "a")
+	bind := BindContext(ctx, v0, func(_ context.Context, which string) (Incr[string], error) {
 		return nil, fmt.Errorf("this is just a test")
 	})
 	bind.Node().SetLabel("bind")
@@ -318,7 +318,7 @@ func Test_Bind_error(t *testing.T) {
 		gotError = err
 	})
 
-	o := Map(bind, ident)
+	o := Map(ctx, bind, ident)
 
 	g := New()
 	_ = Observe(g, o)
@@ -337,9 +337,9 @@ func Test_Bind_nested(t *testing.T) {
 
 	a0 := createDynamicMaps(ctx, "a0")
 	a1 := createDynamicMaps(ctx, "a1")
-	bv, b := createDynamicBind("b", a0, a1)
-	cv, c := createDynamicBind("c", a0, b)
-	final := Map2(c, Return("final"), func(a, b string) string {
+	bv, b := createDynamicBind(ctx, "b", a0, a1)
+	cv, c := createDynamicBind(ctx, "c", a0, b)
+	final := Map2(ctx, c, Return(ctx, "final"), func(a, b string) string {
 		return a + "->" + b
 	})
 	final.Node().SetLabel("final")
@@ -382,37 +382,37 @@ func Test_Bind_nested(t *testing.T) {
 func Test_Bind_nestedUnlinksBind(t *testing.T) {
 	ctx := testContext()
 	g := New()
-	b01v := Var("a")
+	b01v := Var(ctx, "a")
 	b01v.Node().SetLabel("b01v")
-	b01 := Bind(b01v, func(ctx context.Context, _ string) Incr[string] {
-		return InBindScope(ctx, Return("b01"))
+	b01 := Bind(ctx, b01v, func(ctx context.Context, _ string) Incr[string] {
+		return Return(ctx, "b01")
 	})
 	b01.Node().SetLabel("b01")
 
-	b00v := Var("a")
+	b00v := Var(ctx, "a")
 	b00v.Node().SetLabel("b00v")
-	b00 := Bind(b00v, func(_ context.Context, _ string) Incr[string] {
+	b00 := Bind(ctx, b00v, func(_ context.Context, _ string) Incr[string] {
 		return b01
 	})
 	b00.Node().SetLabel("b00")
 
-	b11v := Var("a")
+	b11v := Var(ctx, "a")
 	b11v.Node().SetLabel("b11v")
-	b11 := Bind(b11v, func(ctx context.Context, _ string) Incr[string] {
-		return InBindScope(ctx, Return("b11"))
+	b11 := Bind(ctx, b11v, func(ctx context.Context, _ string) Incr[string] {
+		return Return(ctx, "b11")
 	})
 	b11.Node().SetLabel("b11")
 
-	b10v := Var("a")
+	b10v := Var(ctx, "a")
 	b10v.Node().SetLabel("b10v")
-	b10 := Bind(b10v, func(_ context.Context, _ string) Incr[string] {
+	b10 := Bind(ctx, b10v, func(_ context.Context, _ string) Incr[string] {
 		return b11
 	})
 	b10.Node().SetLabel("b10")
 
-	bv := Var("a")
+	bv := Var(ctx, "a")
 	bv.Node().SetLabel("bv")
-	b := Bind(bv, func(_ context.Context, vv string) Incr[string] {
+	b := Bind(ctx, bv, func(_ context.Context, vv string) Incr[string] {
 		if vv == "a" {
 			return b00
 		}
@@ -458,23 +458,23 @@ func Test_Bind_nestedUnlinksBind(t *testing.T) {
 func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 	ctx := testContext()
 
-	cv := Var("a")
+	cv := Var(ctx, "a")
 	cv.Node().SetLabel("cv")
-	bv := Var("a")
+	bv := Var(ctx, "a")
 	bv.Node().SetLabel("bv")
-	c := BindContext[string](cv, func(ctx context.Context, _ string) (Incr[string], error) {
+	c := BindContext[string](ctx, cv, func(ctx context.Context, _ string) (Incr[string], error) {
 		a0 := createDynamicMaps(ctx, "a0")
 		a1 := createDynamicMaps(ctx, "a1")
-		bind := BindContext(bv, func(ctx context.Context, which string) (Incr[string], error) {
+		bind := BindContext(ctx, bv, func(ctx context.Context, which string) (Incr[string], error) {
 			switch which {
 			case "a":
-				return InBindScope(ctx, Map(a0, func(v string) string {
+				return Map(ctx, a0, func(v string) string {
 					return v + "->" + "b"
-				})), nil
+				}), nil
 			case "b":
-				return InBindScope(ctx, Map(a1, func(v string) string {
+				return Map(ctx, a1, func(v string) string {
 					return v + "->" + "b"
-				})), nil
+				}), nil
 			default:
 				return nil, fmt.Errorf("invalid bind node selector: %v", which)
 			}
@@ -484,7 +484,7 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 		return bind, nil
 	})
 	c.Node().SetLabel("c")
-	final := Map2(c, Return("final"), func(a, b string) string {
+	final := Map2(ctx, c, Return(ctx, "final"), func(a, b string) string {
 		return a + "->" + b
 	})
 
@@ -549,23 +549,23 @@ func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 		Then D gets recomputed because of its low height but the answer to B is not ready because C has not been stabilized yet.
 	*/
 
-	driver01var := Var("a")
+	driver01var := Var(ctx, "a")
 	driver01var.Node().SetLabel("driver01var")
-	driver01 := Bind(driver01var, func(ctx context.Context, _ string) Incr[string] {
-		r := InBindScope(ctx, Return("driver01"))
+	driver01 := Bind(ctx, driver01var, func(ctx context.Context, _ string) Incr[string] {
+		r := Return(ctx, "driver01")
 		r.Node().SetLabel("driver01return")
 		return r
 	})
 	driver01.Node().SetLabel("driver01")
 
-	driver02var := Var("a")
+	driver02var := Var(ctx, "a")
 	driver02var.Node().SetLabel("driver02var")
-	driver02 := Bind(driver02var, func(_ context.Context, _ string) Incr[string] {
+	driver02 := Bind(ctx, driver02var, func(_ context.Context, _ string) Incr[string] {
 		return driver01
 	})
 	driver02.Node().SetLabel("driver02")
 
-	m2 := Map2(driver01, driver02, concat)
+	m2 := Map2(ctx, driver01, driver02, concat)
 	m2.Node().SetLabel("m2")
 	o := Observe(g, m2)
 	o.Node().SetLabel("observem2")
@@ -577,9 +577,10 @@ func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 }
 
 func Test_Bind_regression(t *testing.T) {
+	ctx := testContext()
 	cache := make(map[string]Incr[*int])
 
-	fakeFormula := Var("fakeformula")
+	fakeFormula := Var(ctx, "fakeformula")
 	fakeFormula.Node().SetLabel("fakeformula")
 	var f func(context.Context, int) Incr[*int]
 	f = func(ctx context.Context, t int) Incr[*int] {
@@ -587,25 +588,25 @@ func Test_Bind_regression(t *testing.T) {
 		if _, ok := cache[key]; ok {
 			return cache[key]
 		}
-		r := InBindScope(ctx, Bind(fakeFormula, func(ctx context.Context, formula string) Incr[*int] {
+		r := Bind(ctx, fakeFormula, func(ctx context.Context, formula string) Incr[*int] {
 			key := fmt.Sprintf("map-f-%d", t)
 			if _, ok := cache[key]; ok {
 				return cache[key]
 			}
 			if t == 0 {
 				out := 0
-				r := InBindScope(ctx, Return(&out))
+				r := Return(ctx, &out)
 				r.Node().SetLabel("f-0")
 				return r
 			}
-			bindOutput := InBindScope(ctx, Map(f(ctx, t-1), func(r *int) *int {
+			bindOutput := Map(ctx, f(ctx, t-1), func(r *int) *int {
 				out := *r + 1
 				return &out
-			}))
+			})
 			bindOutput.Node().SetLabel(fmt.Sprintf("map-f-%d", t))
 			cache[key] = bindOutput
 			return bindOutput
-		}))
+		})
 		r.Node().SetLabel(key)
 		cache[key] = r
 		return r
@@ -616,35 +617,34 @@ func Test_Bind_regression(t *testing.T) {
 		if _, ok := cache[key]; ok {
 			return cache[key]
 		}
-		r := InBindScope(ctx, Bind(fakeFormula, func(ctx context.Context, formula string) Incr[*int] {
+		r := Bind(ctx, fakeFormula, func(ctx context.Context, formula string) Incr[*int] {
 			output := f(ctx, t)
 			return output
-		}))
+		})
 		r.Node().SetLabel(key)
 		cache[key] = r
 		return r
 	}
 
 	h := func(ctx context.Context, t int) Incr[*int] {
-		b := InBindScope(ctx, Bind(fakeFormula, func(ctx context.Context, formula string) Incr[*int] {
-			hr := InBindScope(ctx, Return(10))
+		b := Bind(ctx, fakeFormula, func(ctx context.Context, formula string) Incr[*int] {
+			hr := Return(ctx, 10)
 			hr.Node().SetLabel(fmt.Sprintf("h-r-%d", t))
-			hm2 := InBindScope(ctx, Map2(g(ctx, t), hr, func(l *int, r int) *int {
+			hm2 := Map2(ctx, g(ctx, t), hr, func(l *int, r int) *int {
 				if l == nil {
 					return nil
 				}
 				out := *l * r
 				return &out
-			}))
+			})
 			hm2.Node().SetLabel("h-m2")
 			return hm2
-		}))
+		})
 		b.Node().SetLabel(fmt.Sprintf("h-%d", 2))
 		return b
 	}
 
-	ctx := testContext()
-	o := Map3(f(ctx, 2), g(ctx, 2), h(ctx, 2), func(first *int, second *int, third *int) *int {
+	o := Map3(ctx, f(ctx, 2), g(ctx, 2), h(ctx, 2), func(first *int, second *int, third *int) *int {
 		if first == nil || second == nil || third == nil {
 			return nil
 		}

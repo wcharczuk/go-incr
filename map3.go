@@ -7,24 +7,16 @@ import (
 
 // Map3 applies a function to given input incrementals and returns
 // a new incremental of the output type of that function.
-func Map3[A, B, C, D any](a Incr[A], b Incr[B], c Incr[C], fn func(A, B, C) D) Incr[D] {
-	o := &map3Incr[A, B, C, D]{
-		n: NewNode(),
-		a: a,
-		b: b,
-		c: c,
-		fn: func(_ context.Context, a A, b B, c C) (D, error) {
-			return fn(a, b, c), nil
-		},
-	}
-	Link(o, a, b, c)
-	return o
+func Map3[A, B, C, D any](ctx context.Context, a Incr[A], b Incr[B], c Incr[C], fn func(A, B, C) D) Incr[D] {
+	return Map3Context(ctx, a, b, c, func(_ context.Context, av A, bv B, cv C) (D, error) {
+		return fn(av, bv, cv), nil
+	})
 }
 
 // Map3Context applies a function that accepts a context and returns
 // an error, to given input incrementals and returns a
 // new incremental of the output type of that function.
-func Map3Context[A, B, C, D any](a Incr[A], b Incr[B], c Incr[C], fn func(context.Context, A, B, C) (D, error)) Incr[D] {
+func Map3Context[A, B, C, D any](ctx context.Context, a Incr[A], b Incr[B], c Incr[C], fn func(context.Context, A, B, C) (D, error)) Incr[D] {
 	o := &map3Incr[A, B, C, D]{
 		n:  NewNode(),
 		a:  a,
@@ -33,7 +25,7 @@ func Map3Context[A, B, C, D any](a Incr[A], b Incr[B], c Incr[C], fn func(contex
 		fn: fn,
 	}
 	Link(o, a, b, c)
-	return o
+	return WithBindScope(ctx, o)
 }
 
 var (

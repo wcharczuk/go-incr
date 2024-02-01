@@ -11,11 +11,11 @@ import (
 // It will include an extra method `Set` above what you
 // typically find on Incr[A], as well as a `Read` method
 // that helps integrate into subcomputations.
-func Var[T any](t T) VarIncr[T] {
-	return &varIncr[T]{
+func Var[T any](ctx context.Context, t T) VarIncr[T] {
+	return WithBindScope(ctx, &varIncr[T]{
 		n:     NewNode(),
 		value: t,
-	}
+	})
 }
 
 // VarIncr is a graph node type that implements an incremental variable.

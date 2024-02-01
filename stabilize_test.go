@@ -15,9 +15,9 @@ import (
 func Test_Stabilize(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var("foo")
-	v1 := Var("bar")
-	m0 := Map2(v0, v1, func(a, b string) string {
+	v0 := Var(ctx, "foo")
+	v1 := Var(ctx, "bar")
+	m0 := Map2(ctx, v0, v1, func(a, b string) string {
 		return a + " " + b
 	})
 
@@ -59,7 +59,7 @@ func Test_Stabilize(t *testing.T) {
 func Test_Stabilize_error(t *testing.T) {
 	ctx := testContext()
 
-	m0 := Func(func(_ context.Context) (string, error) {
+	m0 := Func(ctx, func(_ context.Context) (string, error) {
 		return "", fmt.Errorf("this is just a test")
 	})
 
@@ -74,7 +74,7 @@ func Test_Stabilize_error(t *testing.T) {
 func Test_Stabilize_errorHandler(t *testing.T) {
 	ctx := testContext()
 
-	m0 := Func(func(_ context.Context) (string, error) {
+	m0 := Func(ctx, func(_ context.Context) (string, error) {
 		return "", fmt.Errorf("this is just a test")
 	})
 	var gotError error
@@ -98,7 +98,7 @@ func Test_Stabilize_alreadyStabilizing(t *testing.T) {
 	// deadlocks. deadlocks everywhere.
 	hold := make(chan struct{})
 	errs := make(chan error)
-	m0 := Func(func(_ context.Context) (string, error) {
+	m0 := Func(ctx, func(_ context.Context) (string, error) {
 		<-hold
 		return "ok!", nil
 	})
@@ -130,9 +130,9 @@ func Test_Stabilize_alreadyStabilizing(t *testing.T) {
 func Test_Stabilize_updateHandlers(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var("foo")
-	v1 := Var("bar")
-	m0 := Map2(v0, v1, func(a, b string) string {
+	v0 := Var(ctx, "foo")
+	v1 := Var(ctx, "bar")
+	m0 := Map2(ctx, v0, v1, func(a, b string) string {
 		return a + " " + b
 	})
 
@@ -157,9 +157,9 @@ func Test_Stabilize_updateHandlers(t *testing.T) {
 func Test_Stabilize_observedHandlers(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var("foo")
-	v1 := Var("bar")
-	m0 := Map2(v0, v1, func(a, b string) string {
+	v0 := Var(ctx, "foo")
+	v1 := Var(ctx, "bar")
+	m0 := Map2(ctx, v0, v1, func(a, b string) string {
 		return a + " " + b
 	})
 
@@ -187,9 +187,9 @@ func Test_Stabilize_observedHandlers(t *testing.T) {
 func Test_Stabilize_unobservedHandlers(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var("foo")
-	v1 := Var("bar")
-	m0 := Map2(v0, v1, func(a, b string) string {
+	v0 := Var(ctx, "foo")
+	v1 := Var(ctx, "bar")
+	m0 := Map2(ctx, v0, v1, func(a, b string) string {
 		return a + " " + b
 	})
 
@@ -226,13 +226,13 @@ func Test_Stabilize_unobservedHandlers(t *testing.T) {
 func Test_Stabilize_unevenHeights(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var("foo")
-	v1 := Var("bar")
-	m0 := Map2[string, string](v0, v1, func(a, b string) string {
+	v0 := Var(ctx, "foo")
+	v1 := Var(ctx, "bar")
+	m0 := Map2(ctx, v0, v1, func(a, b string) string {
 		return a + " " + b
 	})
-	r0 := Return("moo")
-	m1 := Map2(r0, m0, func(a, b string) string {
+	r0 := Return(ctx, "moo")
+	m1 := Map2(ctx, r0, m0, func(a, b string) string {
 		return a + " != " + b
 	})
 
@@ -252,12 +252,12 @@ func Test_Stabilize_unevenHeights(t *testing.T) {
 func Test_Stabilize_chain(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var(".")
+	v0 := Var(ctx, ".")
 
 	var maps []Incr[string]
 	var previous Incr[string] = v0
 	for x := 0; x < 100; x++ {
-		m := Map(previous, func(v0 string) string {
+		m := Map(ctx, previous, func(v0 string) string {
 			return v0 + "."
 		})
 		maps = append(maps, m)
@@ -278,11 +278,11 @@ func Test_Stabilize_chain(t *testing.T) {
 
 func Test_Stabilize_setDuringStabilization(t *testing.T) {
 	ctx := testContext()
-	v0 := Var("foo")
+	v0 := Var(ctx, "foo")
 
 	called := make(chan struct{})
 	wait := make(chan struct{})
-	m0 := Map(v0, func(v string) string {
+	m0 := Map(ctx, v0, func(v string) string {
 		close(called)
 		<-wait
 		return v
@@ -316,9 +316,9 @@ func Test_Stabilize_onUpdate(t *testing.T) {
 	ctx := testContext()
 
 	var didCallUpdateHandler0, didCallUpdateHandler1 bool
-	v0 := Var("hello")
-	v1 := Var("world")
-	m0 := Map2(v0, v1, concat)
+	v0 := Var(ctx, "hello")
+	v1 := Var(ctx, "world")
+	m0 := Map2(ctx, v0, v1, concat)
 	m0.Node().OnUpdate(func(context.Context) {
 		didCallUpdateHandler0 = true
 	})
@@ -349,14 +349,14 @@ func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
 		}
 	}
 
-	a := Var("a")
-	b := Map(a, edge("b"))
-	c := Map(b, edge("c"))
-	d := Map(c, edge("d"))
-	f := Map(a, edge("f"))
-	e := Map(f, edge("e"))
+	a := Var(ctx, "a")
+	b := Map(ctx, a, edge("b"))
+	c := Map(ctx, b, edge("c"))
+	d := Map(ctx, c, edge("d"))
+	f := Map(ctx, a, edge("f"))
+	e := Map(ctx, f, edge("e"))
 
-	z := Map2(d, e, func(v0, v1 string) string {
+	z := Map2(ctx, d, e, func(v0, v1 string) string {
 		return v0 + "+" + v1 + "->z"
 	})
 
@@ -379,9 +379,9 @@ func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
 func Test_Stabilize_doubleVarSet_singleUpdate(t *testing.T) {
 	ctx := testContext()
 
-	a := Var("a")
-	b := Var("b")
-	m := Map2(a, b, func(v0, v1 string) string {
+	a := Var(ctx, "a")
+	b := Var(ctx, "b")
+	m := Map2(ctx, a, b, func(v0, v1 string) string {
 		return v0 + " " + v1
 	})
 
@@ -404,26 +404,26 @@ func Test_Stabilize_doubleVarSet_singleUpdate(t *testing.T) {
 func Test_Stabilize_verifyPartial(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var("foo")
-	c0 := Return("bar")
-	v1 := Var("moo")
-	c1 := Return("baz")
+	v0 := Var(ctx, "foo")
+	c0 := Return(ctx, "bar")
+	v1 := Var(ctx, "moo")
+	c1 := Return(ctx, "baz")
 
-	m0 := Map2(v0, c0, func(a, b string) string {
+	m0 := Map2(ctx, v0, c0, func(a, b string) string {
 		return a + " " + b
 	})
-	co0 := Cutoff(m0, func(n, o string) bool {
+	co0 := Cutoff(ctx, m0, func(n, o string) bool {
 		return len(n) == len(o)
 	})
-	m1 := Map2(v1, c1, func(a, b string) string {
+	m1 := Map2(ctx, v1, c1, func(a, b string) string {
 		return a + " != " + b
 	})
-	co1 := Cutoff(m1, func(n, o string) bool {
+	co1 := Cutoff(ctx, m1, func(n, o string) bool {
 		return len(n) == len(o)
 	})
 
-	sw := Var(true)
-	mi := MapIf(co0, co1, sw)
+	sw := Var(ctx, true)
+	mi := MapIf(ctx, co0, co1, sw)
 
 	graph := New()
 	_ = Observe(graph, mi)
@@ -457,8 +457,9 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 		{"4", now.Add(4 * time.Second)},
 	}
 
-	i := Var(data)
+	i := Var(ctx, data)
 	output := Map(
+		ctx,
 		i,
 		func(entries []Entry) (output []string) {
 			for _, e := range entries {
@@ -499,22 +500,22 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 func Test_Stabilize_bind(t *testing.T) {
 	ctx := testContext()
 
-	sw := Var(false)
-	i0 := Return("foo")
+	sw := Var(ctx, false)
+	i0 := Return(ctx, "foo")
 	i0.Node().SetLabel("i0")
-	m0 := Map(i0, func(v0 string) string { return v0 + "-moo" })
+	m0 := Map(ctx, i0, func(v0 string) string { return v0 + "-moo" })
 	m0.Node().SetLabel("m0")
-	i1 := Return("bar")
+	i1 := Return(ctx, "bar")
 	i1.Node().SetLabel("i1")
-	m1 := Map(i1, func(v0 string) string { return v0 + "-loo" })
+	m1 := Map(ctx, i1, func(v0 string) string { return v0 + "-loo" })
 	m1.Node().SetLabel("m1")
-	b := Bind(sw, func(_ context.Context, swv bool) Incr[string] {
+	b := Bind(ctx, sw, func(_ context.Context, swv bool) Incr[string] {
 		if swv {
 			return m0
 		}
 		return m1
 	})
-	mb := Map[string](b, func(v string) string {
+	mb := Map(ctx, b, func(v string) string {
 		return v + "-baz"
 	})
 	mb.Node().SetLabel("mb")
@@ -561,11 +562,11 @@ func Test_Stabilize_bind(t *testing.T) {
 func Test_Stabilize_bindIf(t *testing.T) {
 	ctx := testContext()
 
-	sw := Var(false)
-	i0 := Return("foo")
-	i1 := Return("bar")
+	sw := Var(ctx, false)
+	i0 := Return(ctx, "foo")
+	i1 := Return(ctx, "bar")
 
-	b := BindIf(sw, func(ctx context.Context, swv bool) (Incr[string], error) {
+	b := BindIf(ctx, sw, func(ctx context.Context, swv bool) (Incr[string], error) {
 		ItsBlueDye(ctx, t)
 		if swv {
 			return i0, nil
@@ -597,14 +598,16 @@ func Test_Stabilize_bindIf(t *testing.T) {
 func Test_Stabilize_cutoff(t *testing.T) {
 	ctx := testContext()
 
-	input := Var(3.14)
-	cutoff := Cutoff[float64](
+	input := Var(ctx, 3.14)
+	cutoff := Cutoff(
+		ctx,
 		input,
 		epsilon(0.1),
 	)
 	output := Map2(
+		ctx,
 		cutoff,
-		Return(10.0),
+		Return(ctx, 10.0),
 		add[float64],
 	)
 
@@ -645,16 +648,18 @@ type MathTypes interface {
 
 func Test_Stabilize_cutoffContext(t *testing.T) {
 	ctx := testContext()
-	input := Var(3.14)
+	input := Var(ctx, 3.14)
 
-	cutoff := CutoffContext[float64](
+	cutoff := CutoffContext(
+		ctx,
 		input,
 		epsilonContext(t, 0.1),
 	)
 
 	output := Map2(
+		ctx,
 		cutoff,
-		Return(10.0),
+		Return(ctx, 10.0),
 		add[float64],
 	)
 
@@ -691,9 +696,10 @@ func Test_Stabilize_cutoffContext(t *testing.T) {
 
 func Test_Stabilize_cutoffContext_error(t *testing.T) {
 	ctx := testContext()
-	input := Var(3.14)
+	input := Var(ctx, 3.14)
 
-	cutoff := CutoffContext[float64](
+	cutoff := CutoffContext(
+		ctx,
 		input,
 		func(_ context.Context, _, _ float64) (bool, error) {
 			return false, fmt.Errorf("this is just a test")
@@ -708,8 +714,9 @@ func Test_Stabilize_cutoffContext_error(t *testing.T) {
 	})
 
 	output := Map2(
+		ctx,
 		cutoff,
-		Return(10.0),
+		Return(ctx, 10.0),
 		add[float64],
 	)
 
@@ -743,16 +750,18 @@ func epsilonFn[A, B MathTypes](eps A, oldv, newv B) bool {
 func Test_Stabilize_cutoff2(t *testing.T) {
 	ctx := testContext()
 
-	epsilon := Var(0.1)
-	input := Var(3.14)
-	cutoff := Cutoff2[float64, float64](
+	epsilon := Var(ctx, 0.1)
+	input := Var(ctx, 3.14)
+	cutoff := Cutoff2(
+		ctx,
 		epsilon,
 		input,
 		epsilonFn,
 	)
 	output := Map2(
+		ctx,
 		cutoff,
-		Return(10.0),
+		Return(ctx, 10.0),
 		add[float64],
 	)
 
@@ -803,10 +812,11 @@ func Test_Stabilize_cutoff2(t *testing.T) {
 
 func Test_Stabilize_cutoff2Context_error(t *testing.T) {
 	ctx := testContext()
-	epsilon := Var(0.1)
-	input := Var(3.14)
+	epsilon := Var(ctx, 0.1)
+	input := Var(ctx, 3.14)
 
-	cutoff := Cutoff2Context[float64, float64](
+	cutoff := Cutoff2Context(
+		ctx,
 		epsilon,
 		input,
 		func(_ context.Context, _, _, _ float64) (bool, error) {
@@ -822,8 +832,9 @@ func Test_Stabilize_cutoff2Context_error(t *testing.T) {
 	})
 
 	output := Map2(
+		ctx,
 		cutoff,
-		Return(10.0),
+		Return(ctx, 10.0),
 		add[float64],
 	)
 
@@ -850,10 +861,10 @@ func Test_Stabilize_cutoff2Context_error(t *testing.T) {
 func Test_Stabilize_watch(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var(1)
-	v1 := Var(1)
-	m0 := Map2(v0, v1, add)
-	w0 := Watch(m0)
+	v0 := Var(ctx, 1)
+	v1 := Var(ctx, 1)
+	m0 := Map2(ctx, v0, v1, add)
+	w0 := Watch(ctx, m0)
 
 	graph := New()
 	_ = Observe(graph, w0)
@@ -876,8 +887,8 @@ func Test_Stabilize_watch(t *testing.T) {
 func Test_Stabilize_Map(t *testing.T) {
 	ctx := testContext()
 
-	c0 := Return(1)
-	m := Map(c0, func(a int) int {
+	c0 := Return(ctx, 1)
+	m := Map(ctx, c0, func(a int) int {
 		return a + 10
 	})
 
@@ -891,8 +902,8 @@ func Test_Stabilize_Map(t *testing.T) {
 func Test_Stabilize_MapContext(t *testing.T) {
 	ctx := testContext()
 
-	c0 := Return(1)
-	m := MapContext(c0, func(ictx context.Context, a int) (int, error) {
+	c0 := Return(ctx, 1)
+	m := MapContext(ctx, c0, func(ictx context.Context, a int) (int, error) {
 		ItsBlueDye(ictx, t)
 		return a + 10, nil
 	})
@@ -907,9 +918,9 @@ func Test_Stabilize_MapContext(t *testing.T) {
 func Test_Stabilize_Map2(t *testing.T) {
 	ctx := testContext()
 
-	c0 := Return(1)
-	c1 := Return(2)
-	m2 := Map2(c0, c1, func(a, b int) int {
+	c0 := Return(ctx, 1)
+	c1 := Return(ctx, 2)
+	m2 := Map2(ctx, c0, c1, func(a, b int) int {
 		return a + b
 	})
 
@@ -923,9 +934,9 @@ func Test_Stabilize_Map2(t *testing.T) {
 func Test_Stabilize_Map2Context(t *testing.T) {
 	ctx := testContext()
 
-	c0 := Return(1)
-	c1 := Return(2)
-	m2 := Map2Context(c0, c1, func(ictx context.Context, a, b int) (int, error) {
+	c0 := Return(ctx, 1)
+	c1 := Return(ctx, 2)
+	m2 := Map2Context(ctx, c0, c1, func(ictx context.Context, a, b int) (int, error) {
 		ItsBlueDye(ctx, t)
 		return a + b, nil
 	})
@@ -940,9 +951,9 @@ func Test_Stabilize_Map2Context(t *testing.T) {
 func Test_Stabilize_Map2Context_error(t *testing.T) {
 	ctx := testContext()
 
-	c0 := Return(1)
-	c1 := Return(2)
-	m2 := Map2Context(c0, c1, func(ictx context.Context, a, b int) (int, error) {
+	c0 := Return(ctx, 1)
+	c1 := Return(ctx, 2)
+	m2 := Map2Context(ctx, c0, c1, func(ictx context.Context, a, b int) (int, error) {
 		ItsBlueDye(ctx, t)
 		return a + b, fmt.Errorf("this is just a test")
 	})
@@ -958,10 +969,10 @@ func Test_Stabilize_Map2Context_error(t *testing.T) {
 func Test_Stabilize_Map3(t *testing.T) {
 	ctx := testContext()
 
-	c0 := Return(1)
-	c1 := Return(2)
-	c2 := Return(3)
-	m3 := Map3(c0, c1, c2, func(a, b, c int) int {
+	c0 := Return(ctx, 1)
+	c1 := Return(ctx, 2)
+	c2 := Return(ctx, 3)
+	m3 := Map3(ctx, c0, c1, c2, func(a, b, c int) int {
 		return a + b + c
 	})
 
@@ -975,10 +986,10 @@ func Test_Stabilize_Map3(t *testing.T) {
 func Test_Stabilize_Map3Context(t *testing.T) {
 	ctx := testContext()
 
-	c0 := Return(1)
-	c1 := Return(2)
-	c2 := Return(3)
-	m3 := Map3Context(c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
+	c0 := Return(ctx, 1)
+	c1 := Return(ctx, 2)
+	c2 := Return(ctx, 3)
+	m3 := Map3Context(ctx, c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
 		ItsBlueDye(ictx, t)
 		return a + b + c, nil
 	})
@@ -993,10 +1004,10 @@ func Test_Stabilize_Map3Context(t *testing.T) {
 func Test_Stabilize_Map3Context_error(t *testing.T) {
 	ctx := testContext()
 
-	c0 := Return(1)
-	c1 := Return(2)
-	c2 := Return(3)
-	m3 := Map3Context(c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
+	c0 := Return(ctx, 1)
+	c1 := Return(ctx, 2)
+	c2 := Return(ctx, 3)
+	m3 := Map3Context(ctx, c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
 		ItsBlueDye(ictx, t)
 		return a + b + c, fmt.Errorf("this is just a test")
 	})
@@ -1012,10 +1023,10 @@ func Test_Stabilize_Map3Context_error(t *testing.T) {
 func Test_Stabilize_MapIf(t *testing.T) {
 	ctx := testContext()
 
-	c0 := Return(1)
-	c1 := Return(2)
-	v0 := Var(false)
-	mi0 := MapIf(c0, c1, v0)
+	c0 := Return(ctx, 1)
+	c1 := Return(ctx, 2)
+	v0 := Var(ctx, false)
+	mi0 := MapIf(ctx, c0, c1, v0)
 
 	graph := New()
 	_ = Observe(graph, mi0)
@@ -1046,10 +1057,10 @@ func Test_Stabilize_MapN(t *testing.T) {
 		return
 	}
 
-	c0 := Return(1)
-	c1 := Return(2)
-	c2 := Return(3)
-	mn := MapN(sum, c0, c1, c2)
+	c0 := Return(ctx, 1)
+	c1 := Return(ctx, 2)
+	c2 := Return(ctx, 3)
+	mn := MapN(ctx, sum, c0, c1, c2)
 
 	graph := New()
 	_ = Observe(graph, mn)
@@ -1072,10 +1083,10 @@ func Test_Stabilize_MapN_AddInput(t *testing.T) {
 		return
 	}
 
-	c0 := Return(1)
-	c1 := Return(2)
-	c2 := Return(3)
-	mn := MapN(sum)
+	c0 := Return(ctx, 1)
+	c1 := Return(ctx, 2)
+	c2 := Return(ctx, 3)
+	mn := MapN(ctx, sum)
 	mn.AddInput(c0)
 	mn.AddInput(c1)
 	mn.AddInput(c2)
@@ -1102,10 +1113,10 @@ func Test_Stabilize_MapNContext(t *testing.T) {
 		return
 	}
 
-	c0 := Return(1)
-	c1 := Return(2)
-	c2 := Return(3)
-	mn := MapNContext(sum, c0, c1, c2)
+	c0 := Return(ctx, 1)
+	c1 := Return(ctx, 2)
+	c2 := Return(ctx, 3)
+	mn := MapNContext(ctx, sum, c0, c1, c2)
 
 	graph := New()
 	_ = Observe(graph, mn)
@@ -1126,10 +1137,10 @@ func Test_Stabilize_MapNContext_error(t *testing.T) {
 		return
 	}
 
-	c0 := Return(1)
-	c1 := Return(2)
-	c2 := Return(3)
-	mn := MapNContext(sum, c0, c1, c2)
+	c0 := Return(ctx, 1)
+	c1 := Return(ctx, 2)
+	c2 := Return(ctx, 3)
+	mn := MapNContext(ctx, sum, c0, c1, c2)
 
 	graph := New()
 	_ = Observe(graph, mn)
@@ -1143,11 +1154,11 @@ func Test_Stabilize_func(t *testing.T) {
 	ctx := testContext()
 
 	value := "hello"
-	f := Func(func(ictx context.Context) (string, error) {
+	f := Func(ctx, func(ictx context.Context) (string, error) {
 		ItsBlueDye(ictx, t)
 		return value, nil
 	})
-	m := MapContext(f, func(ictx context.Context, v string) (string, error) {
+	m := MapContext(ctx, f, func(ictx context.Context, v string) (string, error) {
 		ItsBlueDye(ctx, t)
 		return v + " world!", nil
 	})
@@ -1182,7 +1193,7 @@ func Test_Stabilize_foldMap(t *testing.T) {
 		"five":  5,
 		"six":   6,
 	}
-	mf := FoldMap(Return(m), 0, func(key string, val, accum int) int {
+	mf := FoldMap(ctx, Return(ctx, m), 0, func(key string, val, accum int) int {
 		return accum + val
 	})
 
@@ -1204,7 +1215,7 @@ func Test_Stabilize_foldLeft(t *testing.T) {
 		5,
 		6,
 	}
-	mf := FoldLeft(Return(m), "", func(accum string, val int) string {
+	mf := FoldLeft(ctx, Return(ctx, m), "", func(accum string, val int) string {
 		return accum + fmt.Sprint(val)
 	})
 
@@ -1226,7 +1237,7 @@ func Test_Stabilize_foldRight(t *testing.T) {
 		5,
 		6,
 	}
-	mf := FoldRight(Return(m), "", func(val int, accum string) string {
+	mf := FoldRight(ctx, Return(ctx, m), "", func(val int, accum string) string {
 		return accum + fmt.Sprint(val)
 	})
 
@@ -1245,8 +1256,8 @@ func Test_Stabilize_foldRight(t *testing.T) {
 func Test_Stabilize_freeze(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var("hello")
-	fv := Freeze(v0)
+	v0 := Var(ctx, "hello")
+	fv := Freeze(ctx, v0)
 
 	graph := New()
 	_ = Observe(graph, fv)
@@ -1268,14 +1279,14 @@ func Test_Stabilize_always_cutoff(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
-	filename := Var("test")
-	filenameAlways := Always(filename)
+	filename := Var(ctx, "test")
+	filenameAlways := Always(ctx, filename)
 	modtime := 1
-	statfile := Map(filenameAlways, func(s string) int { return modtime })
-	statfileCutoff := Cutoff(statfile, func(ov, nv int) bool {
+	statfile := Map(ctx, filenameAlways, func(s string) int { return modtime })
+	statfileCutoff := Cutoff(ctx, statfile, func(ov, nv int) bool {
 		return ov == nv
 	})
-	readFile := Map2(filename, statfileCutoff, func(p string, mt int) string {
+	readFile := Map2(ctx, filename, statfileCutoff, func(p string, mt int) string {
 		return fmt.Sprintf("%s-%d", p, mt)
 	})
 	o := Observe(g, readFile)
@@ -1303,14 +1314,14 @@ func Test_Stabilize_always_cutoff_error(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
-	filename := Var("test")
-	filenameAlways := Always(filename)
+	filename := Var(ctx, "test")
+	filenameAlways := Always(ctx, filename)
 	modtime := 1
-	statfile := Map(filenameAlways, func(s string) int { return modtime })
-	statfileCutoff := CutoffContext(statfile, func(_ context.Context, ov, nv int) (bool, error) {
+	statfile := Map(ctx, filenameAlways, func(s string) int { return modtime })
+	statfileCutoff := CutoffContext(ctx, statfile, func(_ context.Context, ov, nv int) (bool, error) {
 		return false, fmt.Errorf("this is only a test")
 	})
-	readFile := Map2(filename, statfileCutoff, func(p string, mt int) string {
+	readFile := Map2(ctx, filename, statfileCutoff, func(p string, mt int) string {
 		return fmt.Sprintf("%s-%d", p, mt)
 	})
 	o := Observe(g, readFile)
@@ -1330,8 +1341,8 @@ func Test_Stabilize_printsErrors(t *testing.T) {
 
 	ctx := WithTracingOutputs(context.Background(), outBuf, errBuf)
 
-	v0 := Var("hello")
-	gonnaPanic := MapContext(v0, func(_ context.Context, _ string) (string, error) {
+	v0 := Var(ctx, "hello")
+	gonnaPanic := MapContext(ctx, v0, func(_ context.Context, _ string) (string, error) {
 		return "", fmt.Errorf("this is only a test")
 	})
 	_ = Observe(g, gonnaPanic)
@@ -1346,9 +1357,9 @@ func Test_Stabilize_printsErrors(t *testing.T) {
 func Test_Stabilize_handlers(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var("foo")
-	v1 := Var("bar")
-	m0 := Map2(v0, v1, func(a, b string) string {
+	v0 := Var(ctx, "foo")
+	v1 := Var(ctx, "bar")
+	m0 := Map2(ctx, v0, v1, func(a, b string) string {
 		return a + " " + b
 	})
 

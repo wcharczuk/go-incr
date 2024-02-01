@@ -11,11 +11,11 @@ func Test_Observe_Unobserve(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
-	v0 := Var("hello 0")
-	m0 := Map(v0, ident)
+	v0 := Var(ctx, "hello 0")
+	m0 := Map(ctx, v0, ident)
 
-	v1 := Var("hello 1")
-	m1 := Map(v1, ident)
+	v1 := Var(ctx, "hello 1")
+	m1 := Map(ctx, v1, ident)
 
 	o0 := Observe(g, m0)
 	o1 := Observe(g, m1)
@@ -56,11 +56,11 @@ func Test_Observe_Unobserve_multiple(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
-	v0 := Var("hello 0")
-	m0 := Map(v0, ident)
+	v0 := Var(ctx, "hello 0")
+	m0 := Map(ctx, v0, ident)
 
-	v1 := Var("hello 1")
-	m1 := Map(v1, ident)
+	v1 := Var(ctx, "hello 1")
+	m1 := Map(ctx, v1, ident)
 
 	o0 := Observe(g, m0)
 	o1 := Observe(g, m1)
@@ -119,8 +119,8 @@ func Test_Observe_Unobserve_multiple(t *testing.T) {
 func Test_Observer_Unobserve_reobserve(t *testing.T) {
 	ctx := testContext()
 	g := New()
-	v0 := Var("hello")
-	m0 := Map(v0, ident)
+	v0 := Var(ctx, "hello")
+	m0 := Map(ctx, v0, ident)
 	o0 := Observe(g, m0)
 
 	_ = g.Stabilize(context.TODO())
