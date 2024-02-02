@@ -25,9 +25,6 @@ func WithBindScope[A INode](ctx context.Context, node A) A {
 }
 
 func addNodeToBindScope(ctx context.Context, node INode, scope *bindScope) {
-	scope.rhsNodes.Push(node)
-	if typed, ok := node.(IBind); ok {
-		typed.Link(ctx)
-	}
 	node.Node().createdIn[scope.bind.Node().id] = scope
+	scope.rhsNodes.Push(node)
 }

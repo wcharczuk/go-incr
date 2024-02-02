@@ -164,6 +164,11 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
 	for _, c := range children {
 		b.n.graph.recomputeHeights(c)
 	}
+	for _, n := range b.scope.rhsNodes.list {
+		if typed, ok := n.(IBind); ok {
+			typed.Link(ctx)
+		}
+	}
 	TracePrintf(ctx, "%v bound new rhs %v", b, b.bound)
 }
 
@@ -184,7 +189,6 @@ func (b *bindIncr[A, B]) unlinkOld(ctx context.Context) {
 			Unlink(c, b.bound)
 		}
 		b.bindChange = nil
-		b.scope = nil
 		b.bound = nil
 	}
 }
@@ -199,6 +203,7 @@ func (b *bindIncr[A, B]) removeNodesFromScope(ctx context.Context, scope *bindSc
 			}
 		}
 	}
+	scope.rhsNodes.Clear()
 }
 
 func (b *bindIncr[A, B]) String() string {

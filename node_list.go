@@ -23,6 +23,12 @@ func (nl *nodeList) Unlock() {
 	nl.mu.Unlock()
 }
 
+func (nl *nodeList) Clear() {
+	nl.mu.Lock()
+	clear(nl.list)
+	nl.mu.Unlock()
+}
+
 func (nl *nodeList) Len() (length int) {
 	nl.mu.Lock()
 	length = len(nl.list)
