@@ -25,6 +25,7 @@ func WithBindScope[A INode](ctx context.Context, node A) A {
 }
 
 func addNodeToBindScope(ctx context.Context, node INode, scope *bindScope) {
-	node.Node().createdIn[scope.bind.Node().id] = scope
+	TracePrintf(ctx, "%v adding to bound scope %v", scope.bind, node)
+	node.Node().createdIn = scope
 	scope.rhsNodes.Push(node)
 }

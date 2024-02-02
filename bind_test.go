@@ -234,7 +234,7 @@ func Test_Bind_scopes(t *testing.T) {
 	err := g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 	testutil.ItsEqual(t, "t1-mappedt3-mapped", o.Value())
-	testutil.ItsEqual(t, 0, len(t1.Node().createdIn), "t1 should have an empty scope list as it was created outside a bind")
+	testutil.ItsNil(t, t1.Node().createdIn, "t1 should have an empty scope list as it was created outside a bind")
 }
 
 func Test_Bind_rebind(t *testing.T) {

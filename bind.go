@@ -129,8 +129,11 @@ func (b *bindIncr[A, B]) Link(ctx context.Context) {
 		for _, c := range children {
 			b.n.graph.recomputeHeights(c)
 		}
-		if typed, ok := b.bound.(IBind); ok {
-			typed.Link(ctx)
+		for _, n := range b.scope.rhsNodes.list {
+			if typed, ok := n.(IBind); ok {
+				TracePrintf(ctx, "%v propagating bind link to %v", b, n)
+				typed.Link(ctx)
+			}
 		}
 	}
 }
@@ -196,11 +199,9 @@ func (b *bindIncr[A, B]) unlinkOld(ctx context.Context) {
 func (b *bindIncr[A, B]) removeNodesFromScope(ctx context.Context, scope *bindScope) {
 	rhsNodes := scope.rhsNodes.Values()
 	for _, n := range rhsNodes {
-		delete(n.Node().createdIn, b.n.id)
-		if len(n.Node().createdIn) == 0 {
-			if typed, ok := n.(IBind); ok {
-				typed.Unlink(ctx)
-			}
+		n.Node().createdIn = nil
+		if typed, ok := n.(IBind); ok {
+			typed.Unlink(ctx)
 		}
 	}
 	scope.rhsNodes.Clear()

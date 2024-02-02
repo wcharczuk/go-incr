@@ -13,7 +13,6 @@ func NewNode() *Node {
 		parents:   newNodeList(),
 		children:  newNodeList(),
 		observers: make(map[Identifier]IObserver),
-		createdIn: make(map[Identifier]*bindScope),
 	}
 }
 
@@ -85,7 +84,7 @@ type Node struct {
 	// numChanges is the number of times we changed the node
 	numChanges uint64
 	// createdIn is the "bind scope" the node was created in
-	createdIn map[Identifier]*bindScope
+	createdIn *bindScope
 	// numComputePseudoheights is the number of times we call "computePseudoheight"
 	// on this particular node
 	numComputePseudoheights uint64
