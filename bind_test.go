@@ -586,12 +586,12 @@ func Test_Bind_regression(t *testing.T) {
 	f = func(ctx context.Context, t int) Incr[*int] {
 		key := fmt.Sprintf("f-%d", t)
 		if _, ok := cache[key]; ok {
-			return cache[key]
+			return WithBindScope(ctx, cache[key])
 		}
 		r := Bind(ctx, fakeFormula, func(ctx context.Context, formula string) Incr[*int] {
 			key := fmt.Sprintf("map-f-%d", t)
 			if _, ok := cache[key]; ok {
-				return cache[key]
+				return WithBindScope(ctx, cache[key])
 			}
 			if t == 0 {
 				out := 0
@@ -615,7 +615,7 @@ func Test_Bind_regression(t *testing.T) {
 	g := func(ctx context.Context, t int) Incr[*int] {
 		key := fmt.Sprintf("g-%d", t)
 		if _, ok := cache[key]; ok {
-			return cache[key]
+			return WithBindScope(ctx, cache[key])
 		}
 		r := Bind(ctx, fakeFormula, func(ctx context.Context, formula string) Incr[*int] {
 			output := f(ctx, t)
