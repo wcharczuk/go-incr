@@ -169,6 +169,7 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
 	}
 	for _, n := range b.scope.rhsNodes.list {
 		if typed, ok := n.(IBind); ok {
+			TracePrintf(ctx, "%v propagating bind link to %v", b, typed)
 			typed.Link(ctx)
 		}
 	}
