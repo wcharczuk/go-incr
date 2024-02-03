@@ -20,8 +20,9 @@ The inspiration for `go-incr` is Jane Street's [incremental](https://github.com/
 Given an exmaple computation:
 
 ```go
-v0 := incr.Var("foo")
-v1 := incr.Var("bar")
+ctx := context.Background()
+v0 := incr.Var(ctx, "foo")
+v1 := incr.Var(ctx, "bar")
 
 output := incr.Map2(v0, v1, func(a, b string) string { return a + " and " + b })
 ```
@@ -30,7 +31,7 @@ In order to realize the values, we need to observe nodes in a graph, and then ca
 
 ```go
 g := incr.New()
-o := incr.Observe(ctx, g,output)
+o := incr.Observe(ctx, g, output)
 if err := g.Stabilize(context.Background()); err != nil {
   // ... handle error if it comes up
 }
@@ -77,6 +78,23 @@ The effect of `Bind` is that "children" of a `Bind` node may have their heights 
 An example of one such case:
 
 ![Bind Regression](https://github.com/wcharczuk/go-incr/blob/main/_assets/bind_regression.png)
+
+Because `Bind` nodes rely on scopes to operate correctly, the bind function you must provide takes a context argument. This context argument should be passed to node constructors within the bind function. This lets us track which nodes were created in the bind scope, helping us maintain height invariants and link nodes correctly.
+
+An example of a use case for bind might be:
+
+```
+ctx := context.Background()
+t1 := Map(ctx, Return(ctx, "hello"), func(v string) string { return v + " world!" })
+t2v := Var(ctx, "a")
+t2 := Bind(ctx, t2v, func(ctx context.Context, t2vv string) Incr[string] {
+  return Map(ctx, t1, func(v string) string { return v + " Ipsum" })
+})
+...
+
+```
+
+Here `t1` is _not_ created within a bind scope, but the map that adds `" Ipsum"` to the value _is_ created within a bind scope. This is done transparently by passing the context through the `Map` constructor within the bind.
 
 # Progress
 
