@@ -10,7 +10,7 @@ func Always[A any](ctx context.Context, input Incr[A]) Incr[A] {
 		input: input,
 	}
 	Link(a, input)
-	return WithBindScope(ctx, a)
+	return WithinBindScope(ctx, a)
 }
 
 // AlwaysIncr is a type that implements the always stale incremental.

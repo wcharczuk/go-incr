@@ -30,7 +30,7 @@ func CutoffContext[A any](ctx context.Context, i Incr[A], fn CutoffContextFunc[A
 	// we short circuit setup of the node cutoff reference here.
 	// this can be discovered in initialization but saves a step.
 	Link(o, i)
-	return WithBindScope(ctx, o)
+	return WithinBindScope(ctx, o)
 }
 
 // CutoffFunc is a function that implements cutoff checking.

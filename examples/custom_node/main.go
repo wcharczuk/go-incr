@@ -13,7 +13,7 @@ func Custom[T any](ctx context.Context, a incr.Incr[T]) incr.Incr[T] {
 		a: a,
 	}
 	incr.Link(o, a)
-	return incr.WithBindScope(ctx, o)
+	return incr.WithinBindScope(ctx, o)
 }
 
 type customIncr[T any] struct {

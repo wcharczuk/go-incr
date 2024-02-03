@@ -18,7 +18,7 @@ func MapIf[A any](ctx context.Context, a, b Incr[A], p Incr[bool]) Incr[A] {
 		p: p,
 	}
 	Link(o, a, b, p)
-	return WithBindScope(ctx, o)
+	return WithinBindScope(ctx, o)
 }
 
 var (

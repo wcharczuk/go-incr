@@ -24,7 +24,7 @@ func MapNContext[A, B any](ctx context.Context, fn MapNContextFunc[A, B], inputs
 	for _, i := range inputs {
 		Link(o, i)
 	}
-	return WithBindScope(ctx, o)
+	return WithinBindScope(ctx, o)
 }
 
 // MapNFunc is the function that the ApplyN incremental applies.

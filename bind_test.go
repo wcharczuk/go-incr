@@ -607,12 +607,12 @@ func makeRegressionGraph(ctx context.Context) (*Graph, ObserveIncr[*int]) {
 	f = func(ctx context.Context, t int) Incr[*int] {
 		key := fmt.Sprintf("f-%d", t)
 		if _, ok := cache[key]; ok {
-			return WithBindScope(ctx, cache[key])
+			return WithinBindScope(ctx, cache[key])
 		}
 		r := Bind(ctx, fakeFormula, func(ctx context.Context, formula string) Incr[*int] {
 			key := fmt.Sprintf("map-f-%d", t)
 			if _, ok := cache[key]; ok {
-				return WithBindScope(ctx, cache[key])
+				return WithinBindScope(ctx, cache[key])
 			}
 			if t == 0 {
 				out := 0
@@ -636,7 +636,7 @@ func makeRegressionGraph(ctx context.Context) (*Graph, ObserveIncr[*int]) {
 	g := func(ctx context.Context, t int) Incr[*int] {
 		key := fmt.Sprintf("g-%d", t)
 		if _, ok := cache[key]; ok {
-			return WithBindScope(ctx, cache[key])
+			return WithinBindScope(ctx, cache[key])
 		}
 		r := Bind(ctx, fakeFormula, func(ctx context.Context, formula string) Incr[*int] {
 			output := f(ctx, t)
@@ -690,4 +690,69 @@ func Test_bindChange_value(t *testing.T) {
 	}
 
 	testutil.ItsEqual(t, "hello", bc.Value())
+}
+
+func Test_Bind_regression2(t *testing.T) {
+	ctx := testContext()
+	fakeFormula := Var(ctx, "fakeFormula")
+	cache := make(map[string]Incr[*int])
+
+	var f func(context.Context, int) Incr[*int]
+	f = func(ctx context.Context, t int) Incr[*int] {
+		key := fmt.Sprintf("f-%d", t)
+		if _, ok := cache[key]; ok {
+			return WithinBindScope(ctx, cache[key])
+		}
+		r := Bind(ctx, fakeFormula, func(ctx context.Context, formula string) Incr[*int] {
+			key := fmt.Sprintf("map-f-%d", t)
+			if _, ok := cache[key]; ok {
+				return WithinBindScope(ctx, cache[key])
+			}
+			if t == 0 {
+				out := 0
+				r := Return(ctx, &out)
+				r.Node().SetLabel("f-0")
+				return r
+			}
+			bindOutput := Map(ctx, f(ctx, t-1), func(r *int) *int {
+				out := *r + 1
+				return &out
+			})
+			bindOutput.Node().SetLabel(fmt.Sprintf("map-f-%d", t))
+			cache[key] = bindOutput
+			return bindOutput
+		})
+		r.Node().SetLabel(key)
+		cache[key] = r
+		return r
+	}
+
+	b := func(ctx context.Context, t int) Incr[*int] {
+		key := fmt.Sprintf("b-%d", t)
+		if _, ok := cache[key]; ok {
+			return cache[key]
+		}
+
+		r := Bind(ctx, fakeFormula, func(ctx context.Context, formula string) Incr[*int] {
+			return Map2(ctx, f(ctx, t), f(ctx, t+2), func(l *int, r *int) *int {
+				out := *l * *r
+				return &out
+			})
+		})
+		cache[key] = r
+		return r
+	}
+
+	t.Run("b(t) = f(t) * f(t+2) where f(t) = f(t-1) + 1", func(t *testing.T) {
+		ctx := testContext()
+		o := b(ctx, 5)
+
+		graph := New()
+		_ = Observe(ctx, graph, o)
+		err := graph.Stabilize(ctx)
+
+		testutil.ItsNil(t, err)
+		testutil.ItsNotNil(t, o.Value())
+		testutil.ItsEqual(t, 35, *o.Value())
+	})
 }

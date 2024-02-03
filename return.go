@@ -10,7 +10,7 @@ import (
 // Note that it does not implement `IStabilize` and is effectively
 // always the same value (and treated as such).
 func Return[A any](ctx context.Context, v A) Incr[A] {
-	return WithBindScope(ctx, &returnIncr[A]{
+	return WithinBindScope(ctx, &returnIncr[A]{
 		n: NewNode(),
 		v: v,
 	})

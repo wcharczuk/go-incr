@@ -50,7 +50,7 @@ func BindContext[A, B any](ctx context.Context, input Incr[A], fn func(context.C
 		rhsNodes: newNodeList(),
 	}
 	Link(o, input)
-	return WithBindScope(ctx, o)
+	return WithinBindScope(ctx, o)
 }
 
 // BindIncr is a node that implements Bind, which
@@ -58,15 +58,14 @@ func BindContext[A, B any](ctx context.Context, input Incr[A], fn func(context.C
 // based on input incrementals.
 type BindIncr[A any] interface {
 	Incr[A]
+	IStabilize
 	IBind
 	IUnobserve
 	fmt.Stringer
 }
 
 var (
-	_ Incr[bool]     = (*bindIncr[string, bool])(nil)
 	_ BindIncr[bool] = (*bindIncr[string, bool])(nil)
-	_ INode          = (*bindIncr[string, bool])(nil)
 	_ fmt.Stringer   = (*bindIncr[string, bool])(nil)
 )
 
@@ -231,10 +230,6 @@ func (b *bindChangeIncr[A, B]) Value() (output B) {
 		output = b.rhs.Value()
 	}
 	return
-}
-
-func (b *bindChangeIncr[A, B]) Stabilize(ctx context.Context) error {
-	return nil
 }
 
 func (b *bindChangeIncr[A, B]) String() string {

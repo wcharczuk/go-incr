@@ -11,6 +11,7 @@ func ExpertNode(in INode) IExpertNode {
 
 // IExpertNode is an expert interface for nodes.
 type IExpertNode interface {
+	Graph() *Graph
 	SetID(Identifier)
 	Height() int
 	SetHeight(int)
@@ -30,6 +31,8 @@ type IExpertNode interface {
 	RemoveChild(Identifier)
 	RemoveParent(Identifier)
 
+	ComputePseudoHeight() int
+
 	// Value returns the underlying value of the node
 	// as an untyped `interface{}` for use in debugging.
 	Value() any
@@ -39,6 +42,8 @@ type expertNode struct {
 	incr INode
 	node *Node
 }
+
+func (en *expertNode) Graph() *Graph { return en.node.graph }
 
 func (en *expertNode) SetID(id Identifier) {
 	en.node.id = id
@@ -94,6 +99,10 @@ func (en *expertNode) RemoveChild(id Identifier) {
 
 func (en *expertNode) RemoveParent(id Identifier) {
 	en.node.removeParent(id)
+}
+
+func (en *expertNode) ComputePseudoHeight() int {
+	return en.node.graph.computePseudoHeight(map[Identifier]int{}, en.incr)
 }
 
 func (en *expertNode) Value() any {

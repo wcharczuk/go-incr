@@ -23,7 +23,7 @@ func Observe[A any](ctx context.Context, g *Graph, input Incr[A]) ObserveIncr[A]
 	TracePrintf(ctx, "adding observer %v to recompute heap", o)
 	g.recomputeHeap.Add(o)
 	g.observeNodes(ctx, input, o)
-	return WithBindScope(ctx, o)
+	return WithinBindScope(ctx, o)
 }
 
 // ObserveIncr is an incremental that observes a graph

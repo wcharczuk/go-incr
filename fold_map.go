@@ -26,7 +26,7 @@ func FoldMap[K comparable, V any, O any](
 		val: v0,
 	}
 	Link(o, i)
-	return WithBindScope(ctx, o)
+	return WithinBindScope(ctx, o)
 }
 
 var (

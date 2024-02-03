@@ -9,5 +9,5 @@ import (
 func BindIf[A any](ctx context.Context, p Incr[bool], fn func(context.Context, bool) (Incr[A], error)) BindIncr[A] {
 	b := BindContext[bool, A](ctx, p, fn).(*bindIncr[bool, A])
 	b.bt = "bind_if"
-	return WithBindScope(ctx, b)
+	return WithinBindScope(ctx, b)
 }

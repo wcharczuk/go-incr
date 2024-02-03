@@ -23,7 +23,7 @@ func MapContext[A, B any](ctx context.Context, a Incr[A], fn func(context.Contex
 		fn: fn,
 	}
 	Link(m, a)
-	return WithBindScope(ctx, m)
+	return WithinBindScope(ctx, m)
 }
 
 var (

@@ -13,7 +13,7 @@ func Freeze[A any](ctx context.Context, i Incr[A]) Incr[A] {
 		i: i,
 	}
 	Link(o, i)
-	return WithBindScope(ctx, o)
+	return WithinBindScope(ctx, o)
 }
 
 var (

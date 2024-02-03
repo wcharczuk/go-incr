@@ -12,7 +12,7 @@ import (
 // typically find on Incr[A], as well as a `Read` method
 // that helps integrate into subcomputations.
 func Var[T any](ctx context.Context, t T) VarIncr[T] {
-	return WithBindScope(ctx, &varIncr[T]{
+	return WithinBindScope(ctx, &varIncr[T]{
 		n:     NewNode(),
 		value: t,
 	})

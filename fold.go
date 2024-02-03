@@ -12,7 +12,7 @@ func FoldLeft[T, O any](ctx context.Context, i Incr[[]T], v0 O, fn func(O, T) O)
 		val: v0,
 	}
 	Link(o, i)
-	return WithBindScope(ctx, o)
+	return WithinBindScope(ctx, o)
 }
 
 // FoldRight folds an array from N to 0 carrying the previous value
@@ -25,7 +25,7 @@ func FoldRight[T, O any](ctx context.Context, i Incr[[]T], v0 O, fn func(T, O) O
 		val: v0,
 	}
 	Link(o, i)
-	return WithBindScope(ctx, o)
+	return WithinBindScope(ctx, o)
 }
 
 type foldLeftIncr[T, O any] struct {

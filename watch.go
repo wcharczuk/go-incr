@@ -13,7 +13,7 @@ func Watch[A any](ctx context.Context, i Incr[A]) WatchIncr[A] {
 		incr: i,
 	}
 	Link(o, i)
-	return WithBindScope(ctx, o)
+	return WithinBindScope(ctx, o)
 }
 
 // WatchIncr is a type that implements the watch interface.

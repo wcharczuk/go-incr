@@ -28,7 +28,7 @@ func Cutoff2Context[A, B any](ctx context.Context, epsilon Incr[A], input Incr[B
 	// this can be discovered in initialization but saves a step.
 	Link(o, input)
 	Link(o, epsilon)
-	return WithBindScope(ctx, o)
+	return WithinBindScope(ctx, o)
 }
 
 // CutoffIncr is an incremental node that implements the ICutoff interface.

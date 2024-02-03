@@ -18,7 +18,7 @@ func Timer[A any](ctx context.Context, input Incr[A], every time.Duration) Timer
 		input:       input,
 	}
 	Link(t, input)
-	return WithBindScope(ctx, t)
+	return WithinBindScope(ctx, t)
 }
 
 // TimerIncr is the exported methods of a Timer.
