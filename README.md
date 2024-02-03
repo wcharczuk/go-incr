@@ -17,7 +17,7 @@ The inspiration for `go-incr` is Jane Street's [incremental](https://github.com/
 
 # Usage
 
-Given an exmaple computation:
+Given an example computation:
 
 ```go
 ctx := context.Background()
