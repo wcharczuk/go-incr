@@ -29,7 +29,7 @@ func Test_Dot(t *testing.T) {
 	m0 := Map2(ctx, v0, v1, concat)
 	m0.Node().id, _ = ParseIdentifier("fc45f4a7b5c7456f852f2298563b29ae")
 
-	o := Observe(g, m0)
+	o := Observe(ctx, g, m0)
 	o.Node().id, _ = ParseIdentifier("507dd07419724979bb34f2ca033257be")
 
 	buf := new(bytes.Buffer)
@@ -56,7 +56,7 @@ func Test_Dot_writeError(t *testing.T) {
 	m0 := Map2(ctx, v0, v1, concat)
 	m0.Node().id, _ = ParseIdentifier("fc45f4a7b5c7456f852f2298563b29ae")
 
-	_ = Observe(g, m0)
+	_ = Observe(ctx, g, m0)
 
 	buf := errorWriter{fmt.Errorf("this is just a test")}
 	err := Dot(buf, g)
@@ -83,7 +83,7 @@ func Test_Dot_setAt(t *testing.T) {
 	v1.Node().setAt = 1
 	m0 := Map2(ctx, v0, v1, concat)
 	m0.Node().id, _ = ParseIdentifier("fc45f4a7b5c7456f852f2298563b29ae")
-	o := Observe(g, m0)
+	o := Observe(ctx, g, m0)
 	o.Node().id, _ = ParseIdentifier("507dd07419724979bb34f2ca033257be")
 
 	buf := new(bytes.Buffer)
@@ -112,7 +112,7 @@ func Test_Dot_changedAt(t *testing.T) {
 	m0 := Map2(ctx, v0, v1, concat)
 	m0.Node().id, _ = ParseIdentifier("fc45f4a7b5c7456f852f2298563b29ae")
 	m0.Node().changedAt = 1
-	o := Observe(g, m0)
+	o := Observe(ctx, g, m0)
 	o.Node().id, _ = ParseIdentifier("507dd07419724979bb34f2ca033257be")
 
 	buf := new(bytes.Buffer)

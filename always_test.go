@@ -22,7 +22,7 @@ func Test_Always(t *testing.T) {
 	})
 
 	g := New()
-	o := Observe(g, m1)
+	o := Observe(ctx, g, m1)
 
 	_ = g.Stabilize(context.TODO())
 

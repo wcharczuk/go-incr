@@ -12,7 +12,7 @@ func Test_New(t *testing.T) {
 	r1 := Return(ctx, "world!")
 	m0 := Map2(ctx, r0, r1, func(v0, v1 string) string { return v0 + v1 })
 	g := New()
-	_ = Observe(g, m0)
+	_ = Observe(ctx, g, m0)
 
 	testutil.ItsEqual(t, true, g.IsObserving(r0))
 	testutil.ItsEqual(t, true, g.IsObserving(r1))
@@ -56,8 +56,8 @@ func Test_Graph_UnobserveNodes(t *testing.T) {
 	am2 := Map(ctx, am1, ident)
 
 	g := New()
-	o1 := Observe(g, m1)
-	_ = Observe(g, am2)
+	o1 := Observe(ctx, g, m1)
+	_ = Observe(ctx, g, am2)
 
 	testutil.ItsEqual(t, true, g.IsObserving(r0))
 	testutil.ItsEqual(t, true, g.IsObserving(m0))
@@ -101,7 +101,7 @@ func Test_Graph_UnobserveNodes_notObserving(t *testing.T) {
 	am2 := Map(ctx, am1, ident)
 
 	g := New()
-	o := Observe(g, m1)
+	o := Observe(ctx, g, m1)
 
 	testutil.ItsEqual(t, true, g.IsObserving(r0))
 	testutil.ItsEqual(t, true, g.IsObserving(m0))
@@ -161,11 +161,11 @@ func Test_Graph_recomputeHeights_observed(t *testing.T) {
 
 	v0 := Var(ctx, "a")
 	m0 := Map(ctx, v0, ident)
-	o0 := Observe(g, m0)
+	o0 := Observe(ctx, g, m0)
 
 	m1 := Map(ctx, m0, ident)
 	m2 := Map(ctx, m1, ident)
-	o1 := Observe(g, m2)
+	o1 := Observe(ctx, g, m2)
 
 	m0.Node().height = 1
 	g.recomputeHeights(m0)
@@ -182,7 +182,7 @@ func Test_Graph_addObserver_rediscover(t *testing.T) {
 	g := New()
 
 	v := Var(ctx, "hello")
-	o := Observe(g, v)
+	o := Observe(ctx, g, v)
 	_, ok := g.observers[o.Node().ID()]
 	testutil.ItsEqual(t, true, ok)
 	testutil.ItsEqual(t, 2, g.numNodes)

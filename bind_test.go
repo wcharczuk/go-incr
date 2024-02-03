@@ -53,7 +53,7 @@ func Test_Bind_basic(t *testing.T) {
 	o.Node().SetLabel("o")
 
 	g := New()
-	_ = ObserveContext(ctx, g, o)
+	_ = Observe(ctx, g, o)
 
 	var err error
 
@@ -229,7 +229,7 @@ func Test_Bind_scopes(t *testing.T) {
 	t2.Node().SetLabel("t2")
 
 	g := New()
-	o := Observe(g, t2)
+	o := Observe(ctx, g, t2)
 
 	err := g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
@@ -282,7 +282,7 @@ func Test_Bind_rebind(t *testing.T) {
 	o.Node().SetLabel("o")
 
 	g := New()
-	_ = ObserveContext(ctx, g, o)
+	_ = Observe(ctx, g, o)
 
 	var err error
 
@@ -321,7 +321,7 @@ func Test_Bind_error(t *testing.T) {
 	o := Map(ctx, bind, ident)
 
 	g := New()
-	_ = Observe(g, o)
+	_ = Observe(ctx, g, o)
 	err := g.Stabilize(ctx)
 	testutil.ItsNotNil(t, err)
 	testutil.ItsEqual(t, "this is just a test", err.Error())
@@ -345,7 +345,7 @@ func Test_Bind_nested(t *testing.T) {
 	final.Node().SetLabel("final")
 
 	g := New()
-	o := Observe(g, final)
+	o := Observe(ctx, g, final)
 
 	err := g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
@@ -420,7 +420,7 @@ func Test_Bind_nestedUnlinksBind(t *testing.T) {
 	})
 	b.Node().SetLabel("b")
 
-	o := Observe(g, b)
+	o := Observe(ctx, g, b)
 
 	err := g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
@@ -489,7 +489,7 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 	})
 
 	g := New()
-	o := Observe(g, final)
+	o := Observe(ctx, g, final)
 
 	TracePrintln(ctx, "first stabilization")
 	err := g.Stabilize(ctx)
@@ -567,7 +567,7 @@ func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 
 	m2 := Map2(ctx, driver01, driver02, concat)
 	m2.Node().SetLabel("m2")
-	o := Observe(g, m2)
+	o := Observe(ctx, g, m2)
 	o.Node().SetLabel("observem2")
 
 	err := g.Stabilize(ctx)
@@ -578,6 +578,27 @@ func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 
 func Test_Bind_regression(t *testing.T) {
 	ctx := testContext()
+
+	graph, o := makeRegressionGraph(ctx)
+	_ = graph.Stabilize(ctx)
+	_ = dumpDot(graph, homedir("bind_regression.png"))
+
+	testutil.ItsNotNil(t, o.Value())
+	testutil.ItsEqual(t, 24, *o.Value())
+}
+
+func Test_Bind_regression_parallel(t *testing.T) {
+	ctx := testContext()
+
+	graph, o := makeRegressionGraph(ctx)
+	_ = graph.ParallelStabilize(ctx)
+	_ = dumpDot(graph, homedir("bind_regression.png"))
+
+	testutil.ItsNotNil(t, o.Value())
+	testutil.ItsEqual(t, 24, *o.Value())
+}
+
+func makeRegressionGraph(ctx context.Context) (*Graph, ObserveIncr[*int]) {
 	cache := make(map[string]Incr[*int])
 
 	fakeFormula := Var(ctx, "fakeformula")
@@ -654,12 +675,7 @@ func Test_Bind_regression(t *testing.T) {
 	o.Node().SetLabel("map3-final")
 
 	graph := New()
-	_ = Observe(graph, o)
-	_ = graph.Stabilize(ctx)
-	_ = dumpDot(graph, homedir("bind_regression.png"))
-
-	testutil.ItsNotNil(t, o.Value())
-	testutil.ItsEqual(t, 24, *o.Value())
+	return graph, Observe(ctx, graph, o)
 }
 
 func Test_bindChange_value(t *testing.T) {

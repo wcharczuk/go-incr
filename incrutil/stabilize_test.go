@@ -27,7 +27,7 @@ func Test_Stabilize_diffMapByKeysAdded(t *testing.T) {
 	})
 
 	graph := incr.New()
-	_ = incr.Observe(graph, mf)
+	_ = incr.Observe(ctx, graph, mf)
 
 	_ = graph.Stabilize(ctx)
 	testutil.ItsEqual(t, 21, mf.Value())
@@ -67,7 +67,7 @@ func Test_Stabilize_diffMapByKeysRemoved(t *testing.T) {
 	})
 
 	graph := incr.New()
-	_ = incr.Observe(graph, mf)
+	_ = incr.Observe(ctx, graph, mf)
 
 	_ = graph.Stabilize(ctx)
 	testutil.ItsEqual(t, 0, mf.Value())
@@ -103,8 +103,8 @@ func Test_Stabilize_diffMapByKeys(t *testing.T) {
 	})
 
 	graph := incr.New()
-	_ = incr.Observe(graph, mfa)
-	_ = incr.Observe(graph, mfr)
+	_ = incr.Observe(ctx, graph, mfa)
+	_ = incr.Observe(ctx, graph, mfr)
 
 	_ = graph.Stabilize(ctx)
 	_ = graph.Stabilize(ctx)
@@ -141,7 +141,7 @@ func Test_Stabilize_diffSlice(t *testing.T) {
 	})
 
 	graph := incr.New()
-	_ = incr.Observe(graph, mf)
+	_ = incr.Observe(ctx, graph, mf)
 
 	_ = graph.Stabilize(ctx)
 	testutil.ItsEqual(t, "123456", mf.Value())

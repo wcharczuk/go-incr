@@ -37,7 +37,7 @@ func Test_Timer(t *testing.T) {
 	final.Node().SetLabel("final")
 
 	g := New()
-	o := Observe(g, final)
+	o := Observe(ctx, g, final)
 
 	err := g.Stabilize(ctx)
 	testutil.ItsNil(t, err)

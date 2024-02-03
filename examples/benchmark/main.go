@@ -43,7 +43,7 @@ func main() {
 	if os.Getenv("DEBUG") != "" {
 		ctx = incr.WithTracing(ctx)
 	}
-	_ = incr.Observe(graph, nodes[0])
+	_ = incr.Observe(ctx, graph, nodes[0])
 
 	var err error
 	for n := 0; n < ROUNDS; n++ {

@@ -21,7 +21,7 @@ func Test_ParallelStabilize(t *testing.T) {
 	})
 
 	graph := New()
-	_ = Observe(graph, m0)
+	_ = Observe(ctx, graph, m0)
 
 	err := graph.ParallelStabilize(ctx)
 	testutil.ItsNil(t, err)
@@ -98,7 +98,7 @@ func Test_ParallelStabilize_jsDocs(t *testing.T) {
 	)
 
 	graph := New()
-	_ = Observe(graph, output)
+	_ = Observe(ctx, graph, output)
 
 	err := graph.ParallelStabilize(ctx)
 	testutil.ItsNil(t, err)
@@ -126,7 +126,7 @@ func Test_ParallelStabilize_error(t *testing.T) {
 	})
 
 	graph := New()
-	_ = Observe(graph, m0)
+	_ = Observe(ctx, graph, m0)
 
 	err := graph.ParallelStabilize(ctx)
 	testutil.ItsNotNil(t, err)
@@ -193,7 +193,7 @@ func Test_ParallelStabilize_Always(t *testing.T) {
 	})
 
 	g := New()
-	o := Observe(g, m1)
+	o := Observe(ctx, g, m1)
 
 	_ = g.ParallelStabilize(ctx)
 
@@ -227,7 +227,7 @@ func Test_ParallelStabilize_always_cutoff(t *testing.T) {
 	readFile := Map2(ctx, filename, statfileCutoff, func(p string, mt int) string {
 		return fmt.Sprintf("%s-%d", p, mt)
 	})
-	o := Observe(g, readFile)
+	o := Observe(ctx, g, readFile)
 
 	err := g.ParallelStabilize(ctx)
 	testutil.ItsNil(t, err)
@@ -262,7 +262,7 @@ func Test_ParallelStabilize_always_cutoff_error(t *testing.T) {
 	readFile := Map2(ctx, filename, statfileCutoff, func(p string, mt int) string {
 		return fmt.Sprintf("%s-%d", p, mt)
 	})
-	o := Observe(g, readFile)
+	o := Observe(ctx, g, readFile)
 
 	err := g.ParallelStabilize(ctx)
 	testutil.ItsNotNil(t, err)
@@ -294,7 +294,7 @@ func Test_ParallelStabilize_recoversPanics(t *testing.T) {
 	gonnaPanic := Map(ctx, v0, func(_ string) string {
 		panic("help!")
 	})
-	_ = Observe(g, gonnaPanic)
+	_ = Observe(ctx, g, gonnaPanic)
 	err := g.ParallelStabilize(testContext())
 	testutil.ItsNotNil(t, err)
 }
@@ -311,7 +311,7 @@ func Test_ParallelStabilize_printsErrors(t *testing.T) {
 	gonnaPanic := MapContext(ctx, v0, func(_ context.Context, _ string) (string, error) {
 		return "", fmt.Errorf("this is only a test")
 	})
-	_ = Observe(g, gonnaPanic)
+	_ = Observe(ctx, g, gonnaPanic)
 
 	err := g.ParallelStabilize(ctx)
 	testutil.ItsNotNil(t, err)

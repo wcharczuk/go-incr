@@ -40,7 +40,7 @@ func main() {
 	fmt.Println("before:", c.Value())
 
 	graph := incr.New()
-	_ = incr.Observe(graph, c)
+	_ = incr.Observe(ctx, graph, c)
 
 	_ = graph.Stabilize(context.Background())
 	fmt.Println("after:", c.Value())

@@ -10,6 +10,14 @@ package incr
 func Link(child INode, inputs ...INode) {
 	for _, p := range inputs {
 		if err := DetectCycleIfLinked(child, p); err != nil {
+			if child.Node().graph != nil {
+				child.Node().graph.maybeAddObservedNode(p)
+			} else {
+				p.Node().graph.maybeAddObservedNode(child)
+			}
+			child.Node().addParents(p)
+			p.Node().addChildren(child)
+			_ = dumpDot(child.Node().graph, homedir("bind_if_cycle.png"))
 			panic(err)
 		}
 	}

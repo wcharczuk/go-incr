@@ -30,7 +30,7 @@ In order to realize the values, we need to observe nodes in a graph, and then ca
 
 ```go
 g := incr.New()
-o := incr.Observe(g, output)
+o := incr.Observe(ctx, g,output)
 if err := g.Stabilize(context.Background()); err != nil {
   // ... handle error if it comes up
 }
