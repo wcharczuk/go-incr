@@ -8,10 +8,11 @@ import (
 )
 
 func Test_Always(t *testing.T) {
-	v := Var("foo")
-	m0 := Map(v, ident)
-	a := Always(m0)
-	m1 := Map(a, ident)
+	ctx := testContext()
+	v := Var(ctx, "foo")
+	m0 := Map(ctx, v, ident)
+	a := Always(ctx, m0)
+	m1 := Map(ctx, a, ident)
 
 	a.(AlwaysIncr[string]).Always() // does nothing
 
@@ -21,7 +22,7 @@ func Test_Always(t *testing.T) {
 	})
 
 	g := New()
-	o := Observe(g, m1)
+	o := Observe(ctx, g, m1)
 
 	_ = g.Stabilize(context.TODO())
 

@@ -53,9 +53,9 @@ func concatN(_ context.Context, values ...string) string {
 }
 
 func main() {
+	ctx := context.Background()
 	naiiveVars, naiiveNodes := makeNodes()
 	var naiiveResults []time.Duration
-	ctx := context.TODO()
 	for n := 0; n < ROUNDS; n++ {
 		start := time.Now()
 		randomNode := naiiveVars[rand.Intn(len(naiiveVars))].(*Node[any, string])
@@ -66,9 +66,9 @@ func main() {
 		naiiveResults = append(naiiveResults, time.Since(start))
 	}
 
-	incrVars, incrNodes := makeIncrNodes()
+	incrVars, incrNodes := makeIncrNodes(ctx)
 	graph := incr.New()
-	incr.Observe(graph, incrNodes[0])
+	incr.Observe(ctx, graph, incrNodes[0])
 
 	var incrResults []time.Duration
 	for n := 0; n < ROUNDS; n++ {
@@ -111,11 +111,11 @@ func makeNodes() (vars []INode[string], nodes []INode[string]) {
 	return
 }
 
-func makeIncrNodes() (vars []incr.VarIncr[string], nodes []incr.Incr[string]) {
+func makeIncrNodes(ctx context.Context) (vars []incr.VarIncr[string], nodes []incr.Incr[string]) {
 	nodes = make([]incr.Incr[string], SIZE)
 	vars = make([]incr.VarIncr[string], SIZE)
 	for x := 0; x < SIZE; x++ {
-		v := incr.Var(fmt.Sprintf("var_%d", x))
+		v := incr.Var(ctx, fmt.Sprintf("var_%d", x))
 		vars[x] = v
 		nodes[x] = v
 	}
@@ -123,7 +123,7 @@ func makeIncrNodes() (vars []incr.VarIncr[string], nodes []incr.Incr[string]) {
 	var cursor int
 	for x := SIZE; x > 0; x >>= 1 {
 		for y := 0; y < x-1; y += 2 {
-			n := incr.Map2(nodes[cursor+y], nodes[cursor+y+1], func(a, b string) string {
+			n := incr.Map2(ctx, nodes[cursor+y], nodes[cursor+y+1], func(a, b string) string {
 				return concatN(nil, a, b)
 			})
 			nodes = append(nodes, n)

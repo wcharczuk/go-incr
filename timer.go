@@ -10,20 +10,15 @@ import (
 //
 // When it stabilizes, it stabilizes the input node, and assumes its
 // value in observation.
-func Timer[A any](input Incr[A], every time.Duration) TimerIncr[A] {
+func Timer[A any](ctx context.Context, input Incr[A], every time.Duration) TimerIncr[A] {
 	t := &timerIncr[A]{
 		n:           NewNode(),
 		clockSource: func(_ context.Context) time.Time { return time.Now().UTC() },
 		every:       every,
 		input:       input,
 	}
-	// a word on this!
-	// we link the timer as the parent
-	// of the input, though in practice the roles are reversed.
-	// this causes the timer to be recomputed first, adding
-	// the input to the recompute heap
 	Link(t, input)
-	return t
+	return WithBindScope(ctx, t)
 }
 
 // TimerIncr is the exported methods of a Timer.

@@ -1,13 +1,10 @@
 package incr
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"math"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -151,30 +148,30 @@ func newListWithItems(items ...INode) (l map[Identifier]*recomputeHeapItem, outp
 	return
 }
 
-func createDynamicMaps(label string) Incr[string] {
-	mapVar0 := Var(fmt.Sprintf("%s-0", label))
+func createDynamicMaps(ctx context.Context, label string) Incr[string] {
+	mapVar0 := Var(ctx, fmt.Sprintf("%s-0", label))
 	mapVar0.Node().SetLabel(fmt.Sprintf("%sv-0", label))
-	mapVar1 := Var(fmt.Sprintf("%s-1", label))
+	mapVar1 := Var(ctx, fmt.Sprintf("%s-1", label))
 	mapVar1.Node().SetLabel(fmt.Sprintf("%sv-1", label))
-	m := Map2(mapVar0, mapVar1, func(a, b string) string {
+	m := Map2(ctx, mapVar0, mapVar1, func(a, b string) string {
 		return a + "+" + b
 	})
 	m.Node().SetLabel(label)
 	return m
 }
 
-func createDynamicBind(label string, a, b Incr[string]) (VarIncr[string], BindIncr[string]) {
-	bindVar := Var("a")
+func createDynamicBind(ctx context.Context, label string, a, b Incr[string]) (VarIncr[string], BindIncr[string]) {
+	bindVar := Var(ctx, "a")
 	bindVar.Node().SetLabel(fmt.Sprintf("bind - %s - var", label))
 
-	bind := Bind(bindVar, func(which string) Incr[string] {
+	bind := Bind(ctx, bindVar, func(ctx context.Context, which string) Incr[string] {
 		if which == "a" {
-			return Map(a, func(v string) string {
+			return Map(ctx, a, func(v string) string {
 				return v + "->" + label
 			})
 		}
 		if which == "b" {
-			return Map(b, func(v string) string {
+			return Map(ctx, b, func(v string) string {
 				return v + "->" + label
 			})
 		}
@@ -182,38 +179,4 @@ func createDynamicBind(label string, a, b Incr[string]) (VarIncr[string], BindIn
 	})
 	bind.Node().SetLabel(fmt.Sprintf("bind - %s", label))
 	return bindVar, bind
-}
-
-func homedir(filename string) string {
-	return filepath.Join(os.ExpandEnv("$HOME/Desktop"), filename)
-}
-
-func dumpDot(g *Graph, path string) error {
-	if os.Getenv("INCR_DEBUG_DOT") != "true" {
-		return nil
-	}
-
-	dotContents := new(bytes.Buffer)
-	if err := Dot(dotContents, g); err != nil {
-		return err
-	}
-	dotOutput, err := os.Create(os.ExpandEnv(path))
-	if err != nil {
-		return err
-	}
-	defer func() { _ = dotOutput.Close() }()
-	dotFullPath, err := exec.LookPath("dot")
-	if err != nil {
-		return err
-	}
-
-	errOut := new(bytes.Buffer)
-	cmd := exec.Command(dotFullPath, "-Tpng")
-	cmd.Stdin = dotContents
-	cmd.Stdout = dotOutput
-	cmd.Stderr = errOut
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("%v; %w", errOut.String(), err)
-	}
-	return nil
 }

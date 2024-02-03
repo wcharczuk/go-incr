@@ -49,9 +49,10 @@ func (dg DependencyGraph[Result]) Create() (*incr.Graph, map[string]DependencyIn
 			leaves = append(leaves, packageIncrementals[d.Name])
 		}
 	}
+	ctx := context.Background()
 	graph := incr.New()
 	for _, n := range leaves {
-		_ = incr.Observe[Result](graph, n)
+		_ = incr.Observe[Result](ctx, graph, n)
 	}
 	return graph, packageIncrementals
 }
@@ -90,7 +91,7 @@ func (dg DependencyGraph[Result]) mapOnUpdate(d Dependency) func(context.Context
 }
 
 func (dg DependencyGraph[Result]) createDependencyIncr(d Dependency) DependencyIncr[Result] {
-	output := incr.MapNContext[Result, Result](dg.mapAction(d))
+	output := incr.MapNContext[Result, Result](context.Background(), dg.mapAction(d))
 	if dg.OnUpdate != nil {
 		output.Node().OnUpdate(dg.mapOnUpdate(d))
 	}

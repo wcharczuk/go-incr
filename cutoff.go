@@ -10,8 +10,8 @@ import (
 // The goal of the cutoff incremental is to stop recomputation at a given
 // node if the difference between the previous and latest values are not
 // significant enough to warrant a full recomputation of the children of this node.
-func Cutoff[A any](i Incr[A], fn CutoffFunc[A]) Incr[A] {
-	return CutoffContext[A](i, func(_ context.Context, oldv, newv A) (bool, error) {
+func Cutoff[A any](ctx context.Context, i Incr[A], fn CutoffFunc[A]) Incr[A] {
+	return CutoffContext[A](ctx, i, func(_ context.Context, oldv, newv A) (bool, error) {
 		return fn(oldv, newv), nil
 	})
 }
@@ -21,7 +21,7 @@ func Cutoff[A any](i Incr[A], fn CutoffFunc[A]) Incr[A] {
 // The goal of the cutoff incremental is to stop recomputation at a given
 // node if the difference between the previous and latest values are not
 // significant enough to warrant a full recomputation of the children of this node.
-func CutoffContext[A any](i Incr[A], fn CutoffContextFunc[A]) Incr[A] {
+func CutoffContext[A any](ctx context.Context, i Incr[A], fn CutoffContextFunc[A]) Incr[A] {
 	o := &cutoffIncr[A]{
 		n:  NewNode(),
 		i:  i,
@@ -30,7 +30,7 @@ func CutoffContext[A any](i Incr[A], fn CutoffContextFunc[A]) Incr[A] {
 	// we short circuit setup of the node cutoff reference here.
 	// this can be discovered in initialization but saves a step.
 	Link(o, i)
-	return o
+	return WithBindScope(ctx, o)
 }
 
 // CutoffFunc is a function that implements cutoff checking.

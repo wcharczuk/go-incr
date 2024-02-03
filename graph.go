@@ -211,6 +211,8 @@ func (graph *Graph) observeSingleNode(ctx context.Context, gn INode, observers .
 	if alreadyObservedByGraph {
 		return
 	}
+
+	TracePrintf(ctx, "observing node %v", gn)
 	graph.numNodes++
 	gnn.graph = graph
 	gnn.detectCutoff(gn)
@@ -488,12 +490,13 @@ func (graph *Graph) computePseudoHeight(cache map[Identifier]int, in INode) int 
 
 	var maxParentHeight int
 	var parentHeight int
-	n.parents.Each(func(p INode) {
+	parents := n.parents.Values()
+	for _, p := range parents {
 		parentHeight = graph.computePseudoHeight(cache, p)
 		if parentHeight > maxParentHeight {
 			maxParentHeight = parentHeight
 		}
-	})
+	}
 
 	var finalHeight int
 	// we do this to prevent the height

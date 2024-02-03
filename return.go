@@ -1,16 +1,19 @@
 package incr
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 // Return yields a constant incremental for a given value.
 //
 // Note that it does not implement `IStabilize` and is effectively
 // always the same value (and treated as such).
-func Return[A any](v A) Incr[A] {
-	return &returnIncr[A]{
+func Return[A any](ctx context.Context, v A) Incr[A] {
+	return WithBindScope(ctx, &returnIncr[A]{
 		n: NewNode(),
 		v: v,
-	}
+	})
 }
 
 var (

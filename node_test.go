@@ -92,9 +92,10 @@ func Test_Node_String(t *testing.T) {
 }
 
 func Test_SetStale(t *testing.T) {
+	ctx := testContext()
 	g := New()
 	n := newMockBareNode()
-	_ = Observe(g, n)
+	_ = Observe(ctx, g, n)
 	g.SetStale(n)
 
 	testutil.ItsEqual(t, 0, n.n.changedAt)
@@ -360,7 +361,7 @@ func Test_Node_recompute(t *testing.T) {
 
 	g := New()
 	var calledStabilize bool
-	m0 := MapContext(Return(""), func(ictx context.Context, _ string) (string, error) {
+	m0 := MapContext(ctx, Return(ctx, ""), func(ictx context.Context, _ string) (string, error) {
 		calledStabilize = true
 		testutil.ItsBlueDye(ictx, t)
 		return "hello", nil
@@ -368,7 +369,7 @@ func Test_Node_recompute(t *testing.T) {
 
 	p := newMockBareNode()
 	m0.Node().addParents(p)
-	_ = Observe(g, m0)
+	_ = Observe(ctx, g, m0)
 
 	var calledUpdateHandler0, calledUpdateHandler1 bool
 	m0.Node().OnUpdate(func(ictx context.Context) {
@@ -420,7 +421,7 @@ func Test_Node_stabilize_error(t *testing.T) {
 
 	g := New()
 	var calledStabilize bool
-	m0 := MapContext(Return(""), func(ictx context.Context, _ string) (string, error) {
+	m0 := MapContext(ctx, Return(ctx, ""), func(ictx context.Context, _ string) (string, error) {
 		calledStabilize = true
 		testutil.ItsBlueDye(ictx, t)
 		return "", fmt.Errorf("test error")
@@ -428,7 +429,7 @@ func Test_Node_stabilize_error(t *testing.T) {
 
 	p := newMockBareNode()
 	m0.Node().addParents(p)
-	_ = Observe(g, m0)
+	_ = Observe(ctx, g, m0)
 
 	var calledUpdateHandler0, calledUpdateHandler1 bool
 	m0.Node().OnUpdate(func(ictx context.Context) {
@@ -468,6 +469,7 @@ func Test_Node_stabilize_error(t *testing.T) {
 }
 
 func Test_nodeFormatters(t *testing.T) {
+	ctx := testContext()
 	id := NewIdentifier()
 	g := New()
 
@@ -475,25 +477,24 @@ func Test_nodeFormatters(t *testing.T) {
 		Node  INode
 		Label string
 	}{
-		{Bind[string, string](Return(""), nil), "bind"},
-		{BindIf[string](Return(false), nil), "bind_if"},
-		{Cutoff(Return(""), nil), "cutoff"},
-		{Cutoff2(Return(""), Return(""), nil), "cutoff2"},
-		{Func[string](nil), "func"},
-		{MapN[string, bool](nil), "map_n"},
-		{Map[string, bool](Return(""), nil), "map"},
-		{Map2[string, int, bool](Return(""), Return(0), nil), "map2"},
-		{Map3[string, int, float64, bool](Return(""), Return(0), Return(1.0), nil), "map3"},
-		{MapIf(Return(""), Return(""), Return(false)), "map_if"},
-		{Return(""), "return"},
-		{Watch(Return("")), "watch"},
-		{Freeze(Return("")), "freeze"},
-		{Var(""), "var"},
-		{FoldLeft(Return([]string{}), "", nil), "fold_left"},
-		{FoldRight(Return([]string{}), "", nil), "fold_right"},
-		{FoldMap(Return(map[string]int{}), "", nil), "fold_map"},
-		{Observe[string](g, Return("")), "observer"},
-		{Always[string](Return("")), "always"},
+		{Bind[string, string](ctx, Return(ctx, ""), nil), "bind"},
+		{Cutoff(ctx, Return(ctx, ""), nil), "cutoff"},
+		{Cutoff2(ctx, Return(ctx, ""), Return(ctx, ""), nil), "cutoff2"},
+		{Func[string](ctx, nil), "func"},
+		{MapN[string, bool](ctx, nil), "map_n"},
+		{Map[string, bool](ctx, Return(ctx, ""), nil), "map"},
+		{Map2[string, int, bool](ctx, Return(ctx, ""), Return(ctx, 0), nil), "map2"},
+		{Map3[string, int, float64, bool](ctx, Return(ctx, ""), Return(ctx, 0), Return(ctx, 1.0), nil), "map3"},
+		{MapIf(ctx, Return(ctx, ""), Return(ctx, ""), Return(ctx, false)), "map_if"},
+		{Return(ctx, ""), "return"},
+		{Watch(ctx, Return(ctx, "")), "watch"},
+		{Freeze(ctx, Return(ctx, "")), "freeze"},
+		{Var(ctx, ""), "var"},
+		{FoldLeft(ctx, Return(ctx, []string{}), "", nil), "fold_left"},
+		{FoldRight(ctx, Return(ctx, []string{}), "", nil), "fold_right"},
+		{FoldMap(ctx, Return(ctx, map[string]int{}), "", nil), "fold_map"},
+		{Observe(ctx, g, Return(ctx, "")), "observer"},
+		{Always(ctx, Return(ctx, "")), "always"},
 	}
 
 	for _, tc := range testCases {
