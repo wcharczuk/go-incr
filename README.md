@@ -39,6 +39,12 @@ if err := g.Stabilize(context.Background()); err != nil {
 
 `Stabilize` then does the full recomputation, with the "observer" `o` marking the graph up from the `output` map as observed.
 
+# API compatability guidelines
+
+As soon as a v1 is minted for this repo, you should assume that the major functions and types will maintain forward compatability until some future v2 necessitates changing things meaningfully. The goal will be to put off a v2 for as long as possible.
+
+A notable carveout here is the `incr.Expert...` functions, for which there are no guarantees and the API may change between refs without notice. They are expert interfaces after all!
+
 # A word on how to use this library effectively
 
 It can be tempting when looking at what this library can do to say, "We should make each operation in our process incrementally computed", and that would not be the ideal approach, specifically because making a computation incrementally computed adds overhead for each operation.
