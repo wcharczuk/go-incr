@@ -66,6 +66,7 @@ type BindIncr[A any] interface {
 
 var (
 	_ BindIncr[bool] = (*bindIncr[string, bool])(nil)
+	_ IExpertBind    = (*bindIncr[string, bool])(nil)
 	_ fmt.Stringer   = (*bindIncr[string, bool])(nil)
 )
 
@@ -86,6 +87,14 @@ func (b *bindIncr[A, B]) Value() (output B) {
 		output = b.bound.Value()
 	}
 	return
+}
+
+func (b *bindIncr[A, B]) Bound() INode {
+	return b.bound
+}
+
+func (b *bindIncr[A, B]) BindChange() INode {
+	return b.bindChange
 }
 
 func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {

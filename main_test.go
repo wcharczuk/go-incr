@@ -166,17 +166,20 @@ func createDynamicMaps(ctx context.Context, label string) Incr[string] {
 func createDynamicBind(ctx context.Context, label string, a, b Incr[string]) (VarIncr[string], BindIncr[string]) {
 	bindVar := Var(ctx, "a")
 	bindVar.Node().SetLabel(fmt.Sprintf("bind - %s - var", label))
-
 	bind := Bind(ctx, bindVar, func(ctx context.Context, which string) Incr[string] {
 		if which == "a" {
-			return Map(ctx, a, func(v string) string {
+			m := Map(ctx, a, func(v string) string {
 				return v + "->" + label
 			})
+			m.Node().SetLabel(fmt.Sprintf("bind - %s - inner map", label))
+			return m
 		}
 		if which == "b" {
-			return Map(ctx, b, func(v string) string {
+			m := Map(ctx, b, func(v string) string {
 				return v + "->" + label
 			})
+			m.Node().SetLabel(fmt.Sprintf("bind - %s - inner map", label))
+			return m
 		}
 		return nil
 	})

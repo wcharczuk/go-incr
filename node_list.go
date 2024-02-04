@@ -1,6 +1,10 @@
 package incr
 
-import "sync"
+import (
+	"fmt"
+	"strings"
+	"sync"
+)
 
 func newNodeList(nodes ...INode) *nodeList {
 	nl := &nodeList{
@@ -126,4 +130,12 @@ func (nl *nodeList) Values() (out []INode) {
 		out = append(out, n)
 	}
 	return
+}
+
+func (nl *nodeList) String() string {
+	nodes := make([]string, 0, len(nl.list))
+	for _, n := range nl.list {
+		nodes = append(nodes, fmt.Sprint(n))
+	}
+	return strings.Join(nodes, ", ")
 }

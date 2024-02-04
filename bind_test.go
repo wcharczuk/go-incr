@@ -52,11 +52,18 @@ func Test_Bind_basic(t *testing.T) {
 	o := Map2(ctx, bind, s1, concat)
 	o.Node().SetLabel("o")
 
+	// we shouldn't have bind internals set up on construction
+	testutil.ItsNil(t, ExpertBind(bind).BindChange())
+	testutil.ItsNil(t, ExpertBind(bind).Bound())
+
 	g := New()
 	_ = Observe(ctx, g, o)
 
-	var err error
+	// we shouldn't have bind internals set up after observation either
+	testutil.ItsNil(t, ExpertBind(bind).BindChange())
+	testutil.ItsNil(t, ExpertBind(bind).Bound())
 
+	var err error
 	testutil.ItsEqual(t, 1, bindVar.Node().height)
 	testutil.ItsEqual(t, 1, s0.Node().height)
 	testutil.ItsEqual(t, 2, s1.Node().height)
@@ -84,6 +91,15 @@ func Test_Bind_basic(t *testing.T) {
 
 	err = dumpDot(g, homedir("bind_basic_00.png"))
 	testutil.ItsNil(t, err)
+
+	// we _should_ have bind internals set up after stabilization
+	testutil.ItsNotNil(t, ExpertBind(bind).BindChange())
+	testutil.ItsNotNil(t, ExpertBind(bind).Bound())
+
+	bindChange := ExpertBind(bind).BindChange()
+	testutil.ItsEqual(t, true, bindChange.Node().HasParent(bindVar.Node().ID()))
+	testutil.ItsEqual(t, true, bindChange.Node().HasChild(a1.Node().ID()))
+	testutil.ItsEqual(t, false, bindChange.Node().HasChild(b1.Node().ID()))
 
 	testutil.ItsEqual(t, 1, bind.Node().boundAt)
 	testutil.ItsEqual(t, 1, bind.Node().changedAt)
@@ -123,6 +139,14 @@ func Test_Bind_basic(t *testing.T) {
 	err = g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 
+	err = dumpDot(g, homedir("bind_basic_01.png"))
+	testutil.ItsNil(t, err)
+
+	bindChange = ExpertBind(bind).BindChange()
+	testutil.ItsEqual(t, true, bindChange.Node().HasParent(bindVar.Node().ID()))
+	testutil.ItsEqual(t, false, bindChange.Node().HasChild(a1.Node().ID()))
+	testutil.ItsEqual(t, true, bindChange.Node().HasChild(b2.Node().ID()))
+
 	testutil.ItsEqual(t, 1, bindVar.Node().height)
 	testutil.ItsEqual(t, 1, s0.Node().height)
 	testutil.ItsEqual(t, 2, s1.Node().height)
@@ -161,6 +185,12 @@ func Test_Bind_basic(t *testing.T) {
 	bindVar.Set("neither")
 	err = g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
+
+	err = dumpDot(g, homedir("bind_basic_02.png"))
+	testutil.ItsNil(t, err)
+
+	bindChange = ExpertBind(bind).BindChange()
+	testutil.ItsNil(t, bindChange)
 
 	testutil.ItsEqual(t, 1, bindVar.Node().height)
 	testutil.ItsEqual(t, 1, s0.Node().height)
@@ -220,10 +250,16 @@ func Test_Bind_scopes(t *testing.T) {
 
 	t1 := Map(ctx, Return(ctx, "t1"), mapAppend("-mapped"))
 	t1.Node().SetLabel("t1")
+
+	var rt3id, t3id, rid Identifier
 	t2 := Bind(ctx, Return(ctx, "t2"), func(ctx context.Context, _ string) Incr[string] {
-		t3 := Map(ctx, Return(ctx, "t3"), mapAppend("-mapped"))
+		rt3 := Return(ctx, "t3")
+		rt3id = rt3.Node().ID()
+		t3 := Map(ctx, rt3, mapAppend("-mapped"))
 		t3.Node().SetLabel("t3")
+		t3id = t3.Node().ID()
 		r := Map2(ctx, t1, t3, concat)
+		rid = r.Node().ID()
 		return r
 	})
 	t2.Node().SetLabel("t2")
@@ -234,10 +270,25 @@ func Test_Bind_scopes(t *testing.T) {
 	err := g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 	testutil.ItsEqual(t, "t1-mappedt3-mapped", o.Value())
-	testutil.ItsNil(t, t1.Node().createdIn, "t1 should have an empty scope list as it was created outside a bind")
+	testutil.ItsNil(t, t1.Node().createdIn, "t1 should have an unset created_in as it was created outside a bind")
+
+	scope := t2.(*bindIncr[string, string]).scope
+	testutil.ItsNotNil(t, scope)
+
+	testutil.ItsEqual(t, t2.Node().ID(), scope.bind.Node().ID())
+
+	testutil.ItsEqual(t, 3, scope.rhsNodes.Len(), scope.rhsNodes.String())
+	testutil.ItsEqual(t, true, scope.rhsNodes.HasKey(rt3id))
+	testutil.ItsEqual(t, true, scope.rhsNodes.HasKey(t3id))
+	testutil.ItsEqual(t, true, scope.rhsNodes.HasKey(rid))
 }
 
 func Test_Bind_rebind(t *testing.T) {
+	/*
+		The goal here is to stress the narrow case that
+		if you stabilize a bind twice, but the returned rhs
+		is the same, nothing really should happen.
+	*/
 	ctx := testContext()
 
 	bindVar := Var(ctx, "a")
@@ -337,9 +388,13 @@ func Test_Bind_nested(t *testing.T) {
 
 	a0 := createDynamicMaps(ctx, "a0")
 	a1 := createDynamicMaps(ctx, "a1")
+
 	bv, b := createDynamicBind(ctx, "b", a0, a1)
 	cv, c := createDynamicBind(ctx, "c", a0, b)
-	final := Map2(ctx, c, Return(ctx, "final"), func(a, b string) string {
+
+	rfinal := Return(ctx, "final")
+	rfinal.Node().SetLabel("return - final")
+	final := Map2(ctx, c, rfinal, func(a, b string) string {
 		return a + "->" + b
 	})
 	final.Node().SetLabel("final")
@@ -610,12 +665,12 @@ func makeRegressionGraph(ctx context.Context) (*Graph, ObserveIncr[*int]) {
 	f = func(ctx context.Context, t int) Incr[*int] {
 		key := fmt.Sprintf("f-%d", t)
 		if cached, ok := cache[key]; ok {
-			return cached
+			return WithinBindScope(ctx, cached)
 		}
 		r := Bind(ctx, fakeFormula, func(ctx context.Context, formula string) Incr[*int] {
 			key := fmt.Sprintf("map-f-%d", t)
 			if cached, ok := cache[key]; ok {
-				return cached
+				return WithinBindScope(ctx, cached)
 			}
 			if t == 0 {
 				out := 0
@@ -639,7 +694,7 @@ func makeRegressionGraph(ctx context.Context) (*Graph, ObserveIncr[*int]) {
 	g := func(ctx context.Context, t int) Incr[*int] {
 		key := fmt.Sprintf("g-%d", t)
 		if cached, ok := cache[key]; ok {
-			return cached
+			return WithinBindScope(ctx, cached)
 		}
 		r := Bind(ctx, fakeFormula, func(ctx context.Context, formula string) Incr[*int] {
 			output := f(ctx, t)
