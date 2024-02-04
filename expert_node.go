@@ -33,6 +33,17 @@ type IExpertNode interface {
 	RemoveChild(Identifier)
 	RemoveParent(Identifier)
 
+	// ComputePseudoHeight walks the node graph up from a given node
+	// computing the height of the node in-respect to its full graph.
+	//
+	// This is in contrast to how the node's height is calculated during
+	// computation, which is only when it is linked or bound, and only
+	// in respect to its immediate parents.
+	//
+	// This method is useful in advanced scenarios where you may be
+	// rebuilding a graph from scratch dynamically.
+	ComputePseudoHeight() int
+
 	// Value returns the underlying value of the node
 	// as an untyped `interface{}` for use in debugging.
 	Value() any
@@ -109,4 +120,25 @@ func (en *expertNode) Value() any {
 		return res[0].Interface()
 	}
 	return nil
+}
+
+func (en *expertNode) ComputePseudoHeight() int {
+	return en.computePseudoHeightCached(make(map[Identifier]int), en.incr)
+}
+
+func (en *expertNode) computePseudoHeightCached(cache map[Identifier]int, n INode) int {
+	nn := n.Node()
+	if height, ok := cache[nn.ID()]; ok {
+		return height
+	}
+
+	maxParentHeight := maxHeightOf(nn.Parents()...)
+	var finalHeight int
+	if nn.height > maxParentHeight {
+		finalHeight = nn.height
+	} else {
+		finalHeight = maxParentHeight + 1
+	}
+	cache[nn.ID()] = finalHeight
+	return finalHeight
 }

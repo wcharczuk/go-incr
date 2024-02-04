@@ -83,3 +83,28 @@ func Test_ExpertNode_Value(t *testing.T) {
 	value := en.Value()
 	testutil.ItsEqual(t, "hello", value)
 }
+
+func Test_ExperNode_ComputePseudoHeight(t *testing.T) {
+	a00 := newMockBareNode()
+	a01 := newMockBareNode()
+	a10 := newMockBareNode()
+	a20 := newMockBareNode()
+	a21 := newMockBareNode()
+
+	Link(a10, a00, a01)
+	Link(a20, a10)
+	Link(a21, a10)
+
+	b00 := newMockBareNode()
+	b01 := newMockBareNode()
+	b10 := newMockBareNode()
+	b20 := newMockBareNode()
+	b21 := newMockBareNode()
+
+	Link(b10, b00, b01)
+	Link(b20, b10)
+	Link(b21, b10)
+	Link(b00, a20)
+
+	testutil.ItsEqual(t, 6, ExpertNode(b21).ComputePseudoHeight())
+}

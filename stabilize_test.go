@@ -1087,9 +1087,9 @@ func Test_Stabilize_MapN_AddInput(t *testing.T) {
 	c1 := Return(ctx, 2)
 	c2 := Return(ctx, 3)
 	mn := MapN(ctx, sum)
-	mn.AddInput(ctx, c0)
-	mn.AddInput(ctx, c1)
-	mn.AddInput(ctx, c2)
+	_ = mn.AddInput(ctx, c0)
+	_ = mn.AddInput(ctx, c1)
+	_ = mn.AddInput(ctx, c2)
 
 	graph := New()
 	_ = Observe(ctx, graph, mn)
