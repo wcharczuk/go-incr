@@ -6,12 +6,16 @@ import (
 
 // ExpertNode returns an "expert" interface to interact with nodes.
 //
-// USE AT YOUR OWN RISK.
+// Note there are no compatibility guarantees on this interface
+// and you should use this interface at your own caution.
 func ExpertNode(in INode) IExpertNode {
 	return &expertNode{incr: in, node: in.Node()}
 }
 
 // IExpertNode is an expert interface for nodes.
+//
+// Note there are no compatibility guarantees on this interface
+// and you should use this interface at your own caution.
 type IExpertNode interface {
 	Graph() *Graph
 	SetID(Identifier)

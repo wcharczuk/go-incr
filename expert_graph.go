@@ -5,7 +5,8 @@ import "context"
 // ExpertGraph returns an "expert" interface to modify
 // internal fields of the graph type.
 //
-// USE AT YOUR OWN RISK.
+// Note there are no compatibility guarantees on this interface
+// and you should use this interface at your own caution.
 func ExpertGraph(g *Graph) IExpertGraph {
 	return &expertGraph{graph: g}
 }
@@ -13,6 +14,9 @@ func ExpertGraph(g *Graph) IExpertGraph {
 // IExpertGraph is an interface to allow you to manage
 // internal fields of a graph (this is useful if you're
 // deserializing the graph from a durable store).
+//
+// Note there are no compatibility guarantees on this interface
+// and you should use this interface at your own caution.
 type IExpertGraph interface {
 	SetID(Identifier)
 	NumNodes() uint64
