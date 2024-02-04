@@ -75,7 +75,11 @@ func Dot(wr io.Writer, g *Graph) (err error) {
 }
 
 func homedir(filename string) string {
-	return filepath.Join(os.ExpandEnv("$HOME/Desktop"), filename)
+	var rootDir string
+	if rootDir = os.Getenv("INCR_DEBUG_DOT_ROOT"); rootDir == "" {
+		rootDir = os.ExpandEnv("$HOME/Desktop")
+	}
+	return filepath.Join(rootDir, filename)
 }
 
 func dumpDot(g *Graph, path string) error {
