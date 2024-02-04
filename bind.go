@@ -98,11 +98,15 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 		if b.bound.Node().id != newIncr.Node().id {
 			bindChanged = true
 			b.unlinkOld(ctx)
-			b.linkNew(ctx, newIncr)
+			if err := b.linkNew(ctx, newIncr); err != nil {
+				return err
+			}
 		}
 	} else if newIncr != nil {
 		bindChanged = true
-		b.linkNew(ctx, newIncr)
+		if err := b.linkNew(ctx, newIncr); err != nil {
+			return err
+		}
 	} else if b.bindChange != nil {
 		bindChanged = true
 		b.unlinkOld(ctx)
@@ -119,29 +123,35 @@ func (b *bindIncr[A, B]) Unobserve(ctx context.Context) {
 	b.unlinkOld(ctx)
 }
 
-func (b *bindIncr[A, B]) Link(ctx context.Context) {
+func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
 	if b.bound != nil {
 		children := b.n.Children()
 		for _, c := range children {
-			Link(c, b.bound)
-		}
-		for _, c := range children {
-			b.n.graph.recomputeHeights(c)
+			if err = link(c, true /*detectCycles*/, b.bound); err != nil {
+				return
+			}
 		}
 		for _, n := range b.scope.rhsNodes.list {
 			if typed, ok := n.(IBind); ok {
 				TracePrintf(ctx, "%v propagating bind link to %v", b, n)
-				typed.Link(ctx)
+				if err = typed.Link(ctx); err != nil {
+					return
+				}
 			}
 		}
+		propagateHeightChange(b.bound)
+		for _, c := range children {
+			propagateHeightChange(c)
+		}
 	}
+	return
 }
 
 func (b *bindIncr[A, B]) Unlink(ctx context.Context) {
 	b.unlinkOld(ctx)
 }
 
-func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) {
+func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) error {
 	b.bindChange = &bindChangeIncr[A, B]{
 		n:   NewNode(),
 		lhs: b.input,
@@ -150,29 +160,43 @@ func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) {
 	if b.n.label != "" {
 		b.bindChange.n.SetLabel(fmt.Sprintf("%s-change", b.n.label))
 	}
-	Link(b.bindChange, b.input)
-	Link(b.bound, b.bindChange)
+	if err := link(b.bindChange, true /*detectCycles*/, b.input); err != nil {
+		return err
+	}
+	if err := link(b.bound, true /*detectCycles*/, b.bindChange); err != nil {
+		return err
+	}
 	b.n.graph.observeSingleNode(ctx, b.bindChange, b.n.Observers()...)
+	return nil
 }
 
-func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) {
+func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) error {
 	b.bound = newIncr
-	b.linkBindChange(ctx)
+	if err := b.linkBindChange(ctx); err != nil {
+		return err
+	}
 	children := b.n.Children()
 	for _, c := range children {
-		Link(c, b.bound)
+		if err := link(c, true /*detectCycles*/, b.bound); err != nil {
+			return err
+		}
 	}
 	b.n.graph.observeNodes(ctx, b.bound, b.n.Observers()...)
-	for _, c := range children {
-		b.n.graph.recomputeHeights(c)
-	}
 	for _, n := range b.scope.rhsNodes.list {
 		if typed, ok := n.(IBind); ok {
 			TracePrintf(ctx, "%v propagating bind link to %v", b, typed)
-			typed.Link(ctx)
+			if err := typed.Link(ctx); err != nil {
+				return err
+			}
 		}
 	}
+
+	propagateHeightChange(b.bound)
+	for _, c := range children {
+		propagateHeightChange(c)
+	}
 	TracePrintf(ctx, "%v bound new rhs %v", b, b.bound)
+	return nil
 }
 
 func (b *bindIncr[A, B]) unlinkBindChange(ctx context.Context) {
@@ -201,6 +225,7 @@ func (b *bindIncr[A, B]) removeNodesFromScope(ctx context.Context, scope *bindSc
 	for _, n := range rhsNodes {
 		n.Node().createdIn = nil
 		if typed, ok := n.(IBind); ok {
+			TracePrintf(ctx, "%v propagating bind unlink to %v", b, typed)
 			typed.Unlink(ctx)
 		}
 	}

@@ -6,33 +6,6 @@ import (
 	"github.com/wcharczuk/go-incr/testutil"
 )
 
-func Test_DetectCycle(t *testing.T) {
-	ctx := testContext()
-	n00 := MapN[any, any](ctx, identMany)
-	n01 := MapN[any, any](ctx, identMany)
-	n02 := MapN[any, any](ctx, identMany)
-	n03 := MapN[any, any](ctx, identMany)
-	n10 := MapN[any, any](ctx, identMany)
-	n11 := MapN[any, any](ctx, identMany)
-	n12 := MapN[any, any](ctx, identMany)
-	n13 := MapN[any, any](ctx, identMany)
-
-	n01.AddInput(n00)
-	n02.AddInput(n01)
-	n03.AddInput(n02)
-	n10.AddInput(n02)
-	n11.AddInput(n10)
-	n12.AddInput(n11)
-	n13.AddInput(n12)
-	n10.AddInput(n12)
-
-	err := DetectCycle(n10)
-	testutil.ItsNotNil(t, err)
-
-	err = DetectCycle(n02)
-	testutil.ItsNil(t, err)
-}
-
 func Test_DetectCycleIfLinked(t *testing.T) {
 	ctx := testContext()
 	n0 := MapN[any, any](ctx, identMany)
@@ -44,14 +17,20 @@ func Test_DetectCycleIfLinked(t *testing.T) {
 	n12 := MapN[any, any](ctx, identMany)
 	n13 := MapN[any, any](ctx, identMany)
 
-	n01.AddInput(n0)
-	n02.AddInput(n01)
-	n03.AddInput(n02)
-	n1.AddInput(n02)
-	n11.AddInput(n1)
-	n12.AddInput(n11)
-
 	var err error
+	err = n01.AddInput(ctx, n0)
+	testutil.ItsNil(t, err)
+	err = n02.AddInput(ctx, n01)
+	testutil.ItsNil(t, err)
+	err = n03.AddInput(ctx, n02)
+	testutil.ItsNil(t, err)
+	err = n1.AddInput(ctx, n02)
+	testutil.ItsNil(t, err)
+	err = n11.AddInput(ctx, n1)
+	testutil.ItsNil(t, err)
+	err = n12.AddInput(ctx, n11)
+	testutil.ItsNil(t, err)
+
 	err = DetectCycleIfLinked(n13, n12)
 	testutil.ItsNil(t, err)
 
@@ -66,38 +45,50 @@ func detectCycleNode(label string) MapNIncr[any, any] {
 }
 
 func Test_DetectCycleIfLinked_complex(t *testing.T) {
+	ctx := testContext()
 	n0 := detectCycleNode("n0")
 	n1 := detectCycleNode("n1")
 	n2 := detectCycleNode("n2")
 
-	n1.AddInput(n0)
-	n2.AddInput(n1)
+	var err error
+	err = n1.AddInput(ctx, n0)
+	testutil.ItsNil(t, err)
+	err = n2.AddInput(ctx, n1)
+	testutil.ItsNil(t, err)
 
 	n01 := detectCycleNode("n01")
 	n02 := detectCycleNode("n02")
 
-	n01.AddInput(n2)
-	n02.AddInput(n01)
+	err = n01.AddInput(ctx, n2)
+	testutil.ItsNil(t, err)
+	err = n02.AddInput(ctx, n01)
+	testutil.ItsNil(t, err)
 
 	n11 := detectCycleNode("n11")
 	n12 := detectCycleNode("n12")
 	n13 := detectCycleNode("n13")
 
-	n11.AddInput(n01)
-	n12.AddInput(n11)
-	n13.AddInput(n12)
+	err = n11.AddInput(ctx, n01)
+	testutil.ItsNil(t, err)
+	err = n12.AddInput(ctx, n11)
+	testutil.ItsNil(t, err)
+	err = n13.AddInput(ctx, n12)
+	testutil.ItsNil(t, err)
 
 	n21 := detectCycleNode("n21")
 	n22 := detectCycleNode("n22")
 	n23 := detectCycleNode("n23")
 	n24 := detectCycleNode("n24")
 
-	n21.AddInput(n11)
-	n22.AddInput(n21)
-	n23.AddInput(n22)
-	n24.AddInput(n23)
+	err = n21.AddInput(ctx, n11)
+	testutil.ItsNil(t, err)
+	err = n22.AddInput(ctx, n21)
+	testutil.ItsNil(t, err)
+	err = n23.AddInput(ctx, n22)
+	testutil.ItsNil(t, err)
+	err = n24.AddInput(ctx, n23)
+	testutil.ItsNil(t, err)
 
-	var err error
 	err = DetectCycleIfLinked(n2, n02)
 	testutil.ItsNotNil(t, err)
 
@@ -115,6 +106,7 @@ func Test_DetectCycleIfLinked_complex(t *testing.T) {
 }
 
 func Test_DetectCycleIfLinked_complex2(t *testing.T) {
+	ctx := testContext()
 	n0 := detectCycleNode("n0")
 	n10 := detectCycleNode("n10")
 	n11 := detectCycleNode("n11")
@@ -122,13 +114,19 @@ func Test_DetectCycleIfLinked_complex2(t *testing.T) {
 	n21 := detectCycleNode("n21")
 	n22 := detectCycleNode("n22")
 
-	n10.AddInput(n0)
-	n11.AddInput(n10)
-	n12.AddInput(n11)
-	n21.AddInput(n11)
-	n22.AddInput(n21)
+	var err error
+	err = n10.AddInput(ctx, n0)
+	testutil.ItsNil(t, err)
+	err = n11.AddInput(ctx, n10)
+	testutil.ItsNil(t, err)
+	err = n12.AddInput(ctx, n11)
+	testutil.ItsNil(t, err)
+	err = n21.AddInput(ctx, n11)
+	testutil.ItsNil(t, err)
+	err = n22.AddInput(ctx, n21)
+	testutil.ItsNil(t, err)
 
-	err := DetectCycleIfLinked(n10, n22)
+	err = DetectCycleIfLinked(n10, n22)
 	testutil.ItsNotNil(t, err)
 }
 
@@ -142,12 +140,14 @@ func Test_DetectCycleIfLinked_2(t *testing.T) {
 
 	err := DetectCycleIfLinked(n0, n0)
 	testutil.ItsNotNil(t, err)
-	n1.AddInput(n0)
+	err = n1.AddInput(ctx, n0)
+	testutil.ItsNil(t, err)
 
 	err = DetectCycleIfLinked(n2, n1)
 	testutil.ItsNil(t, err)
 
-	n2.AddInput(n1)
+	err = n2.AddInput(ctx, n1)
+	testutil.ItsNil(t, err)
 
 	err = DetectCycleIfLinked(n0, n2)
 	testutil.ItsNotNil(t, err)

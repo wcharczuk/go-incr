@@ -8,13 +8,13 @@ import (
 
 // DiffSliceByIndicesAdded diffs a slice between stabilizations, yielding an
 // incremental that is just the added elements per pass.
-func DiffSliceByIndicesAdded[T any](i incr.Incr[[]T]) incr.Incr[[]T] {
+func DiffSliceByIndicesAdded[T any](ctx context.Context, i incr.Incr[[]T]) incr.Incr[[]T] {
 	o := &diffSliceByIndicesAddedIncr[T]{
 		n: incr.NewNode(),
 		i: i,
 	}
 	incr.Link(o, i)
-	return o
+	return incr.WithinBindScope(ctx, o)
 }
 
 type diffSliceByIndicesAddedIncr[T any] struct {

@@ -26,7 +26,7 @@ type Dependency struct {
 
 // Create walks the dependency graph and returns the "leaves" of the graph, or the nodes that
 // are not depended on by any other nodes.
-func (dg DependencyGraph[Result]) Create() (*incr.Graph, map[string]DependencyIncr[Result]) {
+func (dg DependencyGraph[Result]) Create(ctx context.Context) (*incr.Graph, map[string]DependencyIncr[Result], error) {
 	dependencyLookup := dg.createDependencyLookup()
 
 	// build "dependedBy" list(s)
@@ -39,7 +39,10 @@ func (dg DependencyGraph[Result]) Create() (*incr.Graph, map[string]DependencyIn
 	// build package incrementals
 	// including the relationships between the
 	// packages and their dependencies.
-	packageIncrementals := dg.createDependencyIncrLookup()
+	packageIncrementals, err := dg.createDependencyIncrLookup(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// build "leaves" list by filtering for
 	// nodes with zero "dependedBy" entries
@@ -49,12 +52,11 @@ func (dg DependencyGraph[Result]) Create() (*incr.Graph, map[string]DependencyIn
 			leaves = append(leaves, packageIncrementals[d.Name])
 		}
 	}
-	ctx := context.Background()
 	graph := incr.New()
 	for _, n := range leaves {
 		_ = incr.Observe[Result](ctx, graph, n)
 	}
-	return graph, packageIncrementals
+	return graph, packageIncrementals, nil
 }
 
 func (dg DependencyGraph[Result]) createDependencyLookup() (output map[string]*dependencyWithDependedBy) {
@@ -65,14 +67,16 @@ func (dg DependencyGraph[Result]) createDependencyLookup() (output map[string]*d
 	return
 }
 
-func (dg DependencyGraph[Result]) createDependencyIncrLookup() (output map[string]DependencyIncr[Result]) {
+func (dg DependencyGraph[Result]) createDependencyIncrLookup(ctx context.Context) (output map[string]DependencyIncr[Result], err error) {
 	output = make(map[string]DependencyIncr[Result])
 	for _, d := range dg.Dependencies {
 		output[d.Name] = dg.createDependencyIncr(d)
 	}
 	for _, p := range dg.Dependencies {
 		for _, d := range p.DependsOn {
-			output[p.Name].AddInput(output[d])
+			if err = output[p.Name].AddInput(ctx, output[d]); err != nil {
+				return
+			}
 		}
 	}
 	return

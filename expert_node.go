@@ -1,6 +1,8 @@
 package incr
 
-import "reflect"
+import (
+	"reflect"
+)
 
 // ExpertNode returns an "expert" interface to interact with nodes.
 //
@@ -30,8 +32,6 @@ type IExpertNode interface {
 	AddParents(...INode)
 	RemoveChild(Identifier)
 	RemoveParent(Identifier)
-
-	ComputePseudoHeight() int
 
 	// Value returns the underlying value of the node
 	// as an untyped `interface{}` for use in debugging.
@@ -99,10 +99,6 @@ func (en *expertNode) RemoveChild(id Identifier) {
 
 func (en *expertNode) RemoveParent(id Identifier) {
 	en.node.removeParent(id)
-}
-
-func (en *expertNode) ComputePseudoHeight() int {
-	return en.node.graph.computePseudoHeight(map[Identifier]int{}, en.incr)
 }
 
 func (en *expertNode) Value() any {

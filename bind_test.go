@@ -357,6 +357,9 @@ func Test_Bind_nested(t *testing.T) {
 	cv.Set("b")
 	_ = g.Stabilize(ctx)
 
+	err = dumpDot(g, homedir("bind_nested_01.png"))
+	testutil.ItsNil(t, err)
+
 	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
 	testutil.ItsEqual(t, "a0-0+a0-1->b->c->final", o.Value())
 

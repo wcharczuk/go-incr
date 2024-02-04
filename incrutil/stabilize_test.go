@@ -21,7 +21,7 @@ func Test_Stabilize_diffMapByKeysAdded(t *testing.T) {
 	}
 
 	mv := incr.Var(ctx, m)
-	mda := DiffMapByKeysAdded(mv)
+	mda := DiffMapByKeysAdded(ctx, mv)
 	mf := incr.FoldMap(ctx, mda, 0, func(key string, val, accum int) int {
 		return accum + val
 	})
@@ -61,7 +61,7 @@ func Test_Stabilize_diffMapByKeysRemoved(t *testing.T) {
 	}
 
 	mv := incr.Var(ctx, m)
-	mdr := DiffMapByKeysRemoved(mv)
+	mdr := DiffMapByKeysRemoved(ctx, mv)
 	mf := incr.FoldMap(ctx, mdr, 0, func(key string, val, accum int) int {
 		return accum + val
 	})
@@ -94,7 +94,7 @@ func Test_Stabilize_diffMapByKeys(t *testing.T) {
 	}
 
 	mv := incr.Var(ctx, m)
-	mda, mdr := DiffMapByKeys(mv)
+	mda, mdr := DiffMapByKeys(ctx, mv)
 	mfa := incr.FoldMap(ctx, mda, 0, func(key string, val, accum int) int {
 		return accum + val
 	})
@@ -136,7 +136,7 @@ func Test_Stabilize_diffSlice(t *testing.T) {
 		6,
 	}
 	mv := incr.Var(ctx, m)
-	mf := incr.FoldLeft(ctx, DiffSliceByIndicesAdded(mv), "", func(accum string, val int) string {
+	mf := incr.FoldLeft(ctx, DiffSliceByIndicesAdded(ctx, mv), "", func(accum string, val int) string {
 		return accum + fmt.Sprint(val)
 	})
 

@@ -68,7 +68,6 @@ func Dot(wr io.Writer, g *Graph) (err error) {
 			if ok {
 				writef(1, "%s -> %s;", nodeLabel, childLabel)
 			}
-			return
 		})
 	}
 	writef(0, "}")
@@ -76,7 +75,7 @@ func Dot(wr io.Writer, g *Graph) (err error) {
 }
 
 func homedir(filename string) string {
-	return filepath.Join(os.ExpandEnv("$HOME/Desktop"), filename)
+	return filepath.Join(os.ExpandEnv("/mnt/c/Users/wcharczuk/Desktop"), filename)
 }
 
 func dumpDot(g *Graph, path string) error {

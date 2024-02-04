@@ -200,7 +200,6 @@ func (graph *Graph) observeNodes(ctx context.Context, gn INode, observers ...IOb
 	for _, p := range parents {
 		graph.observeNodes(ctx, p, observers...)
 	}
-	return
 }
 
 func (graph *Graph) observeSingleNode(ctx context.Context, gn INode, observers ...IObserver) {
@@ -218,7 +217,6 @@ func (graph *Graph) observeSingleNode(ctx context.Context, gn INode, observers .
 	gnn.detectCutoff(gn)
 	gnn.detectAlways(gn)
 	gnn.detectStabilize(gn)
-	gnn.height = graph.computePseudoHeight(make(map[Identifier]int), gn)
 	if gnn.ShouldRecompute() {
 		graph.recomputeHeap.Add(gn)
 	}
@@ -293,7 +291,6 @@ func (graph *Graph) addObserver(ctx context.Context, on IObserver) {
 	}
 	onn.detectStabilize(on)
 	graph.observers[onn.id] = on
-	onn.height = graph.computePseudoHeight(make(map[Identifier]int), on)
 }
 
 func (graph *Graph) removeObserver(ctx context.Context, on IObserver) {
@@ -457,57 +454,4 @@ func (graph *Graph) fixAdjustHeightsList() {
 			graph.recomputeHeap.fixUnsafe(n.Node().id)
 		})
 	}
-}
-
-func (graph *Graph) recomputeHeights(in INode) {
-	graph.recomputeHeightsCached(make(map[Identifier]int), in)
-}
-
-func (graph *Graph) recomputeHeightsCached(cache map[Identifier]int, in INode) {
-	n := in.Node()
-	oldHeight := n.height
-	n.height = graph.computePseudoHeight(cache, in)
-
-	// we use `each` here to prevent iterating
-	// over the list twice, and we should only ever
-	// see a node (1) time, so this _shouldnt_ deadlock.
-	n.children.Each(func(c INode) {
-		graph.recomputeHeightsCached(cache, c)
-	})
-	if oldHeight != n.height {
-		graph.adjustHeightsList.Push(in)
-	}
-}
-
-// computePseudoHeightCached calculates the nodes height in respect to its parents.
-func (graph *Graph) computePseudoHeight(cache map[Identifier]int, in INode) int {
-	n := in.Node()
-	if height, ok := cache[n.id]; ok {
-		return height
-	}
-
-	n.numComputePseudoheights++
-
-	var maxParentHeight int
-	var parentHeight int
-	parents := n.parents.Values()
-	for _, p := range parents {
-		parentHeight = graph.computePseudoHeight(cache, p)
-		if parentHeight > maxParentHeight {
-			maxParentHeight = parentHeight
-		}
-	}
-
-	var finalHeight int
-	// we do this to prevent the height
-	// changing a bunch with bind nodes.
-	// basically just stick with the overall maximum
-	// height the node has seen ever.
-	if n.height > maxParentHeight {
-		finalHeight = n.height
-	} else {
-		finalHeight = maxParentHeight + 1
-	}
-	cache[n.id] = finalHeight
-	return finalHeight
 }

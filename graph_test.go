@@ -130,53 +130,6 @@ func Test_Graph_IsStabilizing(t *testing.T) {
 	testutil.ItsEqual(t, false, g.IsStabilizing())
 }
 
-func Test_Graph_recomputeHeights(t *testing.T) {
-	g := New()
-
-	n0 := emptyNode{NewNode()}
-	n1 := emptyNode{NewNode()}
-	n2 := emptyNode{NewNode()}
-	n3 := emptyNode{NewNode()}
-
-	Link(n1, n0)
-	Link(n2, n1)
-	Link(n3, n2)
-
-	g.recomputeHeights(n1)
-
-	testutil.ItsEqual(t, 0, n0.n.height)
-	testutil.ItsEqual(t, 2, n1.n.height)
-	testutil.ItsEqual(t, 3, n2.n.height)
-	testutil.ItsEqual(t, 4, n3.n.height)
-
-	testutil.ItsEqual(t, 1, n0.n.numComputePseudoheights)
-	testutil.ItsEqual(t, 1, n1.n.numComputePseudoheights)
-	testutil.ItsEqual(t, 1, n2.n.numComputePseudoheights)
-	testutil.ItsEqual(t, 1, n3.n.numComputePseudoheights)
-}
-
-func Test_Graph_recomputeHeights_observed(t *testing.T) {
-	ctx := testContext()
-	g := New()
-
-	v0 := Var(ctx, "a")
-	m0 := Map(ctx, v0, ident)
-	o0 := Observe(ctx, g, m0)
-
-	m1 := Map(ctx, m0, ident)
-	m2 := Map(ctx, m1, ident)
-	o1 := Observe(ctx, g, m2)
-
-	m0.Node().height = 1
-	g.recomputeHeights(m0)
-
-	err := g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-
-	testutil.ItsEqual(t, "a", o0.Value())
-	testutil.ItsEqual(t, "a", o1.Value())
-}
-
 func Test_Graph_addObserver_rediscover(t *testing.T) {
 	ctx := testContext()
 	g := New()
@@ -204,27 +157,4 @@ func Test_Graph_recompute_nilNodeMetadata(t *testing.T) {
 	n.n = nil
 	err := g.recompute(testContext(), n)
 	testutil.ItsNotNil(t, err)
-}
-
-func Test_Node_computePseudoHeight(t *testing.T) {
-	c010 := newMockBareNode()
-	c10 := newMockBareNode()
-	c00 := newMockBareNode()
-	c01 := newMockBareNode()
-	c0 := newMockBareNode()
-	c1 := newMockBareNode()
-	c2 := newMockBareNode()
-	p := newMockBareNode()
-
-	Link(c01, c010)
-	Link(c0, c00, c01)
-	Link(c1, c10)
-	Link(p, c0, c1, c2)
-
-	graph := New()
-
-	testutil.ItsEqual(t, 4, graph.computePseudoHeight(make(map[Identifier]int), p))
-	testutil.ItsEqual(t, 3, graph.computePseudoHeight(make(map[Identifier]int), c0))
-	testutil.ItsEqual(t, 2, graph.computePseudoHeight(make(map[Identifier]int), c1))
-	testutil.ItsEqual(t, 1, graph.computePseudoHeight(make(map[Identifier]int), c2))
 }

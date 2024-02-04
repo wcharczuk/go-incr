@@ -80,7 +80,7 @@ func main() {
 	data := make(map[incr.Identifier]Order)
 	dataInput := incr.Var(ctx, data)
 
-	dataInputAdds := incrutil.DiffMapByKeysAdded(dataInput)
+	dataInputAdds := incrutil.DiffMapByKeysAdded(ctx, dataInput)
 	orders := incr.FoldMap(
 		ctx,
 		dataInputAdds,

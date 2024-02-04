@@ -2,14 +2,6 @@ package incr
 
 import "fmt"
 
-// DetectCycle detects a cycle in a graph rooted at a given node.
-//
-// It is useful to check for cycles _after_ a graph has been constructed.
-func DetectCycle(root INode) error {
-	seen := make(set[Identifier])
-	return cycleSeen(root, seen)
-}
-
 // DetectCycleIfLinked determines if adding a given input to a given
 // child would cause a graph cycle.
 //
@@ -39,18 +31,4 @@ func detectCycleFast(childID Identifier, startAt INode, getParents func(INode) [
 		}
 	}
 	return false
-}
-
-func cycleSeen(n INode, seen set[Identifier]) error {
-	if seen.has(n.Node().id) {
-		return fmt.Errorf("cycle detected at %v", n)
-	}
-	seen.add(n.Node().id)
-	parents := n.Node().Parents()
-	for _, p := range parents {
-		if err := cycleSeen(p, seen.copy()); err != nil {
-			return err
-		}
-	}
-	return nil
 }

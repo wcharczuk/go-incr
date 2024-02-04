@@ -20,6 +20,9 @@ type BuildResult struct {
 
 func main() {
 	ctx := context.Background()
+	if os.Getenv("DEBUG") != "" {
+		ctx = incr.WithTracing(ctx)
+	}
 
 	dg := incrutil.DependencyGraph[BuildResult]{
 		Dependencies: []incrutil.Dependency{
@@ -44,9 +47,9 @@ func main() {
 			}, nil
 		},
 	}
-	graph, nodes := dg.Create()
-	if os.Getenv("DEBUG") != "" {
-		ctx = incr.WithTracing(ctx)
+	graph, nodes, err := dg.Create(ctx)
+	if err != nil {
+		log.Fatalf("create error: %v", err)
 	}
 
 	// one caveat here; we're stabilizing all the leaves

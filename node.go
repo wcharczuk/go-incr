@@ -228,19 +228,14 @@ func (n *Node) HasObserver(id Identifier) (ok bool) {
 // Internal Helpers
 //
 
-// addChildren adds node references as children to this node.
-func (n *Node) addChildren(c ...INode) {
-	n.children.Push(c...)
+func (n *Node) addChildren(children ...INode) {
+	n.children.Push(children...)
 }
 
-// addParents adds node references as parents to this node.
 func (n *Node) addParents(parents ...INode) {
 	n.parents.Push(parents...)
 }
 
-// addObservers adds observers to the node, calling
-// onObserved handlers with a separate invocation
-// for each observer that is added.
 func (n *Node) addObservers(observers ...IObserver) {
 	n.observersMu.Lock()
 	defer n.observersMu.Unlock()
@@ -252,14 +247,10 @@ func (n *Node) addObservers(observers ...IObserver) {
 	}
 }
 
-// RemoveChild removes a specific child from the node, specifically
-// a node that might have been an input to this node.
 func (n *Node) removeChild(id Identifier) {
 	n.children.RemoveKey(id)
 }
 
-// RemoveParent removes a parent from the node, specifically
-// a node for which this node is an input.
 func (n *Node) removeParent(id Identifier) {
 	n.parents.RemoveKey(id)
 }

@@ -22,7 +22,7 @@ type IStabilize interface {
 
 // IBind implements bind steps for nested actions.
 type IBind interface {
-	Link(context.Context)
+	Link(context.Context) error
 	Unlink(context.Context)
 }
 
