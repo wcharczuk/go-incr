@@ -98,7 +98,7 @@ func dumpDot(g *Graph, path string) error {
 	defer func() { _ = dotOutput.Close() }()
 	dotFullPath, err := exec.LookPath("dot")
 	if err != nil {
-		return err
+		return fmt.Errorf("there was an issue finding `dot` in your path; you may need to install the `graphviz` package or similar on your platform: %w", err)
 	}
 
 	errOut := new(bytes.Buffer)
