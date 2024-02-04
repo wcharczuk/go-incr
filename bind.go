@@ -190,7 +190,6 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) error {
 			}
 		}
 	}
-
 	propagateHeightChange(b.bound)
 	for _, c := range children {
 		propagateHeightChange(c)

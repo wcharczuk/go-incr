@@ -609,13 +609,13 @@ func makeRegressionGraph(ctx context.Context) (*Graph, ObserveIncr[*int]) {
 	var f func(context.Context, int) Incr[*int]
 	f = func(ctx context.Context, t int) Incr[*int] {
 		key := fmt.Sprintf("f-%d", t)
-		if _, ok := cache[key]; ok {
-			return WithinBindScope(ctx, cache[key])
+		if cached, ok := cache[key]; ok {
+			return cached
 		}
 		r := Bind(ctx, fakeFormula, func(ctx context.Context, formula string) Incr[*int] {
 			key := fmt.Sprintf("map-f-%d", t)
-			if _, ok := cache[key]; ok {
-				return WithinBindScope(ctx, cache[key])
+			if cached, ok := cache[key]; ok {
+				return cached
 			}
 			if t == 0 {
 				out := 0
@@ -638,8 +638,8 @@ func makeRegressionGraph(ctx context.Context) (*Graph, ObserveIncr[*int]) {
 
 	g := func(ctx context.Context, t int) Incr[*int] {
 		key := fmt.Sprintf("g-%d", t)
-		if _, ok := cache[key]; ok {
-			return WithinBindScope(ctx, cache[key])
+		if cached, ok := cache[key]; ok {
+			return cached
 		}
 		r := Bind(ctx, fakeFormula, func(ctx context.Context, formula string) Incr[*int] {
 			output := f(ctx, t)
