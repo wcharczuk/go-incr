@@ -434,14 +434,17 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	// the list, preventing a race condition around missed nodes,
 	// but more to prevent us from reading the children list twice.
 	nn.children.Each(func(c INode) {
-		isObserving := graph.IsObserving(c)
-		isObserver := graph.HasObserver(c)
 		shouldRecompute := c.Node().ShouldRecompute()
-		if (isObserving || isObserver) && shouldRecompute {
+		if graph.isNecessary(c) && shouldRecompute {
 			graph.recomputeHeap.Add(c)
 		}
 	})
 	return
+}
+
+func (graph *Graph) isNecessary(n INode) bool {
+	ng := n.Node().graph
+	return ng != nil && ng.id == graph.id
 }
 
 //
