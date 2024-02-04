@@ -1,10 +1,13 @@
 package incr
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"math"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -179,4 +182,42 @@ func createDynamicBind(ctx context.Context, label string, a, b Incr[string]) (Va
 	})
 	bind.Node().SetLabel(fmt.Sprintf("bind - %s", label))
 	return bindVar, bind
+}
+
+func homedir(filename string) string {
+	var rootDir string
+	if rootDir = os.Getenv("INCR_DEBUG_DOT_ROOT"); rootDir == "" {
+		rootDir = os.ExpandEnv("$HOME/Desktop")
+	}
+	return filepath.Join(rootDir, filename)
+}
+
+func dumpDot(g *Graph, path string) error {
+	if os.Getenv("INCR_DEBUG_DOT") != "true" {
+		return nil
+	}
+
+	dotContents := new(bytes.Buffer)
+	if err := Dot(dotContents, g); err != nil {
+		return err
+	}
+	dotOutput, err := os.Create(os.ExpandEnv(path))
+	if err != nil {
+		return err
+	}
+	defer func() { _ = dotOutput.Close() }()
+	dotFullPath, err := exec.LookPath("dot")
+	if err != nil {
+		return fmt.Errorf("there was an issue finding `dot` in your path; you may need to install the `graphviz` package or similar on your platform: %w", err)
+	}
+
+	errOut := new(bytes.Buffer)
+	cmd := exec.Command(dotFullPath, "-Tpng")
+	cmd.Stdin = dotContents
+	cmd.Stdout = dotOutput
+	cmd.Stderr = errOut
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("%v; %w", errOut.String(), err)
+	}
+	return nil
 }
