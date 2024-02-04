@@ -2,7 +2,6 @@ package incr
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -165,6 +164,14 @@ func (graph *Graph) IsStabilizing() bool {
 // IsObserving returns if a graph is observing a given node.
 func (graph *Graph) IsObserving(gn INode) (ok bool) {
 	ok = graph.observed.Has(gn)
+	return
+}
+
+// HasObserver returns if a graph has a given observer.
+func (graph *Graph) HasObserver(gn INode) (ok bool) {
+	graph.observersMu.Lock()
+	_, ok = graph.observers[gn.Node().id]
+	graph.observersMu.Unlock()
 	return
 }
 
@@ -385,16 +392,10 @@ func (graph *Graph) stabilizeEndRunUpdateHandlers(ctx context.Context) {
 // setting the recomputedAt field and possibly changing the value.
 func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	graph.numNodesRecomputed++
-
 	nn := n.Node()
-	if nn == nil {
-		return fmt.Errorf("attempting to recompute uninitialized node; cannot continue")
-	}
-
 	nn.numRecomputes++
 	nn.recomputedAt = graph.stabilizationNum
 
-	// if the computation is aborted here don't proceed.
 	var shouldCutoff bool
 	shouldCutoff, err = nn.maybeCutoff(ctx)
 	if err != nil {
@@ -404,7 +405,7 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 		return
 	}
 	if shouldCutoff {
-		TracePrintf(ctx, "stabilization saw cutoff node %v", n)
+		TracePrintf(ctx, "stabilization saw active cutoff %v", n)
 		return
 	}
 
@@ -434,8 +435,9 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	// but more to prevent us from reading the children list twice.
 	nn.children.Each(func(c INode) {
 		isObserving := graph.IsObserving(c)
+		isObserver := graph.HasObserver(c)
 		shouldRecompute := c.Node().ShouldRecompute()
-		if isObserving && shouldRecompute {
+		if (isObserving || isObserver) && shouldRecompute {
 			graph.recomputeHeap.Add(c)
 		}
 	})

@@ -39,6 +39,17 @@ type recomputeHeapItem struct {
 	height int
 }
 
+// Clear completely resets the recompute heap, preserving
+// its current capacity.
+func (rh *recomputeHeap) Clear() {
+	rh.mu.Lock()
+	defer rh.mu.Unlock()
+	rh.heights = make([]map[Identifier]*recomputeHeapItem, len(rh.heights))
+	clear(rh.lookup)
+	rh.minHeight = 0
+	rh.maxHeight = 0
+}
+
 // MinHeight is the minimum height in the heap with nodes.
 func (rh *recomputeHeap) MinHeight() int {
 	rh.mu.Lock()

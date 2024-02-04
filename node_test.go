@@ -660,3 +660,63 @@ func Test_nodeSorter(t *testing.T) {
 	testutil.ItsEqual(t, -1, nodeSorter(d, c))
 	testutil.ItsEqual(t, 1, nodeSorter(a, d))
 }
+
+func Test_Node_onUpdate_regression(t *testing.T) {
+	ctx := testContext()
+
+	width := Var(ctx, 3)
+	length := Var(ctx, 4)
+
+	area := Map2(ctx, width, length, func(w int, l int) int {
+		return w * l
+	})
+	area.Node().SetLabel("area")
+
+	height := Var(ctx, 2)
+	height.Node().SetLabel("height")
+	volume := Map2(ctx, area, height, func(a int, h int) int {
+		return a * h
+	})
+	volume.Node().SetLabel("volume")
+	scaledVolume := Map(ctx, volume, func(v int) int {
+		return v * 2
+	})
+	scaledVolume.Node().SetLabel("scaledVolume")
+
+	g := New()
+	areaObs := Observe(ctx, g, area)
+	areaObs.Node().SetLabel("areaObs")
+	scaledVolumeObs := Observe(ctx, g, scaledVolume)
+	scaledVolumeObs.Node().SetLabel("scaledVolumeObs")
+
+	err := g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+
+	_ = dumpDot(g, homedir("node_onupdate_regression_00.png"))
+
+	testutil.ItsEqual(t, 12, areaObs.Value())
+	testutil.ItsEqual(t, 48, scaledVolumeObs.Value())
+
+	areaTriggerCount := 0
+	area.Node().OnUpdate(func(ctx context.Context) {
+		areaTriggerCount++
+	})
+
+	scaledVolumeTriggerCount := 0
+	scaledVolumeObs.Node().OnUpdate(func(ctx context.Context) {
+		scaledVolumeTriggerCount++
+	})
+
+	length.Set(5)
+
+	err = g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+
+	_ = dumpDot(g, homedir("node_onupdate_regression_01.png"))
+
+	testutil.ItsEqual(t, true, areaTriggerCount > 0)
+	testutil.ItsEqual(t, true, scaledVolumeTriggerCount > 0) // should be triggered because area changed so volume change therefore scaled_volume changed too
+
+	testutil.ItsEqual(t, 15, areaObs.Value())
+	testutil.ItsEqual(t, 60, scaledVolumeObs.Value())
+}

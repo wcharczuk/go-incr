@@ -150,11 +150,18 @@ func Test_Graph_addObserver_rediscover(t *testing.T) {
 	testutil.ItsEqual(t, false, g.recomputeHeap.Has(o))
 }
 
-func Test_Graph_recompute_nilNodeMetadata(t *testing.T) {
+func Test_Graph_recompute_recomputesObservers(t *testing.T) {
+	ctx := testContext()
 	g := New()
-
 	n := newMockBareNode()
-	n.n = nil
+	o := Observe(ctx, g, n)
+	g.recomputeHeap.Clear()
+
+	testutil.ItsEqual(t, false, g.recomputeHeap.Has(n))
+	testutil.ItsEqual(t, false, g.recomputeHeap.Has(o))
+
 	err := g.recompute(testContext(), n)
-	testutil.ItsNotNil(t, err)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, 1, g.recomputeHeap.Len())
+	testutil.ItsEqual(t, true, g.recomputeHeap.Has(o))
 }

@@ -391,3 +391,41 @@ func Test_recomputeHeap_sanityCheck_badItemHeight(t *testing.T) {
 	err := rh.sanityCheck()
 	ItsNotNil(t, err)
 }
+
+func Test_recomputeHeap_Clear(t *testing.T) {
+	rh := newRecomputeHeap(32)
+
+	n50 := newHeightIncr(5)
+	n60 := newHeightIncr(6)
+	n70 := newHeightIncr(7)
+
+	rh.Add(n50)
+	rh.Add(n60)
+	rh.Add(n70)
+
+	ItsEqual(t, 3, len(rh.lookup))
+	ItsEqual(t, 1, len(rh.heights[5]))
+	ItsEqual(t, 1, len(rh.heights[6]))
+	ItsEqual(t, 1, len(rh.heights[7]))
+	ItsEqual(t, 5, rh.minHeight)
+	ItsEqual(t, 7, rh.maxHeight)
+
+	rh.Clear()
+
+	ItsEqual(t, 0, len(rh.lookup))
+	ItsEqual(t, 0, len(rh.heights[5]))
+	ItsEqual(t, 0, len(rh.heights[6]))
+	ItsEqual(t, 0, len(rh.heights[7]))
+	ItsEqual(t, 0, rh.minHeight)
+	ItsEqual(t, 0, rh.maxHeight)
+
+	rh.Add(n50)
+	rh.Add(n60)
+	rh.Add(n70)
+
+	ItsEqual(t, 3, len(rh.lookup))
+	ItsEqual(t, 1, len(rh.heights[5]))
+	ItsEqual(t, 1, len(rh.heights[6]))
+	ItsEqual(t, 1, len(rh.heights[7]))
+	ItsEqual(t, 7, rh.maxHeight)
+}
