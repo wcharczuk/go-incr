@@ -7,23 +7,23 @@ import (
 
 // Observe observes a node, specifically including it for computation
 // as well as all of its parents.
-func Observe[A any](ctx context.Context, g *Graph, input Incr[A]) ObserveIncr[A] {
+func Observe[A any](scope *BindScope, g *Graph, input Incr[A]) ObserveIncr[A] {
 	o := &observeIncr[A]{
 		n:     NewNode(),
 		input: input,
 	}
 	Link(o, input)
-	g.addObserver(ctx, o)
+	g.addObserver(scope, o)
 	// NOTE(wc): we do this here because some """expert""" use cases for `ExpertGraph::DiscoverObserver`
 	// require us to add the observer to the graph observer list but _not_
 	// add it to the recompute heap.
 	//
 	// So we just add it here explicitly and don't add it implicitly
 	// in the DiscoverObserver function.
-	TracePrintf(ctx, "adding observer %v to recompute heap", o)
+	TracePrintf(scope, "adding observer %v to recompute heap", o)
 	g.recomputeHeap.Add(o)
-	g.observeNodes(ctx, input, o)
-	return WithinBindScope(ctx, o)
+	g.observeNodes(scope, input, o)
+	return WithinBindScope(scope, o)
 }
 
 // ObserveIncr is an incremental that observes a graph

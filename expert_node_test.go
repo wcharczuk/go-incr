@@ -77,7 +77,7 @@ func Test_ExpertNode_RemoveParent(t *testing.T) {
 }
 
 func Test_ExpertNode_Value(t *testing.T) {
-	n := Return(testContext(), "hello")
+	n := Return(Root(), "hello")
 	en := ExpertNode(n)
 
 	value := en.Value()

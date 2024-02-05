@@ -1,6 +1,7 @@
 package incr
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -79,25 +80,25 @@ func Benchmark_Stabilize_deep_8_512(b *testing.B) {
 }
 
 func benchmarkSize(size int, b *testing.B) {
-	ctx := testContext()
 	nodes := make([]Incr[string], size)
 	for x := 0; x < size; x++ {
-		nodes[x] = Var(ctx, fmt.Sprintf("var_%d", x))
+		nodes[x] = Var(Root(), fmt.Sprintf("var_%d", x))
 	}
 
 	var cursor int
 	for x := size; x > 0; x >>= 1 {
 		for y := 0; y < x-1; y += 2 {
-			n := Map2(ctx, nodes[cursor+y], nodes[cursor+y+1], concat)
+			n := Map2(Root(), nodes[cursor+y], nodes[cursor+y+1], concat)
 			nodes = append(nodes, n)
 		}
 		cursor += x
 	}
 
 	graph := New()
-	_ = Observe(ctx, graph, nodes[len(nodes)-1])
+	_ = Observe(Root(), graph, nodes[len(nodes)-1])
 
 	// this is what we care about
+	ctx := context.Background()
 	b.ResetTimer()
 	var err error
 	for n := 0; n < b.N; n++ {
@@ -123,25 +124,25 @@ func benchmarkSize(size int, b *testing.B) {
 }
 
 func benchmarkParallelSize(size int, b *testing.B) {
-	ctx := testContext()
 	nodes := make([]Incr[string], size)
 	for x := 0; x < size; x++ {
-		nodes[x] = Var(ctx, fmt.Sprintf("var_%d", x))
+		nodes[x] = Var(Root(), fmt.Sprintf("var_%d", x))
 	}
 
 	var cursor int
 	for x := size; x > 0; x >>= 1 {
 		for y := 0; y < x-1; y += 2 {
-			n := Map2(ctx, nodes[cursor+y], nodes[cursor+y+1], concat)
+			n := Map2(Root(), nodes[cursor+y], nodes[cursor+y+1], concat)
 			nodes = append(nodes, n)
 		}
 		cursor += x
 	}
 
 	graph := New()
-	_ = Observe(ctx, graph, nodes[0])
+	_ = Observe(Root(), graph, nodes[0])
 
 	// this is what we care about
+	ctx := context.Background()
 	b.ResetTimer()
 	var err error
 	for n := 0; n < b.N; n++ {
@@ -167,11 +168,10 @@ func benchmarkParallelSize(size int, b *testing.B) {
 }
 
 func benchmarkDepth(width, depth int, b *testing.B) {
-	ctx := testContext()
 
 	vars := make([]VarIncr[string], width)
 	for x := 0; x < width; x++ {
-		vars[x] = Var(ctx, fmt.Sprintf("var_%d", x))
+		vars[x] = Var(Root(), fmt.Sprintf("var_%d", x))
 	}
 
 	nodes := make([]Incr[string], width*depth)
@@ -179,10 +179,10 @@ func benchmarkDepth(width, depth int, b *testing.B) {
 	for y := 0; y < depth; y++ {
 		for x := 0; x < width; x++ {
 			if y == 0 {
-				nodes[nodeIndex] = Map(ctx, vars[x], mapAppend(fmt.Sprintf("->%d", nodeIndex)))
+				nodes[nodeIndex] = Map(Root(), vars[x], mapAppend(fmt.Sprintf("->%d", nodeIndex)))
 			} else {
 				previousIndex := ((y - 1) * width) + x
-				nodes[nodeIndex] = Map(ctx, nodes[previousIndex], mapAppend(fmt.Sprintf("->%d", nodeIndex)))
+				nodes[nodeIndex] = Map(Root(), nodes[previousIndex], mapAppend(fmt.Sprintf("->%d", nodeIndex)))
 			}
 			nodeIndex++
 		}
@@ -194,10 +194,11 @@ func benchmarkDepth(width, depth int, b *testing.B) {
 
 	observers := make([]ObserveIncr[string], width)
 	for x := 0; x < width; x++ {
-		observers[x] = Observe(ctx, graph, nodes[(width*(depth-1))+x])
+		observers[x] = Observe(Root(), graph, nodes[(width*(depth-1))+x])
 	}
 
 	// this is what we care about
+	ctx := context.Background()
 	b.ResetTimer()
 	var err error
 	for n := 0; n < b.N; n++ {

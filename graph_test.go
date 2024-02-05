@@ -7,18 +7,17 @@ import (
 )
 
 func Test_New(t *testing.T) {
-	ctx := testContext()
-	r0 := Return(ctx, "hello")
-	r1 := Return(ctx, "world!")
-	m0 := Map2(ctx, r0, r1, func(v0, v1 string) string { return v0 + v1 })
+	r0 := Return(Root(), "hello")
+	r1 := Return(Root(), "world!")
+	m0 := Map2(Root(), r0, r1, func(v0, v1 string) string { return v0 + v1 })
 	g := New()
-	_ = Observe(ctx, g, m0)
+	_ = Observe(Root(), g, m0)
 
 	testutil.ItsEqual(t, true, g.IsObserving(r0))
 	testutil.ItsEqual(t, true, g.IsObserving(r1))
 	testutil.ItsEqual(t, true, g.IsObserving(m0))
 
-	m1 := Map2(ctx, r0, r1, func(v0, v1 string) string { return v0 + v1 })
+	m1 := Map2(Root(), r0, r1, func(v0, v1 string) string { return v0 + v1 })
 	testutil.ItsEqual(t, false, g.IsObserving(m1))
 }
 
@@ -45,19 +44,19 @@ func Test_Graph_Label(t *testing.T) {
 func Test_Graph_UnobserveNodes(t *testing.T) {
 	ctx := testContext()
 
-	r0 := Return(ctx, "hello")
-	m0 := Map(ctx, r0, ident)
-	m1 := Map(ctx, m0, ident)
-	m2 := Map(ctx, m1, ident)
+	r0 := Return(Root(), "hello")
+	m0 := Map(Root(), r0, ident)
+	m1 := Map(Root(), m0, ident)
+	m2 := Map(Root(), m1, ident)
 
-	ar0 := Return(ctx, "hello")
-	am0 := Map(ctx, ar0, ident)
-	am1 := Map(ctx, am0, ident)
-	am2 := Map(ctx, am1, ident)
+	ar0 := Return(Root(), "hello")
+	am0 := Map(Root(), ar0, ident)
+	am1 := Map(Root(), am0, ident)
+	am2 := Map(Root(), am1, ident)
 
 	g := New()
-	o1 := Observe(ctx, g, m1)
-	_ = Observe(ctx, g, am2)
+	o1 := Observe(Root(), g, m1)
+	_ = Observe(Root(), g, am2)
 
 	testutil.ItsEqual(t, true, g.IsObserving(r0))
 	testutil.ItsEqual(t, true, g.IsObserving(m0))
@@ -90,18 +89,18 @@ func Test_Graph_UnobserveNodes(t *testing.T) {
 func Test_Graph_UnobserveNodes_notObserving(t *testing.T) {
 	ctx := testContext()
 
-	r0 := Return(ctx, "hello")
-	m0 := Map(ctx, r0, ident)
-	m1 := Map(ctx, m0, ident)
-	m2 := Map(ctx, m1, ident)
+	r0 := Return(Root(), "hello")
+	m0 := Map(Root(), r0, ident)
+	m1 := Map(Root(), m0, ident)
+	m2 := Map(Root(), m1, ident)
 
-	ar0 := Return(ctx, "hello")
-	am0 := Map(ctx, ar0, ident)
-	am1 := Map(ctx, am0, ident)
-	am2 := Map(ctx, am1, ident)
+	ar0 := Return(Root(), "hello")
+	am0 := Map(Root(), ar0, ident)
+	am1 := Map(Root(), am0, ident)
+	am2 := Map(Root(), am1, ident)
 
 	g := New()
-	o := Observe(ctx, g, m1)
+	o := Observe(Root(), g, m1)
 
 	testutil.ItsEqual(t, true, g.IsObserving(r0))
 	testutil.ItsEqual(t, true, g.IsObserving(m0))
@@ -134,8 +133,8 @@ func Test_Graph_addObserver_rediscover(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
-	v := Var(ctx, "hello")
-	o := Observe(ctx, g, v)
+	v := Var(Root(), "hello")
+	o := Observe(Root(), g, v)
 	_, ok := g.observers[o.Node().ID()]
 	testutil.ItsEqual(t, true, ok)
 	testutil.ItsEqual(t, 2, g.numNodes)
@@ -151,10 +150,9 @@ func Test_Graph_addObserver_rediscover(t *testing.T) {
 }
 
 func Test_Graph_recompute_recomputesObservers(t *testing.T) {
-	ctx := testContext()
 	g := New()
 	n := newMockBareNode()
-	o := Observe(ctx, g, n)
+	o := Observe(Root(), g, n)
 	g.recomputeHeap.Clear()
 
 	testutil.ItsEqual(t, false, g.recomputeHeap.Has(n))

@@ -1,7 +1,6 @@
 package incr
 
 import (
-	"context"
 	"fmt"
 )
 
@@ -9,8 +8,8 @@ import (
 //
 // Note that it does not implement `IStabilize` and is effectively
 // always the same value (and treated as such).
-func Return[A any](ctx context.Context, v A) Incr[A] {
-	return WithinBindScope(ctx, &returnIncr[A]{
+func Return[A any](scope *BindScope, v A) Incr[A] {
+	return WithinBindScope(scope, &returnIncr[A]{
 		n: NewNode(),
 		v: v,
 	})

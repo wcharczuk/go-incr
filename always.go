@@ -1,16 +1,14 @@
 package incr
 
-import "context"
-
 // Always returns an incremental that is always stale and will be
 // marked for recomputation.
-func Always[A any](ctx context.Context, input Incr[A]) Incr[A] {
+func Always[A any](scope *BindScope, input Incr[A]) Incr[A] {
 	a := &alwaysIncr[A]{
 		n:     NewNode(),
 		input: input,
 	}
 	Link(a, input)
-	return WithinBindScope(ctx, a)
+	return WithinBindScope(scope, a)
 }
 
 // AlwaysIncr is a type that implements the always stale incremental.

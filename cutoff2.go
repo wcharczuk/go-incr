@@ -6,8 +6,8 @@ import (
 )
 
 // Cutoff2 returns a new cutoff incremental that takes an epsilon input.
-func Cutoff2[A, B any](ctx context.Context, epsilon Incr[A], input Incr[B], fn Cutoff2Func[A, B]) Incr[B] {
-	return Cutoff2Context[A, B](ctx, epsilon, input, func(_ context.Context, epsilon A, oldv, newv B) (bool, error) {
+func Cutoff2[A, B any](bs *BindScope, epsilon Incr[A], input Incr[B], fn Cutoff2Func[A, B]) Incr[B] {
+	return Cutoff2Context[A, B](bs, epsilon, input, func(_ context.Context, epsilon A, oldv, newv B) (bool, error) {
 		return fn(epsilon, oldv, newv), nil
 	})
 }
@@ -17,7 +17,7 @@ func Cutoff2[A, B any](ctx context.Context, epsilon Incr[A], input Incr[B], fn C
 // The goal of the cutoff incremental is to stop recomputation at a given
 // node if the difference between the previous and latest values are not
 // significant enough to warrant a full recomputation of the children of this node.
-func Cutoff2Context[A, B any](ctx context.Context, epsilon Incr[A], input Incr[B], fn Cutoff2ContextFunc[A, B]) Cutoff2Incr[A, B] {
+func Cutoff2Context[A, B any](bs *BindScope, epsilon Incr[A], input Incr[B], fn Cutoff2ContextFunc[A, B]) Cutoff2Incr[A, B] {
 	o := &cutoff2Incr[A, B]{
 		n:  NewNode(),
 		fn: fn,
@@ -28,7 +28,7 @@ func Cutoff2Context[A, B any](ctx context.Context, epsilon Incr[A], input Incr[B
 	// this can be discovered in initialization but saves a step.
 	Link(o, input)
 	Link(o, epsilon)
-	return WithinBindScope(ctx, o)
+	return WithinBindScope(bs, o)
 }
 
 // CutoffIncr is an incremental node that implements the ICutoff interface.

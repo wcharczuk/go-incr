@@ -15,14 +15,14 @@ import (
 func Test_Stabilize(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var(ctx, "foo")
-	v1 := Var(ctx, "bar")
-	m0 := Map2(ctx, v0, v1, func(a, b string) string {
+	v0 := Var(Root(), "foo")
+	v1 := Var(Root(), "bar")
+	m0 := Map2(Root(), v0, v1, func(a, b string) string {
 		return a + " " + b
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, m0)
+	_ = Observe(Root(), graph, m0)
 
 	err := graph.Stabilize(ctx)
 	ItsNil(t, err)
@@ -59,12 +59,12 @@ func Test_Stabilize(t *testing.T) {
 func Test_Stabilize_error(t *testing.T) {
 	ctx := testContext()
 
-	m0 := Func(ctx, func(_ context.Context) (string, error) {
+	m0 := Func(Root(), func(_ context.Context) (string, error) {
 		return "", fmt.Errorf("this is just a test")
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, m0)
+	_ = Observe(Root(), graph, m0)
 
 	err := graph.Stabilize(ctx)
 	ItsNotNil(t, err)
@@ -74,7 +74,7 @@ func Test_Stabilize_error(t *testing.T) {
 func Test_Stabilize_errorHandler(t *testing.T) {
 	ctx := testContext()
 
-	m0 := Func(ctx, func(_ context.Context) (string, error) {
+	m0 := Func(Root(), func(_ context.Context) (string, error) {
 		return "", fmt.Errorf("this is just a test")
 	})
 	var gotError error
@@ -84,7 +84,7 @@ func Test_Stabilize_errorHandler(t *testing.T) {
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, m0)
+	_ = Observe(Root(), graph, m0)
 
 	err := graph.Stabilize(ctx)
 	ItsNotNil(t, err)
@@ -98,13 +98,13 @@ func Test_Stabilize_alreadyStabilizing(t *testing.T) {
 	// deadlocks. deadlocks everywhere.
 	hold := make(chan struct{})
 	errs := make(chan error)
-	m0 := Func(ctx, func(_ context.Context) (string, error) {
+	m0 := Func(Root(), func(_ context.Context) (string, error) {
 		<-hold
 		return "ok!", nil
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, m0)
+	_ = Observe(Root(), graph, m0)
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
@@ -130,9 +130,9 @@ func Test_Stabilize_alreadyStabilizing(t *testing.T) {
 func Test_Stabilize_updateHandlers(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var(ctx, "foo")
-	v1 := Var(ctx, "bar")
-	m0 := Map2(ctx, v0, v1, func(a, b string) string {
+	v0 := Var(Root(), "foo")
+	v1 := Var(Root(), "bar")
+	m0 := Map2(Root(), v0, v1, func(a, b string) string {
 		return a + " " + b
 	})
 
@@ -142,7 +142,7 @@ func Test_Stabilize_updateHandlers(t *testing.T) {
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, m0)
+	_ = Observe(Root(), graph, m0)
 
 	err := graph.Stabilize(ctx)
 	ItsNil(t, err)
@@ -157,9 +157,9 @@ func Test_Stabilize_updateHandlers(t *testing.T) {
 func Test_Stabilize_observedHandlers(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var(ctx, "foo")
-	v1 := Var(ctx, "bar")
-	m0 := Map2(ctx, v0, v1, func(a, b string) string {
+	v0 := Var(Root(), "foo")
+	v1 := Var(Root(), "bar")
+	m0 := Map2(Root(), v0, v1, func(a, b string) string {
 		return a + " " + b
 	})
 
@@ -169,7 +169,7 @@ func Test_Stabilize_observedHandlers(t *testing.T) {
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, m0)
+	_ = Observe(Root(), graph, m0)
 
 	err := graph.Stabilize(ctx)
 	ItsNil(t, err)
@@ -180,16 +180,16 @@ func Test_Stabilize_observedHandlers(t *testing.T) {
 	ItsNil(t, err)
 	ItsEqual(t, 1, observes)
 
-	_ = Observe(ctx, graph, m0)
+	_ = Observe(Root(), graph, m0)
 	ItsEqual(t, 2, observes)
 }
 
 func Test_Stabilize_unobservedHandlers(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var(ctx, "foo")
-	v1 := Var(ctx, "bar")
-	m0 := Map2(ctx, v0, v1, func(a, b string) string {
+	v0 := Var(Root(), "foo")
+	v1 := Var(Root(), "bar")
+	m0 := Map2(Root(), v0, v1, func(a, b string) string {
 		return a + " " + b
 	})
 
@@ -202,7 +202,7 @@ func Test_Stabilize_unobservedHandlers(t *testing.T) {
 	})
 
 	graph := New()
-	o0 := Observe(ctx, graph, m0)
+	o0 := Observe(Root(), graph, m0)
 
 	err := graph.Stabilize(ctx)
 	ItsNil(t, err)
@@ -214,7 +214,7 @@ func Test_Stabilize_unobservedHandlers(t *testing.T) {
 	ItsNil(t, err)
 	ItsEqual(t, 1, observes)
 
-	_ = Observe(ctx, graph, m0)
+	_ = Observe(Root(), graph, m0)
 	ItsEqual(t, 2, observes)
 	ItsEqual(t, 0, unobserves)
 
@@ -226,18 +226,18 @@ func Test_Stabilize_unobservedHandlers(t *testing.T) {
 func Test_Stabilize_unevenHeights(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var(ctx, "foo")
-	v1 := Var(ctx, "bar")
-	m0 := Map2(ctx, v0, v1, func(a, b string) string {
+	v0 := Var(Root(), "foo")
+	v1 := Var(Root(), "bar")
+	m0 := Map2(Root(), v0, v1, func(a, b string) string {
 		return a + " " + b
 	})
-	r0 := Return(ctx, "moo")
-	m1 := Map2(ctx, r0, m0, func(a, b string) string {
+	r0 := Return(Root(), "moo")
+	m1 := Map2(Root(), r0, m0, func(a, b string) string {
 		return a + " != " + b
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, m1)
+	_ = Observe(Root(), graph, m1)
 
 	err := graph.Stabilize(ctx)
 	ItsNil(t, err)
@@ -252,12 +252,12 @@ func Test_Stabilize_unevenHeights(t *testing.T) {
 func Test_Stabilize_chain(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var(ctx, ".")
+	v0 := Var(Root(), ".")
 
 	var maps []Incr[string]
 	var previous Incr[string] = v0
 	for x := 0; x < 100; x++ {
-		m := Map(ctx, previous, func(v0 string) string {
+		m := Map(Root(), previous, func(v0 string) string {
 			return v0 + "."
 		})
 		maps = append(maps, m)
@@ -265,7 +265,7 @@ func Test_Stabilize_chain(t *testing.T) {
 	}
 
 	graph := New()
-	o := Observe(ctx, graph, maps[len(maps)-1])
+	o := Observe(Root(), graph, maps[len(maps)-1])
 
 	err := graph.Stabilize(ctx)
 	ItsNil(t, err)
@@ -278,18 +278,18 @@ func Test_Stabilize_chain(t *testing.T) {
 
 func Test_Stabilize_setDuringStabilization(t *testing.T) {
 	ctx := testContext()
-	v0 := Var(ctx, "foo")
+	v0 := Var(Root(), "foo")
 
 	called := make(chan struct{})
 	wait := make(chan struct{})
-	m0 := Map(ctx, v0, func(v string) string {
+	m0 := Map(Root(), v0, func(v string) string {
 		close(called)
 		<-wait
 		return v
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, m0)
+	_ = Observe(Root(), graph, m0)
 
 	done := make(chan struct{})
 	go func() {
@@ -316,9 +316,9 @@ func Test_Stabilize_onUpdate(t *testing.T) {
 	ctx := testContext()
 
 	var didCallUpdateHandler0, didCallUpdateHandler1 bool
-	v0 := Var(ctx, "hello")
-	v1 := Var(ctx, "world")
-	m0 := Map2(ctx, v0, v1, concat)
+	v0 := Var(Root(), "hello")
+	v1 := Var(Root(), "world")
+	m0 := Map2(Root(), v0, v1, concat)
 	m0.Node().OnUpdate(func(context.Context) {
 		didCallUpdateHandler0 = true
 	})
@@ -327,7 +327,7 @@ func Test_Stabilize_onUpdate(t *testing.T) {
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, m0)
+	_ = Observe(Root(), graph, m0)
 
 	err := graph.Stabilize(ctx)
 	ItsNil(t, err)
@@ -349,19 +349,19 @@ func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
 		}
 	}
 
-	a := Var(ctx, "a")
-	b := Map(ctx, a, edge("b"))
-	c := Map(ctx, b, edge("c"))
-	d := Map(ctx, c, edge("d"))
-	f := Map(ctx, a, edge("f"))
-	e := Map(ctx, f, edge("e"))
+	a := Var(Root(), "a")
+	b := Map(Root(), a, edge("b"))
+	c := Map(Root(), b, edge("c"))
+	d := Map(Root(), c, edge("d"))
+	f := Map(Root(), a, edge("f"))
+	e := Map(Root(), f, edge("e"))
 
-	z := Map2(ctx, d, e, func(v0, v1 string) string {
+	z := Map2(Root(), d, e, func(v0, v1 string) string {
 		return v0 + "+" + v1 + "->z"
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, z)
+	_ = Observe(Root(), graph, z)
 
 	err := graph.Stabilize(ctx)
 	ItsNil(t, err)
@@ -379,14 +379,14 @@ func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
 func Test_Stabilize_doubleVarSet_singleUpdate(t *testing.T) {
 	ctx := testContext()
 
-	a := Var(ctx, "a")
-	b := Var(ctx, "b")
-	m := Map2(ctx, a, b, func(v0, v1 string) string {
+	a := Var(Root(), "a")
+	b := Var(Root(), "b")
+	m := Map2(Root(), a, b, func(v0, v1 string) string {
 		return v0 + " " + v1
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, m)
+	_ = Observe(Root(), graph, m)
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, "a b", m.Value())
@@ -404,29 +404,29 @@ func Test_Stabilize_doubleVarSet_singleUpdate(t *testing.T) {
 func Test_Stabilize_verifyPartial(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var(ctx, "foo")
-	c0 := Return(ctx, "bar")
-	v1 := Var(ctx, "moo")
-	c1 := Return(ctx, "baz")
+	v0 := Var(Root(), "foo")
+	c0 := Return(Root(), "bar")
+	v1 := Var(Root(), "moo")
+	c1 := Return(Root(), "baz")
 
-	m0 := Map2(ctx, v0, c0, func(a, b string) string {
+	m0 := Map2(Root(), v0, c0, func(a, b string) string {
 		return a + " " + b
 	})
-	co0 := Cutoff(ctx, m0, func(n, o string) bool {
+	co0 := Cutoff(Root(), m0, func(n, o string) bool {
 		return len(n) == len(o)
 	})
-	m1 := Map2(ctx, v1, c1, func(a, b string) string {
+	m1 := Map2(Root(), v1, c1, func(a, b string) string {
 		return a + " != " + b
 	})
-	co1 := Cutoff(ctx, m1, func(n, o string) bool {
+	co1 := Cutoff(Root(), m1, func(n, o string) bool {
 		return len(n) == len(o)
 	})
 
-	sw := Var(ctx, true)
-	mi := MapIf(ctx, co0, co1, sw)
+	sw := Var(Root(), true)
+	mi := MapIf(Root(), co0, co1, sw)
 
 	graph := New()
-	_ = Observe(ctx, graph, mi)
+	_ = Observe(Root(), graph, mi)
 
 	err := graph.Stabilize(ctx)
 	ItsNil(t, err)
@@ -457,9 +457,9 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 		{"4", now.Add(4 * time.Second)},
 	}
 
-	i := Var(ctx, data)
+	i := Var(Root(), data)
 	output := Map(
-		ctx,
+		Root(),
 		i,
 		func(entries []Entry) (output []string) {
 			for _, e := range entries {
@@ -472,7 +472,7 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 	)
 
 	graph := New()
-	_ = Observe(ctx, graph, output)
+	_ = Observe(Root(), graph, output)
 
 	err := graph.Stabilize(
 		ctx,
@@ -500,28 +500,28 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 func Test_Stabilize_bind(t *testing.T) {
 	ctx := testContext()
 
-	sw := Var(ctx, false)
-	i0 := Return(ctx, "foo")
+	sw := Var(Root(), false)
+	i0 := Return(Root(), "foo")
 	i0.Node().SetLabel("i0")
-	m0 := Map(ctx, i0, func(v0 string) string { return v0 + "-moo" })
+	m0 := Map(Root(), i0, func(v0 string) string { return v0 + "-moo" })
 	m0.Node().SetLabel("m0")
-	i1 := Return(ctx, "bar")
+	i1 := Return(Root(), "bar")
 	i1.Node().SetLabel("i1")
-	m1 := Map(ctx, i1, func(v0 string) string { return v0 + "-loo" })
+	m1 := Map(Root(), i1, func(v0 string) string { return v0 + "-loo" })
 	m1.Node().SetLabel("m1")
-	b := Bind(ctx, sw, func(_ context.Context, swv bool) Incr[string] {
+	b := Bind(Root(), sw, func(_ *BindScope, swv bool) Incr[string] {
 		if swv {
 			return m0
 		}
 		return m1
 	})
-	mb := Map(ctx, b, func(v string) string {
+	mb := Map(Root(), b, func(v string) string {
 		return v + "-baz"
 	})
 	mb.Node().SetLabel("mb")
 
 	graph := New()
-	_ = Observe(ctx, graph, mb)
+	_ = Observe(Root(), graph, mb)
 
 	ItsEqual(t, true, graph.IsObserving(sw))
 
@@ -562,12 +562,12 @@ func Test_Stabilize_bind(t *testing.T) {
 func Test_Stabilize_bindIf(t *testing.T) {
 	ctx := testContext()
 
-	sw := Var(ctx, false)
-	i0 := Return(ctx, "foo")
-	i1 := Return(ctx, "bar")
+	sw := Var(Root(), false)
+	i0 := Return(Root(), "foo")
+	i1 := Return(Root(), "bar")
 
-	b := BindIf(ctx, sw, func(ctx context.Context, swv bool) (Incr[string], error) {
-		ItsBlueDye(ctx, t)
+	b := BindIf(Root(), sw, func(bs *BindScope, swv bool) (Incr[string], error) {
+		ItsBlueDye(bs, t)
 		if swv {
 			return i0, nil
 		}
@@ -575,7 +575,7 @@ func Test_Stabilize_bindIf(t *testing.T) {
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, b)
+	_ = Observe(Root(), graph, b)
 
 	err := graph.Stabilize(ctx)
 	ItsNil(t, err)
@@ -598,21 +598,21 @@ func Test_Stabilize_bindIf(t *testing.T) {
 func Test_Stabilize_cutoff(t *testing.T) {
 	ctx := testContext()
 
-	input := Var(ctx, 3.14)
+	input := Var(Root(), 3.14)
 	cutoff := Cutoff(
-		ctx,
+		Root(),
 		input,
 		epsilon(0.1),
 	)
 	output := Map2(
-		ctx,
+		Root(),
 		cutoff,
-		Return(ctx, 10.0),
+		Return(Root(), 10.0),
 		add[float64],
 	)
 
 	graph := New()
-	_ = Observe(ctx, graph, output)
+	_ = Observe(Root(), graph, output)
 
 	_ = graph.Stabilize(
 		ctx,
@@ -648,23 +648,23 @@ type MathTypes interface {
 
 func Test_Stabilize_cutoffContext(t *testing.T) {
 	ctx := testContext()
-	input := Var(ctx, 3.14)
+	input := Var(Root(), 3.14)
 
 	cutoff := CutoffContext(
-		ctx,
+		Root(),
 		input,
 		epsilonContext(t, 0.1),
 	)
 
 	output := Map2(
-		ctx,
+		Root(),
 		cutoff,
-		Return(ctx, 10.0),
+		Return(Root(), 10.0),
 		add[float64],
 	)
 
 	graph := New()
-	_ = Observe(ctx, graph, output)
+	_ = Observe(Root(), graph, output)
 
 	_ = graph.Stabilize(
 		ctx,
@@ -696,10 +696,10 @@ func Test_Stabilize_cutoffContext(t *testing.T) {
 
 func Test_Stabilize_cutoffContext_error(t *testing.T) {
 	ctx := testContext()
-	input := Var(ctx, 3.14)
+	input := Var(Root(), 3.14)
 
 	cutoff := CutoffContext(
-		ctx,
+		Root(),
 		input,
 		func(_ context.Context, _, _ float64) (bool, error) {
 			return false, fmt.Errorf("this is just a test")
@@ -714,14 +714,14 @@ func Test_Stabilize_cutoffContext_error(t *testing.T) {
 	})
 
 	output := Map2(
-		ctx,
+		Root(),
 		cutoff,
-		Return(ctx, 10.0),
+		Return(Root(), 10.0),
 		add[float64],
 	)
 
 	graph := New()
-	_ = Observe(ctx, graph, output)
+	_ = Observe(Root(), graph, output)
 
 	err := graph.Stabilize(
 		ctx,
@@ -750,23 +750,23 @@ func epsilonFn[A, B MathTypes](eps A, oldv, newv B) bool {
 func Test_Stabilize_cutoff2(t *testing.T) {
 	ctx := testContext()
 
-	epsilon := Var(ctx, 0.1)
-	input := Var(ctx, 3.14)
+	epsilon := Var(Root(), 0.1)
+	input := Var(Root(), 3.14)
 	cutoff := Cutoff2(
-		ctx,
+		Root(),
 		epsilon,
 		input,
 		epsilonFn,
 	)
 	output := Map2(
-		ctx,
+		Root(),
 		cutoff,
-		Return(ctx, 10.0),
+		Return(Root(), 10.0),
 		add[float64],
 	)
 
 	graph := New()
-	_ = Observe(ctx, graph, output)
+	_ = Observe(Root(), graph, output)
 
 	_ = graph.Stabilize(
 		ctx,
@@ -812,11 +812,11 @@ func Test_Stabilize_cutoff2(t *testing.T) {
 
 func Test_Stabilize_cutoff2Context_error(t *testing.T) {
 	ctx := testContext()
-	epsilon := Var(ctx, 0.1)
-	input := Var(ctx, 3.14)
+	epsilon := Var(Root(), 0.1)
+	input := Var(Root(), 3.14)
 
 	cutoff := Cutoff2Context(
-		ctx,
+		Root(),
 		epsilon,
 		input,
 		func(_ context.Context, _, _, _ float64) (bool, error) {
@@ -832,14 +832,14 @@ func Test_Stabilize_cutoff2Context_error(t *testing.T) {
 	})
 
 	output := Map2(
-		ctx,
+		Root(),
 		cutoff,
-		Return(ctx, 10.0),
+		Return(Root(), 10.0),
 		add[float64],
 	)
 
 	graph := New()
-	_ = Observe(ctx, graph, output)
+	_ = Observe(Root(), graph, output)
 
 	err := graph.Stabilize(
 		ctx,
@@ -861,13 +861,13 @@ func Test_Stabilize_cutoff2Context_error(t *testing.T) {
 func Test_Stabilize_watch(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var(ctx, 1)
-	v1 := Var(ctx, 1)
-	m0 := Map2(ctx, v0, v1, add)
-	w0 := Watch(ctx, m0)
+	v0 := Var(Root(), 1)
+	v1 := Var(Root(), 1)
+	m0 := Map2(Root(), v0, v1, add)
+	w0 := Watch(Root(), m0)
 
 	graph := New()
-	_ = Observe(ctx, graph, w0)
+	_ = Observe(Root(), graph, w0)
 
 	_ = graph.Stabilize(ctx)
 
@@ -887,13 +887,13 @@ func Test_Stabilize_watch(t *testing.T) {
 func Test_Stabilize_Map(t *testing.T) {
 	ctx := testContext()
 
-	c0 := Return(ctx, 1)
-	m := Map(ctx, c0, func(a int) int {
+	c0 := Return(Root(), 1)
+	m := Map(Root(), c0, func(a int) int {
 		return a + 10
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, m)
+	_ = Observe(Root(), graph, m)
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, 11, m.Value())
@@ -902,14 +902,14 @@ func Test_Stabilize_Map(t *testing.T) {
 func Test_Stabilize_MapContext(t *testing.T) {
 	ctx := testContext()
 
-	c0 := Return(ctx, 1)
-	m := MapContext(ctx, c0, func(ictx context.Context, a int) (int, error) {
+	c0 := Return(Root(), 1)
+	m := MapContext(Root(), c0, func(ictx context.Context, a int) (int, error) {
 		ItsBlueDye(ictx, t)
 		return a + 10, nil
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, m)
+	_ = Observe(Root(), graph, m)
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, 11, m.Value())
@@ -918,14 +918,14 @@ func Test_Stabilize_MapContext(t *testing.T) {
 func Test_Stabilize_Map2(t *testing.T) {
 	ctx := testContext()
 
-	c0 := Return(ctx, 1)
-	c1 := Return(ctx, 2)
-	m2 := Map2(ctx, c0, c1, func(a, b int) int {
+	c0 := Return(Root(), 1)
+	c1 := Return(Root(), 2)
+	m2 := Map2(Root(), c0, c1, func(a, b int) int {
 		return a + b
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, m2)
+	_ = Observe(Root(), graph, m2)
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, 3, m2.Value())
@@ -934,15 +934,15 @@ func Test_Stabilize_Map2(t *testing.T) {
 func Test_Stabilize_Map2Context(t *testing.T) {
 	ctx := testContext()
 
-	c0 := Return(ctx, 1)
-	c1 := Return(ctx, 2)
-	m2 := Map2Context(ctx, c0, c1, func(ictx context.Context, a, b int) (int, error) {
+	c0 := Return(Root(), 1)
+	c1 := Return(Root(), 2)
+	m2 := Map2Context(Root(), c0, c1, func(ictx context.Context, a, b int) (int, error) {
 		ItsBlueDye(ctx, t)
 		return a + b, nil
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, m2)
+	_ = Observe(Root(), graph, m2)
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, 3, m2.Value())
@@ -951,15 +951,15 @@ func Test_Stabilize_Map2Context(t *testing.T) {
 func Test_Stabilize_Map2Context_error(t *testing.T) {
 	ctx := testContext()
 
-	c0 := Return(ctx, 1)
-	c1 := Return(ctx, 2)
-	m2 := Map2Context(ctx, c0, c1, func(ictx context.Context, a, b int) (int, error) {
+	c0 := Return(Root(), 1)
+	c1 := Return(Root(), 2)
+	m2 := Map2Context(Root(), c0, c1, func(ictx context.Context, a, b int) (int, error) {
 		ItsBlueDye(ctx, t)
 		return a + b, fmt.Errorf("this is just a test")
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, m2)
+	_ = Observe(Root(), graph, m2)
 
 	err := graph.Stabilize(ctx)
 	ItsNotNil(t, err)
@@ -969,15 +969,15 @@ func Test_Stabilize_Map2Context_error(t *testing.T) {
 func Test_Stabilize_Map3(t *testing.T) {
 	ctx := testContext()
 
-	c0 := Return(ctx, 1)
-	c1 := Return(ctx, 2)
-	c2 := Return(ctx, 3)
-	m3 := Map3(ctx, c0, c1, c2, func(a, b, c int) int {
+	c0 := Return(Root(), 1)
+	c1 := Return(Root(), 2)
+	c2 := Return(Root(), 3)
+	m3 := Map3(Root(), c0, c1, c2, func(a, b, c int) int {
 		return a + b + c
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, m3)
+	_ = Observe(Root(), graph, m3)
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, 6, m3.Value())
@@ -986,16 +986,16 @@ func Test_Stabilize_Map3(t *testing.T) {
 func Test_Stabilize_Map3Context(t *testing.T) {
 	ctx := testContext()
 
-	c0 := Return(ctx, 1)
-	c1 := Return(ctx, 2)
-	c2 := Return(ctx, 3)
-	m3 := Map3Context(ctx, c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
+	c0 := Return(Root(), 1)
+	c1 := Return(Root(), 2)
+	c2 := Return(Root(), 3)
+	m3 := Map3Context(Root(), c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
 		ItsBlueDye(ictx, t)
 		return a + b + c, nil
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, m3)
+	_ = Observe(Root(), graph, m3)
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, 6, m3.Value())
@@ -1004,16 +1004,16 @@ func Test_Stabilize_Map3Context(t *testing.T) {
 func Test_Stabilize_Map3Context_error(t *testing.T) {
 	ctx := testContext()
 
-	c0 := Return(ctx, 1)
-	c1 := Return(ctx, 2)
-	c2 := Return(ctx, 3)
-	m3 := Map3Context(ctx, c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
+	c0 := Return(Root(), 1)
+	c1 := Return(Root(), 2)
+	c2 := Return(Root(), 3)
+	m3 := Map3Context(Root(), c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
 		ItsBlueDye(ictx, t)
 		return a + b + c, fmt.Errorf("this is just a test")
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, m3)
+	_ = Observe(Root(), graph, m3)
 
 	err := graph.Stabilize(ctx)
 	ItsNotNil(t, err)
@@ -1023,13 +1023,13 @@ func Test_Stabilize_Map3Context_error(t *testing.T) {
 func Test_Stabilize_MapIf(t *testing.T) {
 	ctx := testContext()
 
-	c0 := Return(ctx, 1)
-	c1 := Return(ctx, 2)
-	v0 := Var(ctx, false)
-	mi0 := MapIf(ctx, c0, c1, v0)
+	c0 := Return(Root(), 1)
+	c1 := Return(Root(), 2)
+	v0 := Var(Root(), false)
+	mi0 := MapIf(Root(), c0, c1, v0)
 
 	graph := New()
-	_ = Observe(ctx, graph, mi0)
+	_ = Observe(Root(), graph, mi0)
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, 2, mi0.Value())
@@ -1057,13 +1057,13 @@ func Test_Stabilize_MapN(t *testing.T) {
 		return
 	}
 
-	c0 := Return(ctx, 1)
-	c1 := Return(ctx, 2)
-	c2 := Return(ctx, 3)
-	mn := MapN(ctx, sum, c0, c1, c2)
+	c0 := Return(Root(), 1)
+	c1 := Return(Root(), 2)
+	c2 := Return(Root(), 3)
+	mn := MapN(Root(), sum, c0, c1, c2)
 
 	graph := New()
-	_ = Observe(ctx, graph, mn)
+	_ = Observe(Root(), graph, mn)
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, 6, mn.Value())
@@ -1083,16 +1083,16 @@ func Test_Stabilize_MapN_AddInput(t *testing.T) {
 		return
 	}
 
-	c0 := Return(ctx, 1)
-	c1 := Return(ctx, 2)
-	c2 := Return(ctx, 3)
-	mn := MapN(ctx, sum)
-	_ = mn.AddInput(ctx, c0)
-	_ = mn.AddInput(ctx, c1)
-	_ = mn.AddInput(ctx, c2)
+	c0 := Return(Root(), 1)
+	c1 := Return(Root(), 2)
+	c2 := Return(Root(), 3)
+	mn := MapN(Root(), sum)
+	_ = mn.AddInput(c0)
+	_ = mn.AddInput(c1)
+	_ = mn.AddInput(c2)
 
 	graph := New()
-	_ = Observe(ctx, graph, mn)
+	_ = Observe(Root(), graph, mn)
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, 6, mn.Value())
@@ -1113,13 +1113,13 @@ func Test_Stabilize_MapNContext(t *testing.T) {
 		return
 	}
 
-	c0 := Return(ctx, 1)
-	c1 := Return(ctx, 2)
-	c2 := Return(ctx, 3)
-	mn := MapNContext(ctx, sum, c0, c1, c2)
+	c0 := Return(Root(), 1)
+	c1 := Return(Root(), 2)
+	c2 := Return(Root(), 3)
+	mn := MapNContext(Root(), sum, c0, c1, c2)
 
 	graph := New()
-	_ = Observe(ctx, graph, mn)
+	_ = Observe(Root(), graph, mn)
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, 6, mn.Value())
@@ -1137,13 +1137,13 @@ func Test_Stabilize_MapNContext_error(t *testing.T) {
 		return
 	}
 
-	c0 := Return(ctx, 1)
-	c1 := Return(ctx, 2)
-	c2 := Return(ctx, 3)
-	mn := MapNContext(ctx, sum, c0, c1, c2)
+	c0 := Return(Root(), 1)
+	c1 := Return(Root(), 2)
+	c2 := Return(Root(), 3)
+	mn := MapNContext(Root(), sum, c0, c1, c2)
 
 	graph := New()
-	_ = Observe(ctx, graph, mn)
+	_ = Observe(Root(), graph, mn)
 
 	err := graph.Stabilize(ctx)
 	ItsNotNil(t, err)
@@ -1154,17 +1154,17 @@ func Test_Stabilize_func(t *testing.T) {
 	ctx := testContext()
 
 	value := "hello"
-	f := Func(ctx, func(ictx context.Context) (string, error) {
+	f := Func(Root(), func(ictx context.Context) (string, error) {
 		ItsBlueDye(ictx, t)
 		return value, nil
 	})
-	m := MapContext(ctx, f, func(ictx context.Context, v string) (string, error) {
+	m := MapContext(Root(), f, func(ictx context.Context, v string) (string, error) {
 		ItsBlueDye(ctx, t)
 		return v + " world!", nil
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, m)
+	_ = Observe(Root(), graph, m)
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, "hello world!", m.Value())
@@ -1193,12 +1193,12 @@ func Test_Stabilize_foldMap(t *testing.T) {
 		"five":  5,
 		"six":   6,
 	}
-	mf := FoldMap(ctx, Return(ctx, m), 0, func(key string, val, accum int) int {
+	mf := FoldMap(Root(), Return(Root(), m), 0, func(key string, val, accum int) int {
 		return accum + val
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, mf)
+	_ = Observe(Root(), graph, mf)
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, 21, mf.Value())
@@ -1215,12 +1215,12 @@ func Test_Stabilize_foldLeft(t *testing.T) {
 		5,
 		6,
 	}
-	mf := FoldLeft(ctx, Return(ctx, m), "", func(accum string, val int) string {
+	mf := FoldLeft(Root(), Return(Root(), m), "", func(accum string, val int) string {
 		return accum + fmt.Sprint(val)
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, mf)
+	_ = Observe(Root(), graph, mf)
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, "123456", mf.Value())
@@ -1237,12 +1237,12 @@ func Test_Stabilize_foldRight(t *testing.T) {
 		5,
 		6,
 	}
-	mf := FoldRight(ctx, Return(ctx, m), "", func(val int, accum string) string {
+	mf := FoldRight(Root(), Return(Root(), m), "", func(val int, accum string) string {
 		return accum + fmt.Sprint(val)
 	})
 
 	graph := New()
-	_ = Observe(ctx, graph, mf)
+	_ = Observe(Root(), graph, mf)
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, "654321", mf.Value())
@@ -1256,11 +1256,11 @@ func Test_Stabilize_foldRight(t *testing.T) {
 func Test_Stabilize_freeze(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var(ctx, "hello")
-	fv := Freeze(ctx, v0)
+	v0 := Var(Root(), "hello")
+	fv := Freeze(Root(), v0)
 
 	graph := New()
-	_ = Observe(ctx, graph, fv)
+	_ = Observe(Root(), graph, fv)
 
 	err := graph.Stabilize(ctx)
 	ItsNil(t, err)
@@ -1279,17 +1279,17 @@ func Test_Stabilize_always_cutoff(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
-	filename := Var(ctx, "test")
-	filenameAlways := Always(ctx, filename)
+	filename := Var(Root(), "test")
+	filenameAlways := Always(Root(), filename)
 	modtime := 1
-	statfile := Map(ctx, filenameAlways, func(s string) int { return modtime })
-	statfileCutoff := Cutoff(ctx, statfile, func(ov, nv int) bool {
+	statfile := Map(Root(), filenameAlways, func(s string) int { return modtime })
+	statfileCutoff := Cutoff(Root(), statfile, func(ov, nv int) bool {
 		return ov == nv
 	})
-	readFile := Map2(ctx, filename, statfileCutoff, func(p string, mt int) string {
+	readFile := Map2(Root(), filename, statfileCutoff, func(p string, mt int) string {
 		return fmt.Sprintf("%s-%d", p, mt)
 	})
-	o := Observe(ctx, g, readFile)
+	o := Observe(Root(), g, readFile)
 
 	err := g.Stabilize(ctx)
 	ItsNil(t, err)
@@ -1314,17 +1314,17 @@ func Test_Stabilize_always_cutoff_error(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
-	filename := Var(ctx, "test")
-	filenameAlways := Always(ctx, filename)
+	filename := Var(Root(), "test")
+	filenameAlways := Always(Root(), filename)
 	modtime := 1
-	statfile := Map(ctx, filenameAlways, func(s string) int { return modtime })
-	statfileCutoff := CutoffContext(ctx, statfile, func(_ context.Context, ov, nv int) (bool, error) {
+	statfile := Map(Root(), filenameAlways, func(s string) int { return modtime })
+	statfileCutoff := CutoffContext(Root(), statfile, func(_ context.Context, ov, nv int) (bool, error) {
 		return false, fmt.Errorf("this is only a test")
 	})
-	readFile := Map2(ctx, filename, statfileCutoff, func(p string, mt int) string {
+	readFile := Map2(Root(), filename, statfileCutoff, func(p string, mt int) string {
 		return fmt.Sprintf("%s-%d", p, mt)
 	})
-	o := Observe(ctx, g, readFile)
+	o := Observe(Root(), g, readFile)
 
 	err := g.Stabilize(ctx)
 	ItsNotNil(t, err)
@@ -1341,11 +1341,11 @@ func Test_Stabilize_printsErrors(t *testing.T) {
 
 	ctx := WithTracingOutputs(context.Background(), outBuf, errBuf)
 
-	v0 := Var(ctx, "hello")
-	gonnaPanic := MapContext(ctx, v0, func(_ context.Context, _ string) (string, error) {
+	v0 := Var(Root(), "hello")
+	gonnaPanic := MapContext(Root(), v0, func(_ context.Context, _ string) (string, error) {
 		return "", fmt.Errorf("this is only a test")
 	})
-	_ = Observe(ctx, g, gonnaPanic)
+	_ = Observe(Root(), g, gonnaPanic)
 
 	err := g.Stabilize(ctx)
 	ItsNotNil(t, err)
@@ -1357,9 +1357,9 @@ func Test_Stabilize_printsErrors(t *testing.T) {
 func Test_Stabilize_handlers(t *testing.T) {
 	ctx := testContext()
 
-	v0 := Var(ctx, "foo")
-	v1 := Var(ctx, "bar")
-	m0 := Map2(ctx, v0, v1, func(a, b string) string {
+	v0 := Var(Root(), "foo")
+	v1 := Var(Root(), "bar")
+	m0 := Map2(Root(), v0, v1, func(a, b string) string {
 		return a + " " + b
 	})
 
@@ -1368,7 +1368,7 @@ func Test_Stabilize_handlers(t *testing.T) {
 	var startWasBlueDye bool
 	var endWasBlueDye bool
 	graph := New()
-	_ = Observe(ctx, graph, m0)
+	_ = Observe(Root(), graph, m0)
 	graph.OnStabilizationStart(func(ictx context.Context) {
 		startWasBlueDye = HasBlueDye(ctx)
 		didCallStabilizationStart = true

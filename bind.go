@@ -28,29 +28,29 @@ import (
 // More information is available at:
 //
 //	https://github.com/janestreet/incremental/blob/master/src/incremental_intf.ml
-func Bind[A, B any](ctx context.Context, input Incr[A], fn func(context.Context, A) Incr[B]) BindIncr[B] {
-	return BindContext[A, B](ctx, input, func(ctx context.Context, va A) (Incr[B], error) {
-		return fn(ctx, va), nil
+func Bind[A, B any](scope *BindScope, input Incr[A], fn func(*BindScope, A) Incr[B]) BindIncr[B] {
+	return BindContext[A, B](scope, input, func(bs *BindScope, va A) (Incr[B], error) {
+		return fn(bs, va), nil
 	})
 }
 
 // BindContext is like Bind but allows the bind delegate to take a context and return an error.
 //
 // If an error returned, the bind is aborted and the error listener(s) will fire for the node.
-func BindContext[A, B any](ctx context.Context, input Incr[A], fn func(context.Context, A) (Incr[B], error)) BindIncr[B] {
+func BindContext[A, B any](scope *BindScope, input Incr[A], fn func(*BindScope, A) (Incr[B], error)) BindIncr[B] {
 	o := &bindIncr[A, B]{
 		n:     NewNode(),
 		input: input,
 		fn:    fn,
 		bt:    "bind",
 	}
-	o.scope = &bindScope{
+	o.scope = &BindScope{
 		lhs:      input,
 		bind:     o,
 		rhsNodes: newNodeList(),
 	}
 	Link(o, input)
-	return WithinBindScope(ctx, o)
+	return WithinBindScope(scope, o)
 }
 
 // BindIncr is a node that implements Bind, which
@@ -74,8 +74,8 @@ type bindIncr[A, B any] struct {
 	n          *Node
 	bt         string
 	input      Incr[A]
-	fn         func(context.Context, A) (Incr[B], error)
-	scope      *bindScope
+	fn         func(*BindScope, A) (Incr[B], error)
+	scope      *BindScope
 	bindChange *bindChangeIncr[A, B]
 	bound      Incr[B]
 }
@@ -228,7 +228,7 @@ func (b *bindIncr[A, B]) unlinkOld(ctx context.Context) {
 	}
 }
 
-func (b *bindIncr[A, B]) removeNodesFromScope(ctx context.Context, scope *bindScope) {
+func (b *bindIncr[A, B]) removeNodesFromScope(ctx context.Context, scope *BindScope) {
 	rhsNodes := scope.rhsNodes.Values()
 	for _, n := range rhsNodes {
 		n.Node().createdIn = nil

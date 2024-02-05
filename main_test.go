@@ -161,31 +161,31 @@ func newListWithItems(items ...INode) (l map[Identifier]*recomputeHeapItem, outp
 	return
 }
 
-func createDynamicMaps(ctx context.Context, label string) Incr[string] {
-	mapVar0 := Var(ctx, fmt.Sprintf("%s-0", label))
+func createDynamicMaps(scope *BindScope, label string) Incr[string] {
+	mapVar0 := Var(scope, fmt.Sprintf("%s-0", label))
 	mapVar0.Node().SetLabel(fmt.Sprintf("%sv-0", label))
-	mapVar1 := Var(ctx, fmt.Sprintf("%s-1", label))
+	mapVar1 := Var(scope, fmt.Sprintf("%s-1", label))
 	mapVar1.Node().SetLabel(fmt.Sprintf("%sv-1", label))
-	m := Map2(ctx, mapVar0, mapVar1, func(a, b string) string {
+	m := Map2(scope, mapVar0, mapVar1, func(a, b string) string {
 		return a + "+" + b
 	})
 	m.Node().SetLabel(label)
 	return m
 }
 
-func createDynamicBind(ctx context.Context, label string, a, b Incr[string]) (VarIncr[string], BindIncr[string]) {
-	bindVar := Var(ctx, "a")
+func createDynamicBind(scope *BindScope, label string, a, b Incr[string]) (VarIncr[string], BindIncr[string]) {
+	bindVar := Var(scope, "a")
 	bindVar.Node().SetLabel(fmt.Sprintf("bind - %s - var", label))
-	bind := Bind(ctx, bindVar, func(ctx context.Context, which string) Incr[string] {
+	bind := Bind(scope, bindVar, func(scope *BindScope, which string) Incr[string] {
 		if which == "a" {
-			m := Map(ctx, a, func(v string) string {
+			m := Map(scope, a, func(v string) string {
 				return v + "->" + label
 			})
 			m.Node().SetLabel(fmt.Sprintf("bind - %s - inner map", label))
 			return m
 		}
 		if which == "b" {
-			m := Map(ctx, b, func(v string) string {
+			m := Map(scope, b, func(v string) string {
 				return v + "->" + label
 			})
 			m.Node().SetLabel(fmt.Sprintf("bind - %s - inner map", label))

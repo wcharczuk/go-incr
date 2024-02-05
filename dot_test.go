@@ -20,16 +20,15 @@ func Test_Dot(t *testing.T) {
 }
 `
 
-	ctx := testContext()
 	g := New()
-	v0 := Var(ctx, "foo")
+	v0 := Var(Root(), "foo")
 	v0.Node().id, _ = ParseIdentifier("165382c219e24e3db77fd41a884f9774")
-	v1 := Var(ctx, "bar")
+	v1 := Var(Root(), "bar")
 	v1.Node().id, _ = ParseIdentifier("a985936bed8c48b99801a5bd7f8a4e21")
-	m0 := Map2(ctx, v0, v1, concat)
+	m0 := Map2(Root(), v0, v1, concat)
 	m0.Node().id, _ = ParseIdentifier("fc45f4a7b5c7456f852f2298563b29ae")
 
-	o := Observe(ctx, g, m0)
+	o := Observe(Root(), g, m0)
 	o.Node().id, _ = ParseIdentifier("507dd07419724979bb34f2ca033257be")
 
 	buf := new(bytes.Buffer)
@@ -47,16 +46,15 @@ func (ew errorWriter) Write(_ []byte) (int, error) {
 }
 
 func Test_Dot_writeError(t *testing.T) {
-	ctx := testContext()
 	g := New()
-	v0 := Var(ctx, "foo")
+	v0 := Var(Root(), "foo")
 	v0.Node().id, _ = ParseIdentifier("165382c219e24e3db77fd41a884f9774")
-	v1 := Var(ctx, "bar")
+	v1 := Var(Root(), "bar")
 	v1.Node().id, _ = ParseIdentifier("a985936bed8c48b99801a5bd7f8a4e21")
-	m0 := Map2(ctx, v0, v1, concat)
+	m0 := Map2(Root(), v0, v1, concat)
 	m0.Node().id, _ = ParseIdentifier("fc45f4a7b5c7456f852f2298563b29ae")
 
-	_ = Observe(ctx, g, m0)
+	_ = Observe(Root(), g, m0)
 
 	buf := errorWriter{fmt.Errorf("this is just a test")}
 	err := Dot(buf, g)
@@ -74,16 +72,15 @@ func Test_Dot_setAt(t *testing.T) {
 	n4 -> n2;
 }
 `
-	ctx := testContext()
 	g := New()
-	v0 := Var(ctx, "foo")
+	v0 := Var(Root(), "foo")
 	v0.Node().id, _ = ParseIdentifier("165382c219e24e3db77fd41a884f9774")
-	v1 := Var(ctx, "bar")
+	v1 := Var(Root(), "bar")
 	v1.Node().id, _ = ParseIdentifier("a985936bed8c48b99801a5bd7f8a4e21")
 	v1.Node().setAt = 1
-	m0 := Map2(ctx, v0, v1, concat)
+	m0 := Map2(Root(), v0, v1, concat)
 	m0.Node().id, _ = ParseIdentifier("fc45f4a7b5c7456f852f2298563b29ae")
-	o := Observe(ctx, g, m0)
+	o := Observe(Root(), g, m0)
 	o.Node().id, _ = ParseIdentifier("507dd07419724979bb34f2ca033257be")
 
 	buf := new(bytes.Buffer)
@@ -103,16 +100,15 @@ func Test_Dot_changedAt(t *testing.T) {
 	n4 -> n2;
 }
 `
-	ctx := testContext()
 	g := New()
-	v0 := Var(ctx, "foo")
+	v0 := Var(Root(), "foo")
 	v0.Node().id, _ = ParseIdentifier("165382c219e24e3db77fd41a884f9774")
-	v1 := Var(ctx, "bar")
+	v1 := Var(Root(), "bar")
 	v1.Node().id, _ = ParseIdentifier("a985936bed8c48b99801a5bd7f8a4e21")
-	m0 := Map2(ctx, v0, v1, concat)
+	m0 := Map2(Root(), v0, v1, concat)
 	m0.Node().id, _ = ParseIdentifier("fc45f4a7b5c7456f852f2298563b29ae")
 	m0.Node().changedAt = 1
-	o := Observe(ctx, g, m0)
+	o := Observe(Root(), g, m0)
 	o.Node().id, _ = ParseIdentifier("507dd07419724979bb34f2ca033257be")
 
 	buf := new(bytes.Buffer)

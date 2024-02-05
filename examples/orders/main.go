@@ -78,11 +78,11 @@ func main() {
 	graph := incr.New()
 
 	data := make(map[incr.Identifier]Order)
-	dataInput := incr.Var(ctx, data)
+	dataInput := incr.Var(incr.Root(), data)
 
-	dataInputAdds := incrutil.DiffMapByKeysAdded(ctx, dataInput)
+	dataInputAdds := incrutil.DiffMapByKeysAdded(incr.Root(), dataInput)
 	orders := incr.FoldMap(
-		ctx,
+		incr.Root(),
 		dataInputAdds,
 		0,
 		func(_ incr.Identifier, o Order, v int) int {
@@ -90,7 +90,7 @@ func main() {
 		},
 	)
 	shares := incr.FoldMap(
-		ctx,
+		incr.Root(),
 		dataInputAdds,
 		0,
 		func(_ incr.Identifier, o Order, v int) int {
@@ -98,7 +98,7 @@ func main() {
 		},
 	)
 	symbolCounts := incr.FoldMap(
-		ctx,
+		incr.Root(),
 		dataInputAdds,
 		make(map[Symbol]int),
 		func(_ incr.Identifier, o Order, w map[Symbol]int) map[Symbol]int {
@@ -107,9 +107,9 @@ func main() {
 		},
 	)
 
-	_ = incr.Observe(ctx, graph, orders)
-	_ = incr.Observe(ctx, graph, shares)
-	_ = incr.Observe(ctx, graph, symbolCounts)
+	_ = incr.Observe(incr.Root(), graph, orders)
+	_ = incr.Observe(incr.Root(), graph, shares)
+	_ = incr.Observe(incr.Root(), graph, symbolCounts)
 	for x := 0; x < 10; x++ {
 		_ = graph.Stabilize(ctx)
 		fmt.Println("orders:", orders.Value())

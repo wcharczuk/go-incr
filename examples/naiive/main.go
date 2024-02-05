@@ -68,7 +68,7 @@ func main() {
 
 	incrVars, incrNodes := makeIncrNodes(ctx)
 	graph := incr.New()
-	incr.Observe(ctx, graph, incrNodes[0])
+	incr.Observe(incr.Root(), graph, incrNodes[0])
 
 	var incrResults []time.Duration
 	for n := 0; n < ROUNDS; n++ {
@@ -115,7 +115,7 @@ func makeIncrNodes(ctx context.Context) (vars []incr.VarIncr[string], nodes []in
 	nodes = make([]incr.Incr[string], SIZE)
 	vars = make([]incr.VarIncr[string], SIZE)
 	for x := 0; x < SIZE; x++ {
-		v := incr.Var(ctx, fmt.Sprintf("var_%d", x))
+		v := incr.Var(incr.Root(), fmt.Sprintf("var_%d", x))
 		vars[x] = v
 		nodes[x] = v
 	}
@@ -123,8 +123,8 @@ func makeIncrNodes(ctx context.Context) (vars []incr.VarIncr[string], nodes []in
 	var cursor int
 	for x := SIZE; x > 0; x >>= 1 {
 		for y := 0; y < x-1; y += 2 {
-			n := incr.Map2(ctx, nodes[cursor+y], nodes[cursor+y+1], func(a, b string) string {
-				return concatN(nil, a, b)
+			n := incr.Map2(incr.Root(), nodes[cursor+y], nodes[cursor+y+1], func(a, b string) string {
+				return concatN(context.TODO(), a, b)
 			})
 			nodes = append(nodes, n)
 		}

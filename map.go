@@ -7,8 +7,8 @@ import (
 
 // Map applies a function to a given input incremental and returns
 // a new incremental of the output type of that function.
-func Map[A, B any](ctx context.Context, a Incr[A], fn func(A) B) Incr[B] {
-	return MapContext(ctx, a, func(_ context.Context, v A) (B, error) {
+func Map[A, B any](scope *BindScope, a Incr[A], fn func(A) B) Incr[B] {
+	return MapContext(scope, a, func(_ context.Context, v A) (B, error) {
 		return fn(v), nil
 	})
 }
@@ -16,14 +16,14 @@ func Map[A, B any](ctx context.Context, a Incr[A], fn func(A) B) Incr[B] {
 // MapContext applies a function to a given input incremental and returns
 // a new incremental of the output type of that function but is context aware
 // and can also return an error, aborting stabilization.
-func MapContext[A, B any](ctx context.Context, a Incr[A], fn func(context.Context, A) (B, error)) Incr[B] {
+func MapContext[A, B any](scope *BindScope, a Incr[A], fn func(context.Context, A) (B, error)) Incr[B] {
 	m := &mapIncr[A, B]{
 		n:  NewNode(),
 		a:  a,
 		fn: fn,
 	}
 	Link(m, a)
-	return WithinBindScope(ctx, m)
+	return WithinBindScope(scope, m)
 }
 
 var (

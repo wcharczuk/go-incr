@@ -11,14 +11,14 @@ func Test_Observe_Unobserve(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
-	v0 := Var(ctx, "hello 0")
-	m0 := Map(ctx, v0, ident)
+	v0 := Var(Root(), "hello 0")
+	m0 := Map(Root(), v0, ident)
 
-	v1 := Var(ctx, "hello 1")
-	m1 := Map(ctx, v1, ident)
+	v1 := Var(Root(), "hello 1")
+	m1 := Map(Root(), v1, ident)
 
-	o0 := Observe(ctx, g, m0)
-	o1 := Observe(ctx, g, m1)
+	o0 := Observe(Root(), g, m0)
+	o1 := Observe(Root(), g, m1)
 
 	testutil.ItsEqual(t, 6, g.numNodes)
 
@@ -56,15 +56,15 @@ func Test_Observe_Unobserve_multiple(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
-	v0 := Var(ctx, "hello 0")
-	m0 := Map(ctx, v0, ident)
+	v0 := Var(Root(), "hello 0")
+	m0 := Map(Root(), v0, ident)
 
-	v1 := Var(ctx, "hello 1")
-	m1 := Map(ctx, v1, ident)
+	v1 := Var(Root(), "hello 1")
+	m1 := Map(Root(), v1, ident)
 
-	o0 := Observe(ctx, g, m0)
-	o1 := Observe(ctx, g, m1)
-	o11 := Observe(ctx, g, m1)
+	o0 := Observe(Root(), g, m0)
+	o1 := Observe(Root(), g, m1)
+	o11 := Observe(Root(), g, m1)
 
 	testutil.ItsEqual(t, true, g.IsObserving(v0))
 	testutil.ItsEqual(t, true, g.IsObserving(m0))
@@ -108,7 +108,7 @@ func Test_Observe_Unobserve_multiple(t *testing.T) {
 
 	v0.Set("not hello 0")
 	v1.Set("not hello 1")
-	err = g.Stabilize(context.TODO())
+	err = g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 
 	testutil.ItsEqual(t, "not hello 0", o0.Value())
@@ -119,9 +119,9 @@ func Test_Observe_Unobserve_multiple(t *testing.T) {
 func Test_Observer_Unobserve_reobserve(t *testing.T) {
 	ctx := testContext()
 	g := New()
-	v0 := Var(ctx, "hello")
-	m0 := Map(ctx, v0, ident)
-	o0 := Observe(ctx, g, m0)
+	v0 := Var(Root(), "hello")
+	m0 := Map(Root(), v0, ident)
+	o0 := Observe(Root(), g, m0)
 
 	_ = g.Stabilize(context.TODO())
 	testutil.ItsEqual(t, "hello", o0.Value())
@@ -133,7 +133,7 @@ func Test_Observer_Unobserve_reobserve(t *testing.T) {
 	// strictly, the value shouldn't change ...
 	testutil.ItsEqual(t, "hello", m0.Value())
 
-	o1 := Observe(ctx, g, m0)
+	o1 := Observe(Root(), g, m0)
 	_ = g.Stabilize(context.TODO())
 	testutil.ItsEqual(t, "hello", o1.Value())
 }

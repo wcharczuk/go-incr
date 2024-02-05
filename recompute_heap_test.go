@@ -200,7 +200,7 @@ func Test_recomputeHeap_nextMinHeightUnsafe_noItems(t *testing.T) {
 }
 
 func Test_recomputeHeap_nextMinHeightUnsafe_pastMax(t *testing.T) {
-	r0 := Return(testContext(), "hello")
+	r0 := Return(Root(), "hello")
 	rh := newRecomputeHeap(4)
 	rh.minHeight = 1
 	rh.maxHeight = 3

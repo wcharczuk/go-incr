@@ -24,7 +24,7 @@ func main() {
 	nodes := make([]incr.Incr[string], SIZE)
 	vars := make([]incr.VarIncr[string], 0, SIZE)
 	for x := 0; x < SIZE; x++ {
-		v := incr.Var(ctx, fmt.Sprintf("var_%d", x))
+		v := incr.Var(incr.Root(), fmt.Sprintf("var_%d", x))
 		vars = append(vars, v)
 		nodes[x] = v
 	}
@@ -32,7 +32,7 @@ func main() {
 	var cursor int
 	for x := SIZE; x > 0; x >>= 1 {
 		for y := 0; y < x-1; y += 2 {
-			n := incr.Map2(ctx, nodes[cursor+y], nodes[cursor+y+1], concat)
+			n := incr.Map2(incr.Root(), nodes[cursor+y], nodes[cursor+y+1], concat)
 			nodes = append(nodes, n)
 		}
 		cursor += x
@@ -43,7 +43,7 @@ func main() {
 	if os.Getenv("DEBUG") != "" {
 		ctx = incr.WithTracing(ctx)
 	}
-	_ = incr.Observe(ctx, graph, nodes[0])
+	_ = incr.Observe(incr.Root(), graph, nodes[0])
 
 	var err error
 	for n := 0; n < ROUNDS; n++ {

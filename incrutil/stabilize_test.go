@@ -20,14 +20,14 @@ func Test_Stabilize_diffMapByKeysAdded(t *testing.T) {
 		"six":   6,
 	}
 
-	mv := incr.Var(ctx, m)
-	mda := DiffMapByKeysAdded(ctx, mv)
-	mf := incr.FoldMap(ctx, mda, 0, func(key string, val, accum int) int {
+	mv := incr.Var(incr.Root(), m)
+	mda := DiffMapByKeysAdded(incr.Root(), mv)
+	mf := incr.FoldMap(incr.Root(), mda, 0, func(key string, val, accum int) int {
 		return accum + val
 	})
 
 	graph := incr.New()
-	_ = incr.Observe(ctx, graph, mf)
+	_ = incr.Observe(incr.Root(), graph, mf)
 
 	_ = graph.Stabilize(ctx)
 	testutil.ItsEqual(t, 21, mf.Value())
@@ -60,14 +60,14 @@ func Test_Stabilize_diffMapByKeysRemoved(t *testing.T) {
 		"six":   6,
 	}
 
-	mv := incr.Var(ctx, m)
-	mdr := DiffMapByKeysRemoved(ctx, mv)
-	mf := incr.FoldMap(ctx, mdr, 0, func(key string, val, accum int) int {
+	mv := incr.Var(incr.Root(), m)
+	mdr := DiffMapByKeysRemoved(incr.Root(), mv)
+	mf := incr.FoldMap(incr.Root(), mdr, 0, func(key string, val, accum int) int {
 		return accum + val
 	})
 
 	graph := incr.New()
-	_ = incr.Observe(ctx, graph, mf)
+	_ = incr.Observe(incr.Root(), graph, mf)
 
 	_ = graph.Stabilize(ctx)
 	testutil.ItsEqual(t, 0, mf.Value())
@@ -93,18 +93,18 @@ func Test_Stabilize_diffMapByKeys(t *testing.T) {
 		"six":   6,
 	}
 
-	mv := incr.Var(ctx, m)
-	mda, mdr := DiffMapByKeys(ctx, mv)
-	mfa := incr.FoldMap(ctx, mda, 0, func(key string, val, accum int) int {
+	mv := incr.Var(incr.Root(), m)
+	mda, mdr := DiffMapByKeys(incr.Root(), mv)
+	mfa := incr.FoldMap(incr.Root(), mda, 0, func(key string, val, accum int) int {
 		return accum + val
 	})
-	mfr := incr.FoldMap(ctx, mdr, 0, func(key string, val, accum int) int {
+	mfr := incr.FoldMap(incr.Root(), mdr, 0, func(key string, val, accum int) int {
 		return accum + val
 	})
 
 	graph := incr.New()
-	_ = incr.Observe(ctx, graph, mfa)
-	_ = incr.Observe(ctx, graph, mfr)
+	_ = incr.Observe(incr.Root(), graph, mfa)
+	_ = incr.Observe(incr.Root(), graph, mfr)
 
 	_ = graph.Stabilize(ctx)
 	_ = graph.Stabilize(ctx)
@@ -135,13 +135,13 @@ func Test_Stabilize_diffSlice(t *testing.T) {
 		5,
 		6,
 	}
-	mv := incr.Var(ctx, m)
-	mf := incr.FoldLeft(ctx, DiffSliceByIndicesAdded(ctx, mv), "", func(accum string, val int) string {
+	mv := incr.Var(incr.Root(), m)
+	mf := incr.FoldLeft(incr.Root(), DiffSliceByIndicesAdded(incr.Root(), mv), "", func(accum string, val int) string {
 		return accum + fmt.Sprint(val)
 	})
 
 	graph := incr.New()
-	_ = incr.Observe(ctx, graph, mf)
+	_ = incr.Observe(incr.Root(), graph, mf)
 
 	_ = graph.Stabilize(ctx)
 	testutil.ItsEqual(t, "123456", mf.Value())

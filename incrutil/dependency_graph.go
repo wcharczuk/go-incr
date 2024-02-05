@@ -54,7 +54,7 @@ func (dg DependencyGraph[Result]) Create(ctx context.Context) (*incr.Graph, map[
 	}
 	graph := incr.New()
 	for _, n := range leaves {
-		_ = incr.Observe[Result](ctx, graph, n)
+		_ = incr.Observe[Result](incr.Root(), graph, n)
 	}
 	return graph, packageIncrementals, nil
 }
@@ -74,7 +74,7 @@ func (dg DependencyGraph[Result]) createDependencyIncrLookup(ctx context.Context
 	}
 	for _, p := range dg.Dependencies {
 		for _, d := range p.DependsOn {
-			if err = output[p.Name].AddInput(ctx, output[d]); err != nil {
+			if err = output[p.Name].AddInput(output[d]); err != nil {
 				return
 			}
 		}
@@ -95,7 +95,7 @@ func (dg DependencyGraph[Result]) mapOnUpdate(d Dependency) func(context.Context
 }
 
 func (dg DependencyGraph[Result]) createDependencyIncr(d Dependency) DependencyIncr[Result] {
-	output := incr.MapNContext[Result, Result](context.Background(), dg.mapAction(d))
+	output := incr.MapNContext[Result, Result](incr.Root(), dg.mapAction(d))
 	if dg.OnUpdate != nil {
 		output.Node().OnUpdate(dg.mapOnUpdate(d))
 	}

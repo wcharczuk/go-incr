@@ -10,7 +10,7 @@ import (
 //
 // Specifically, we term this _Apply_If because the nodes are all
 // linked in the graph, but the value changes during stabilization.
-func MapIf[A any](ctx context.Context, a, b Incr[A], p Incr[bool]) Incr[A] {
+func MapIf[A any](scope *BindScope, a, b Incr[A], p Incr[bool]) Incr[A] {
 	o := &mapIfIncr[A]{
 		n: NewNode(),
 		a: a,
@@ -18,7 +18,7 @@ func MapIf[A any](ctx context.Context, a, b Incr[A], p Incr[bool]) Incr[A] {
 		p: p,
 	}
 	Link(o, a, b, p)
-	return WithinBindScope(ctx, o)
+	return WithinBindScope(scope, o)
 }
 
 var (

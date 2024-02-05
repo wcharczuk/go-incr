@@ -11,8 +11,8 @@ import (
 // It will include an extra method `Set` above what you
 // typically find on Incr[A], as well as a `Read` method
 // that helps integrate into subcomputations.
-func Var[T any](ctx context.Context, t T) VarIncr[T] {
-	return WithinBindScope(ctx, &varIncr[T]{
+func Var[T any](scope *BindScope, t T) VarIncr[T] {
+	return WithinBindScope(scope, &varIncr[T]{
 		n:     NewNode(),
 		value: t,
 	})

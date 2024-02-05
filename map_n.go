@@ -7,15 +7,15 @@ import (
 
 // MapN applies a function to given list of input incrementals and returns
 // a new incremental of the output type of that function.
-func MapN[A, B any](ctx context.Context, fn MapNFunc[A, B], inputs ...Incr[A]) MapNIncr[A, B] {
-	return MapNContext(ctx, func(_ context.Context, i ...A) (B, error) {
+func MapN[A, B any](scope *BindScope, fn MapNFunc[A, B], inputs ...Incr[A]) MapNIncr[A, B] {
+	return MapNContext(scope, func(_ context.Context, i ...A) (B, error) {
 		return fn(i...), nil
 	}, inputs...)
 }
 
 // MapNContext applies a function to given list of input incrementals and returns
 // a new incremental of the output type of that function.
-func MapNContext[A, B any](ctx context.Context, fn MapNContextFunc[A, B], inputs ...Incr[A]) MapNIncr[A, B] {
+func MapNContext[A, B any](scope *BindScope, fn MapNContextFunc[A, B], inputs ...Incr[A]) MapNIncr[A, B] {
 	o := &mapNIncr[A, B]{
 		n:      NewNode(),
 		inputs: inputs,
@@ -24,7 +24,7 @@ func MapNContext[A, B any](ctx context.Context, fn MapNContextFunc[A, B], inputs
 	for _, i := range inputs {
 		Link(o, i)
 	}
-	return WithinBindScope(ctx, o)
+	return WithinBindScope(scope, o)
 }
 
 // MapNFunc is the function that the ApplyN incremental applies.
@@ -36,7 +36,7 @@ type MapNContextFunc[A, B any] func(context.Context, ...A) (B, error)
 // MapNIncr is a type of incremental that can add inputs over time.
 type MapNIncr[A, B any] interface {
 	Incr[B]
-	AddInput(context.Context, Incr[A]) error
+	AddInput(Incr[A]) error
 }
 
 var (
@@ -54,7 +54,7 @@ type mapNIncr[A, B any] struct {
 	val    B
 }
 
-func (mn *mapNIncr[A, B]) AddInput(ctx context.Context, i Incr[A]) error {
+func (mn *mapNIncr[A, B]) AddInput(i Incr[A]) error {
 	mn.inputs = append(mn.inputs, i)
 	return link(mn, true /*detectCycles*/, i)
 }

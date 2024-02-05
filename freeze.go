@@ -7,13 +7,13 @@ import (
 
 // Freeze yields an incremental that takes the value of an
 // input incremental and doesn't change thereafter.
-func Freeze[A any](ctx context.Context, i Incr[A]) Incr[A] {
+func Freeze[A any](scope *BindScope, i Incr[A]) Incr[A] {
 	o := &freezeIncr[A]{
 		n: NewNode(),
 		i: i,
 	}
 	Link(o, i)
-	return WithinBindScope(ctx, o)
+	return WithinBindScope(scope, o)
 }
 
 var (

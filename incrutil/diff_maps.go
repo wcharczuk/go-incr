@@ -10,44 +10,44 @@ import (
 // DiffMapByKeys returns two incrementals, one for keys added, and one
 // for keys removed, and each stabilization pass returns just the subset
 // of the map that changed since the last pass according to the keys.
-func DiffMapByKeys[K comparable, V any](ctx context.Context, i incr.Incr[map[K]V]) (add incr.Incr[map[K]V], rem incr.Incr[map[K]V]) {
+func DiffMapByKeys[K comparable, V any](scope *incr.BindScope, i incr.Incr[map[K]V]) (add incr.Incr[map[K]V], rem incr.Incr[map[K]V]) {
 	add = &diffMapByKeysAddedIncr[K, V]{
 		n: incr.NewNode(),
 		i: i,
 	}
 	incr.Link(add, i)
-	add = incr.WithinBindScope(ctx, add)
+	add = incr.WithinBindScope(scope, add)
 	rem = &diffMapByKeysRemovedIncr[K, V]{
 		n: incr.NewNode(),
 		i: i,
 	}
 	incr.Link(rem, i)
-	rem = incr.WithinBindScope(ctx, rem)
+	rem = incr.WithinBindScope(scope, rem)
 	return
 }
 
 // DiffMapByKeysAdded returns an incremental that takes an input map typed
 // incremental, and each stabilization pass returns just the subset
 // of the map that was added since the last pass according to the keys.
-func DiffMapByKeysAdded[K comparable, V any](ctx context.Context, i incr.Incr[map[K]V]) incr.Incr[map[K]V] {
+func DiffMapByKeysAdded[K comparable, V any](scope *incr.BindScope, i incr.Incr[map[K]V]) incr.Incr[map[K]V] {
 	o := &diffMapByKeysAddedIncr[K, V]{
 		n: incr.NewNode(),
 		i: i,
 	}
 	incr.Link(o, i)
-	return incr.WithinBindScope(ctx, o)
+	return incr.WithinBindScope(scope, o)
 }
 
 // DiffMapByKeysRemoved returns an incremental that takes an input map typed
 // incremental, and each stabilization pass returns just the subset
 // of the map that was removed since the last pass according to the keys.
-func DiffMapByKeysRemoved[K comparable, V any](ctx context.Context, i incr.Incr[map[K]V]) incr.Incr[map[K]V] {
+func DiffMapByKeysRemoved[K comparable, V any](scope *incr.BindScope, i incr.Incr[map[K]V]) incr.Incr[map[K]V] {
 	o := &diffMapByKeysRemovedIncr[K, V]{
 		n: incr.NewNode(),
 		i: i,
 	}
 	incr.Link(o, i)
-	return incr.WithinBindScope(ctx, o)
+	return incr.WithinBindScope(scope, o)
 }
 
 var (
