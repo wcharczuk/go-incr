@@ -38,6 +38,16 @@ func epsilonContext(t *testing.T, delta float64) func(context.Context, float64, 
 	}
 }
 
+func concat(a, b string) string {
+	return a + b
+}
+
+func mapAppend(suffix string) func(string) string {
+	return func(v string) string {
+		return v + suffix
+	}
+}
+
 // addConst returs a map fn that adds a constant value
 // to a given input
 func addConst(v float64) func(float64) float64 {
