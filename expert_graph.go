@@ -32,7 +32,7 @@ type IExpertGraph interface {
 	AddObserver(IObserver)
 	RemoveObserver(IObserver)
 
-	ObserveNodes(context.Context, INode, ...IObserver)
+	ObserveNodes(INode, ...IObserver)
 	UnobserveNodes(context.Context, INode, ...IObserver)
 }
 
@@ -85,7 +85,7 @@ func (eg *expertGraph) RecomputeHeapIDs() []Identifier {
 	return output
 }
 
-func (eg *expertGraph) ObserveNodes(ctx context.Context, n INode, observers ...IObserver) {
+func (eg *expertGraph) ObserveNodes(n INode, observers ...IObserver) {
 	eg.graph.observeNodes(n, observers...)
 }
 

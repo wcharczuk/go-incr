@@ -75,7 +75,7 @@ func Test_ExpertGraph_Observe(t *testing.T) {
 	o1 := mockObserver()
 	o2 := mockObserver()
 
-	eg.ObserveNodes(context.TODO(), n1, o1, o2)
+	eg.ObserveNodes(n1, o1, o2)
 
 	testutil.ItsEqual(t, 2, len(n1.n.observers))
 	testutil.ItsEqual(t, 0, len(n2.n.observers))
