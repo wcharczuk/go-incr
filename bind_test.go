@@ -357,7 +357,7 @@ func Test_Bind_rebind(t *testing.T) {
 
 func Test_Bind_error(t *testing.T) {
 	v0 := Var(Root(), "a")
-	bind := BindContext(Root(), v0, func(_ *BindScope, which string) (Incr[string], error) {
+	bind := BindContext(Root(), v0, func(_ context.Context, _ *BindScope, which string) (Incr[string], error) {
 		return nil, fmt.Errorf("this is just a test")
 	})
 	bind.Node().SetLabel("bind")
@@ -516,10 +516,10 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 	cv.Node().SetLabel("cv")
 	bv := Var(Root(), "a")
 	bv.Node().SetLabel("bv")
-	c := BindContext[string](Root(), cv, func(scope *BindScope, _ string) (Incr[string], error) {
+	c := BindContext[string](Root(), cv, func(_ context.Context, scope *BindScope, _ string) (Incr[string], error) {
 		a0 := createDynamicMaps(scope, "a0")
 		a1 := createDynamicMaps(scope, "a1")
-		bind := BindContext(Root(), bv, func(bs *BindScope, which string) (Incr[string], error) {
+		bind := BindContext(Root(), bv, func(_ context.Context, bs *BindScope, which string) (Incr[string], error) {
 			switch which {
 			case "a":
 				return Map(bs, a0, func(v string) string {
@@ -534,7 +534,6 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 			}
 		})
 		bind.Node().SetLabel(fmt.Sprintf("bind - %s", "b"))
-		TracePrintf(scope, "returning new bind node")
 		return bind, nil
 	})
 	c.Node().SetLabel("c")

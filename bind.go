@@ -29,7 +29,7 @@ import (
 //
 //	https://github.com/janestreet/incremental/blob/master/src/incremental_intf.ml
 func Bind[A, B any](scope *BindScope, input Incr[A], fn func(*BindScope, A) Incr[B]) BindIncr[B] {
-	return BindContext[A, B](scope, input, func(bs *BindScope, va A) (Incr[B], error) {
+	return BindContext[A, B](scope, input, func(_ context.Context, bs *BindScope, va A) (Incr[B], error) {
 		return fn(bs, va), nil
 	})
 }
@@ -37,7 +37,7 @@ func Bind[A, B any](scope *BindScope, input Incr[A], fn func(*BindScope, A) Incr
 // BindContext is like Bind but allows the bind delegate to take a context and return an error.
 //
 // If an error returned, the bind is aborted and the error listener(s) will fire for the node.
-func BindContext[A, B any](scope *BindScope, input Incr[A], fn func(*BindScope, A) (Incr[B], error)) BindIncr[B] {
+func BindContext[A, B any](scope *BindScope, input Incr[A], fn func(context.Context, *BindScope, A) (Incr[B], error)) BindIncr[B] {
 	o := &bindIncr[A, B]{
 		n:     NewNode(),
 		input: input,
@@ -74,7 +74,7 @@ type bindIncr[A, B any] struct {
 	n          *Node
 	bt         string
 	input      Incr[A]
-	fn         func(*BindScope, A) (Incr[B], error)
+	fn         func(context.Context, *BindScope, A) (Incr[B], error)
 	scope      *BindScope
 	bindChange *bindChangeIncr[A, B]
 	bound      Incr[B]
@@ -98,7 +98,7 @@ func (b *bindIncr[A, B]) BindChange() INode {
 }
 
 func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
-	newIncr, err := b.fn(withBindScope(ctx, b.scope), b.input.Value())
+	newIncr, err := b.fn(ctx, b.scope, b.input.Value())
 	if err != nil {
 		return err
 	}
@@ -175,7 +175,7 @@ func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) error {
 	if err := link(b.bound, true /*detectCycles*/, b.bindChange); err != nil {
 		return err
 	}
-	b.n.graph.observeSingleNode(ctx, b.bindChange, b.n.Observers()...)
+	b.n.graph.observeSingleNode(b.bindChange, b.n.Observers()...)
 	return nil
 }
 
@@ -190,7 +190,7 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) error {
 			return err
 		}
 	}
-	b.n.graph.observeNodes(ctx, b.bound, b.n.Observers()...)
+	b.n.graph.observeNodes(b.bound, b.n.Observers()...)
 	for _, n := range b.scope.rhsNodes.list {
 		if typed, ok := n.(IBind); ok {
 			TracePrintf(ctx, "%v propagating bind link to %v", b, typed)

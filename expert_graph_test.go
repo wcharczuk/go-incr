@@ -92,12 +92,12 @@ func Test_ExpertGraph_AddObserver(t *testing.T) {
 	o0 := mockObserver()
 	o1 := mockObserver()
 
-	eg.AddObserver(context.TODO(), o1)
+	eg.AddObserver(o1)
 
 	testutil.ItsEqual(t, false, mapHas(g.observers, o0.Node().id))
 	testutil.ItsEqual(t, true, mapHas(g.observers, o1.Node().id))
 
-	eg.RemoveObserver(context.TODO(), o1)
+	eg.RemoveObserver(o1)
 
 	testutil.ItsEqual(t, false, mapHas(g.observers, o0.Node().id))
 	testutil.ItsEqual(t, false, mapHas(g.observers, o1.Node().id))

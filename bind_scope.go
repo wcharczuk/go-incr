@@ -2,7 +2,6 @@ package incr
 
 import (
 	"context"
-	"time"
 )
 
 // WithinBindScope updates a node's createdIn scope to reflect a new
@@ -43,7 +42,6 @@ func addNodeToBindScope(scope *BindScope, node INode) {
 	if scope == nil || scope.root {
 		return
 	}
-	TracePrintf(scope, "%v adding to bound scope %v", scope.bind, node)
 	node.Node().createdIn = scope
 	scope.rhsNodes.Push(node)
 }
@@ -59,32 +57,4 @@ type BindScope struct {
 	lhs      INode
 	bind     INode
 	rhsNodes *nodeList
-}
-
-func (bs *BindScope) Deadline() (deadline time.Time, ok bool) {
-	if bs.inner != nil {
-		deadline, ok = bs.inner.Deadline()
-	}
-	return
-}
-
-func (bs *BindScope) Done() (done <-chan struct{}) {
-	if bs.inner != nil {
-		done = bs.inner.Done()
-	}
-	return
-}
-
-func (bs *BindScope) Err() (err error) {
-	if bs.inner != nil {
-		err = bs.inner.Err()
-	}
-	return
-}
-
-func (bs *BindScope) Value(key any) (value any) {
-	if bs.inner != nil {
-		value = bs.inner.Value(key)
-	}
-	return
 }

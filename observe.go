@@ -13,16 +13,15 @@ func Observe[A any](scope *BindScope, g *Graph, input Incr[A]) ObserveIncr[A] {
 		input: input,
 	}
 	Link(o, input)
-	g.addObserver(scope, o)
+	g.addObserver(o)
 	// NOTE(wc): we do this here because some """expert""" use cases for `ExpertGraph::DiscoverObserver`
 	// require us to add the observer to the graph observer list but _not_
 	// add it to the recompute heap.
 	//
 	// So we just add it here explicitly and don't add it implicitly
 	// in the DiscoverObserver function.
-	TracePrintf(scope, "adding observer %v to recompute heap", o)
 	g.recomputeHeap.Add(o)
-	g.observeNodes(scope, input, o)
+	g.observeNodes(input, o)
 	return WithinBindScope(scope, o)
 }
 
@@ -75,7 +74,7 @@ func (o *observeIncr[A]) Stabilize(_ context.Context) error {
 func (o *observeIncr[A]) Unobserve(ctx context.Context) {
 	g := o.n.graph
 	g.unobserveNodes(ctx, o.input, o)
-	g.removeObserver(ctx, o)
+	g.removeObserver(o)
 	parents := o.n.parents.Values()
 	for _, p := range parents {
 		Unlink(o, p)

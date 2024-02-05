@@ -130,7 +130,6 @@ func Test_Graph_IsStabilizing(t *testing.T) {
 }
 
 func Test_Graph_addObserver_rediscover(t *testing.T) {
-	ctx := testContext()
 	g := New()
 
 	v := Var(Root(), "hello")
@@ -143,7 +142,7 @@ func Test_Graph_addObserver_rediscover(t *testing.T) {
 	g.recomputeHeap.Remove(o)
 	testutil.ItsEqual(t, false, g.recomputeHeap.Has(o))
 
-	g.addObserver(ctx, o)
+	g.addObserver(o)
 	testutil.ItsEqual(t, 2, g.numNodes)
 	testutil.ItsEqual(t, 2, o.Node().height)
 	testutil.ItsEqual(t, false, g.recomputeHeap.Has(o))

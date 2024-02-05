@@ -566,8 +566,8 @@ func Test_Stabilize_bindIf(t *testing.T) {
 	i0 := Return(Root(), "foo")
 	i1 := Return(Root(), "bar")
 
-	b := BindIf(Root(), sw, func(bs *BindScope, swv bool) (Incr[string], error) {
-		ItsBlueDye(bs, t)
+	b := BindIf(Root(), sw, func(ctx context.Context, bs *BindScope, swv bool) (Incr[string], error) {
+		ItsBlueDye(ctx, t)
 		if swv {
 			return i0, nil
 		}
@@ -640,10 +640,6 @@ func Test_Stabilize_cutoff(t *testing.T) {
 		ctx,
 	)
 	ItsEqual(t, 13.26, output.Value())
-}
-
-type MathTypes interface {
-	~int | ~int64 | ~float32 | ~float64
 }
 
 func Test_Stabilize_cutoffContext(t *testing.T) {
@@ -738,13 +734,6 @@ func Test_Stabilize_cutoffContext_error(t *testing.T) {
 	ItsNotNil(t, err)
 	ItsEqual(t, 2, errors)
 	ItsEqual(t, 0, output.Value())
-}
-
-func epsilonFn[A, B MathTypes](eps A, oldv, newv B) bool {
-	if oldv > newv {
-		return oldv-newv <= B(eps)
-	}
-	return newv-oldv <= B(eps)
 }
 
 func Test_Stabilize_cutoff2(t *testing.T) {

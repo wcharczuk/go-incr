@@ -200,16 +200,16 @@ func (graph *Graph) SetStale(gn INode) {
 
 // observeNodes traverses up from a given node, adding a given
 // list of observers as "observing" that node, and recursing through it's inputs or parents.
-func (graph *Graph) observeNodes(ctx context.Context, gn INode, observers ...IObserver) {
-	graph.observeSingleNode(ctx, gn, observers...)
+func (graph *Graph) observeNodes(gn INode, observers ...IObserver) {
+	graph.observeSingleNode(gn, observers...)
 	gnn := gn.Node()
 	parents := gnn.Parents()
 	for _, p := range parents {
-		graph.observeNodes(ctx, p, observers...)
+		graph.observeNodes(p, observers...)
 	}
 }
 
-func (graph *Graph) observeSingleNode(ctx context.Context, gn INode, observers ...IObserver) {
+func (graph *Graph) observeSingleNode(gn INode, observers ...IObserver) {
 	gnn := gn.Node()
 
 	gnn.addObservers(observers...)
@@ -217,8 +217,6 @@ func (graph *Graph) observeSingleNode(ctx context.Context, gn INode, observers .
 	if alreadyObservedByGraph {
 		return
 	}
-
-	TracePrintf(ctx, "observing node %v", gn)
 	graph.numNodes++
 	gnn.graph = graph
 	gnn.detectCutoff(gn)
@@ -258,7 +256,7 @@ func (graph *Graph) unobserveSingleNode(ctx context.Context, gn INode, observers
 		typed.Unobserve(ctx)
 	}
 
-	remainingObserverCount := graph.removeNodeObservers(ctx, gn, observers...)
+	remainingObserverCount := graph.removeNodeObservers(gn, observers...)
 	if remainingObserverCount > 0 {
 		return
 	}
@@ -273,7 +271,7 @@ func (graph *Graph) unobserveSingleNode(ctx context.Context, gn INode, observers
 	graph.handleAfterStabilizationMu.Unlock()
 }
 
-func (graph *Graph) removeNodeObservers(ctx context.Context, gn INode, observers ...IObserver) (remainingObserverCount int) {
+func (graph *Graph) removeNodeObservers(gn INode, observers ...IObserver) (remainingObserverCount int) {
 	gnn := gn.Node()
 	gnn.observersMu.Lock()
 	defer gnn.observersMu.Unlock()
@@ -287,7 +285,7 @@ func (graph *Graph) removeNodeObservers(ctx context.Context, gn INode, observers
 	return
 }
 
-func (graph *Graph) addObserver(ctx context.Context, on IObserver) {
+func (graph *Graph) addObserver(on IObserver) {
 	graph.observersMu.Lock()
 	defer graph.observersMu.Unlock()
 
@@ -300,7 +298,7 @@ func (graph *Graph) addObserver(ctx context.Context, on IObserver) {
 	graph.observers[onn.id] = on
 }
 
-func (graph *Graph) removeObserver(ctx context.Context, on IObserver) {
+func (graph *Graph) removeObserver(on IObserver) {
 	onn := on.Node()
 	onn.graph = nil
 	graph.numNodes--

@@ -38,6 +38,17 @@ func epsilonContext(t *testing.T, delta float64) func(context.Context, float64, 
 	}
 }
 
+type mathTypes interface {
+	~int | ~float64
+}
+
+func epsilonFn[A, B mathTypes](eps A, oldv, newv B) bool {
+	if oldv > newv {
+		return oldv-newv <= B(eps)
+	}
+	return newv-oldv <= B(eps)
+}
+
 func concat(a, b string) string {
 	return a + b
 }
