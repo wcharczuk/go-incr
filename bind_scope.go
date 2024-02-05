@@ -1,8 +1,17 @@
 package incr
 
-import (
-	"context"
-)
+// Root is is the top level node bind scope.
+//
+// When in doubt, pass this as the scope argument
+// to a node constructor, e.g.
+//
+//	myVar := incr.Var(incr.Root(), "hello world!")
+//
+// Do _not_ pass this as the scope argument to node
+// constructors within Bind functions!
+func Root() *BindScope {
+	return _root
+}
 
 // WithinBindScope updates a node's createdIn scope to reflect a new
 // inner-most bind scope applied by a bind.
@@ -22,21 +31,17 @@ func WithinBindScope[A INode](scope *BindScope, node A) A {
 	return node
 }
 
-// Root is is the top level bind scope.
+// BindScope is the scope that nodes are created in.
 //
-// When in doubt, pass this as the scope argument
-// to the node constructors.
-//
-// Do _not_ pass this as the scope argument to node
-// constructors within Bind functions.
-func Root() *BindScope {
-	return _root
+// Its either nil or the most recent bind.
+type BindScope struct {
+	root     bool
+	lhs      INode
+	bind     INode
+	rhsNodes *nodeList
 }
 
-func withBindScope(ctx context.Context, scope *BindScope) *BindScope {
-	scope.inner = ctx
-	return scope
-}
+var _root = &BindScope{root: true}
 
 func addNodeToBindScope(scope *BindScope, node INode) {
 	if scope == nil || scope.root {
@@ -44,17 +49,4 @@ func addNodeToBindScope(scope *BindScope, node INode) {
 	}
 	node.Node().createdIn = scope
 	scope.rhsNodes.Push(node)
-}
-
-var _root = &BindScope{root: true}
-
-// BindScope is the scope that nodes are created in.
-//
-// Its either nil or the most recent bind.
-type BindScope struct {
-	root     bool
-	inner    context.Context
-	lhs      INode
-	bind     INode
-	rhsNodes *nodeList
 }
