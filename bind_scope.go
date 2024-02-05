@@ -24,6 +24,12 @@ func WithinBindScope[A INode](scope *BindScope, node A) A {
 }
 
 // Root is is the top level bind scope.
+//
+// When in doubt, pass this as the scope argument
+// to the node constructors.
+//
+// Do _not_ pass this as the scope argument to node
+// constructors within Bind functions.
 func Root() *BindScope {
 	return _root
 }
