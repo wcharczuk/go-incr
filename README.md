@@ -84,7 +84,7 @@ An example of one such case:
 
 ![Bind Regression](https://github.com/wcharczuk/go-incr/blob/main/_assets/bind_regression.png)
 
-Because `Bind` nodes rely on scopes to operate correctly, the bind function you must provide takes a context argument. This context argument should be passed to node constructors within the bind function. This lets us track which nodes were created in the bind scope, helping us maintain height invariants and link nodes correctly.
+Because `Bind` nodes rely on scopes to operate correctly, the bind function you must provide takes a `*BindScope` argument. This scope argument should be passed to node constructors within the bind function. This lets us track which nodes were created in the bind scope, helping us maintain height invariants and link nodes correctly.
 
 An example of a use case for bind might be:
 
