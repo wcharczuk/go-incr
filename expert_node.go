@@ -141,7 +141,13 @@ func (en *expertNode) computePseudoHeightCached(cache map[Identifier]int, n INod
 		return height
 	}
 
-	maxParentHeight := maxHeightOf(nn.Parents()...)
+	var maxParentHeight int
+	for _, p := range nn.Parents() {
+		parentHeight := en.computePseudoHeightCached(cache, p)
+		if parentHeight > maxParentHeight {
+			maxParentHeight = parentHeight
+		}
+	}
 	var finalHeight int
 	if nn.height > maxParentHeight {
 		finalHeight = nn.height
