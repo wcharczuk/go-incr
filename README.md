@@ -91,7 +91,7 @@ An example of a use case for bind might be:
 ```
 t1 := incr.Map(incr.Root(), Return(ctx, "hello"), func(v string) string { return v + " world!" })
 t2v := incr.Var(incr.Root(), "a")
-t2 := incr.Bind(ctx, t2v, func(scope *incr.BindScope, t2vv string) Incr[string] {
+t2 := incr.Bind(incr.Root(), t2v, func(scope *incr.BindScope, t2vv string) Incr[string] {
   return Map(scope, t1, func(v string) string { return v + " Ipsum" })
 })
 ...
