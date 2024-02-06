@@ -30,13 +30,13 @@ type IStabilize interface {
 // IBind implements bind steps for nested actions.
 type IBind interface {
 	Link(context.Context) error
-	Unlink(context.Context)
+	IUnobserve
 }
 
 // IUnobserve is a type that may need to implement
 // extra steps when it's unobserved.
 type IUnobserve interface {
-	Unobserve(context.Context)
+	Unobserve(context.Context, ...IObserver)
 }
 
 // ICutoff is a type that determines if changes should

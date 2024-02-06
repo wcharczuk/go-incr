@@ -248,17 +248,12 @@ func (graph *Graph) unobserveNodes(ctx context.Context, gn INode, observers ...I
 
 func (graph *Graph) unobserveSingleNode(ctx context.Context, gn INode, observers ...IObserver) {
 	gnn := gn.Node()
-
-	// nodes may implement custom observe/unobserve
-	// steps so we check for that here and call
-	// their handler if they implement the interface.
-	if typed, ok := gn.(IUnobserve); ok {
-		typed.Unobserve(ctx)
-	}
-
 	remainingObserverCount := graph.removeNodeObservers(gn, observers...)
 	if remainingObserverCount > 0 {
 		return
+	}
+	if typed, ok := gn.(IUnobserve); ok {
+		typed.Unobserve(ctx, observers...)
 	}
 	gnn.graph = nil
 	graph.observed.Remove(gn)

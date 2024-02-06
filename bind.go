@@ -106,7 +106,7 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 	if b.bound != nil && newIncr != nil {
 		if b.bound.Node().id != newIncr.Node().id {
 			bindChanged = true
-			b.unlinkOld(ctx)
+			b.unlinkOld(ctx, b.n.Observers()...)
 			if err := b.linkNew(ctx, newIncr); err != nil {
 				return err
 			}
@@ -118,7 +118,7 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 		}
 	} else if b.bindChange != nil {
 		bindChanged = true
-		b.unlinkOld(ctx)
+		b.unlinkOld(ctx, b.n.Observers()...)
 	}
 	if bindChanged {
 		b.n.boundAt = b.n.graph.stabilizationNum
@@ -128,8 +128,8 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 	return nil
 }
 
-func (b *bindIncr[A, B]) Unobserve(ctx context.Context) {
-	b.unlinkOld(ctx)
+func (b *bindIncr[A, B]) Unobserve(ctx context.Context, observers ...IObserver) {
+	b.unlinkOld(ctx, observers...)
 }
 
 func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
@@ -154,10 +154,6 @@ func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
 		}
 	}
 	return
-}
-
-func (b *bindIncr[A, B]) Unlink(ctx context.Context) {
-	b.unlinkOld(ctx)
 }
 
 func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) error {
@@ -210,19 +206,18 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) error {
 func (b *bindIncr[A, B]) unlinkBindChange(ctx context.Context) {
 	Unlink(b.bindChange, b.input)
 	Unlink(b.bound, b.bindChange)
-	b.n.graph.unobserveSingleNode(ctx, b.bindChange, b.n.Observers()...)
-	b.bindChange = nil
 }
 
-func (b *bindIncr[A, B]) unlinkOld(ctx context.Context) {
+func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, observers ...IObserver) {
 	if b.bound != nil {
 		TracePrintf(ctx, "%v unbinding old rhs %v", b, b.bound)
 		b.unlinkBindChange(ctx)
 		b.removeNodesFromScope(ctx, b.scope)
-		b.n.graph.unobserveNodes(ctx, b.bound, b.n.Observers()...)
+		b.n.graph.unobserveNodes(ctx, b.bound, observers...)
 		for _, c := range b.n.Children() {
 			Unlink(c, b.bound)
 		}
+		b.n.graph.unobserveSingleNode(ctx, b.bindChange, observers...)
 		b.bindChange = nil
 		b.bound = nil
 	}
@@ -232,10 +227,6 @@ func (b *bindIncr[A, B]) removeNodesFromScope(ctx context.Context, scope *BindSc
 	rhsNodes := scope.rhsNodes.Values()
 	for _, n := range rhsNodes {
 		n.Node().createdIn = nil
-		if typed, ok := n.(IBind); ok {
-			TracePrintf(ctx, "%v propagating bind unlink to %v", b, typed)
-			typed.Unlink(ctx)
-		}
 	}
 	scope.rhsNodes.Clear()
 }
