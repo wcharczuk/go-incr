@@ -121,10 +121,6 @@ func (b *bind2Incr[A, B, C]) Link(ctx context.Context) (err error) {
 				}
 			}
 		}
-		// propagateHeightChange(b.bound)
-		// for _, c := range children {
-		// 	propagateHeightChange(c)
-		// }
 	}
 	return
 }
@@ -172,10 +168,6 @@ func (b *bind2Incr[A, B, C]) linkNew(ctx context.Context, newIncr Incr[C]) error
 			}
 		}
 	}
-	// propagateHeightChange(b.bound)
-	// for _, c := range children {
-	// 	propagateHeightChange(c)
-	// }
 	TracePrintf(ctx, "%v bound new rhs %v", b, b.bound)
 	return nil
 }
