@@ -6,56 +6,36 @@ import (
 )
 
 // Bind lets you swap out an entire subgraph of a computation based
-// on a given function and a single input.
-//
-// A way to think about this, as a sequence:
-//
-// A given node `a` can be bound to `c` or `d` or more subnodes
-// with the value of `a` as the input:
-//
-//	a -> b.bind() -> c
-//
-// We might want to, at some point in the future, swap out `c` for `d`
-// based on some logic:
-//
-//	a -> b.bind() -> d
-//
-// As a result, (a) is a child of (b), and (c) or (d) are children of (b).
-// When the bind changes from (c) to (d), (c) is unlinked, and is removed
-// as a "child" of (b), preventing it from being considered part of the
-// overall computation unless it's referenced by another node in the graph.
-//
-// More information is available at:
-//
-//	https://github.com/janestreet/incremental/blob/master/src/incremental_intf.ml
-func Bind[A, B any](scope *BindScope, input Incr[A], fn func(*BindScope, A) Incr[B]) BindIncr[B] {
-	return BindContext[A, B](scope, input, func(_ context.Context, bs *BindScope, va A) (Incr[B], error) {
-		return fn(bs, va), nil
+// on a given function and two inputs.
+func Bind2[A, B, C any](scope *BindScope, inputA Incr[A], inputB Incr[B], fn func(*BindScope, A, B) Incr[C]) BindIncr[C] {
+	return Bind2Context[A, B, C](scope, inputA, inputB, func(_ context.Context, bs *BindScope, va A, vb B) (Incr[C], error) {
+		return fn(bs, va, vb), nil
 	})
 }
 
-// BindContext is like Bind but allows the bind delegate to take a context and return an error.
+// Bind2Context is like Bind2 but allows the bind delegate to take a context and return an error.
 //
 // If an error returned, the bind is aborted and the error listener(s) will fire for the node.
-func BindContext[A, B any](scope *BindScope, input Incr[A], fn func(context.Context, *BindScope, A) (Incr[B], error)) BindIncr[B] {
-	o := &bindIncr[A, B]{
-		n:     NewNode(),
-		input: input,
-		fn:    fn,
-		bt:    "bind",
+func Bind2Context[A, B, C any](scope *BindScope, inputA Incr[A], inputB Incr[B], fn func(context.Context, *BindScope, A, B) (Incr[C], error)) Bind2Incr[C] {
+	o := &bind2Incr[A, B, C]{
+		n:      NewNode(),
+		inputA: inputA,
+		inputB: inputB,
+		fn:     fn,
 	}
 	o.scope = &BindScope{
 		bind:     o,
 		rhsNodes: newNodeList(),
 	}
-	Link(o, input)
+	Link(o, inputA)
+	Link(o, inputB)
 	return WithinBindScope(scope, o)
 }
 
-// BindIncr is a node that implements Bind, which
+// Bind2Incr is a node that implements Bind, which
 // dynamically swaps out entire subgraphs
 // based on input incrementals.
-type BindIncr[A any] interface {
+type Bind2Incr[A any] interface {
 	Incr[A]
 	IStabilize
 	IBind
@@ -63,41 +43,35 @@ type BindIncr[A any] interface {
 	fmt.Stringer
 }
 
-var (
-	_ BindIncr[bool] = (*bindIncr[string, bool])(nil)
-	_ IExpertBind    = (*bindIncr[string, bool])(nil)
-	_ fmt.Stringer   = (*bindIncr[string, bool])(nil)
-)
-
-type bindIncr[A, B any] struct {
+type bind2Incr[A, B, C any] struct {
 	n          *Node
-	bt         string
-	input      Incr[A]
-	fn         func(context.Context, *BindScope, A) (Incr[B], error)
+	inputA     Incr[A]
+	inputB     Incr[B]
+	fn         func(context.Context, *BindScope, A, B) (Incr[C], error)
+	bound      Incr[C]
+	bindChange *bindChange2Incr[A, B, C]
 	scope      *BindScope
-	bindChange *bindChangeIncr[A, B]
-	bound      Incr[B]
 }
 
-func (b *bindIncr[A, B]) Node() *Node { return b.n }
+func (b *bind2Incr[A, B, C]) Node() *Node { return b.n }
 
-func (b *bindIncr[A, B]) Value() (output B) {
+func (b *bind2Incr[A, B, C]) Value() (output C) {
 	if b.bound != nil {
 		output = b.bound.Value()
 	}
 	return
 }
 
-func (b *bindIncr[A, B]) Bound() INode {
+func (b *bind2Incr[A, B, C]) Bound() INode {
 	return b.bound
 }
 
-func (b *bindIncr[A, B]) BindChange() INode {
+func (b *bind2Incr[A, B, C]) BindChange() INode {
 	return b.bindChange
 }
 
-func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
-	newIncr, err := b.fn(ctx, b.scope, b.input.Value())
+func (b *bind2Incr[A, B, C]) Stabilize(ctx context.Context) error {
+	newIncr, err := b.fn(ctx, b.scope, b.inputA.Value(), b.inputB.Value())
 	if err != nil {
 		return err
 	}
@@ -127,11 +101,11 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 	return nil
 }
 
-func (b *bindIncr[A, B]) Unobserve(ctx context.Context, observers ...IObserver) {
+func (b *bind2Incr[A, B, C]) Unobserve(ctx context.Context, observers ...IObserver) {
 	b.unlinkOld(ctx, observers...)
 }
 
-func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
+func (b *bind2Incr[A, B, C]) Link(ctx context.Context) (err error) {
 	if b.bound != nil {
 		children := b.n.Children()
 		for _, c := range children {
@@ -155,16 +129,20 @@ func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
 	return
 }
 
-func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) error {
-	b.bindChange = &bindChangeIncr[A, B]{
-		n:   NewNode(),
-		lhs: b.input,
-		rhs: b.bound,
+func (b *bind2Incr[A, B, C]) linkBindChange(ctx context.Context) error {
+	b.bindChange = &bindChange2Incr[A, B, C]{
+		n:    NewNode(),
+		lhsA: b.inputA,
+		lhsB: b.inputB,
+		rhs:  b.bound,
 	}
 	if b.n.label != "" {
 		b.bindChange.n.SetLabel(fmt.Sprintf("%s-change", b.n.label))
 	}
-	if err := link(b.bindChange, true /*detectCycles*/, b.input); err != nil {
+	if err := link(b.bindChange, true /*detectCycles*/, b.inputA); err != nil {
+		return err
+	}
+	if err := link(b.bindChange, true /*detectCycles*/, b.inputB); err != nil {
 		return err
 	}
 	if err := link(b.bound, true /*detectCycles*/, b.bindChange); err != nil {
@@ -174,7 +152,7 @@ func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) error {
 	return nil
 }
 
-func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) error {
+func (b *bind2Incr[A, B, C]) linkNew(ctx context.Context, newIncr Incr[C]) error {
 	b.bound = newIncr
 	if err := b.linkBindChange(ctx); err != nil {
 		return err
@@ -202,12 +180,13 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) error {
 	return nil
 }
 
-func (b *bindIncr[A, B]) unlinkBindChange(ctx context.Context) {
-	Unlink(b.bindChange, b.input)
+func (b *bind2Incr[A, B, C]) unlinkBindChange(ctx context.Context) {
+	Unlink(b.bindChange, b.inputA)
+	Unlink(b.bindChange, b.inputB)
 	Unlink(b.bound, b.bindChange)
 }
 
-func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, observers ...IObserver) {
+func (b *bind2Incr[A, B, C]) unlinkOld(ctx context.Context, observers ...IObserver) {
 	if b.bound != nil {
 		TracePrintf(ctx, "%v unbinding old rhs %v", b, b.bound)
 		b.unlinkBindChange(ctx)
@@ -222,7 +201,7 @@ func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, observers ...IObserver) 
 	}
 }
 
-func (b *bindIncr[A, B]) removeNodesFromScope(ctx context.Context, scope *BindScope) {
+func (b *bind2Incr[A, B, C]) removeNodesFromScope(ctx context.Context, scope *BindScope) {
 	rhsNodes := scope.rhsNodes.Values()
 	for _, n := range rhsNodes {
 		n.Node().createdIn = nil
@@ -230,8 +209,8 @@ func (b *bindIncr[A, B]) removeNodesFromScope(ctx context.Context, scope *BindSc
 	scope.rhsNodes.Clear()
 }
 
-func (b *bindIncr[A, B]) String() string {
-	return b.n.String(b.bt)
+func (b *bind2Incr[A, B, C]) String() string {
+	return b.n.String("bind2")
 }
 
 var (
@@ -240,21 +219,22 @@ var (
 	_ fmt.Stringer = (*bindChangeIncr[string, bool])(nil)
 )
 
-type bindChangeIncr[A, B any] struct {
-	n   *Node
-	lhs Incr[A]
-	rhs Incr[B]
+type bindChange2Incr[A, B, C any] struct {
+	n    *Node
+	lhsA Incr[A]
+	lhsB Incr[B]
+	rhs  Incr[C]
 }
 
-func (b *bindChangeIncr[A, B]) Node() *Node { return b.n }
+func (b *bindChange2Incr[A, B, C]) Node() *Node { return b.n }
 
-func (b *bindChangeIncr[A, B]) Value() (output B) {
+func (b *bindChange2Incr[A, B, C]) Value() (output C) {
 	if b.rhs != nil {
 		output = b.rhs.Value()
 	}
 	return
 }
 
-func (b *bindChangeIncr[A, B]) String() string {
-	return b.n.String("bind-lhs-change")
+func (b *bindChange2Incr[A, B, C]) String() string {
+	return b.n.String("bind-2-lhs-change")
 }

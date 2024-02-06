@@ -36,7 +36,6 @@ func WithinBindScope[A INode](scope *BindScope, node A) A {
 // Its either nil or the most recent bind.
 type BindScope struct {
 	root     bool
-	lhs      INode
 	bind     INode
 	rhsNodes *nodeList
 }
