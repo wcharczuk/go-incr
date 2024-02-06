@@ -104,7 +104,7 @@ Here `t1` is _not_ created within a bind scope, but the map that adds `" Ipsum"`
 
 Many of the original library types are implemented, including:
 - Always|Timer
-- Bind(If)
+- Bind(2,If)
 - Cutoff(2)
 - Freeze
 - Map(2,3,If,N)
