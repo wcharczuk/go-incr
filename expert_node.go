@@ -51,7 +51,7 @@ type IExpertNode interface {
 	// PropagateHeightChange recomputes the pseudoheight in respect to parents.
 	//
 	// This is very sensitive to the ordering of construction as a result.
-	PropagateHeightChange()
+	PropagateHeightChange() error
 
 	// Value returns the underlying value of the node
 	// as an untyped `interface{}` for use in debugging.
@@ -158,6 +158,6 @@ func (en *expertNode) computePseudoHeightCached(cache map[Identifier]int, n INod
 	return finalHeight
 }
 
-func (en *expertNode) PropagateHeightChange() {
-	propagateHeightChange(en.incr)
+func (en *expertNode) PropagateHeightChange() error {
+	return propagateHeightChange(en.node.id, en.incr)
 }

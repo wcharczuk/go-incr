@@ -1,5 +1,7 @@
 package incr
 
+import "fmt"
+
 // Link is a helper for setting up node parent child relationships.
 //
 // A child is a node that has "parent" or input nodes. The parents then
@@ -8,25 +10,21 @@ package incr
 // An error is returned if the provided inputs to the child node
 // would produce a cycle.
 func Link(child INode, inputs ...INode) {
-	_ = link(child, false /*detectCycles*/, inputs...)
+	_ = link(child, inputs...)
 }
 
-func link(child INode, detectCycles bool, inputs ...INode) error {
-	if detectCycles {
-		for _, parent := range inputs {
-			if err := DetectCycleIfLinked(child, parent); err != nil {
-				return err
-			}
-		}
-	}
-
+func link(child INode, inputs ...INode) error {
 	child.Node().addParents(inputs...)
 	for _, input := range inputs {
 		input.Node().addChildren(child)
 	}
-	propagateHeightChange(child)
+	if err := propagateHeightChange(child.Node().ID(), child); err != nil {
+		return err
+	}
 	for _, input := range inputs {
-		propagateHeightChange(input)
+		if err := propagateHeightChange(input.Node().ID(), input); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -40,7 +38,7 @@ func maxHeightOf[A INode](nodes ...A) (max int) {
 	return
 }
 
-func propagateHeightChange(in INode) {
+func propagateHeightChange(originalChildID Identifier, in INode) error {
 	n := in.Node()
 	oldHeight := n.height
 	maxParentHeight := maxHeightOf(n.Parents()...)
@@ -52,7 +50,13 @@ func propagateHeightChange(in INode) {
 			n.graph.adjustHeightsList.Push(in)
 		}
 		for _, c := range n.Children() {
-			propagateHeightChange(c)
+			if c.Node().ID() == originalChildID {
+				return fmt.Errorf("cycle detected at %v", originalChildID)
+			}
+			if err := propagateHeightChange(originalChildID, c); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }

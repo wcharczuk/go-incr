@@ -79,6 +79,26 @@ func Benchmark_Stabilize_deep_8_512(b *testing.B) {
 	benchmarkDepth(8, 512, b)
 }
 
+func Benchmark_Stabilize_nestedBinds_64(b *testing.B) {
+	benchmarkNestedBinds(64, b)
+}
+
+func Benchmark_Stabilize_nestedBinds_128(b *testing.B) {
+	benchmarkNestedBinds(128, b)
+}
+
+func Benchmark_Stabilize_nestedBinds_256(b *testing.B) {
+	benchmarkNestedBinds(256, b)
+}
+
+func Benchmark_Stabilize_nestedBinds_512(b *testing.B) {
+	benchmarkNestedBinds(512, b)
+}
+
+func Benchmark_Stabilize_nestedBinds_1024(b *testing.B) {
+	benchmarkNestedBinds(1024, b)
+}
+
 func benchmarkSize(size int, b *testing.B) {
 	nodes := make([]Incr[string], size)
 	for x := 0; x < size; x++ {
@@ -168,7 +188,6 @@ func benchmarkParallelSize(size int, b *testing.B) {
 }
 
 func benchmarkDepth(width, depth int, b *testing.B) {
-
 	vars := make([]VarIncr[string], width)
 	for x := 0; x < width; x++ {
 		vars[x] = Var(Root(), fmt.Sprintf("var_%d", x))
@@ -214,4 +233,65 @@ func benchmarkDepth(width, depth int, b *testing.B) {
 			b.Fatal(err)
 		}
 	}
+}
+
+func benchmarkNestedBinds(depth int, b *testing.B) {
+	ctx := context.Background()
+	for x := 0; x < b.N; x++ {
+		g, o := makeNestedBindGraph(depth)
+		err := g.Stabilize(ctx)
+		if err != nil {
+			b.FailNow()
+		}
+		if o.Value() == nil {
+			b.FailNow()
+		}
+	}
+}
+
+func makeNestedBindGraph(depth int) (*Graph, ObserveIncr[*int]) {
+	graph := New(
+		GraphMaxRecomputeHeapHeight(1024),
+	)
+	cache := make(map[string]Incr[*int])
+	fakeFormula := Var(Root(), "fakeFormula")
+
+	var m func(bs *BindScope, t int) Incr[*int]
+	left_bound := 3
+	right_bound := 9
+	m = func(bs *BindScope, t int) Incr[*int] {
+		key := fmt.Sprintf("m-%d", t)
+		if _, ok := cache[key]; ok {
+			return WithinBindScope(bs, cache[key])
+		}
+		r := Bind(bs, fakeFormula, func(bs *BindScope, formula string) Incr[*int] {
+			if t == 0 {
+				out := 0
+				r := Return(bs, &out)
+				r.Node().SetLabel("m-0")
+				return r
+			}
+			var bindOutput Incr[*int]
+			offset := 1
+			if t >= left_bound && t < right_bound {
+				li := m(bs, t-1)
+				bindOutput = Map2(bs, li, Return(bs, &offset), func(l *int, r *int) *int {
+					if l == nil || r == nil {
+						return nil
+					}
+					out := *l + *r
+					return &out
+				})
+			} else {
+				bindOutput = m(bs, t-1)
+			}
+			return bindOutput
+		})
+
+		r.Node().SetLabel(fmt.Sprintf("m(%d)", t))
+		cache[key] = r
+		return r
+	}
+	o := m(Root(), depth)
+	return graph, Observe(Root(), graph, o)
 }

@@ -109,7 +109,7 @@ func (b *bind2Incr[A, B, C]) Link(ctx context.Context) (err error) {
 	if b.bound != nil {
 		children := b.n.Children()
 		for _, c := range children {
-			if err = link(c, true /*detectCycles*/, b.bound); err != nil {
+			if err = link(c, b.bound); err != nil {
 				return
 			}
 		}
@@ -121,10 +121,10 @@ func (b *bind2Incr[A, B, C]) Link(ctx context.Context) (err error) {
 				}
 			}
 		}
-		propagateHeightChange(b.bound)
-		for _, c := range children {
-			propagateHeightChange(c)
-		}
+		// propagateHeightChange(b.bound)
+		// for _, c := range children {
+		// 	propagateHeightChange(c)
+		// }
 	}
 	return
 }
@@ -139,13 +139,13 @@ func (b *bind2Incr[A, B, C]) linkBindChange(ctx context.Context) error {
 	if b.n.label != "" {
 		b.bindChange.n.SetLabel(fmt.Sprintf("%s-change", b.n.label))
 	}
-	if err := link(b.bindChange, true /*detectCycles*/, b.inputA); err != nil {
+	if err := link(b.bindChange, b.inputA); err != nil {
 		return err
 	}
-	if err := link(b.bindChange, true /*detectCycles*/, b.inputB); err != nil {
+	if err := link(b.bindChange, b.inputB); err != nil {
 		return err
 	}
-	if err := link(b.bound, true /*detectCycles*/, b.bindChange); err != nil {
+	if err := link(b.bound, b.bindChange); err != nil {
 		return err
 	}
 	b.n.graph.observeSingleNode(b.bindChange, b.n.Observers()...)
@@ -159,7 +159,7 @@ func (b *bind2Incr[A, B, C]) linkNew(ctx context.Context, newIncr Incr[C]) error
 	}
 	children := b.n.Children()
 	for _, c := range children {
-		if err := link(c, true /*detectCycles*/, b.bound); err != nil {
+		if err := link(c, b.bound); err != nil {
 			return err
 		}
 	}
@@ -172,10 +172,10 @@ func (b *bind2Incr[A, B, C]) linkNew(ctx context.Context, newIncr Incr[C]) error
 			}
 		}
 	}
-	propagateHeightChange(b.bound)
-	for _, c := range children {
-		propagateHeightChange(c)
-	}
+	// propagateHeightChange(b.bound)
+	// for _, c := range children {
+	// 	propagateHeightChange(c)
+	// }
 	TracePrintf(ctx, "%v bound new rhs %v", b, b.bound)
 	return nil
 }

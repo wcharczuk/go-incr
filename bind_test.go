@@ -888,7 +888,7 @@ func Test_Bind_unbindRegression(t *testing.T) {
 			observed[i] = obsIncr
 		}
 
-		err := graph.Stabilize(WithTracing(ctx))
+		err := graph.Stabilize(testContext())
 		testutil.ItsNil(t, err)
 		for i := 0; i < 10; i++ {
 			o := observed[i]

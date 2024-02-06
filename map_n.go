@@ -56,7 +56,7 @@ type mapNIncr[A, B any] struct {
 
 func (mn *mapNIncr[A, B]) AddInput(i Incr[A]) error {
 	mn.inputs = append(mn.inputs, i)
-	return link(mn, true /*detectCycles*/, i)
+	return link(mn, i)
 }
 
 func (mn *mapNIncr[A, B]) Node() *Node { return mn.n }
