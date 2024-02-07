@@ -289,40 +289,114 @@ func Test_Bind_necessary(t *testing.T) {
 		We need to unobserve nodes such that a node isn't fully unobserved as long as there is a valid
 		path from an observer to that node *somewhere*.
 	*/
-
 	root := Var(Root(), "hello")
+	root.Node().SetLabel("root")
 
-	ma := Map(Root(), root, ident)
-	mb := Map(Root(), Return(Root(), "not-hello"), ident)
+	ma00 := Map(Root(), root, ident)
+	ma00.Node().SetLabel("ma00")
+	mb00 := Map(Root(), Return(Root(), "not-hello"), ident)
+	mb00.Node().SetLabel("mb00")
 
 	b0v := Var(Root(), "a")
+	b0v.Node().SetLabel("b0v")
+	b0 := Bind(Root(), b0v, func(_ *BindScope, v string) Incr[string] {
+		if v == "a" {
+			return ma00
+		}
+		return mb00
+	})
+	b0.Node().SetLabel("b0")
+
+	ma01 := Map(Root(), root, ident)
+	ma01.Node().SetLabel("ma01")
+	mb01 := Map(Root(), Return(Root(), "not-hello"), ident)
+	mb01.Node().SetLabel("mb01")
+	b1v := Var(Root(), "a")
+	b1v.Node().SetLabel("b1v")
+	b1 := Bind(Root(), b1v, func(_ *BindScope, v string) Incr[string] {
+		if v == "a" {
+			return ma01
+		}
+		return mb01
+	})
+	b1.Node().SetLabel("b1")
+	m2 := Map2(Root(), b0, b1, concat)
+	m2.Node().SetLabel("join")
+	g := New()
+	o := Observe(Root(), g, m2)
+
+	testutil.ItsEqual(t, true, hasKey(m2.Node().children, o.Node().id))
+
+	err := g.Stabilize(testContext())
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, "hellohello", o.Value())
+	testutil.ItsEqual(t, true, g.canReachObserver(root, o.Node().id))
+
+	testutil.ItsEqual(t, true, hasKey(m2.Node().children, o.Node().id))
+
+	_ = dumpDot(g, homedir("bind_necessary_00.png"))
+
+	b0v.Set("b")
+	err = g.Stabilize(testContext())
+	testutil.ItsNil(t, err)
+
+	_ = dumpDot(g, homedir("bind_necessary_01.png"))
+
+	testutil.ItsEqual(t, true, g.canReachObserver(root, o.Node().id))
+	testutil.ItsEqual(t, true, g.IsObserving(root))
+}
+
+func Test_Bind_unbindConflict(t *testing.T) {
+	/*
+		We need to unbind such that if another node is returning
+		a shared node we don't unbind that node's "reference" to the node.
+	*/
+	root := Var(Root(), "hello")
+	root.Node().SetLabel("root")
+
+	ma := Map(Root(), root, ident)
+	ma.Node().SetLabel("ma")
+	mb := Map(Root(), Return(Root(), "not-hello"), ident)
+	mb.Node().SetLabel("mb")
+
+	b0v := Var(Root(), "a")
+	b0v.Node().SetLabel("b0v")
 	b0 := Bind(Root(), b0v, func(_ *BindScope, v string) Incr[string] {
 		if v == "a" {
 			return ma
 		}
 		return mb
 	})
+	b0.Node().SetLabel("b0")
 
 	b1v := Var(Root(), "a")
+	b1v.Node().SetLabel("b1v")
 	b1 := Bind(Root(), b1v, func(_ *BindScope, v string) Incr[string] {
 		if v == "a" {
 			return ma
 		}
 		return mb
 	})
+	b1.Node().SetLabel("b1")
 	m2 := Map2(Root(), b0, b1, concat)
+	m2.Node().SetLabel("join")
 	g := New()
 	o := Observe(Root(), g, m2)
 
 	err := g.Stabilize(testContext())
 	testutil.ItsNil(t, err)
 	testutil.ItsEqual(t, "hellohello", o.Value())
+	testutil.ItsEqual(t, true, g.canReachObserver(root, o.Node().id))
+
+	_ = dumpDot(g, homedir("bind_unbind_confict_00.png"))
 
 	b0v.Set("b")
 	err = g.Stabilize(testContext())
 	testutil.ItsNil(t, err)
 
-	testutil.ItsEqual(t, true, g.IsObserving(root))
+	_ = dumpDot(g, homedir("bind_unbind_conflict_01.png"))
+
+	testutil.ItsEqual(t, true, g.IsObserving(ma))
 }
 
 func Test_Bind_rebind(t *testing.T) {

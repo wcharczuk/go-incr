@@ -2,6 +2,7 @@ package incr
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -263,24 +264,6 @@ func (graph *Graph) unobserveSingleNode(ctx context.Context, gn INode, observers
 	graph.removeNodeFromGraph(gn)
 }
 
-func (graph *Graph) unobserveNodesFromScope(ctx context.Context, gn INode, scope *BindScope, observers ...IObserver) {
-	graph.unobserveSingleNodeFromScope(ctx, gn, scope, observers...)
-	gnn := gn.Node()
-	parents := gnn.Parents()
-	for _, p := range parents {
-		graph.unobserveNodesFromScope(ctx, p, scope, observers...)
-	}
-}
-
-func (graph *Graph) unobserveSingleNodeFromScope(ctx context.Context, gn INode, scope *BindScope, observers ...IObserver) {
-	gnn := gn.Node()
-	if gnn.createdIn != nil && gnn.createdIn.bind.Node().id != scope.bind.Node().id {
-		TracePrintf(ctx, "unobserve; not observed by this scope, skipping removing from graph %v", gn)
-		return
-	}
-	graph.unobserveSingleNode(ctx, gn, observers...)
-}
-
 func (graph *Graph) removeNodeFromGraph(gn INode) {
 	gnn := gn.Node()
 	gnn.graph = nil
@@ -301,6 +284,12 @@ func (graph *Graph) removeNodeFromGraph(gn INode) {
 func (graph *Graph) removeNodeObservers(gn INode, observers ...IObserver) (remainingObserverCount int) {
 	gnn := gn.Node()
 	for _, on := range observers {
+		// if there exists a child path to the observer, do not unobserve
+		if graph.canReachObserver(gn, on.Node().id) {
+			TracePrintf(WithTracing(context.Background()), "remove node observers; exists a path from %v to observer %v", gn, on)
+			continue
+		}
+
 		gnn.observers = remove(gnn.observers, on.Node().id)
 		for _, handler := range gnn.onUnobservedHandlers {
 			handler(on)
@@ -308,6 +297,23 @@ func (graph *Graph) removeNodeObservers(gn INode, observers ...IObserver) (remai
 	}
 	remainingObserverCount = len(gnn.observers)
 	return
+}
+
+func (graph *Graph) canReachObserver(gn INode, oid Identifier) bool {
+	return graph.canReachObserverRecursive(gn, gn, oid)
+}
+
+func (graph *Graph) canReachObserverRecursive(root, gn INode, oid Identifier) bool {
+	for _, c := range gn.Node().children {
+		fmt.Printf("-- can reach %v => %v => %v\n", root, gn, c)
+		if c.Node().id == oid {
+			return true
+		}
+		if graph.canReachObserverRecursive(root, c, oid) {
+			return true
+		}
+	}
+	return false
 }
 
 func (graph *Graph) addObserver(on IObserver) {

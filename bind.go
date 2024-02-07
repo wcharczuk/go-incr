@@ -199,11 +199,11 @@ func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, observers ...IObserver) 
 	if b.bound != nil {
 		TracePrintf(ctx, "%v unbinding old rhs %v", b, b.bound)
 		b.unlinkBindChange(ctx)
-		b.n.graph.unobserveNodesFromScope(ctx, b.bound, b.scope, observers...)
-		b.removeNodesFromScope(ctx, b.scope, observers...)
 		for _, c := range b.n.children {
 			Unlink(c, b.bound)
 		}
+		b.n.graph.unobserveNodes(ctx, b.bound, observers...)
+		b.removeNodesFromScope(ctx, b.scope, observers...)
 		b.n.graph.unobserveSingleNode(ctx, b.bindChange, observers...)
 		b.bindChange = nil
 		b.bound = nil
