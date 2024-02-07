@@ -19,17 +19,17 @@ func (graph *Graph) Stabilize(ctx context.Context) (err error) {
 	}()
 
 	var immediateRecompute []INode
-	var next *recomputeHeapItem
+	var next []*recomputeHeapItem
+
 	for len(graph.recomputeHeap.lookup) > 0 {
-		next = graph.recomputeHeap.RemoveMin()
-		if !graph.isNecessary(next.node) {
-			continue
-		}
-		if err = graph.recompute(ctx, next.node); err != nil {
-			break
-		}
-		if next.node.Node().always {
-			immediateRecompute = append(immediateRecompute, next.node)
+		next = graph.recomputeHeap.RemoveMinHeight()
+		for _, n := range next {
+			if err = graph.recompute(ctx, n.node); err != nil {
+				break
+			}
+			if n.node.Node().always {
+				immediateRecompute = append(immediateRecompute, n.node)
+			}
 		}
 		if err != nil {
 			break
