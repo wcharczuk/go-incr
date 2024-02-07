@@ -36,7 +36,7 @@ func Test_Observe_Unobserve(t *testing.T) {
 
 	o1.Unobserve(ctx)
 
-	testutil.ItsEqual(t, g.observed.Len(), g.numNodes-1, "we don't observe the observer but we do track it!")
+	testutil.ItsEqual(t, len(g.observed), g.numNodes-1, "we don't observe the observer but we do track it!")
 	testutil.ItsNil(t, o1.Node().graph)
 
 	// should take effect immediately because there is only (1) observer.
@@ -89,11 +89,11 @@ func Test_Observe_Unobserve_multiple(t *testing.T) {
 
 	o1.Unobserve(ctx)
 
-	testutil.ItsEqual(t, g.observed.Len(), g.numNodes-2, "we should have (1) less observer after unobserve!")
+	testutil.ItsEqual(t, len(g.observed), g.numNodes-2, "we should have (1) less observer after unobserve!")
 	testutil.ItsNil(t, o1.Node().graph)
 
-	testutil.ItsEqual(t, 0, o1.Node().parents.Len())
-	testutil.ItsEqual(t, 0, o1.Node().children.Len())
+	testutil.ItsEqual(t, 0, len(o1.Node().parents))
+	testutil.ItsEqual(t, 0, len(o1.Node().children))
 	testutil.ItsNone(t, m1.Node().Children(), func(n INode) bool {
 		return n.Node().ID() == o1.Node().ID()
 	})

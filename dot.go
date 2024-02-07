@@ -34,10 +34,10 @@ func Dot(wr io.Writer, g *Graph) (err error) {
 	}
 
 	writef(0, "digraph {")
-	nodes := make([]INode, 0, g.observed.Len()+len(g.observers))
-	g.observed.Each(func(n INode) {
+	nodes := make([]INode, 0, len(g.observed)+len(g.observers))
+	for _, n := range g.observed {
 		nodes = append(nodes, n)
-	})
+	}
 	for _, n := range g.observers {
 		nodes = append(nodes, n)
 	}
@@ -59,12 +59,12 @@ func Dot(wr io.Writer, g *Graph) (err error) {
 	}
 	for _, n := range nodes {
 		nodeLabel := nodeLabels[n.Node().id]
-		n.Node().children.Each(func(p INode) {
+		for _, p := range n.Node().children {
 			childLabel, ok := nodeLabels[p.Node().id]
 			if ok {
 				writef(1, "%s -> %s;", nodeLabel, childLabel)
 			}
-		})
+		}
 	}
 	writef(0, "}")
 	return

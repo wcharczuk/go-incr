@@ -37,7 +37,7 @@ func WithinBindScope[A INode](scope *BindScope, node A) A {
 type BindScope struct {
 	root     bool
 	bind     INode
-	rhsNodes *nodeList
+	rhsNodes []INode
 }
 
 var _root = &BindScope{root: true}
@@ -47,5 +47,5 @@ func addNodeToBindScope(scope *BindScope, node INode) {
 		return
 	}
 	node.Node().createdIn = scope
-	scope.rhsNodes.Push(node)
+	scope.rhsNodes = append(scope.rhsNodes, node)
 }

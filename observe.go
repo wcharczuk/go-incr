@@ -75,12 +75,12 @@ func (o *observeIncr[A]) Unobserve(ctx context.Context) {
 	g := o.n.graph
 	g.unobserveNodes(ctx, o.input, o)
 	g.removeObserver(o)
-	parents := o.n.parents.Values()
-	for _, p := range parents {
+
+	for _, p := range o.n.parents {
 		Unlink(o, p)
 	}
-	o.n.children = newNodeList()
-	o.n.parents = newNodeList()
+	o.n.children = nil
+	o.n.parents = nil
 
 	// zero out the observed value
 	var value A

@@ -97,9 +97,9 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.ItsNotNil(t, ExpertBind(bind).Bound())
 
 	bindChange := ExpertBind(bind).BindChange()
-	testutil.ItsEqual(t, true, bindChange.Node().HasParent(bindVar.Node().ID()))
-	testutil.ItsEqual(t, true, bindChange.Node().HasChild(a1.Node().ID()))
-	testutil.ItsEqual(t, false, bindChange.Node().HasChild(b1.Node().ID()))
+	testutil.ItsEqual(t, true, hasKey(bindChange.Node().parents, bindVar.Node().ID()))
+	testutil.ItsEqual(t, true, hasKey(bindChange.Node().children, a1.Node().ID()))
+	testutil.ItsEqual(t, false, hasKey(bindChange.Node().children, b1.Node().ID()))
 
 	testutil.ItsEqual(t, 1, bind.Node().boundAt)
 	testutil.ItsEqual(t, 1, bind.Node().changedAt)
@@ -143,9 +143,9 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.ItsNil(t, err)
 
 	bindChange = ExpertBind(bind).BindChange()
-	testutil.ItsEqual(t, true, bindChange.Node().HasParent(bindVar.Node().ID()))
-	testutil.ItsEqual(t, false, bindChange.Node().HasChild(a1.Node().ID()))
-	testutil.ItsEqual(t, true, bindChange.Node().HasChild(b2.Node().ID()))
+	testutil.ItsEqual(t, true, hasKey(bindChange.Node().parents, bindVar.Node().ID()))
+	testutil.ItsEqual(t, false, hasKey(bindChange.Node().children, a1.Node().ID()))
+	testutil.ItsEqual(t, true, hasKey(bindChange.Node().children, b2.Node().ID()))
 
 	testutil.ItsEqual(t, 1, bindVar.Node().height)
 	testutil.ItsEqual(t, 1, s0.Node().height)
@@ -277,10 +277,11 @@ func Test_Bind_scopes(t *testing.T) {
 
 	testutil.ItsEqual(t, t2.Node().ID(), scope.bind.Node().ID())
 
-	testutil.ItsEqual(t, 3, scope.rhsNodes.Len(), scope.rhsNodes.String())
-	testutil.ItsEqual(t, true, scope.rhsNodes.HasKey(rt3id))
-	testutil.ItsEqual(t, true, scope.rhsNodes.HasKey(t3id))
-	testutil.ItsEqual(t, true, scope.rhsNodes.HasKey(rid))
+	testutil.ItsEqual(t, 3, len(scope.rhsNodes))
+
+	testutil.ItsEqual(t, true, hasKey(scope.rhsNodes, rt3id))
+	testutil.ItsEqual(t, true, hasKey(scope.rhsNodes, t3id))
+	testutil.ItsEqual(t, true, hasKey(scope.rhsNodes, rid))
 }
 
 func Test_Bind_rebind(t *testing.T) {
@@ -846,6 +847,7 @@ func Test_Bind_unbindRegression(t *testing.T) {
 				bindOutput = m(bs, t-1)
 			}
 
+			bindOutput.Node().SetLabel(fmt.Sprintf("%s-output", key))
 			return bindOutput
 		})
 
@@ -913,5 +915,12 @@ func Test_Bind_unbindRegression(t *testing.T) {
 		testutil.ItsNil(t, err)
 		testutil.ItsNotNil(t, o.Value())
 		testutil.ItsEqual(t, 6, *o.Value())
+
+		// TracePrintf(ctx, "____ setting fake formula stale")
+		// graph.SetStale(fakeFormula)
+		// err = graph.Stabilize(ctx)
+		// testutil.ItsNil(t, err)
+		// testutil.ItsNotNil(t, o.Value())
+		// testutil.ItsEqual(t, 6, *o.Value())
 	})
 }

@@ -24,6 +24,9 @@ func (graph *Graph) Stabilize(ctx context.Context) (err error) {
 	for len(graph.recomputeHeap.lookup) > 0 {
 		next = graph.recomputeHeap.RemoveMinHeight()
 		for _, n := range next {
+			if !graph.isNecessary(n.node) {
+				continue
+			}
 			if err = graph.recompute(ctx, n.node); err != nil {
 				break
 			}

@@ -13,8 +13,8 @@ func Test_NewNode(t *testing.T) {
 	n := NewNode()
 	testutil.ItsNotNil(t, n.id)
 	testutil.ItsNil(t, n.graph)
-	testutil.ItsEqual(t, 0, n.parents.Len())
-	testutil.ItsEqual(t, 0, n.children.Len())
+	testutil.ItsEqual(t, 0, len(n.parents))
+	testutil.ItsEqual(t, 0, len(n.children))
 	testutil.ItsEqual(t, "", n.label)
 	testutil.ItsEqual(t, 0, n.height)
 	testutil.ItsEqual(t, 0, n.changedAt)
@@ -61,24 +61,24 @@ func Test_Link(t *testing.T) {
 	Link(c, p0, p1, p2)
 
 	// no nodes depend on p, p is not an input to any nodes
-	testutil.ItsEqual(t, 3, c.n.parents.Len())
-	testutil.ItsEqual(t, 0, c.n.children.Len())
+	testutil.ItsEqual(t, 3, len(c.n.parents))
+	testutil.ItsEqual(t, 0, len(c.n.children))
 
-	testutil.ItsEqual(t, true, c.n.HasParent(p0.n.id))
-	testutil.ItsEqual(t, true, c.n.HasParent(p1.n.id))
-	testutil.ItsEqual(t, true, c.n.HasParent(p2.n.id))
+	testutil.ItsEqual(t, true, hasKey(c.n.parents, p0.n.id))
+	testutil.ItsEqual(t, true, hasKey(c.n.parents, p1.n.id))
+	testutil.ItsEqual(t, true, hasKey(c.n.parents, p2.n.id))
 
-	testutil.ItsEqual(t, 1, p0.n.children.Len())
-	testutil.ItsEqual(t, true, p0.n.HasChild(c.n.id))
-	testutil.ItsEqual(t, 0, p0.n.parents.Len())
+	testutil.ItsEqual(t, 1, len(p0.n.children))
+	testutil.ItsEqual(t, true, hasKey(p0.n.children, c.n.id))
+	testutil.ItsEqual(t, 0, len(p0.n.parents))
 
-	testutil.ItsEqual(t, 1, p1.n.children.Len())
-	testutil.ItsEqual(t, true, p1.n.HasChild(c.n.id))
-	testutil.ItsEqual(t, 0, p1.n.parents.Len())
+	testutil.ItsEqual(t, 1, len(p1.n.children))
+	testutil.ItsEqual(t, true, hasKey(p1.n.children, c.n.id))
+	testutil.ItsEqual(t, 0, len(p1.n.parents))
 
-	testutil.ItsEqual(t, 1, p2.n.children.Len())
-	testutil.ItsEqual(t, true, p2.n.HasChild(c.n.id))
-	testutil.ItsEqual(t, 0, p2.n.parents.Len())
+	testutil.ItsEqual(t, 1, len(p2.n.children))
+	testutil.ItsEqual(t, true, hasKey(p2.n.children, c.n.id))
+	testutil.ItsEqual(t, 0, len(p2.n.parents))
 }
 
 func Test_Node_String(t *testing.T) {
@@ -151,16 +151,16 @@ func Test_Node_addChildren(t *testing.T) {
 	c1 := newMockBareNode()
 	_ = c1.Node()
 
-	testutil.ItsEqual(t, 0, n.n.parents.Len())
-	testutil.ItsEqual(t, 0, n.n.children.Len())
+	testutil.ItsEqual(t, 0, len(n.n.parents))
+	testutil.ItsEqual(t, 0, len(n.n.children))
 
 	n.Node().addChildren(c0, c1)
 
-	testutil.ItsEqual(t, 0, n.n.parents.Len())
-	testutil.ItsEqual(t, 2, n.n.children.Len())
+	testutil.ItsEqual(t, 0, len(n.n.parents))
+	testutil.ItsEqual(t, 2, len(n.n.children))
 
-	testutil.ItsEqual(t, true, n.n.HasChild(c0.n.id))
-	testutil.ItsEqual(t, true, n.n.HasChild(c1.n.id))
+	testutil.ItsEqual(t, true, hasKey(n.n.children, c0.n.id))
+	testutil.ItsEqual(t, true, hasKey(n.n.children, c1.n.id))
 }
 
 func Test_Node_removeChild(t *testing.T) {
@@ -178,20 +178,20 @@ func Test_Node_removeChild(t *testing.T) {
 
 	n.Node().addChildren(c0, c1, c2)
 
-	testutil.ItsEqual(t, 0, n.n.parents.Len())
-	testutil.ItsEqual(t, 3, n.n.children.Len())
+	testutil.ItsEqual(t, 0, len(n.n.parents))
+	testutil.ItsEqual(t, 3, len(n.n.children))
 
-	testutil.ItsEqual(t, true, n.n.HasChild(c0.n.id))
-	testutil.ItsEqual(t, true, n.n.HasChild(c1.n.id))
-	testutil.ItsEqual(t, true, n.n.HasChild(c2.n.id))
+	testutil.ItsEqual(t, true, hasKey(n.n.children, c0.n.id))
+	testutil.ItsEqual(t, true, hasKey(n.n.children, c1.n.id))
+	testutil.ItsEqual(t, true, hasKey(n.n.children, c2.n.id))
 
 	n.Node().removeChild(c1.n.id)
 
-	testutil.ItsEqual(t, 0, n.n.parents.Len())
-	testutil.ItsEqual(t, 2, n.n.children.Len())
-	testutil.ItsEqual(t, true, n.n.HasChild(c0.n.id))
-	testutil.ItsEqual(t, false, n.n.HasChild(c1.n.id))
-	testutil.ItsEqual(t, true, n.n.HasChild(c2.n.id))
+	testutil.ItsEqual(t, 0, len(n.n.parents))
+	testutil.ItsEqual(t, 2, len(n.n.children))
+	testutil.ItsEqual(t, true, hasKey(n.n.children, c0.n.id))
+	testutil.ItsEqual(t, false, hasKey(n.n.children, c1.n.id))
+	testutil.ItsEqual(t, true, hasKey(n.n.children, c2.n.id))
 }
 
 func Test_Node_addParents(t *testing.T) {
@@ -204,16 +204,16 @@ func Test_Node_addParents(t *testing.T) {
 	c1 := newMockBareNode()
 	_ = c1.Node()
 
-	testutil.ItsEqual(t, 0, n.n.parents.Len())
-	testutil.ItsEqual(t, 0, n.n.children.Len())
+	testutil.ItsEqual(t, 0, len(n.n.parents))
+	testutil.ItsEqual(t, 0, len(n.n.children))
 
 	n.Node().addParents(c0, c1)
 
-	testutil.ItsEqual(t, 2, n.n.parents.Len())
-	testutil.ItsEqual(t, 0, n.n.children.Len())
+	testutil.ItsEqual(t, 2, len(n.n.parents))
+	testutil.ItsEqual(t, 0, len(n.n.children))
 
-	testutil.ItsEqual(t, true, n.n.HasParent(c0.n.id))
-	testutil.ItsEqual(t, true, n.n.HasParent(c1.n.id))
+	testutil.ItsEqual(t, true, hasKey(n.n.parents, c0.n.id))
+	testutil.ItsEqual(t, true, hasKey(n.n.parents, c1.n.id))
 }
 
 func Test_Node_removeParent(t *testing.T) {
@@ -231,21 +231,21 @@ func Test_Node_removeParent(t *testing.T) {
 
 	n.Node().addParents(c0, c1, c2)
 
-	testutil.ItsEqual(t, 3, n.n.parents.Len())
-	testutil.ItsEqual(t, 0, n.n.children.Len())
+	testutil.ItsEqual(t, 3, len(n.n.parents))
+	testutil.ItsEqual(t, 0, len(n.n.children))
 
-	testutil.ItsEqual(t, true, n.n.HasParent(c0.n.id))
-	testutil.ItsEqual(t, true, n.n.HasParent(c1.n.id))
-	testutil.ItsEqual(t, true, n.n.HasParent(c2.n.id))
+	testutil.ItsEqual(t, true, hasKey(n.n.parents, c0.n.id))
+	testutil.ItsEqual(t, true, hasKey(n.n.parents, c1.n.id))
+	testutil.ItsEqual(t, true, hasKey(n.n.parents, c2.n.id))
 
 	n.Node().removeParent(c1.n.id)
 
-	testutil.ItsEqual(t, 2, n.n.parents.Len())
-	testutil.ItsEqual(t, 0, n.n.children.Len())
+	testutil.ItsEqual(t, 2, len(n.n.parents))
+	testutil.ItsEqual(t, 0, len(n.n.children))
 
-	testutil.ItsEqual(t, true, n.n.HasParent(c0.n.id))
-	testutil.ItsEqual(t, false, n.n.HasParent(c1.n.id))
-	testutil.ItsEqual(t, true, n.n.HasParent(c2.n.id))
+	testutil.ItsEqual(t, true, hasKey(n.n.parents, c0.n.id))
+	testutil.ItsEqual(t, false, hasKey(n.n.parents, c1.n.id))
+	testutil.ItsEqual(t, true, hasKey(n.n.parents, c2.n.id))
 }
 
 func Test_Node_maybeStabilize(t *testing.T) {
@@ -348,7 +348,8 @@ func Test_Node_shouldRecompute(t *testing.T) {
 	n.changedAt = 1
 	c1 := newMockBareNode()
 	c1.Node().changedAt = 2
-	n.parents.Push(newMockBareNode(), c1)
+
+	n.addParents(newMockBareNode(), c1)
 	testutil.ItsEqual(t, true, n.ShouldRecompute())
 
 	c1.Node().changedAt = 1
@@ -507,15 +508,15 @@ func Test_Node_Properties_readonly(t *testing.T) {
 		height:    1,
 		setAt:     2,
 		changedAt: 3,
-		children: newNodeList(
+		children: []INode{
 			newMockBareNode(),
 			newMockBareNode(),
-		),
-		parents: newNodeList(
+		},
+		parents: []INode{
 			newMockBareNode(),
 			newMockBareNode(),
 			newMockBareNode(),
-		),
+		},
 	}
 
 	testutil.ItsEqual(t, 2, len(n.Children()))
@@ -537,62 +538,8 @@ func Test_Node_ShouldRecompute_unit(t *testing.T) {
 	testutil.ItsEqual(t, true, (&Node{recomputedAt: 1, stabilize: noop, setAt: 2}).ShouldRecompute())
 	testutil.ItsEqual(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 3}).ShouldRecompute())
 	testutil.ItsEqual(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 3}).ShouldRecompute())
-	testutil.ItsEqual(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 2, parents: newNodeList(emptyNode{&Node{changedAt: 3}})}).ShouldRecompute())
-	testutil.ItsEqual(t, false, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 2, parents: newNodeList(emptyNode{&Node{changedAt: 2}})}).ShouldRecompute())
-}
-
-func Test_Node_HasChild(t *testing.T) {
-	c0 := newMockBareNode()
-	c1 := newMockBareNode()
-	c2 := newMockBareNode()
-	n := &Node{
-		children: newNodeList(c0, c1),
-	}
-
-	testutil.ItsEqual(t, true, n.HasChild(c0.Node().ID()))
-	testutil.ItsEqual(t, true, n.HasChild(c1.Node().ID()))
-	testutil.ItsEqual(t, false, n.HasChild(c2.Node().ID()))
-}
-
-func Test_Node_HasParent(t *testing.T) {
-	p0 := newMockBareNode()
-	p1 := newMockBareNode()
-	p2 := newMockBareNode()
-	n := &Node{
-		parents: newNodeList(p0, p1),
-	}
-
-	testutil.ItsEqual(t, true, n.HasParent(p0.Node().ID()))
-	testutil.ItsEqual(t, true, n.HasParent(p1.Node().ID()))
-	testutil.ItsEqual(t, false, n.HasParent(p2.Node().ID()))
-}
-
-func Test_Node_IsRoot(t *testing.T) {
-	p0 := newMockBareNode()
-	p1 := newMockBareNode()
-	n := &Node{
-		parents: newNodeList(p0, p1),
-	}
-
-	testutil.ItsEqual(t, false, n.IsRoot())
-	n1 := &Node{
-		parents: newNodeList(),
-	}
-	testutil.ItsEqual(t, true, n1.IsRoot())
-}
-
-func Test_Node_IsLeaf(t *testing.T) {
-	c0 := newMockBareNode()
-	c1 := newMockBareNode()
-	n := &Node{
-		children: newNodeList(c0, c1),
-	}
-
-	testutil.ItsEqual(t, false, n.IsLeaf())
-	n1 := &Node{
-		children: newNodeList(),
-	}
-	testutil.ItsEqual(t, true, n1.IsLeaf())
+	testutil.ItsEqual(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 2, parents: []INode{emptyNode{&Node{changedAt: 3}}}}).ShouldRecompute())
+	testutil.ItsEqual(t, false, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 2, parents: []INode{emptyNode{&Node{changedAt: 2}}}}).ShouldRecompute())
 }
 
 func Test_Node_Observers(t *testing.T) {
@@ -603,35 +550,10 @@ func Test_Node_Observers(t *testing.T) {
 		n: NewNode(),
 	}
 	n := &Node{
-		observers: map[Identifier]IObserver{
-			one.n.id: one,
-			two.n.id: two,
-		},
+		observers: []IObserver{one, two},
 	}
 
 	testutil.ItsEqual(t, 2, len(n.Observers()))
-}
-
-func Test_Node_HasObserver(t *testing.T) {
-	one := &observeIncr[any]{
-		n: NewNode(),
-	}
-	two := &observeIncr[any]{
-		n: NewNode(),
-	}
-	three := &observeIncr[any]{
-		n: NewNode(),
-	}
-	n := &Node{
-		observers: map[Identifier]IObserver{
-			one.n.id: one,
-			two.n.id: two,
-		},
-	}
-
-	testutil.ItsEqual(t, true, n.HasObserver(one.Node().ID()))
-	testutil.ItsEqual(t, true, n.HasObserver(two.Node().ID()))
-	testutil.ItsEqual(t, false, n.HasObserver(three.Node().ID()))
 }
 
 func Test_nodeSorter(t *testing.T) {

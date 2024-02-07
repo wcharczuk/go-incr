@@ -5,6 +5,6 @@ package incr
 func Unlink(child, input INode) {
 	child.Node().removeParent(input.Node().id)
 	input.Node().removeChild(child.Node().id)
-	_ = propagateHeightChange(child.Node().id, input)
-	_ = propagateHeightChange(child.Node().id, child)
+	_ = propagateHeightChange(input)
+	_ = propagateHeightChange(child)
 }

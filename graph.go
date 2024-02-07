@@ -26,11 +26,11 @@ func New(opts ...GraphOption) *Graph {
 		id:                       NewIdentifier(),
 		stabilizationNum:         1,
 		status:                   StatusNotStabilizing,
-		observed:                 newNodeList(),
+		observed:                 make(map[Identifier]INode),
 		observers:                make(map[Identifier]IObserver),
-		recomputeHeap:            newRecomputeHeap(options.MaxRecomputeHeapHeight),
-		adjustHeightsList:        newNodeList(),
-		setDuringStabilization:   newNodeList(),
+		recomputeHeap:            newNodeHeap(options.MaxRecomputeHeapHeight),
+		adjustHeightsHeap:        newNodeHeap(options.MaxRecomputeHeapHeight),
+		setDuringStabilization:   make(map[Identifier]INode),
 		handleAfterStabilization: make(map[Identifier][]func(context.Context)),
 	}
 	return g
@@ -68,27 +68,31 @@ type Graph struct {
 	id Identifier
 	// label is a descriptive label for the graph
 	label string
+
+	observedMu sync.Mutex
 	// observed are the nodes that the graph currently observes
 	// organized by node id.
-	observed *nodeList
-	// observers hold references to observers organized by node id.
-	observers map[Identifier]IObserver
+	observed map[Identifier]INode
+
 	// observersMu interlocks acces to observers
 	observersMu sync.Mutex
+	// observers hold references to observers organized by node id.
+	observers map[Identifier]IObserver
 
 	// recomputeHeap is the heap of nodes to be processed
 	// organized by pseudo-height. The recompute heap
 	// itself is concurrent safe.
-	recomputeHeap *recomputeHeap
+	recomputeHeap *nodeHeap
 
-	// adjustHeightsList is a list of nodes that are
-	// queued to have their heights recalculated after
-	// a level of the recompute heap is recomputed
-	adjustHeightsList *nodeList
+	// adjustHeightsHeap is a heap of nodes
+	// used to organize height calculations
+	adjustHeightsHeap *nodeHeap
 
+	// setDuringStabilizationMu interlocks acces to setDuringStabilization
+	setDuringStabilizationMu sync.Mutex
 	// setDuringStabilization is a list of nodes that were
 	// set during stabilization
-	setDuringStabilization *nodeList
+	setDuringStabilization map[Identifier]INode
 
 	// handleAfterStabilization is a list of update
 	// handlers that need to run after stabilization is done.
@@ -163,7 +167,9 @@ func (graph *Graph) IsStabilizing() bool {
 
 // IsObserving returns if a graph is observing a given node.
 func (graph *Graph) IsObserving(gn INode) (ok bool) {
-	ok = graph.observed.Has(gn)
+	graph.observedMu.Lock()
+	_, ok = graph.observed[gn.Node().id]
+	graph.observedMu.Unlock()
 	return
 }
 
@@ -228,12 +234,12 @@ func (graph *Graph) observeSingleNode(gn INode, observers ...IObserver) {
 }
 
 func (graph *Graph) maybeAddObservedNode(gn INode) bool {
-	graph.observed.Lock()
-	defer graph.observed.Unlock()
-	if graph.observed.HasUnsafe(gn) {
+	graph.observedMu.Lock()
+	defer graph.observedMu.Unlock()
+	if _, ok := graph.observed[gn.Node().id]; ok {
 		return true
 	}
-	graph.observed.PushUnsafe(gn)
+	graph.observed[gn.Node().id] = gn
 	return false
 }
 
@@ -250,28 +256,34 @@ func (graph *Graph) unobserveSingleNode(ctx context.Context, gn INode, observers
 	gnn := gn.Node()
 	remainingObserverCount := graph.removeNodeObservers(gn, observers...)
 	if remainingObserverCount > 0 {
+		TracePrintf(ctx, "unobserving; still observed, skipping removing from graph %v", gn)
 		return
 	}
+
+	TracePrintf(ctx, "unobserving; unobserved, removing from graph %v", gn)
 	if typed, ok := gn.(IUnobserve); ok {
 		typed.Unobserve(ctx, observers...)
 	}
+
 	gnn.graph = nil
-	graph.observed.Remove(gn)
+	graph.observedMu.Lock()
+	delete(graph.observed, gn.Node().id)
+	graph.observedMu.Unlock()
 	graph.numNodes--
+
 	graph.recomputeHeap.Remove(gn)
-	graph.adjustHeightsList.Remove(gn)
+	graph.adjustHeightsHeap.Remove(gn)
 
 	graph.handleAfterStabilizationMu.Lock()
 	delete(graph.handleAfterStabilization, gn.Node().ID())
 	graph.handleAfterStabilizationMu.Unlock()
+
 }
 
 func (graph *Graph) removeNodeObservers(gn INode, observers ...IObserver) (remainingObserverCount int) {
 	gnn := gn.Node()
-	gnn.observersMu.Lock()
-	defer gnn.observersMu.Unlock()
 	for _, on := range observers {
-		delete(gnn.observers, on.Node().id)
+		gnn.observers = remove(gnn.observers, on.Node().id)
 		for _, handler := range gnn.onUnobservedHandlers {
 			handler(on)
 		}
@@ -351,15 +363,13 @@ func (graph *Graph) stabilizeEnd(ctx context.Context, err error) {
 }
 
 func (graph *Graph) stabilizeEndHandleSetDuringStabilization(ctx context.Context) {
-	graph.setDuringStabilization.Lock()
-	defer graph.setDuringStabilization.Unlock()
-	for !graph.setDuringStabilization.IsEmptyUnsafe() {
-		nodes := graph.setDuringStabilization.PopAllUnsafe()
-		for _, n := range nodes {
-			_ = n.Node().maybeStabilize(ctx)
-			graph.SetStale(n)
-		}
+	graph.setDuringStabilizationMu.Lock()
+	defer graph.setDuringStabilizationMu.Unlock()
+	for _, n := range graph.setDuringStabilization {
+		_ = n.Node().maybeStabilize(ctx)
+		graph.SetStale(n)
 	}
+	clear(graph.setDuringStabilization)
 }
 
 func (graph *Graph) stabilizeEndRunUpdateHandlers(ctx context.Context) {
@@ -426,12 +436,12 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	// we use the `each` from here to hold the lock while we process
 	// the list, preventing a race condition around missed nodes,
 	// but more to prevent us from reading the children list twice.
-	nn.children.Each(func(c INode) {
+	for _, c := range nn.children {
 		shouldRecompute := c.Node().ShouldRecompute()
 		if graph.isNecessary(c) && shouldRecompute {
 			graph.recomputeHeap.Add(c)
 		}
-	})
+	}
 	return
 }
 
@@ -445,11 +455,12 @@ func (graph *Graph) isNecessary(n INode) bool {
 //
 
 func (graph *Graph) fixAdjustHeightsList() {
-	if graph.adjustHeightsList.Len() > 0 {
-		graph.recomputeHeap.mu.Lock()
-		defer graph.recomputeHeap.mu.Unlock()
-		graph.adjustHeightsList.ConsumeEach(func(n INode) {
-			graph.recomputeHeap.fixUnsafe(n.Node().id)
-		})
+	graph.recomputeHeap.mu.Lock()
+	defer graph.recomputeHeap.mu.Unlock()
+	for graph.adjustHeightsHeap.Len() > 0 {
+		next := graph.adjustHeightsHeap.RemoveMinHeight()
+		for _, n := range next {
+			graph.recomputeHeap.fixUnsafe(n.node.Node().id)
+		}
 	}
 }
