@@ -113,8 +113,8 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.ItsEqual(t, 2, a0.Node().height)
 	testutil.ItsEqual(t, 3, a1.Node().height)
 
-	testutil.ItsEqual(t, 2, bind.Node().height)
-	testutil.ItsEqual(t, 4, o.Node().height)
+	testutil.ItsEqual(t, 4, bind.Node().height)
+	testutil.ItsEqual(t, 5, o.Node().height)
 
 	testutil.ItsEqual(t, true, g.IsObserving(bindVar))
 	testutil.ItsEqual(t, true, g.IsObserving(s0))
@@ -160,8 +160,8 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.ItsEqual(t, 3, b1.Node().height)
 	testutil.ItsEqual(t, 4, b2.Node().height)
 
-	testutil.ItsEqual(t, 2, bind.Node().height)
-	testutil.ItsEqual(t, 5, o.Node().height)
+	testutil.ItsEqual(t, 5, bind.Node().height)
+	testutil.ItsEqual(t, 6, o.Node().height)
 
 	testutil.ItsEqual(t, true, g.IsObserving(bindVar))
 	testutil.ItsEqual(t, true, g.IsObserving(s0))
@@ -205,8 +205,8 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.ItsEqual(t, 3, b1.Node().height)
 	testutil.ItsEqual(t, 4, b2.Node().height)
 
-	testutil.ItsEqual(t, 2, bind.Node().height)
-	testutil.ItsEqual(t, 5, o.Node().height)
+	testutil.ItsEqual(t, 5, bind.Node().height)
+	testutil.ItsEqual(t, 6, o.Node().height)
 
 	testutil.ItsEqual(t, true, g.IsObserving(bindVar))
 	testutil.ItsEqual(t, true, g.IsObserving(s0))
@@ -507,8 +507,8 @@ func Test_Bind_nested(t *testing.T) {
 
 	rfinal := Return(Root(), "final")
 	rfinal.Node().SetLabel("return - final")
-	final := Map2(Root(), c, rfinal, func(a, b string) string {
-		return a + "->" + b
+	final := Map2(Root(), c, rfinal, func(c, rf string) string {
+		return c + "->" + rf
 	})
 	final.Node().SetLabel("final")
 
@@ -516,6 +516,7 @@ func Test_Bind_nested(t *testing.T) {
 	o := Observe(Root(), g, final)
 
 	ctx := testContext()
+
 	err := g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 	err = dumpDot(g, homedir("bind_nested_00.png"))
@@ -535,6 +536,9 @@ func Test_Bind_nested(t *testing.T) {
 	bv.Set("b")
 	_ = g.Stabilize(ctx)
 
+	err = dumpDot(g, homedir("bind_nested_02.png"))
+	testutil.ItsNil(t, err)
+
 	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
 	testutil.ItsEqual(t, "a1-0+a1-1->b->c->final", o.Value())
 
@@ -551,7 +555,7 @@ func Test_Bind_nested(t *testing.T) {
 	testutil.ItsEqual(t, "a0-0+a0-1->c->final", o.Value())
 }
 
-func Test_Bind_nestedUnlinksBind(t *testing.T) {
+func Test_Bind_nested_unlinksBind(t *testing.T) {
 	g := New()
 	a00v := Var(Root(), "a00")
 	a00v.Node().SetLabel("a00v")
@@ -598,9 +602,9 @@ func Test_Bind_nestedUnlinksBind(t *testing.T) {
 	testutil.ItsNil(t, err)
 	testutil.ItsNil(t, dumpDot(g, homedir("bind_unobserve_00_base.png")))
 	testutil.ItsEqual(t, "a00", o.Value())
+
 	testutil.ItsEqual(t, true, g.IsObserving(a00))
 	testutil.ItsEqual(t, true, g.IsObserving(a01))
-
 	testutil.ItsEqual(t, false, g.IsObserving(b00))
 	testutil.ItsEqual(t, false, g.IsObserving(b01))
 
@@ -612,7 +616,6 @@ func Test_Bind_nestedUnlinksBind(t *testing.T) {
 
 	testutil.ItsEqual(t, false, g.IsObserving(a00))
 	testutil.ItsEqual(t, false, g.IsObserving(a01))
-
 	testutil.ItsEqual(t, true, g.IsObserving(b00))
 	testutil.ItsEqual(t, true, g.IsObserving(b01))
 
@@ -925,7 +928,6 @@ func Test_Bind_regression2(t *testing.T) {
 }
 
 func Test_Bind_unbindRegression(t *testing.T) {
-	ctx := testContext()
 	fakeFormula := Var(Root(), "fakeFormula")
 	cache := make(map[string]Incr[*int])
 
@@ -952,8 +954,6 @@ func Test_Bind_unbindRegression(t *testing.T) {
 				li := m(bs, t-1)
 				bindOutput = Map2(bs, li, Return(bs, &offset), func(l *int, r *int) *int {
 					if l == nil || r == nil {
-						TracePrintf(ctx, "----- %v unset map input value: %v", bindOutput, li)
-						TracePrintf(ctx, "----- %v graph recompute heap: %v", bindOutput, bindOutput.Node().graph.recomputeHeap.String())
 						return nil
 					}
 					out := *l + *r
@@ -1032,11 +1032,12 @@ func Test_Bind_unbindRegression(t *testing.T) {
 		testutil.ItsNotNil(t, o.Value())
 		testutil.ItsEqual(t, 6, *o.Value())
 
-		// TracePrintf(ctx, "____ setting fake formula stale")
-		// graph.SetStale(fakeFormula)
-		// err = graph.Stabilize(ctx)
-		// testutil.ItsNil(t, err)
-		// testutil.ItsNotNil(t, o.Value())
-		// testutil.ItsEqual(t, 6, *o.Value())
+		graph.SetStale(fakeFormula)
+		err = graph.Stabilize(ctx)
+		testutil.ItsNil(t, err)
+
+		_ = dumpDot(graph, homedir("bind_unbind_regression_00.png"))
+		testutil.ItsNotNil(t, o.Value())
+		testutil.ItsEqual(t, 6, *o.Value())
 	})
 }

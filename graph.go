@@ -2,7 +2,6 @@ package incr
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -254,7 +253,7 @@ func (graph *Graph) unobserveNodes(ctx context.Context, gn INode, observers ...I
 func (graph *Graph) unobserveSingleNode(ctx context.Context, gn INode, observers ...IObserver) {
 	remainingObserverCount := graph.removeNodeObservers(gn, observers...)
 	if remainingObserverCount > 0 {
-		TracePrintf(ctx, "unobserving; still observed, skipping removing from graph %v", gn)
+		TracePrintf(ctx, "unobserving; still observed by %d observers, skipping removing from graph %v", remainingObserverCount, gn)
 		return
 	}
 	TracePrintf(ctx, "unobserving; unobserved, removing from graph %v", gn)
@@ -267,6 +266,9 @@ func (graph *Graph) unobserveSingleNode(ctx context.Context, gn INode, observers
 func (graph *Graph) removeNodeFromGraph(gn INode) {
 	gnn := gn.Node()
 	gnn.graph = nil
+	gnn.setAt = 0
+	gnn.boundAt = 0
+	gnn.recomputedAt = 0
 	gnn.createdIn = nil
 	graph.observedMu.Lock()
 	delete(graph.observed, gn.Node().id)
@@ -284,12 +286,9 @@ func (graph *Graph) removeNodeFromGraph(gn INode) {
 func (graph *Graph) removeNodeObservers(gn INode, observers ...IObserver) (remainingObserverCount int) {
 	gnn := gn.Node()
 	for _, on := range observers {
-		// if there exists a child path to the observer, do not unobserve
 		if graph.canReachObserver(gn, on.Node().id) {
-			TracePrintf(WithTracing(context.Background()), "remove node observers; exists a path from %v to observer %v", gn, on)
 			continue
 		}
-
 		gnn.observers = remove(gnn.observers, on.Node().id)
 		for _, handler := range gnn.onUnobservedHandlers {
 			handler(on)
@@ -305,7 +304,6 @@ func (graph *Graph) canReachObserver(gn INode, oid Identifier) bool {
 
 func (graph *Graph) canReachObserverRecursive(root, gn INode, oid Identifier) bool {
 	for _, c := range gn.Node().children {
-		fmt.Printf("-- can reach %v => %v => %v\n", root, gn, c)
 		if c.Node().id == oid {
 			return true
 		}

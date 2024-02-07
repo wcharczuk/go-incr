@@ -73,12 +73,14 @@ func (o *observeIncr[A]) Stabilize(_ context.Context) error {
 // To observe parts of a graph again, use the `Observe(...)` helper.
 func (o *observeIncr[A]) Unobserve(ctx context.Context) {
 	g := o.n.graph
-	g.unobserveNodes(ctx, o.input, o)
-	g.removeObserver(o)
 
 	for _, p := range o.n.parents {
 		Unlink(o, p)
 	}
+
+	g.unobserveNodes(ctx, o.input, o)
+	g.removeObserver(o)
+
 	o.n.children = nil
 	o.n.parents = nil
 
