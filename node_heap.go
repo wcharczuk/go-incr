@@ -112,6 +112,30 @@ func (rh *nodeHeap) RemoveMinHeight() (nodes []*recomputeHeapItem) {
 	return
 }
 
+func first[K comparable, V any](m map[K]V) (key K, out V, ok bool) {
+	for key, out = range m {
+		ok = true
+		return
+	}
+	return
+}
+
+// RemoveMin removes a single minimum height node.
+func (rh *nodeHeap) RemoveMin() (node *recomputeHeapItem) {
+	rh.mu.Lock()
+	defer rh.mu.Unlock()
+	var id Identifier
+	if rh.heights[rh.minHeight] != nil && len(rh.heights[rh.minHeight]) > 0 {
+		id, node, _ = first(rh.heights[rh.minHeight])
+		delete(rh.lookup, id)
+		delete(rh.heights[rh.minHeight], id)
+		if len(rh.heights[rh.minHeight]) == 0 {
+			rh.minHeight = rh.nextMinHeightUnsafe()
+		}
+	}
+	return
+}
+
 // Remove removes a specific node from the heap.
 func (rh *nodeHeap) Remove(s INode) (ok bool) {
 	rh.mu.Lock()

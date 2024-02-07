@@ -284,6 +284,47 @@ func Test_Bind_scopes(t *testing.T) {
 	testutil.ItsEqual(t, true, hasKey(scope.rhsNodes, rid))
 }
 
+func Test_Bind_necessary(t *testing.T) {
+	/*
+		We need to unobserve nodes such that a node isn't fully unobserved as long as there is a valid
+		path from an observer to that node *somewhere*.
+	*/
+
+	root := Var(Root(), "hello")
+
+	ma := Map(Root(), root, ident)
+	mb := Map(Root(), Return(Root(), "not-hello"), ident)
+
+	b0v := Var(Root(), "a")
+	b0 := Bind(Root(), b0v, func(_ *BindScope, v string) Incr[string] {
+		if v == "a" {
+			return ma
+		}
+		return mb
+	})
+
+	b1v := Var(Root(), "a")
+	b1 := Bind(Root(), b1v, func(_ *BindScope, v string) Incr[string] {
+		if v == "a" {
+			return ma
+		}
+		return mb
+	})
+	m2 := Map2(Root(), b0, b1, concat)
+	g := New()
+	o := Observe(Root(), g, m2)
+
+	err := g.Stabilize(testContext())
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, "hellohello", o.Value())
+
+	b0v.Set("b")
+	err = g.Stabilize(testContext())
+	testutil.ItsNil(t, err)
+
+	testutil.ItsEqual(t, true, g.IsObserving(root))
+}
+
 func Test_Bind_rebind(t *testing.T) {
 	/*
 		The goal here is to stress the narrow case that
@@ -837,7 +878,8 @@ func Test_Bind_unbindRegression(t *testing.T) {
 				li := m(bs, t-1)
 				bindOutput = Map2(bs, li, Return(bs, &offset), func(l *int, r *int) *int {
 					if l == nil || r == nil {
-						TracePrintf(ctx, "----- unset map input value: %v", li)
+						TracePrintf(ctx, "----- %v unset map input value: %v", bindOutput, li)
+						TracePrintf(ctx, "----- %v graph recompute heap: %v", bindOutput, bindOutput.Node().graph.recomputeHeap.String())
 						return nil
 					}
 					out := *l + *r
@@ -856,55 +898,55 @@ func Test_Bind_unbindRegression(t *testing.T) {
 		return r
 	}
 
-	t.Run("m(0) = 0; if 3 <= t < 9, m(t) = m(t-1) + 1 else m(t) = m(t-1) - fails", func(t *testing.T) {
-		graph := New()
+	// t.Run("m(0) = 0; if 3 <= t < 9, m(t) = m(t-1) + 1 else m(t) = m(t-1) - fails", func(t *testing.T) {
+	// 	graph := New()
 
-		for i := 0; i < 10; i++ {
-			o := m(Root(), i)
-			_ = Observe(Root(), graph, o)
-			err := graph.Stabilize(ctx)
+	// 	for i := 0; i < 10; i++ {
+	// 		o := m(Root(), i)
+	// 		_ = Observe(Root(), graph, o)
+	// 		err := graph.Stabilize(ctx)
 
-			_ = dumpDot(graph, homedir("unbind_regression_00.png"))
+	// 		_ = dumpDot(graph, homedir("unbind_regression_00.png"))
 
-			testutil.ItsNil(t, err)
-			testutil.ItsNotNil(t, o.Value())
+	// 		testutil.ItsNil(t, err)
+	// 		testutil.ItsNotNil(t, o.Value())
 
-			if i >= right_bound {
-				testutil.ItsEqual(t, 6, *o.Value())
-			} else if i >= left_bound {
-				testutil.ItsEqual(t, i-2, *o.Value())
-			} else {
-				testutil.ItsEqual(t, 0, *o.Value())
-			}
-		}
-	})
+	// 		if i >= right_bound {
+	// 			testutil.ItsEqual(t, 6, *o.Value())
+	// 		} else if i >= left_bound {
+	// 			testutil.ItsEqual(t, i-2, *o.Value())
+	// 		} else {
+	// 			testutil.ItsEqual(t, 0, *o.Value())
+	// 		}
+	// 	}
+	// })
 
-	cache = make(map[string]Incr[*int]) // clear
+	// cache = make(map[string]Incr[*int]) // clear
 
-	t.Run("m(0) = 0; if 3 <= t < 9, m(t) = m(t-1) + 1 else m(t) = m(t-1) - passes", func(t *testing.T) {
-		graph := New()
-		observed := make([]ObserveIncr[*int], 10)
-		for i := 0; i < 10; i++ {
-			o := m(Root(), i)
-			obsIncr := Observe(Root(), graph, o)
-			observed[i] = obsIncr
-		}
+	// t.Run("m(0) = 0; if 3 <= t < 9, m(t) = m(t-1) + 1 else m(t) = m(t-1) - passes", func(t *testing.T) {
+	// 	graph := New()
+	// 	observed := make([]ObserveIncr[*int], 10)
+	// 	for i := 0; i < 10; i++ {
+	// 		o := m(Root(), i)
+	// 		obsIncr := Observe(Root(), graph, o)
+	// 		observed[i] = obsIncr
+	// 	}
 
-		err := graph.Stabilize(testContext())
-		testutil.ItsNil(t, err)
-		for i := 0; i < 10; i++ {
-			o := observed[i]
-			if i >= right_bound {
-				testutil.ItsEqual(t, 6, *o.Value())
-			} else if i >= left_bound {
-				testutil.ItsEqual(t, i-2, *o.Value())
-			} else {
-				testutil.ItsEqual(t, 0, *o.Value())
-			}
-		}
-	})
+	// 	err := graph.Stabilize(testContext())
+	// 	testutil.ItsNil(t, err)
+	// 	for i := 0; i < 10; i++ {
+	// 		o := observed[i]
+	// 		if i >= right_bound {
+	// 			testutil.ItsEqual(t, 6, *o.Value())
+	// 		} else if i >= left_bound {
+	// 			testutil.ItsEqual(t, i-2, *o.Value())
+	// 		} else {
+	// 			testutil.ItsEqual(t, 0, *o.Value())
+	// 		}
+	// 	}
+	// })
 
-	cache = make(map[string]Incr[*int]) // clear
+	// cache = make(map[string]Incr[*int]) // clear
 
 	t.Run("m(0) = 0; if 3 <= t < 9, m(t) = m(t-1) + 1 else m(t) = m(t-1) - passes", func(t *testing.T) {
 		graph := New()

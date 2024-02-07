@@ -209,15 +209,13 @@ func (graph *Graph) SetStale(gn INode) {
 func (graph *Graph) observeNodes(gn INode, observers ...IObserver) {
 	graph.observeSingleNode(gn, observers...)
 	gnn := gn.Node()
-	parents := gnn.Parents()
-	for _, p := range parents {
+	for _, p := range gnn.parents {
 		graph.observeNodes(p, observers...)
 	}
 }
 
 func (graph *Graph) observeSingleNode(gn INode, observers ...IObserver) {
 	gnn := gn.Node()
-
 	gnn.addObservers(observers...)
 	alreadyObservedByGraph := graph.maybeAddObservedNode(gn)
 	if alreadyObservedByGraph {
@@ -253,19 +251,40 @@ func (graph *Graph) unobserveNodes(ctx context.Context, gn INode, observers ...I
 }
 
 func (graph *Graph) unobserveSingleNode(ctx context.Context, gn INode, observers ...IObserver) {
-	gnn := gn.Node()
 	remainingObserverCount := graph.removeNodeObservers(gn, observers...)
 	if remainingObserverCount > 0 {
 		TracePrintf(ctx, "unobserving; still observed, skipping removing from graph %v", gn)
 		return
 	}
-
 	TracePrintf(ctx, "unobserving; unobserved, removing from graph %v", gn)
 	if typed, ok := gn.(IUnobserve); ok {
 		typed.Unobserve(ctx, observers...)
 	}
+	graph.removeNodeFromGraph(gn)
+}
 
+func (graph *Graph) unobserveNodesFromScope(ctx context.Context, gn INode, scope *BindScope, observers ...IObserver) {
+	graph.unobserveSingleNodeFromScope(ctx, gn, scope, observers...)
+	gnn := gn.Node()
+	parents := gnn.Parents()
+	for _, p := range parents {
+		graph.unobserveNodesFromScope(ctx, p, scope, observers...)
+	}
+}
+
+func (graph *Graph) unobserveSingleNodeFromScope(ctx context.Context, gn INode, scope *BindScope, observers ...IObserver) {
+	gnn := gn.Node()
+	if gnn.createdIn != nil && gnn.createdIn.bind.Node().id != scope.bind.Node().id {
+		TracePrintf(ctx, "unobserve; not observed by this scope, skipping removing from graph %v", gn)
+		return
+	}
+	graph.unobserveSingleNode(ctx, gn, observers...)
+}
+
+func (graph *Graph) removeNodeFromGraph(gn INode) {
+	gnn := gn.Node()
 	gnn.graph = nil
+	gnn.createdIn = nil
 	graph.observedMu.Lock()
 	delete(graph.observed, gn.Node().id)
 	graph.observedMu.Unlock()
@@ -277,7 +296,6 @@ func (graph *Graph) unobserveSingleNode(ctx context.Context, gn INode, observers
 	graph.handleAfterStabilizationMu.Lock()
 	delete(graph.handleAfterStabilization, gn.Node().ID())
 	graph.handleAfterStabilizationMu.Unlock()
-
 }
 
 func (graph *Graph) removeNodeObservers(gn INode, observers ...IObserver) (remainingObserverCount int) {
@@ -455,12 +473,14 @@ func (graph *Graph) isNecessary(n INode) bool {
 //
 
 func (graph *Graph) fixAdjustHeightsList() {
-	graph.recomputeHeap.mu.Lock()
-	defer graph.recomputeHeap.mu.Unlock()
-	for graph.adjustHeightsHeap.Len() > 0 {
-		next := graph.adjustHeightsHeap.RemoveMinHeight()
-		for _, n := range next {
-			graph.recomputeHeap.fixUnsafe(n.node.Node().id)
+	if graph.adjustHeightsHeap.Len() > 0 {
+		graph.recomputeHeap.mu.Lock()
+		defer graph.recomputeHeap.mu.Unlock()
+		for graph.adjustHeightsHeap.Len() > 0 {
+			next := graph.adjustHeightsHeap.RemoveMinHeight()
+			for _, n := range next {
+				graph.recomputeHeap.fixUnsafe(n.node.Node().id)
+			}
 		}
 	}
 }
