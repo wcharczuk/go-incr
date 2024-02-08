@@ -248,12 +248,12 @@ func benchmarkNestedBinds(depth int, b *testing.B) {
 		if o.Value() == nil {
 			b.FailNow()
 		}
-		// g.SetStale(fakeFormula)
-		// err = g.Stabilize(ctx)
-		// if err != nil {
-		// 	b.Error(err)
-		// 	b.FailNow()
-		// }
+		g.SetStale(fakeFormula)
+		err = g.Stabilize(ctx)
+		if err != nil {
+			b.Error(err)
+			b.FailNow()
+		}
 	}
 }
 
