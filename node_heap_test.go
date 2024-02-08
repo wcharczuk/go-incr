@@ -6,9 +6,8 @@ import (
 	. "github.com/wcharczuk/go-incr/testutil"
 )
 
-func Test_recomputeHeap_Add(t *testing.T) {
-
-	rh := newRecomputeHeap(32)
+func Test_newNodeHeap_Add(t *testing.T) {
+	rh := newNodeHeap(32)
 
 	n50 := newHeightIncr(5)
 	n60 := newHeightIncr(6)
@@ -57,8 +56,8 @@ func Test_recomputeHeap_Add(t *testing.T) {
 	}
 }
 
-func Test_recomputeHeap_RemoveMinHeight(t *testing.T) {
-	rh := newRecomputeHeap(10)
+func Test_newNodeHeap_RemoveMinHeight(t *testing.T) {
+	rh := newNodeHeap(10)
 
 	n00 := newHeightIncr(0)
 	n01 := newHeightIncr(0)
@@ -139,8 +138,8 @@ func Test_recomputeHeap_RemoveMinHeight(t *testing.T) {
 	ItsEqual(t, 0, len(rh.heights[5]))
 }
 
-func Test_recomputeHeap_Remove(t *testing.T) {
-	rh := newRecomputeHeap(10)
+func Test_newNodeHeap_Remove(t *testing.T) {
+	rh := newNodeHeap(10)
 	n10 := newHeightIncr(1)
 	n11 := newHeightIncr(1)
 	n20 := newHeightIncr(2)
@@ -174,6 +173,12 @@ func Test_recomputeHeap_Remove(t *testing.T) {
 	ItsEqual(t, true, rh.Has(n11))
 	ItsEqual(t, true, rh.Has(n20))
 	ItsEqual(t, false, rh.Has(n21))
+
+	for _, h := range rh.heights {
+		_, ok := h[n21.n.id]
+		ItsEqual(t, false, ok)
+	}
+
 	ItsEqual(t, true, rh.Has(n22))
 	ItsEqual(t, true, rh.Has(n30))
 
@@ -187,10 +192,19 @@ func Test_recomputeHeap_Remove(t *testing.T) {
 	ItsEqual(t, 0, len(rh.heights[1]))
 	ItsEqual(t, 2, rh.MinHeight())
 	ItsEqual(t, 3, rh.MaxHeight())
+
+	for _, h := range rh.heights {
+		_, ok := h[n10.n.id]
+		ItsEqual(t, false, ok)
+	}
+	for _, h := range rh.heights {
+		_, ok := h[n11.n.id]
+		ItsEqual(t, false, ok)
+	}
 }
 
-func Test_recomputeHeap_nextMinHeightUnsafe_noItems(t *testing.T) {
-	rh := new(recomputeHeap)
+func Test_newNodeHeap_nextMinHeightUnsafe_noItems(t *testing.T) {
+	rh := new(nodeHeap)
 
 	rh.minHeight = 1
 	rh.maxHeight = 3
@@ -199,9 +213,9 @@ func Test_recomputeHeap_nextMinHeightUnsafe_noItems(t *testing.T) {
 	ItsEqual(t, 0, next)
 }
 
-func Test_recomputeHeap_nextMinHeightUnsafe_pastMax(t *testing.T) {
+func Test_newNodeHeap_nextMinHeightUnsafe_pastMax(t *testing.T) {
 	r0 := Return(Root(), "hello")
-	rh := newRecomputeHeap(4)
+	rh := newNodeHeap(4)
 	rh.minHeight = 1
 	rh.maxHeight = 3
 
@@ -210,15 +224,15 @@ func Test_recomputeHeap_nextMinHeightUnsafe_pastMax(t *testing.T) {
 	ItsEqual(t, 0, next)
 }
 
-func Test_recomputeHeap_maybeAddNewHeights(t *testing.T) {
-	rh := newRecomputeHeap(8)
+func Test_newNodeHeap_maybeAddNewHeights(t *testing.T) {
+	rh := newNodeHeap(8)
 	ItsEqual(t, 8, len(rh.heights))
 	rh.maybeAddNewHeights(9) // we use (1) indexing!
 	ItsEqual(t, 10, len(rh.heights))
 }
 
-func Test_recomputeHeap_Add_adjustsHeights(t *testing.T) {
-	rh := newRecomputeHeap(8)
+func Test_newNodeHeap_Add_adjustsHeights(t *testing.T) {
+	rh := newNodeHeap(8)
 	ItsEqual(t, 8, len(rh.heights))
 
 	v0 := newHeightIncr(32)
@@ -234,9 +248,9 @@ func Test_recomputeHeap_Add_adjustsHeights(t *testing.T) {
 	ItsEqual(t, 64, rh.maxHeight)
 }
 
-func Test_recomputeHeap_Add_regression2(t *testing.T) {
+func Test_newNodeHeap_Add_regression2(t *testing.T) {
 	// another real world use case! also insane!
-	rh := newRecomputeHeap(256)
+	rh := newNodeHeap(256)
 
 	observer4945d288 := newHeightIncr(1)
 	rh.Add(observer4945d288)
@@ -297,8 +311,8 @@ func Test_recomputeHeap_Add_regression2(t *testing.T) {
 	ItsEqual(t, true, allHeight(minHeightBlock, 1))
 }
 
-func Test_recomputeHeap_Fix(t *testing.T) {
-	rh := newRecomputeHeap(8)
+func Test_newNodeHeap_Fix(t *testing.T) {
+	rh := newNodeHeap(8)
 	v0 := newHeightIncr(2)
 	rh.Add(v0)
 	v1 := newHeightIncr(3)
@@ -342,8 +356,8 @@ func Test_recomputeHeap_Fix(t *testing.T) {
 	ItsEqual(t, 5, rh.maxHeight)
 }
 
-func Test_recomputeHeap_sanityCheck_ok_badNodeHeight(t *testing.T) {
-	rh := newRecomputeHeap(8)
+func Test_newNodeHeap_sanityCheck_ok_badNodeHeight(t *testing.T) {
+	rh := newNodeHeap(8)
 
 	n_1_00 := newMockBareNodeWithHeight(1)
 	n_2_00 := newMockBareNodeWithHeight(2)
@@ -368,8 +382,8 @@ func Test_recomputeHeap_sanityCheck_ok_badNodeHeight(t *testing.T) {
 	ItsNotNil(t, err)
 }
 
-func Test_recomputeHeap_sanityCheck_badItemHeight(t *testing.T) {
-	rh := newRecomputeHeap(8)
+func Test_newNodeHeap_sanityCheck_badItemHeight(t *testing.T) {
+	rh := newNodeHeap(8)
 
 	n_1_00 := newMockBareNodeWithHeight(1)
 	n_2_00 := newMockBareNodeWithHeight(2)
@@ -392,8 +406,8 @@ func Test_recomputeHeap_sanityCheck_badItemHeight(t *testing.T) {
 	ItsNotNil(t, err)
 }
 
-func Test_recomputeHeap_Clear(t *testing.T) {
-	rh := newRecomputeHeap(32)
+func Test_newNodeHeap_Clear(t *testing.T) {
+	rh := newNodeHeap(32)
 
 	n50 := newHeightIncr(5)
 	n60 := newHeightIncr(6)

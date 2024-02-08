@@ -159,5 +159,5 @@ func (en *expertNode) computePseudoHeightCached(cache map[Identifier]int, n INod
 }
 
 func (en *expertNode) PropagateHeightChange() error {
-	return propagateHeightChange(en.node.id, en.incr)
+	return propagateHeightChange(en.incr)
 }

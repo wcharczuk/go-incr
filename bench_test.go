@@ -237,25 +237,31 @@ func benchmarkDepth(width, depth int, b *testing.B) {
 
 func benchmarkNestedBinds(depth int, b *testing.B) {
 	ctx := context.Background()
+	fakeFormula := Var(Root(), "fakeFormula")
+	g, o := makeNestedBindGraph(depth, fakeFormula)
 	for x := 0; x < b.N; x++ {
-		g, o := makeNestedBindGraph(depth)
 		err := g.Stabilize(ctx)
 		if err != nil {
+			b.Error(err)
 			b.FailNow()
 		}
 		if o.Value() == nil {
 			b.FailNow()
 		}
+		g.SetStale(fakeFormula)
+		err = g.Stabilize(ctx)
+		if err != nil {
+			b.Error(err)
+			b.FailNow()
+		}
 	}
 }
 
-func makeNestedBindGraph(depth int) (*Graph, ObserveIncr[*int]) {
+func makeNestedBindGraph(depth int, fakeFormula VarIncr[string]) (*Graph, ObserveIncr[*int]) {
 	graph := New(
 		GraphMaxRecomputeHeapHeight(1024),
 	)
 	cache := make(map[string]Incr[*int])
-	fakeFormula := Var(Root(), "fakeFormula")
-
 	var m func(bs *BindScope, t int) Incr[*int]
 	left_bound := 3
 	right_bound := 9
@@ -285,6 +291,7 @@ func makeNestedBindGraph(depth int) (*Graph, ObserveIncr[*int]) {
 			} else {
 				bindOutput = m(bs, t-1)
 			}
+			bindOutput.Node().SetLabel(fmt.Sprintf("%s-output", key))
 			return bindOutput
 		})
 

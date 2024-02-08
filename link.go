@@ -18,42 +18,48 @@ func link(child INode, inputs ...INode) error {
 	for _, input := range inputs {
 		input.Node().addChildren(child)
 	}
-	if err := propagateHeightChange(child.Node().ID(), child); err != nil {
+
+	if err := propagateHeightChange(child); err != nil {
 		return err
 	}
 	for _, input := range inputs {
-		if err := propagateHeightChange(input.Node().ID(), input); err != nil {
+		if err := propagateHeightChange(input); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
-func maxHeightOf[A INode](nodes ...A) (max int) {
-	for _, n := range nodes {
-		if n.Node().height > max {
-			max = n.Node().height
+func maxHeightOfParents(n INode) (max int) {
+	for _, p := range n.Node().parents {
+		if p.Node().height > max {
+			max = p.Node().height
 		}
 	}
 	return
 }
 
-func propagateHeightChange(originalChildID Identifier, in INode) error {
+func propagateHeightChange(in INode) error {
+	return propagateHeightChangeRecursive(in.Node().id, in)
+}
+
+func propagateHeightChangeRecursive(originalChildID Identifier, in INode) error {
 	n := in.Node()
 	oldHeight := n.height
-	maxParentHeight := maxHeightOf(n.Parents()...)
+	maxParentHeight := maxHeightOfParents(in)
 	if n.height == 0 || maxParentHeight >= n.height {
 		n.height = maxParentHeight + 1
 	}
 	if n.height != oldHeight {
 		if n.graph != nil {
-			n.graph.adjustHeightsList.Push(in)
+			n.graph.adjustHeightsHeap.Add(in)
 		}
 		for _, c := range n.Children() {
 			if c.Node().ID() == originalChildID {
 				return fmt.Errorf("cycle detected at %v", originalChildID)
 			}
-			if err := propagateHeightChange(originalChildID, c); err != nil {
+			if err := propagateHeightChangeRecursive(originalChildID, c); err != nil {
 				return err
 			}
 		}

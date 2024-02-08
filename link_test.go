@@ -22,11 +22,11 @@ func Test_Link_propagatesHeightChanges(t *testing.T) {
 	testutil.ItsEqual(t, 1, n01.Node().height)
 	testutil.ItsEqual(t, 1, n02.Node().height)
 
-	testutil.ItsEqual(t, true, n00.Node().HasParent(n01.Node().ID()))
-	testutil.ItsEqual(t, true, n00.Node().HasParent(n02.Node().ID()))
+	testutil.ItsEqual(t, true, hasKey(n00.Node().parents, n01.Node().ID()))
+	testutil.ItsEqual(t, true, hasKey(n00.Node().parents, n02.Node().ID()))
 
-	testutil.ItsEqual(t, true, n01.Node().HasChild(n00.Node().ID()))
-	testutil.ItsEqual(t, true, n02.Node().HasChild(n00.Node().ID()))
+	testutil.ItsEqual(t, true, hasKey(n01.Node().children, n00.Node().ID()))
+	testutil.ItsEqual(t, true, hasKey(n02.Node().children, n00.Node().ID()))
 
 	testutil.ItsEqual(t, 3, n10.Node().height)
 	testutil.ItsEqual(t, 4, n11.Node().height)

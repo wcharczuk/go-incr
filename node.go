@@ -3,16 +3,12 @@ package incr
 import (
 	"context"
 	"fmt"
-	"sync"
 )
 
 // NewNode returns a new node.
 func NewNode() *Node {
 	return &Node{
-		id:        NewIdentifier(),
-		parents:   newNodeList(),
-		children:  newNodeList(),
-		observers: make(map[Identifier]IObserver),
+		id: NewIdentifier(),
 	}
 }
 
@@ -29,15 +25,13 @@ type Node struct {
 	label string
 	// parents are the nodes that this node depends on, that is
 	// parents are nodes that this node takes as inputs
-	parents *nodeList
+	parents []INode
 	// children are the nodes that depend on this node, that is
 	// children take this node as an input
-	children *nodeList
+	children []INode
 	// observers are observer nodes that are attached to this
 	// node or its children.
-	observers map[Identifier]IObserver
-	// observersMu interlocsk access to observers
-	observersMu sync.Mutex
+	observers []IObserver
 	// height is the topological sort pseudo-height of the
 	// node and is used to order recomputation
 	// it is established when the graph is initialized but
@@ -170,58 +164,17 @@ func (n *Node) SetMetadata(md any) {
 
 // Parents returns the node parent list.
 func (n *Node) Parents() []INode {
-	return n.parents.Values()
+	return n.parents
 }
 
 // Parents returns the node child list.
 func (n *Node) Children() []INode {
-	return n.children.Values()
-}
-
-// HasChild returns if a child with a given identifier
-// is present in the children list.
-func (n *Node) HasChild(id Identifier) (ok bool) {
-	ok = n.children.HasKey(id)
-	return
-}
-
-// HasParent returns if a parent with a given identifier
-// is present in the parents list.
-func (n *Node) HasParent(id Identifier) (ok bool) {
-	ok = n.parents.HasKey(id)
-	return
-}
-
-// IsRoot should return if the parent count, or the
-// number of nodes that this node depends on is zero.
-func (n *Node) IsRoot() bool {
-	return n.parents.IsEmpty()
-}
-
-// IsLeaf should return if the child count, or the
-// number of nodes depend on this node is zero.
-func (n *Node) IsLeaf() bool {
-	return n.children.IsEmpty()
+	return n.children
 }
 
 // Observers returns the node observer list.
-func (n *Node) Observers() (output []IObserver) {
-	n.observersMu.Lock()
-	defer n.observersMu.Unlock()
-	output = make([]IObserver, 0, len(n.observers))
-	for _, o := range n.observers {
-		output = append(output, o)
-	}
-	return
-}
-
-// HasObserver returns if an observer with a given identifier
-// is present in the observers list.
-func (n *Node) HasObserver(id Identifier) (ok bool) {
-	n.observersMu.Lock()
-	defer n.observersMu.Unlock()
-	_, ok = n.observers[id]
-	return
+func (n *Node) Observers() []IObserver {
+	return n.observers
 }
 
 //
@@ -229,30 +182,38 @@ func (n *Node) HasObserver(id Identifier) (ok bool) {
 //
 
 func (n *Node) addChildren(children ...INode) {
-	n.children.Push(children...)
+	for _, c := range children {
+		if !hasKey(n.children, c.Node().id) {
+			n.children = append(n.children, c)
+		}
+	}
 }
 
 func (n *Node) addParents(parents ...INode) {
-	n.parents.Push(parents...)
+	for _, p := range parents {
+		if !hasKey(n.parents, p.Node().id) {
+			n.parents = append(n.parents, p)
+		}
+	}
 }
 
 func (n *Node) addObservers(observers ...IObserver) {
-	n.observersMu.Lock()
-	defer n.observersMu.Unlock()
 	for _, o := range observers {
-		n.observers[o.Node().id] = o
-		for _, handler := range n.onObservedHandlers {
-			handler(o)
+		if !hasKey(n.observers, o.Node().id) {
+			n.observers = append(n.observers, o)
+			for _, handler := range n.onObservedHandlers {
+				handler(o)
+			}
 		}
 	}
 }
 
 func (n *Node) removeChild(id Identifier) {
-	n.children.RemoveKey(id)
+	n.children = remove(n.children, id)
 }
 
 func (n *Node) removeParent(id Identifier) {
-	n.parents.RemoveKey(id)
+	n.parents = remove(n.parents, id)
 }
 
 // maybeCutoff calls the cutoff delegate if it's set, otherwise
@@ -317,12 +278,7 @@ func (n *Node) ShouldRecompute() bool {
 		return true
 	}
 
-	// if any of the direct _inputs_ to this node have changed
-	// or updated their bind. we don't go full recursive
-	// here to prevent a bunch of extra work.
-	n.parents.Lock()
-	defer n.parents.Unlock()
-	for _, p := range n.parents.list {
+	for _, p := range n.parents {
 		if p.Node().changedAt > n.recomputedAt || p.Node().boundAt > n.recomputedAt {
 			return true
 		}

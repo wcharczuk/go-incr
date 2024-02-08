@@ -68,6 +68,7 @@ func Test_Graph_UnobserveNodes(t *testing.T) {
 	testutil.ItsEqual(t, true, g.IsObserving(am1))
 	testutil.ItsEqual(t, true, g.IsObserving(am2))
 
+	Unlink(o1, m1)
 	g.unobserveNodes(ctx, m1, o1)
 
 	testutil.ItsEqual(t, false, g.IsObserving(r0))

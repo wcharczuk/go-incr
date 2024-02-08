@@ -45,8 +45,7 @@ func BindContext[A, B any](scope *BindScope, input Incr[A], fn func(context.Cont
 		bt:    "bind",
 	}
 	o.scope = &BindScope{
-		bind:     o,
-		rhsNodes: newNodeList(),
+		bind: o,
 	}
 	Link(o, input)
 	return WithinBindScope(scope, o)
@@ -121,8 +120,6 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 	}
 	if bindChanged {
 		b.n.boundAt = b.n.graph.stabilizationNum
-	} else {
-		TracePrintf(ctx, "%v unchanged after stabilization", b)
 	}
 	return nil
 }
@@ -133,15 +130,11 @@ func (b *bindIncr[A, B]) Unobserve(ctx context.Context, observers ...IObserver) 
 
 func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
 	if b.bound != nil {
-		children := b.n.Children()
-		for _, c := range children {
-			if err = link(c, b.bound); err != nil {
-				return
-			}
+		if err = link(b, b.bound); err != nil {
+			return
 		}
-		for _, n := range b.scope.rhsNodes.list {
+		for _, n := range b.scope.rhsNodes {
 			if typed, ok := n.(IBind); ok {
-				TracePrintf(ctx, "%v propagating bind link to %v", b, n)
 				if err = typed.Link(ctx); err != nil {
 					return
 				}
@@ -166,6 +159,9 @@ func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) error {
 	if err := link(b.bound, b.bindChange); err != nil {
 		return err
 	}
+	if b.n.graph == nil {
+		return fmt.Errorf("%v is unobserved, cannot continue", b)
+	}
 	b.n.graph.observeSingleNode(b.bindChange, b.n.Observers()...)
 	return nil
 }
@@ -175,16 +171,12 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) error {
 	if err := b.linkBindChange(ctx); err != nil {
 		return err
 	}
-	children := b.n.Children()
-	for _, c := range children {
-		if err := link(c, b.bound); err != nil {
-			return err
-		}
+	if err := link(b, b.bound); err != nil {
+		return err
 	}
 	b.n.graph.observeNodes(b.bound, b.n.Observers()...)
-	for _, n := range b.scope.rhsNodes.list {
+	for _, n := range b.scope.rhsNodes {
 		if typed, ok := n.(IBind); ok {
-			TracePrintf(ctx, "%v propagating bind link to %v", b, typed)
 			if err := typed.Link(ctx); err != nil {
 				return err
 			}
@@ -203,23 +195,24 @@ func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, observers ...IObserver) 
 	if b.bound != nil {
 		TracePrintf(ctx, "%v unbinding old rhs %v", b, b.bound)
 		b.unlinkBindChange(ctx)
-		b.removeNodesFromScope(ctx, b.scope)
+		b.removeNodesFromScope(ctx, b.scope, observers...)
+		Unlink(b, b.bound)
 		b.n.graph.unobserveNodes(ctx, b.bound, observers...)
-		for _, c := range b.n.Children() {
-			Unlink(c, b.bound)
-		}
 		b.n.graph.unobserveSingleNode(ctx, b.bindChange, observers...)
 		b.bindChange = nil
 		b.bound = nil
 	}
 }
 
-func (b *bindIncr[A, B]) removeNodesFromScope(ctx context.Context, scope *BindScope) {
-	rhsNodes := scope.rhsNodes.Values()
-	for _, n := range rhsNodes {
+func (b *bindIncr[A, B]) removeNodesFromScope(ctx context.Context, scope *BindScope, observers ...IObserver) {
+	for _, n := range scope.rhsNodes {
 		n.Node().createdIn = nil
+		if typed, ok := n.(IUnobserve); ok {
+			TracePrintf(ctx, "%v unbinding scope node that can unobserve %v", b, typed)
+			typed.Unobserve(ctx, observers...)
+		}
 	}
-	scope.rhsNodes.Clear()
+	scope.rhsNodes = nil
 }
 
 func (b *bindIncr[A, B]) String() string {

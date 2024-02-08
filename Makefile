@@ -2,9 +2,10 @@
 bench:
 	@go test -run=XXX -bench=.
 
-.PHONY: bench-profile-cpu 
-bench-profile-cpu:
-	@go test -run=XXX -bench=Benchmark_Stabilize_withPreInitialize_16384 -cpuprofile bench-cpu.out
+.PHONY: bench-profile
+bench-profile:
+	@go test -run=XXX -bench=. -benchmem -cpuprofile profile.out
+	@go tool pprof profile.out
 
 .PHONY: cover
 cover:

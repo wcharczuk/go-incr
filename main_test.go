@@ -192,14 +192,14 @@ func createDynamicBind(scope *BindScope, label string, a, b Incr[string]) (VarIn
 			m := Map(scope, a, func(v string) string {
 				return v + "->" + label
 			})
-			m.Node().SetLabel(fmt.Sprintf("bind - %s - inner map", label))
+			m.Node().SetLabel(fmt.Sprintf("bind - %s - %s - map", label, which))
 			return m
 		}
 		if which == "b" {
 			m := Map(scope, b, func(v string) string {
 				return v + "->" + label
 			})
-			m.Node().SetLabel(fmt.Sprintf("bind - %s - inner map", label))
+			m.Node().SetLabel(fmt.Sprintf("bind - %s - %s - map", label, which))
 			return m
 		}
 		return nil
