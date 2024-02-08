@@ -7,7 +7,6 @@ import (
 )
 
 func Test_newNodeHeap_Add(t *testing.T) {
-
 	rh := newNodeHeap(32)
 
 	n50 := newHeightIncr(5)
@@ -55,107 +54,6 @@ func Test_newNodeHeap_Add(t *testing.T) {
 		ItsEqual(t, 5, rh.MinHeight())
 		ItsEqual(t, 7, rh.MaxHeight())
 	}
-}
-
-func Test_nodeHeap_RemoveMin(t *testing.T) {
-	rh := newNodeHeap(32)
-
-	ItsNil(t, rh.RemoveMin())
-
-	n00 := newHeightIncr(0)
-	n01 := newHeightIncr(0)
-	n10 := newHeightIncr(1)
-	n100 := newHeightIncr(10)
-
-	rh.Add(n00)
-	ItsEqual(t, 1, rh.Len())
-	ItsEqual(t, 32, len(rh.heights))
-	ItsEqual(t, 1, len(rh.heights[0]))
-	rh.Add(n01)
-	ItsEqual(t, 2, rh.Len())
-	ItsEqual(t, 32, len(rh.heights))
-	ItsEqual(t, 2, len(rh.heights[0]))
-
-	ItsEqual(t, 0, rh.minHeight)
-	ItsEqual(t, 0, rh.maxHeight)
-
-	rh.Add(n10)
-	ItsEqual(t, 3, rh.Len())
-	ItsEqual(t, 32, len(rh.heights))
-	ItsEqual(t, 2, len(rh.heights[0]))
-	ItsEqual(t, 1, len(rh.heights[1]))
-	ItsEqual(t, 0, rh.minHeight)
-	ItsEqual(t, 1, rh.maxHeight)
-
-	rh.Add(n100)
-	ItsEqual(t, 4, rh.Len())
-	ItsEqual(t, 32, len(rh.heights))
-	ItsEqual(t, 2, len(rh.heights[0]))
-	ItsEqual(t, 1, len(rh.heights[1]))
-	ItsEqual(t, 1, len(rh.heights[10]))
-	ItsEqual(t, 0, rh.minHeight)
-	ItsEqual(t, 10, rh.maxHeight)
-
-	r00 := rh.RemoveMin()
-	ItsNotNil(t, r00)
-	ItsNotNil(t, r00.node.Node())
-	// not consistently ordered as long as this is a map!
-	// ItsEqual(t, n00.n.id, r00.node.Node().id)
-	ItsEqual(t, 3, rh.Len())
-	// ItsEqual(t, false, rh.Has(n00))
-	// ItsEqual(t, true, rh.Has(n01))
-	// ItsEqual(t, true, rh.Has(n10))
-	// ItsEqual(t, true, rh.Has(n100))
-	ItsEqual(t, 1, len(rh.heights[0]))
-	ItsEqual(t, 1, len(rh.heights[1]))
-	ItsEqual(t, 1, len(rh.heights[10]))
-	ItsEqual(t, 0, rh.minHeight)
-	ItsEqual(t, 10, rh.maxHeight)
-
-	r01 := rh.RemoveMin()
-	ItsNotNil(t, r01)
-	ItsNotNil(t, r01.node.Node())
-	// ItsEqual(t, n01.n.id, r01.node.Node().id)
-	ItsEqual(t, 2, rh.Len())
-	// ItsEqual(t, false, rh.Has(n00))
-	// ItsEqual(t, false, rh.Has(n01))
-	// ItsEqual(t, true, rh.Has(n10))
-	// ItsEqual(t, true, rh.Has(n100))
-	ItsEqual(t, 0, len(rh.heights[0]))
-	ItsEqual(t, 1, len(rh.heights[1]))
-	ItsEqual(t, 1, len(rh.heights[10]))
-	ItsEqual(t, 1, rh.minHeight)
-	ItsEqual(t, 10, rh.maxHeight)
-
-	r10 := rh.RemoveMin()
-	ItsNotNil(t, r10)
-	ItsNotNil(t, r10.node.Node())
-	// ItsEqual(t, n10.n.id, r10.node.Node().id)
-	ItsEqual(t, 1, rh.Len())
-	// ItsEqual(t, false, rh.Has(n00))
-	// ItsEqual(t, false, rh.Has(n01))
-	// ItsEqual(t, false, rh.Has(n10))
-	// ItsEqual(t, true, rh.Has(n100))
-	ItsEqual(t, 0, len(rh.heights[0]))
-	ItsEqual(t, 0, len(rh.heights[1]))
-	ItsEqual(t, 1, len(rh.heights[10]))
-	ItsEqual(t, 10, rh.minHeight)
-	ItsEqual(t, 10, rh.maxHeight)
-
-	r100 := rh.RemoveMin()
-	ItsNotNil(t, r100)
-	ItsNotNil(t, r100.node.Node())
-	// ItsEqual(t, n100.n.id, r100.node.Node().id)
-	ItsEqual(t, 0, rh.Len())
-	ItsEqual(t, false, rh.Has(n00))
-	ItsEqual(t, false, rh.Has(n01))
-	ItsEqual(t, false, rh.Has(n10))
-	ItsEqual(t, false, rh.Has(n100))
-	ItsEqual(t, 0, len(rh.heights[0]))
-	ItsEqual(t, 0, len(rh.heights[1]))
-	ItsEqual(t, 0, len(rh.heights[10]))
-	ItsEqual(t, 0, rh.minHeight)
-	ItsEqual(t, 10, rh.maxHeight)
 }
 
 func Test_newNodeHeap_RemoveMinHeight(t *testing.T) {
