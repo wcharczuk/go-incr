@@ -4,3 +4,4 @@ bench-cpu.out
 bench-mem.out
 go-incr.test
 cover.out
+profile.out
