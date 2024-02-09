@@ -135,10 +135,6 @@ func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
 	if b.bound != nil {
 		Link(b, b.bound)
 		_ = b.n.graph.adjustHeightsHeap.ensureHeightRequirement(b, b.bound)
-		_ = b.n.graph.adjustHeightsHeap.ensureHeightRequirement(b, b.input)
-		if err = b.n.graph.recomputeHeights(); err != nil {
-			return
-		}
 		for _, n := range b.scope.rhsNodes {
 			if typed, ok := n.(IBind); ok {
 				if err = typed.Link(ctx); err != nil {
@@ -175,19 +171,16 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) (err erro
 	}
 	Link(b, b.bound)
 	b.n.graph.observeNodes(b.bound, b.n.Observers()...)
-
 	_ = b.n.graph.adjustHeightsHeap.ensureHeightRequirement(b, b.bound)
-	_ = b.n.graph.adjustHeightsHeap.ensureHeightRequirement(b, b.input)
-
-	if err = b.n.graph.recomputeHeights(); err != nil {
-		return
-	}
 	for _, n := range b.scope.rhsNodes {
 		if typed, ok := n.(IBind); ok {
 			if err = typed.Link(ctx); err != nil {
 				return
 			}
 		}
+	}
+	if err = b.n.graph.recomputeHeights(); err != nil {
+		return
 	}
 	TracePrintf(ctx, "%v bound new rhs %v", b, b.bound)
 	return
@@ -206,7 +199,6 @@ func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, observers ...IObserver) 
 		Unlink(b, b.bound)
 		b.n.graph.unobserveNodes(ctx, b.bound, observers...)
 		b.n.graph.unobserveSingleNode(ctx, b.bindChange, observers...)
-		_ = b.n.graph.recomputeHeights()
 		b.bindChange = nil
 		b.bound = nil
 	}

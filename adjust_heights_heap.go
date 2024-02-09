@@ -11,7 +11,7 @@ const (
 
 func newAdjustHeightsHeap(maxHeightAllowed int) *adjustHeightsHeap {
 	return &adjustHeightsHeap{
-		nodesByHeight: make([]*queue[INode], maxHeightAllowed+1),
+		nodesByHeight: make([]*queue[INode], maxHeightAllowed+32),
 		lookup:        make(set[Identifier]),
 	}
 }
@@ -107,14 +107,11 @@ func (ah *adjustHeightsHeap) removeMin() (node INode, ok bool) {
 }
 
 func (ah *adjustHeightsHeap) setHeight(node INode, height int) error {
-	if node.Node().height > height {
-		return nil
+	if height > ah.maxHeightAllowed() {
+		return fmt.Errorf("cannot set node height above %d", ah.maxHeightAllowed())
 	}
 	if height > ah.maxHeightSeen {
 		ah.maxHeightSeen = height
-		if height > ah.maxHeightAllowed() {
-			return fmt.Errorf("cannot set node height above %d", ah.maxHeightAllowed())
-		}
 	}
 	if height < ah.heightLowerBound {
 		ah.heightLowerBound = height

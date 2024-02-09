@@ -1041,3 +1041,33 @@ func Test_Bind_unbindRegression(t *testing.T) {
 		testutil.ItsEqual(t, 6, *o.Value())
 	})
 }
+
+func Test_Bind_nested_amplification(t *testing.T) {
+	ctx := testContext()
+	depth := 4
+	fakeFormula := Var(Root(), "fakeFormula")
+	observed := make([]ObserveIncr[*int], depth)
+	g := New(
+		GraphMaxRecomputeHeapHeight(1024),
+	)
+	for i := 0; i < depth; i++ {
+		o := makeSimpleNestedBindGraph(g, depth, fakeFormula)
+		observed[i] = o
+	}
+
+	err := g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, 65, g.numNodes)
+
+	for _, o := range observed {
+		testutil.ItsNotNil(t, o.Value())
+	}
+
+	err = g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, 65, g.numNodes)
+
+	err = g.Stabilize(ctx)
+	testutil.ItsNil(t, err)
+	testutil.ItsEqual(t, 65, g.numNodes)
+}

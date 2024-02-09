@@ -222,11 +222,9 @@ func benchmarkDepth(width, depth int, b *testing.B) {
 			nodeIndex++
 		}
 	}
-
 	graph := New(
 		GraphMaxRecomputeHeapHeight(1024),
 	)
-
 	observers := make([]ObserveIncr[string], width)
 	for x := 0; x < width; x++ {
 		observers[x] = Observe(Root(), graph, nodes[(width*(depth-1))+x])
@@ -326,11 +324,12 @@ func benchmarkConnectedGraphWithNestedBinds(depth int, b *testing.B) {
 	g := New(
 		GraphMaxRecomputeHeapHeight(1024),
 	)
+	for i := 0; i < depth; i++ {
+		o := makeSimpleNestedBindGraph(g, depth, fakeFormula)
+		observed[i] = o
+	}
+	b.ResetTimer()
 	for x := 0; x < b.N; x++ {
-		for i := 0; i < depth; i++ {
-			o := makeSimpleNestedBindGraph(g, depth, fakeFormula)
-			observed[i] = o
-		}
 		err := g.Stabilize(ctx)
 		if err != nil {
 			b.Error(err)
@@ -352,7 +351,7 @@ func makeSimpleNestedBindGraph(graph *Graph, depth int, fakeFormula VarIncr[stri
 		if _, ok := cache[key]; ok {
 			return WithinBindScope(bs, cache[key])
 		}
-		r := Bind(Root(), fakeFormula, func(bs *BindScope, formula string) Incr[*int] {
+		r := Bind(bs, fakeFormula, func(bs *BindScope, formula string) Incr[*int] {
 			if t <= 0 {
 				out := 0
 				r := Return(bs, &out)
@@ -364,7 +363,6 @@ func makeSimpleNestedBindGraph(graph *Graph, depth int, fakeFormula VarIncr[stri
 				return &out
 			})
 		})
-
 		r.Node().SetLabel(fmt.Sprintf("f(%d)", t))
 		cache[key] = r
 		return r

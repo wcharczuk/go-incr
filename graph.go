@@ -486,48 +486,10 @@ func (graph *Graph) isNecessary(n INode) bool {
 	return ng != nil && ng.id == graph.id
 }
 
-// internal height management methods
-
 //
 // internal height management methods
 //
 
 func (graph *Graph) recomputeHeights() error {
 	return graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap)
-}
-
-func (graph *Graph) computePseudoHeight(in INode) int {
-	return graph.computePseudoHeightCached(make(map[Identifier]int), in)
-}
-
-// computePseudoHeightCached calculates the nodes height in respect to its parents.
-func (graph *Graph) computePseudoHeightCached(cache map[Identifier]int, in INode) int {
-	n := in.Node()
-	if height, ok := cache[n.id]; ok {
-		return height
-	}
-
-	// TracePrintf(WithTracing(context.Background()), "compute pseudoheight %v\n", in)
-	n.numComputePseudoHeights++
-	var maxParentHeight int
-	var parentHeight int
-	for _, p := range n.parents {
-		parentHeight = graph.computePseudoHeightCached(cache, p)
-		if parentHeight > maxParentHeight {
-			maxParentHeight = parentHeight
-		}
-	}
-
-	var finalHeight int
-	// we do this to prevent the height
-	// changing a bunch with bind nodes.
-	// basically just stick with the overall maximum
-	// height the node has seen ever.
-	if n.height > maxParentHeight {
-		finalHeight = n.height
-	} else {
-		finalHeight = maxParentHeight + 1
-	}
-	cache[n.id] = finalHeight
-	return finalHeight
 }
