@@ -504,17 +504,16 @@ func (graph *Graph) recomputeHeightsRecursive(rootID Identifier, in INode) (err 
 	n := in.Node()
 	oldHeight := n.height
 	n.height = graph.computePseudoHeight(in)
-
-	for _, c := range n.children {
-		if c.Node().id == rootID {
-			err = fmt.Errorf("cycle detected at %v", c)
-			return
-		}
-		if err = graph.recomputeHeights(c); err != nil {
-			return
-		}
-	}
 	if oldHeight != n.height {
+		for _, c := range n.children {
+			if c.Node().id == rootID {
+				err = fmt.Errorf("cycle detected at %v", c)
+				return
+			}
+			if err = graph.recomputeHeights(c); err != nil {
+				return
+			}
+		}
 		graph.adjustHeightsQueue.push(n.id)
 	}
 	return
