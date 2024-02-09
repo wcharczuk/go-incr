@@ -304,6 +304,9 @@ func (graph *Graph) canReachObserver(gn INode, oid Identifier) bool {
 
 func (graph *Graph) canReachObserverRecursive(root, gn INode, oid Identifier) bool {
 	for _, c := range gn.Node().children {
+		if hasKey(c.Node().observers, oid) {
+			return true
+		}
 		if c.Node().id == oid {
 			return true
 		}
