@@ -45,15 +45,6 @@ func (graph *Graph) parallelStabilize(ctx context.Context) (err error) {
 	var minHeightBlock []*recomputeHeapItem
 	for graph.recomputeHeap.Len() > 0 {
 		minHeightBlock = graph.recomputeHeap.RemoveMinHeight()
-		if len(minHeightBlock) == 0 {
-			// NOTE(wc): this is a """should be impossible""" edge case that can come up if the user is managing nodes invasively,
-			// specifically we can get into situations where the node height changes and is not reflected in the heap height lists accordingly.
-			//
-			// If this check is not here, and this condition is present, the stabilization _will never finish_ because there are items
-			// left in the heap lookup but they are not in the correct height "block", leading to an infinite loop.
-			err = fmt.Errorf("parallel stabilize[%d]; recompute heap has remaining items but min height block is empty, aborting", graph.stabilizationNum)
-			break
-		}
 		for _, n := range minHeightBlock {
 			workerPool.Go(graph.parallelRecomputeNode(ctx, n.node))
 			if n.node.Node().always {
@@ -63,7 +54,6 @@ func (graph *Graph) parallelStabilize(ctx context.Context) (err error) {
 		if err = workerPool.Wait(); err != nil {
 			break
 		}
-		graph.fixAdjustHeightsList()
 	}
 	graph.recomputeHeap.Add(immediateRecompute...)
 	return

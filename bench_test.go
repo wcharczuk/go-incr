@@ -99,6 +99,26 @@ func Benchmark_Stabilize_nestedBinds_1024(b *testing.B) {
 	benchmarkNestedBinds(1024, b)
 }
 
+func Benchmark_Stabilize_connectedGraph_with_nestedBinds_64(b *testing.B) {
+	benchmarkConnectedGraphWithNestedBinds(64, b)
+}
+
+func Benchmark_Stabilize_connectedGraph_with_nestedBinds_128(b *testing.B) {
+	benchmarkConnectedGraphWithNestedBinds(128, b)
+}
+
+func Benchmark_Stabilize_connectedGraph_with_nestedBinds_256(b *testing.B) {
+	benchmarkConnectedGraphWithNestedBinds(256, b)
+}
+
+func Benchmark_Stabilize_connectedGraph_with_nestedBinds_512(b *testing.B) {
+	benchmarkConnectedGraphWithNestedBinds(512, b)
+}
+
+func Benchmark_Stabilize_connectedGraph_with_nestedBinds_1024(b *testing.B) {
+	benchmarkConnectedGraphWithNestedBinds(1024, b)
+}
+
 func benchmarkSize(size int, b *testing.B) {
 	nodes := make([]Incr[string], size)
 	for x := 0; x < size; x++ {
@@ -301,4 +321,58 @@ func makeNestedBindGraph(depth int, fakeFormula VarIncr[string]) (*Graph, Observ
 	}
 	o := m(Root(), depth)
 	return graph, Observe(Root(), graph, o)
+}
+
+func benchmarkConnectedGraphWithNestedBinds(depth int, b *testing.B) {
+	ctx := context.Background()
+	fakeFormula := Var(Root(), "fakeFormula")
+	observed := make([]ObserveIncr[*int], depth)
+	g := New(
+		GraphMaxRecomputeHeapHeight(1024),
+	)
+	for x := 0; x < b.N; x++ {
+		for i := 0; i < depth; i++ {
+			o := makeSimpleNestedBindGraph(g, depth, fakeFormula)
+			observed[i] = o
+		}
+		err := g.Stabilize(ctx)
+		if err != nil {
+			b.Error(err)
+			b.FailNow()
+		}
+		for _, o := range observed {
+			if o.Value() == nil {
+				b.FailNow()
+			}
+		}
+	}
+}
+
+func makeSimpleNestedBindGraph(graph *Graph, depth int, fakeFormula VarIncr[string]) ObserveIncr[*int] {
+	cache := make(map[string]Incr[*int])
+	var f func(bs *BindScope, t int) Incr[*int]
+	f = func(bs *BindScope, t int) Incr[*int] {
+		key := fmt.Sprintf("f-%d", t)
+		if _, ok := cache[key]; ok {
+			return WithinBindScope(bs, cache[key])
+		}
+		r := Bind(Root(), fakeFormula, func(bs *BindScope, formula string) Incr[*int] {
+			if t <= 0 {
+				out := 0
+				r := Return(bs, &out)
+				r.Node().SetLabel("f-0")
+				return r
+			}
+			return Map(bs, f(bs, t-1), func(r *int) *int {
+				out := *r
+				return &out
+			})
+		})
+
+		r.Node().SetLabel(fmt.Sprintf("f(%d)", t))
+		cache[key] = r
+		return r
+	}
+	o := f(Root(), depth)
+	return Observe(Root(), graph, o)
 }

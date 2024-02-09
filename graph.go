@@ -289,7 +289,7 @@ func (graph *Graph) removeNodeObservers(gn INode, observers ...IObserver) (remai
 		if graph.canReachObserver(gn, on.Node().id) {
 			continue
 		}
-		gnn.observers = remove(gnn.observers, on.Node().id)
+		gnn.removeObserver(on.Node().id)
 		for _, handler := range gnn.onUnobservedHandlers {
 			handler(on)
 		}
@@ -473,21 +473,4 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 func (graph *Graph) isNecessary(n INode) bool {
 	ng := n.Node().graph
 	return ng != nil && ng.id == graph.id
-}
-
-//
-// internal height management methods
-//
-
-func (graph *Graph) fixAdjustHeightsList() {
-	if graph.adjustHeightsHeap.Len() > 0 {
-		graph.recomputeHeap.mu.Lock()
-		defer graph.recomputeHeap.mu.Unlock()
-		for graph.adjustHeightsHeap.Len() > 0 {
-			next := graph.adjustHeightsHeap.RemoveMinHeight()
-			for _, n := range next {
-				graph.recomputeHeap.fixUnsafe(n.node.Node().id)
-			}
-		}
-	}
 }

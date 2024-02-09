@@ -187,8 +187,8 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) error {
 }
 
 func (b *bindIncr[A, B]) unlinkBindChange(ctx context.Context) {
-	Unlink(b.bindChange, b.input)
-	Unlink(b.bound, b.bindChange)
+	unlinkWithoutAdjustingHeights(b.bindChange, b.input)
+	unlinkWithoutAdjustingHeights(b.bound, b.bindChange)
 }
 
 func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, observers ...IObserver) {
@@ -196,7 +196,7 @@ func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, observers ...IObserver) 
 		TracePrintf(ctx, "%v unbinding old rhs %v", b, b.bound)
 		b.unlinkBindChange(ctx)
 		b.removeNodesFromScope(ctx, b.scope, observers...)
-		Unlink(b, b.bound)
+		unlinkWithoutAdjustingHeights(b, b.bound)
 		b.n.graph.unobserveNodes(ctx, b.bound, observers...)
 		b.n.graph.unobserveSingleNode(ctx, b.bindChange, observers...)
 		b.bindChange = nil

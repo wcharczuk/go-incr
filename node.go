@@ -8,7 +8,10 @@ import (
 // NewNode returns a new node.
 func NewNode() *Node {
 	return &Node{
-		id: NewIdentifier(),
+		id:             NewIdentifier(),
+		parentLookup:   make(set[Identifier]),
+		childLookup:    make(set[Identifier]),
+		observerLookup: make(set[Identifier]),
 	}
 }
 
@@ -25,13 +28,16 @@ type Node struct {
 	label string
 	// parents are the nodes that this node depends on, that is
 	// parents are nodes that this node takes as inputs
-	parents []INode
+	parents      []INode
+	parentLookup set[Identifier]
 	// children are the nodes that depend on this node, that is
 	// children take this node as an input
-	children []INode
+	children    []INode
+	childLookup set[Identifier]
 	// observers are observer nodes that are attached to this
 	// node or its children.
-	observers []IObserver
+	observers      []IObserver
+	observerLookup set[Identifier]
 	// height is the topological sort pseudo-height of the
 	// node and is used to order recomputation
 	// it is established when the graph is initialized but
@@ -183,24 +189,27 @@ func (n *Node) Observers() []IObserver {
 
 func (n *Node) addChildren(children ...INode) {
 	for _, c := range children {
-		if !hasKey(n.children, c.Node().id) {
+		if !n.childLookup.has(c.Node().id) {
 			n.children = append(n.children, c)
+			n.childLookup.add(c.Node().id)
 		}
 	}
 }
 
 func (n *Node) addParents(parents ...INode) {
 	for _, p := range parents {
-		if !hasKey(n.parents, p.Node().id) {
+		if !n.parentLookup.has(p.Node().id) {
 			n.parents = append(n.parents, p)
+			n.parentLookup.add(p.Node().id)
 		}
 	}
 }
 
 func (n *Node) addObservers(observers ...IObserver) {
 	for _, o := range observers {
-		if !hasKey(n.observers, o.Node().id) {
+		if !n.observerLookup.has(o.Node().id) {
 			n.observers = append(n.observers, o)
+			n.observerLookup.add(o.Node().id)
 			for _, handler := range n.onObservedHandlers {
 				handler(o)
 			}
@@ -210,10 +219,17 @@ func (n *Node) addObservers(observers ...IObserver) {
 
 func (n *Node) removeChild(id Identifier) {
 	n.children = remove(n.children, id)
+	delete(n.childLookup, id)
 }
 
 func (n *Node) removeParent(id Identifier) {
 	n.parents = remove(n.parents, id)
+	delete(n.parentLookup, id)
+}
+
+func (n *Node) removeObserver(id Identifier) {
+	n.observers = remove(n.observers, id)
+	delete(n.observerLookup, id)
 }
 
 // maybeCutoff calls the cutoff delegate if it's set, otherwise

@@ -13,21 +13,19 @@ func Link(child INode, inputs ...INode) {
 	_ = link(child, inputs...)
 }
 
-func link(child INode, inputs ...INode) error {
-	child.Node().addParents(inputs...)
-	for _, input := range inputs {
-		input.Node().addChildren(child)
+func link(child INode, parents ...INode) error {
+	child.Node().addParents(parents...)
+	for _, parent := range parents {
+		parent.Node().addChildren(child)
 	}
-
 	if err := propagateHeightChange(child); err != nil {
 		return err
 	}
-	for _, input := range inputs {
-		if err := propagateHeightChange(input); err != nil {
+	for _, parent := range parents {
+		if err := propagateHeightChange(parent); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -53,10 +51,10 @@ func propagateHeightChangeRecursive(originalChildID Identifier, in INode) error 
 	}
 	if n.height != oldHeight {
 		if n.graph != nil {
-			n.graph.adjustHeightsHeap.Add(in)
+			n.graph.recomputeHeap.Fix(n.id)
 		}
-		for _, c := range n.Children() {
-			if c.Node().ID() == originalChildID {
+		for _, c := range n.children {
+			if c.Node().id == originalChildID {
 				return fmt.Errorf("cycle detected at %v", originalChildID)
 			}
 			if err := propagateHeightChangeRecursive(originalChildID, c); err != nil {

@@ -34,7 +34,6 @@ func (graph *Graph) Stabilize(ctx context.Context) (err error) {
 		if err != nil {
 			break
 		}
-		graph.fixAdjustHeightsList()
 	}
 	graph.recomputeHeap.Add(immediateRecompute...)
 	return

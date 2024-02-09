@@ -271,21 +271,6 @@ func Test_ParallelStabilize_always_cutoff_error(t *testing.T) {
 	testutil.ItsEqual(t, 3, g.recomputeHeap.Len())
 }
 
-func Test_ParallelStabilize_inconsistent_error(t *testing.T) {
-	g := New()
-
-	v0 := newHeightIncr(2)
-	v1 := newHeightIncr(2)
-
-	g.recomputeHeap.lookup[v0.n.id] = &recomputeHeapItem{node: v0, height: 2}
-	g.recomputeHeap.lookup[v1.n.id] = &recomputeHeapItem{node: v1, height: 2}
-
-	g.recomputeHeap.minHeight = 1
-
-	err := g.ParallelStabilize(testContext())
-	testutil.ItsNotNil(t, err)
-}
-
 func Test_ParallelStabilize_recoversPanics(t *testing.T) {
 	g := New()
 
