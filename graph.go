@@ -521,15 +521,6 @@ func (graph *Graph) recomputeHeightsRecursive(rootID Identifier, in INode) (err 
 	return
 }
 
-func (graph *Graph) computePseudoHeightFromParents(in INode) (out int) {
-	for _, p := range in.Node().parents {
-		if p.Node().height > out {
-			out = p.Node().height
-		}
-	}
-	return
-}
-
 func (graph *Graph) computePseudoHeight(in INode) int {
 	return graph.computePseudoHeightCached(make(map[Identifier]int), in)
 }
