@@ -29,7 +29,6 @@ func New(opts ...GraphOption) *Graph {
 		observed:                 make(map[Identifier]INode),
 		observers:                make(map[Identifier]IObserver),
 		recomputeHeap:            newNodeHeap(options.MaxRecomputeHeapHeight),
-		adjustHeightsHeap:        newNodeHeap(options.MaxRecomputeHeapHeight),
 		setDuringStabilization:   make(map[Identifier]INode),
 		handleAfterStabilization: make(map[Identifier][]func(context.Context)),
 	}
@@ -83,10 +82,6 @@ type Graph struct {
 	// organized by pseudo-height. The recompute heap
 	// itself is concurrent safe.
 	recomputeHeap *nodeHeap
-
-	// adjustHeightsHeap is a heap of nodes
-	// used to organize height calculations
-	adjustHeightsHeap *nodeHeap
 
 	// setDuringStabilizationMu interlocks acces to setDuringStabilization
 	setDuringStabilizationMu sync.Mutex
@@ -276,7 +271,6 @@ func (graph *Graph) removeNodeFromGraph(gn INode) {
 	graph.numNodes--
 
 	graph.recomputeHeap.Remove(gn)
-	graph.adjustHeightsHeap.Remove(gn)
 
 	graph.handleAfterStabilizationMu.Lock()
 	delete(graph.handleAfterStabilization, gn.Node().ID())
