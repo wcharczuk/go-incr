@@ -59,20 +59,17 @@ func Test_Bind_basic(t *testing.T) {
 	g := New()
 	_ = Observe(Root(), g, o)
 
-	testutil.ItsEqual(t, 2, o.Node().numComputePseudoHeights)
-	testutil.ItsEqual(t, 0, o.Node().numRecomputeHeights)
-
 	// we shouldn't have bind internals set up after observation either
 	testutil.ItsNil(t, bind.BindChange())
 	testutil.ItsNil(t, bind.Bound())
 
 	var err error
-	testutil.ItsEqual(t, 1, bindVar.Node().height)
-	testutil.ItsEqual(t, 1, s0.Node().height)
-	testutil.ItsEqual(t, 2, s1.Node().height)
+	testutil.ItsEqual(t, 0, bindVar.Node().height)
+	testutil.ItsEqual(t, 0, s0.Node().height)
+	testutil.ItsEqual(t, 1, s1.Node().height)
 
-	testutil.ItsEqual(t, 2, bind.Node().height)
-	testutil.ItsEqual(t, 3, o.Node().height)
+	testutil.ItsEqual(t, 1, bind.Node().height)
+	testutil.ItsEqual(t, 2, o.Node().height)
 
 	testutil.ItsEqual(t, true, g.IsObserving(bindVar))
 	testutil.ItsEqual(t, true, g.IsObserving(s0))
@@ -92,9 +89,6 @@ func Test_Bind_basic(t *testing.T) {
 	err = g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 
-	testutil.ItsEqual(t, 4, o.Node().numComputePseudoHeights)
-	testutil.ItsEqual(t, 1, o.Node().numRecomputeHeights)
-
 	err = dumpDot(g, homedir("bind_basic_00.png"))
 	testutil.ItsNil(t, err)
 
@@ -111,16 +105,16 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.ItsEqual(t, 1, bind.Node().changedAt)
 	testutil.ItsEqual(t, 1, a1.Node().changedAt)
 
-	testutil.ItsEqual(t, 1, bindVar.Node().height)
-	testutil.ItsEqual(t, 1, s0.Node().height)
-	testutil.ItsEqual(t, 2, s1.Node().height)
+	testutil.ItsEqual(t, 0, bindVar.Node().height)
+	testutil.ItsEqual(t, 0, s0.Node().height)
+	testutil.ItsEqual(t, 1, s1.Node().height)
 
-	testutil.ItsEqual(t, 1, av.Node().height)
-	testutil.ItsEqual(t, 2, a0.Node().height)
-	testutil.ItsEqual(t, 3, a1.Node().height)
+	testutil.ItsEqual(t, 0, av.Node().height)
+	testutil.ItsEqual(t, 1, a0.Node().height)
+	testutil.ItsEqual(t, 2, a1.Node().height)
 
-	testutil.ItsEqual(t, 4, bind.Node().height)
-	testutil.ItsEqual(t, 5, o.Node().height)
+	testutil.ItsEqual(t, 3, bind.Node().height)
+	testutil.ItsEqual(t, 4, o.Node().height)
 
 	testutil.ItsEqual(t, true, g.IsObserving(bindVar))
 	testutil.ItsEqual(t, true, g.IsObserving(s0))
@@ -153,21 +147,21 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.ItsEqual(t, false, hasKey(bindChange.Node().children, a1.Node().ID()))
 	testutil.ItsEqual(t, true, hasKey(bindChange.Node().children, b2.Node().ID()))
 
-	testutil.ItsEqual(t, 1, bindVar.Node().height)
-	testutil.ItsEqual(t, 1, s0.Node().height)
-	testutil.ItsEqual(t, 2, s1.Node().height)
+	testutil.ItsEqual(t, 0, bindVar.Node().height)
+	testutil.ItsEqual(t, 0, s0.Node().height)
+	testutil.ItsEqual(t, 1, s1.Node().height)
 
 	testutil.ItsEqual(t, 0, av.Node().height)
 	testutil.ItsEqual(t, 0, a0.Node().height)
 	testutil.ItsEqual(t, 0, a1.Node().height)
 
-	testutil.ItsEqual(t, 1, bv.Node().height)
-	testutil.ItsEqual(t, 2, b0.Node().height)
-	testutil.ItsEqual(t, 3, b1.Node().height)
-	testutil.ItsEqual(t, 4, b2.Node().height)
+	testutil.ItsEqual(t, 0, bv.Node().height)
+	testutil.ItsEqual(t, 1, b0.Node().height)
+	testutil.ItsEqual(t, 2, b1.Node().height)
+	testutil.ItsEqual(t, 3, b2.Node().height)
 
-	testutil.ItsEqual(t, 5, bind.Node().height)
-	testutil.ItsEqual(t, 6, o.Node().height)
+	testutil.ItsEqual(t, 4, bind.Node().height)
+	testutil.ItsEqual(t, 5, o.Node().height)
 
 	testutil.ItsEqual(t, true, g.IsObserving(bindVar))
 	testutil.ItsEqual(t, true, g.IsObserving(s0))
@@ -198,9 +192,9 @@ func Test_Bind_basic(t *testing.T) {
 	bindChange = bind.BindChange()
 	testutil.ItsNil(t, bindChange)
 
-	testutil.ItsEqual(t, 1, bindVar.Node().height)
-	testutil.ItsEqual(t, 1, s0.Node().height)
-	testutil.ItsEqual(t, 2, s1.Node().height)
+	testutil.ItsEqual(t, 0, bindVar.Node().height)
+	testutil.ItsEqual(t, 0, s0.Node().height)
+	testutil.ItsEqual(t, 1, s1.Node().height)
 
 	testutil.ItsEqual(t, 0, av.Node().height)
 	testutil.ItsEqual(t, 0, a0.Node().height)
@@ -211,8 +205,8 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.ItsEqual(t, 0, b1.Node().height)
 	testutil.ItsEqual(t, 0, b2.Node().height)
 
-	testutil.ItsEqual(t, 5, bind.Node().height)
-	testutil.ItsEqual(t, 6, o.Node().height)
+	testutil.ItsEqual(t, 4, bind.Node().height)
+	testutil.ItsEqual(t, 5, o.Node().height)
 
 	testutil.ItsEqual(t, true, g.IsObserving(bindVar))
 	testutil.ItsEqual(t, true, g.IsObserving(s0))

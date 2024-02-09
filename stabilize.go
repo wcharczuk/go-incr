@@ -33,7 +33,7 @@ func (graph *Graph) Stabilize(ctx context.Context) (err error) {
 		if err != nil {
 			break
 		}
-		graph.fixAdjustHeightsQueue()
+		// graph.fixAdjustHeightsQueue()
 	}
 	graph.recomputeHeap.add(immediateRecompute...)
 	return

@@ -134,7 +134,9 @@ func (b *bindIncr[A, B]) Unobserve(ctx context.Context, observers ...IObserver) 
 func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
 	if b.bound != nil {
 		Link(b, b.bound)
-		if err = b.n.graph.recomputeHeights(b); err != nil {
+		_ = b.n.graph.adjustHeightsHeap.ensureHeightRequirement(b, b.bound)
+		_ = b.n.graph.adjustHeightsHeap.ensureHeightRequirement(b, b.input)
+		if err = b.n.graph.recomputeHeights(); err != nil {
 			return
 		}
 		for _, n := range b.scope.rhsNodes {
@@ -173,7 +175,11 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) (err erro
 	}
 	Link(b, b.bound)
 	b.n.graph.observeNodes(b.bound, b.n.Observers()...)
-	if err = b.n.graph.recomputeHeights(b); err != nil {
+
+	_ = b.n.graph.adjustHeightsHeap.ensureHeightRequirement(b, b.bound)
+	_ = b.n.graph.adjustHeightsHeap.ensureHeightRequirement(b, b.input)
+
+	if err = b.n.graph.recomputeHeights(); err != nil {
 		return
 	}
 	for _, n := range b.scope.rhsNodes {
@@ -200,9 +206,7 @@ func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, observers ...IObserver) 
 		Unlink(b, b.bound)
 		b.n.graph.unobserveNodes(ctx, b.bound, observers...)
 		b.n.graph.unobserveSingleNode(ctx, b.bindChange, observers...)
-		for _, c := range b.n.children {
-			_ = b.n.graph.recomputeHeights(c)
-		}
+		_ = b.n.graph.recomputeHeights()
 		b.bindChange = nil
 		b.bound = nil
 	}

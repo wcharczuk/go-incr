@@ -23,7 +23,7 @@ func Test_New(t *testing.T) {
 
 func Test_New_options(t *testing.T) {
 	g := New(GraphMaxRecomputeHeapHeight(1024))
-	testutil.ItsNotEqual(t, 1024, DefaultMaxRecomputeHeapHeight)
+	testutil.ItsNotEqual(t, 1024, DefaultMaxHeight)
 	testutil.ItsEqual(t, 1024, len(g.recomputeHeap.heights))
 }
 
@@ -138,14 +138,14 @@ func Test_Graph_addObserver_rediscover(t *testing.T) {
 	_, ok := g.observers[o.Node().ID()]
 	testutil.ItsEqual(t, true, ok)
 	testutil.ItsEqual(t, 2, g.numNodes)
-	testutil.ItsEqual(t, 2, o.Node().height)
+	testutil.ItsEqual(t, 1, o.Node().height)
 	testutil.ItsEqual(t, true, g.recomputeHeap.has(o))
 	g.recomputeHeap.remove(o)
 	testutil.ItsEqual(t, false, g.recomputeHeap.has(o))
 
 	g.addObserver(o)
 	testutil.ItsEqual(t, 2, g.numNodes)
-	testutil.ItsEqual(t, 2, o.Node().height)
+	testutil.ItsEqual(t, 1, o.Node().height)
 	testutil.ItsEqual(t, false, g.recomputeHeap.has(o))
 }
 

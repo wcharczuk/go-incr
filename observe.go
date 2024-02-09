@@ -22,6 +22,7 @@ func Observe[A any](scope *BindScope, g *Graph, input Incr[A]) ObserveIncr[A] {
 	// in the DiscoverObserver function.
 	g.recomputeHeap.add(o)
 	g.observeNodes(input, o)
+	_ = g.recomputeHeights()
 	return WithinBindScope(scope, o)
 }
 

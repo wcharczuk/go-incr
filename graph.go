@@ -2,7 +2,6 @@ package incr
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -18,7 +17,7 @@ import (
 // the graph is returned, saving that step later.
 func New(opts ...GraphOption) *Graph {
 	options := GraphOptions{
-		MaxRecomputeHeapHeight: DefaultMaxRecomputeHeapHeight,
+		MaxHeight: DefaultMaxHeight,
 	}
 	for _, opt := range opts {
 		opt(&options)
@@ -29,8 +28,8 @@ func New(opts ...GraphOption) *Graph {
 		status:                   StatusNotStabilizing,
 		observed:                 make(map[Identifier]INode),
 		observers:                make(map[Identifier]IObserver),
-		recomputeHeap:            newRecomputeHeap(options.MaxRecomputeHeapHeight),
-		adjustHeightsQueue:       new(queue[Identifier]),
+		recomputeHeap:            newRecomputeHeap(options.MaxHeight),
+		adjustHeightsHeap:        newAdjustHeightsHeap(options.MaxHeight),
 		setDuringStabilization:   make(map[Identifier]INode),
 		handleAfterStabilization: make(map[Identifier][]func(context.Context)),
 	}
@@ -43,19 +42,19 @@ type GraphOption func(*GraphOptions)
 // GraphMaxRecomputeHeapHeight sets the graph max recompute height.
 func GraphMaxRecomputeHeapHeight(maxHeight int) func(*GraphOptions) {
 	return func(g *GraphOptions) {
-		g.MaxRecomputeHeapHeight = maxHeight
+		g.MaxHeight = maxHeight
 	}
 }
 
 // GraphOptions are options for graphs.
 type GraphOptions struct {
-	MaxRecomputeHeapHeight int
+	MaxHeight int
 }
 
 const (
-	// DefaultMaxRecomputeHeapHeight is the default maximum height that can
+	// DefaultMaxHeight is the default maximum height that can
 	// be tracked in the recompute heap.
-	DefaultMaxRecomputeHeapHeight = 256
+	DefaultMaxHeight = 256
 )
 
 // Graph is the state that is shared across nodes.
@@ -84,9 +83,8 @@ type Graph struct {
 	// organized by pseudo-height. The recompute heap
 	// itself is concurrent safe.
 	recomputeHeap *recomputeHeap
-
-	// adjustHeightsQueue is a list of nodes to adjust the heights for.
-	adjustHeightsQueue *queue[Identifier]
+	// adjustHeightsHeap is a list of nodes to adjust the heights for.
+	adjustHeightsHeap *adjustHeightsHeap
 
 	// setDuringStabilizationMu interlocks acces to setDuringStabilization
 	setDuringStabilizationMu sync.Mutex
@@ -223,7 +221,9 @@ func (graph *Graph) observeSingleNode(gn INode, observers ...IObserver) {
 	}
 	graph.numNodes++
 	gnn.graph = graph
-	gnn.height = graph.computePseudoHeight(gn)
+	for _, p := range gnn.parents {
+		_ = graph.adjustHeightsHeap.ensureHeightRequirement(gn, p)
+	}
 	gnn.detectCutoff(gn)
 	gnn.detectAlways(gn)
 	gnn.detectStabilize(gn)
@@ -279,9 +279,7 @@ func (graph *Graph) removeNodeFromGraph(gn INode) {
 	graph.numNodes--
 
 	graph.recomputeHeap.remove(gn)
-	graph.adjustHeightsQueue.filter(func(id Identifier) bool {
-		return id != gnn.id
-	})
+	graph.adjustHeightsHeap.remove(gn)
 
 	graph.handleAfterStabilizationMu.Lock()
 	delete(graph.handleAfterStabilization, gn.Node().ID())
@@ -334,7 +332,12 @@ func (graph *Graph) addObserver(on IObserver) {
 		graph.numNodes++
 	}
 	onn.detectStabilize(on)
-	onn.height = graph.computePseudoHeight(on)
+
+	for _, p := range onn.parents {
+		_ = graph.adjustHeightsHeap.ensureHeightRequirement(on, p)
+	}
+
+	// onn.height = graph.computePseudoHeight(on)
 	graph.observers[onn.id] = on
 }
 
@@ -489,36 +492,8 @@ func (graph *Graph) isNecessary(n INode) bool {
 // internal height management methods
 //
 
-func (graph *Graph) fixAdjustHeightsQueue() {
-	var nextID Identifier
-	for graph.adjustHeightsQueue.len() > 0 {
-		nextID, _ = graph.adjustHeightsQueue.pop()
-		graph.recomputeHeap.fixUnsafe(nextID)
-	}
-}
-
-func (graph *Graph) recomputeHeights(in INode) error {
-	return graph.recomputeHeightsRecursive(in.Node().id, in)
-}
-
-func (graph *Graph) recomputeHeightsRecursive(rootID Identifier, in INode) (err error) {
-	n := in.Node()
-	oldHeight := n.height
-	n.height = graph.computePseudoHeight(in)
-	n.numRecomputeHeights++
-	for _, c := range n.children {
-		if c.Node().id == rootID {
-			err = fmt.Errorf("cycle detected at %v", c)
-			return
-		}
-		if err = graph.recomputeHeights(c); err != nil {
-			return
-		}
-	}
-	if oldHeight != n.height {
-		graph.adjustHeightsQueue.push(n.id)
-	}
-	return
+func (graph *Graph) recomputeHeights() error {
+	return graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap)
 }
 
 func (graph *Graph) computePseudoHeight(in INode) int {

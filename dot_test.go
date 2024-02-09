@@ -10,10 +10,10 @@ import (
 
 func Test_Dot(t *testing.T) {
 	golden := `digraph {
-	node [label="observer[033257be]@3" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n1
-	node [label="map2[563b29ae]@2" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n2
-	node [label="var[7f8a4e21]@1" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n3
-	node [label="var[884f9774]@1" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n4
+	node [label="observer[033257be]@2" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n1
+	node [label="map2[563b29ae]@1" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n2
+	node [label="var[7f8a4e21]@0" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n3
+	node [label="var[884f9774]@0" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n4
 	n2 -> n1;
 	n3 -> n2;
 	n4 -> n2;
@@ -63,10 +63,10 @@ func Test_Dot_writeError(t *testing.T) {
 
 func Test_Dot_setAt(t *testing.T) {
 	golden := `digraph {
-	node [label="observer[033257be]@3" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n1
-	node [label="map2[563b29ae]@2" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n2
-	node [label="var[7f8a4e21]@1" shape="rect" fillcolor = "red" style="filled" fontcolor="white"]; n3
-	node [label="var[884f9774]@1" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n4
+	node [label="observer[033257be]@2" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n1
+	node [label="map2[563b29ae]@1" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n2
+	node [label="var[7f8a4e21]@0" shape="rect" fillcolor = "red" style="filled" fontcolor="white"]; n3
+	node [label="var[884f9774]@0" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n4
 	n2 -> n1;
 	n3 -> n2;
 	n4 -> n2;
@@ -91,10 +91,10 @@ func Test_Dot_setAt(t *testing.T) {
 
 func Test_Dot_changedAt(t *testing.T) {
 	golden := `digraph {
-	node [label="observer[033257be]@3" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n1
-	node [label="map2[563b29ae]@2" shape="rect" fillcolor = "pink" style="filled" fontcolor="black"]; n2
-	node [label="var[7f8a4e21]@1" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n3
-	node [label="var[884f9774]@1" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n4
+	node [label="observer[033257be]@2" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n1
+	node [label="map2[563b29ae]@1" shape="rect" fillcolor = "pink" style="filled" fontcolor="black"]; n2
+	node [label="var[7f8a4e21]@0" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n3
+	node [label="var[884f9774]@0" shape="rect" fillcolor = "white" style="filled" fontcolor="black"]; n4
 	n2 -> n1;
 	n3 -> n2;
 	n4 -> n2;

@@ -224,7 +224,7 @@ func benchmarkDepth(width, depth int, b *testing.B) {
 	}
 
 	graph := New(
-		GraphMaxRecomputeHeapHeight(512),
+		GraphMaxRecomputeHeapHeight(1024),
 	)
 
 	observers := make([]ObserveIncr[string], width)

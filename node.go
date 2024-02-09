@@ -48,6 +48,8 @@ type Node struct {
 	height int
 	// heightInRecomputeHeap is the height of a node in the recompute heap
 	heightInRecomputeHeap int
+	// heightInAdjustHeightsHeap is the height of a node in the adjust heights heap
+	heightInAdjustHeightsHeap int
 	// changedAt connotes when the node was changed last,
 	// specifically if any of the node's parents were set or bound
 	changedAt uint64
