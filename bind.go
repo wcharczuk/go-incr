@@ -131,9 +131,6 @@ func (b *bindIncr[A, B]) Unobserve(ctx context.Context, observers ...IObserver) 
 func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
 	if b.bound != nil {
 		Link(b, b.bound)
-		if err = b.n.graph.recomputeHeights(b.bound); err != nil {
-			return
-		}
 		for _, c := range b.n.children {
 			if err = b.n.graph.recomputeHeights(c); err != nil {
 				return
@@ -175,9 +172,6 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) (err erro
 	}
 	Link(b, b.bound)
 	b.n.graph.observeNodes(b.bound, b.n.Observers()...)
-	if err = b.n.graph.recomputeHeights(b.bound); err != nil {
-		return
-	}
 	for _, c := range b.n.children {
 		if err = b.n.graph.recomputeHeights(c); err != nil {
 			return
