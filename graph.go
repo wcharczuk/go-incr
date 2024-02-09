@@ -333,6 +333,7 @@ func (graph *Graph) addObserver(on IObserver) {
 		graph.numNodes++
 	}
 	onn.detectStabilize(on)
+	onn.height = graph.computePseudoHeight(on)
 	graph.observers[onn.id] = on
 }
 

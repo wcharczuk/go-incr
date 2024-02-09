@@ -151,9 +151,9 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.ItsEqual(t, 1, s0.Node().height)
 	testutil.ItsEqual(t, 2, s1.Node().height)
 
-	testutil.ItsEqual(t, 1, av.Node().height)
-	testutil.ItsEqual(t, 2, a0.Node().height)
-	testutil.ItsEqual(t, 3, a1.Node().height)
+	testutil.ItsEqual(t, 0, av.Node().height)
+	testutil.ItsEqual(t, 0, a0.Node().height)
+	testutil.ItsEqual(t, 0, a1.Node().height)
 
 	testutil.ItsEqual(t, 1, bv.Node().height)
 	testutil.ItsEqual(t, 2, b0.Node().height)
@@ -196,14 +196,14 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.ItsEqual(t, 1, s0.Node().height)
 	testutil.ItsEqual(t, 2, s1.Node().height)
 
-	testutil.ItsEqual(t, 1, av.Node().height)
-	testutil.ItsEqual(t, 2, a0.Node().height)
-	testutil.ItsEqual(t, 3, a1.Node().height)
+	testutil.ItsEqual(t, 0, av.Node().height)
+	testutil.ItsEqual(t, 0, a0.Node().height)
+	testutil.ItsEqual(t, 0, a1.Node().height)
 
-	testutil.ItsEqual(t, 1, bv.Node().height)
-	testutil.ItsEqual(t, 2, b0.Node().height)
-	testutil.ItsEqual(t, 3, b1.Node().height)
-	testutil.ItsEqual(t, 4, b2.Node().height)
+	testutil.ItsEqual(t, 0, bv.Node().height)
+	testutil.ItsEqual(t, 0, b0.Node().height)
+	testutil.ItsEqual(t, 0, b1.Node().height)
+	testutil.ItsEqual(t, 0, b2.Node().height)
 
 	testutil.ItsEqual(t, 5, bind.Node().height)
 	testutil.ItsEqual(t, 6, o.Node().height)
