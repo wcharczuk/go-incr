@@ -10,15 +10,15 @@ import (
 //
 // When it stabilizes, it stabilizes the input node, and assumes its
 // value in observation.
-func Timer[A any](scope *BindScope, input Incr[A], every time.Duration) TimerIncr[A] {
+func Timer[A any](scope Scope, input Incr[A], every time.Duration) TimerIncr[A] {
 	t := &timerIncr[A]{
-		n:           NewNode(),
+		n:           NewNode("timer"),
 		clockSource: func(_ context.Context) time.Time { return time.Now().UTC() },
 		every:       every,
 		input:       input,
 	}
 	Link(t, input)
-	return WithinBindScope(scope, t)
+	return WithinScope(scope, t)
 }
 
 // TimerIncr is the exported methods of a Timer.
@@ -59,5 +59,5 @@ func (ti *timerIncr[A]) Stabilize(ctx context.Context) error {
 }
 
 func (ti *timerIncr[A]) String() string {
-	return ti.n.String("timer")
+	return ti.n.String()
 }

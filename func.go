@@ -14,9 +14,9 @@ import (
 // Because there is no tracking of input changes, this node
 // type is generally discouraged in favor of `Map` or `Bind`
 // incrementals but is included for "expert" use cases.
-func Func[T any](scope *BindScope, fn func(context.Context) (T, error)) Incr[T] {
-	return WithinBindScope(scope, &funcIncr[T]{
-		n:  NewNode(),
+func Func[T any](scope Scope, fn func(context.Context) (T, error)) Incr[T] {
+	return WithinScope(scope, &funcIncr[T]{
+		n:  NewNode("func"),
 		fn: fn,
 	})
 }
@@ -46,5 +46,5 @@ func (f *funcIncr[T]) Stabilize(ctx context.Context) error {
 }
 
 func (f *funcIncr[T]) String() string {
-	return f.n.String("func")
+	return f.n.String()
 }

@@ -7,13 +7,13 @@ import (
 	"github.com/wcharczuk/go-incr"
 )
 
-func Custom[T any](scope *incr.BindScope, a incr.Incr[T]) incr.Incr[T] {
+func Custom[T any](scope incr.Scope, a incr.Incr[T]) incr.Incr[T] {
 	o := &customIncr[T]{
 		n: incr.NewNode(),
 		a: a,
 	}
 	incr.Link(o, a)
-	return incr.WithinBindScope(scope, o)
+	return incr.WithinScope(scope, o)
 }
 
 type customIncr[T any] struct {
@@ -36,12 +36,12 @@ var (
 
 func main() {
 	ctx := context.Background()
-	c := Custom(incr.Root(), incr.Return(incr.Root(), "hello"))
+	g := incr.New()
+	c := Custom(g, incr.Return(g, "hello"))
 	fmt.Println("before:", c.Value())
 
-	graph := incr.New()
-	_ = incr.Observe(incr.Root(), graph, c)
+	_ = incr.Observe(g, c)
 
-	_ = graph.Stabilize(ctx)
+	_ = g.Stabilize(ctx)
 	fmt.Println("after:", c.Value())
 }

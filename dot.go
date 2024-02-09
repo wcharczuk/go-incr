@@ -41,9 +41,7 @@ func Dot(wr io.Writer, g *Graph) (err error) {
 	for _, n := range g.observers {
 		nodes = append(nodes, n)
 	}
-
 	slices.SortStableFunc(nodes, nodeSorter)
-
 	nodeLabels := make(map[Identifier]string)
 	for index, n := range nodes {
 		nodeLabel := fmt.Sprintf("n%d", index+1)
@@ -59,13 +57,29 @@ func Dot(wr io.Writer, g *Graph) (err error) {
 	}
 	for _, n := range nodes {
 		nodeLabel := nodeLabels[n.Node().id]
-		for _, p := range n.Node().children {
-			childLabel, ok := nodeLabels[p.Node().id]
+		for _, p := range n.Node().parents {
+			parentLabel, ok := nodeLabels[p.Node().id]
 			if ok {
-				writef(1, "%s -> %s;", nodeLabel, childLabel)
+				writef(1, "%s -> %s;", nodeLabel, parentLabel)
 			}
 		}
 	}
 	writef(0, "}")
 	return
+}
+
+func nodeSorter(a, b INode) int {
+	if a.Node().height == b.Node().height {
+		aID := a.Node().ID().String()
+		bID := b.Node().ID().String()
+		if aID == bID {
+			return 0
+		} else if aID > bID {
+			return -1
+		}
+		return 1
+	} else if a.Node().height > b.Node().height {
+		return -1
+	}
+	return 1
 }

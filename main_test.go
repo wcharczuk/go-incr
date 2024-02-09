@@ -87,13 +87,13 @@ var _ Incr[any] = (*mockBareNode)(nil)
 
 func mockObserver() IObserver {
 	return &observeIncr[any]{
-		n: NewNode(),
+		n: NewNode("mock_observer"),
 	}
 }
 
 func newMockBareNodeWithHeight(height int) *mockBareNode {
 	mbn := &mockBareNode{
-		n: NewNode(),
+		n: NewNode("bare_node"),
 	}
 	mbn.n.height = height
 	return mbn
@@ -101,7 +101,7 @@ func newMockBareNodeWithHeight(height int) *mockBareNode {
 
 func newMockBareNode() *mockBareNode {
 	return &mockBareNode{
-		n: NewNode(),
+		n: NewNode("bare_node"),
 	}
 }
 
@@ -145,67 +145,22 @@ func (hi heightIncr) Node() *Node {
 	return hi.n
 }
 
-func allHeight(values []*recomputeHeapItem, height int) bool {
+func allHeight(values []INode, height int) bool {
 	for _, v := range values {
-		if v.node.Node().height != height {
+		if v.Node().height != height {
 			return false
 		}
 	}
 	return true
 }
 
-func newList(items ...INode) map[Identifier]*recomputeHeapItem {
-	l := make(map[Identifier]*recomputeHeapItem, len(items))
+func newList(items ...INode) map[Identifier]INode {
+	l := make(map[Identifier]INode, len(items))
 	for _, i := range items {
-		l[i.Node().id] = &recomputeHeapItem{node: i, height: i.Node().height}
+		i.Node().heightInRecomputeHeap = i.Node().height
+		l[i.Node().id] = i
 	}
 	return l
-}
-
-func newListWithItems(items ...INode) (l map[Identifier]*recomputeHeapItem, outputItems []*recomputeHeapItem) {
-	l = make(map[Identifier]*recomputeHeapItem)
-	for _, i := range items {
-		newItem := &recomputeHeapItem{node: i, height: i.Node().height}
-		l[i.Node().id] = newItem
-		outputItems = append(outputItems, newItem)
-	}
-	return
-}
-
-func createDynamicMaps(scope *BindScope, label string) Incr[string] {
-	mapVar0 := Var(scope, fmt.Sprintf("%s-0", label))
-	mapVar0.Node().SetLabel(fmt.Sprintf("%sv-0", label))
-	mapVar1 := Var(scope, fmt.Sprintf("%s-1", label))
-	mapVar1.Node().SetLabel(fmt.Sprintf("%sv-1", label))
-	m := Map2(scope, mapVar0, mapVar1, func(a, b string) string {
-		return a + "+" + b
-	})
-	m.Node().SetLabel(label)
-	return m
-}
-
-func createDynamicBind(scope *BindScope, label string, a, b Incr[string]) (VarIncr[string], BindIncr[string]) {
-	bindVar := Var(scope, "a")
-	bindVar.Node().SetLabel(fmt.Sprintf("bind - %s - var", label))
-	bind := Bind(scope, bindVar, func(scope *BindScope, which string) Incr[string] {
-		if which == "a" {
-			m := Map(scope, a, func(v string) string {
-				return v + "->" + label
-			})
-			m.Node().SetLabel(fmt.Sprintf("bind - %s - %s - map", label, which))
-			return m
-		}
-		if which == "b" {
-			m := Map(scope, b, func(v string) string {
-				return v + "->" + label
-			})
-			m.Node().SetLabel(fmt.Sprintf("bind - %s - %s - map", label, which))
-			return m
-		}
-		return nil
-	})
-	bind.Node().SetLabel(fmt.Sprintf("bind - %s", label))
-	return bindVar, bind
 }
 
 func homedir(filename string) string {

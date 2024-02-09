@@ -7,13 +7,13 @@ import (
 
 // Watch returns a new watch incremental that tracks
 // values for a given incremental.
-func Watch[A any](scope *BindScope, i Incr[A]) WatchIncr[A] {
+func Watch[A any](scope Scope, i Incr[A]) WatchIncr[A] {
 	o := &watchIncr[A]{
-		n:    NewNode(),
+		n:    NewNode("watch"),
 		incr: i,
 	}
 	Link(o, i)
-	return WithinBindScope(scope, o)
+	return WithinScope(scope, o)
 }
 
 // WatchIncr is a type that implements the watch interface.
@@ -60,4 +60,4 @@ func (w *watchIncr[A]) Node() *Node {
 }
 
 // String implements fmt.Stringer.
-func (w *watchIncr[A]) String() string { return w.n.String("watch") }
+func (w *watchIncr[A]) String() string { return w.n.String() }

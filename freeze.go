@@ -5,15 +5,15 @@ import (
 	"fmt"
 )
 
-// Freeze yields an incremental that takes the value of an
-// input incremental and doesn't change thereafter.
-func Freeze[A any](scope *BindScope, i Incr[A]) Incr[A] {
+// Freeze creates an incremental that takes the value of an
+// input incremental and doesn't change after the first stabilization.
+func Freeze[A any](scope Scope, i Incr[A]) Incr[A] {
 	o := &freezeIncr[A]{
-		n: NewNode(),
+		n: NewNode("freeze"),
 		i: i,
 	}
 	Link(o, i)
-	return WithinBindScope(scope, o)
+	return WithinScope(scope, o)
 }
 
 var (
@@ -34,7 +34,7 @@ func (f *freezeIncr[T]) Node() *Node { return f.n }
 
 func (f *freezeIncr[T]) Value() T { return f.v }
 
-func (f *freezeIncr[T]) String() string { return f.n.String("freeze") }
+func (f *freezeIncr[T]) String() string { return f.n.String() }
 
 func (f *freezeIncr[A]) Stabilize(_ context.Context) error {
 	if f.freezeAt > 0 {

@@ -11,9 +11,9 @@ import (
 // It will include an extra method `Set` above what you
 // typically find on Incr[A], as well as a `Read` method
 // that helps integrate into subcomputations.
-func Var[T any](scope *BindScope, t T) VarIncr[T] {
-	return WithinBindScope(scope, &varIncr[T]{
-		n:     NewNode(),
+func Var[T any](scope Scope, t T) VarIncr[T] {
+	return WithinScope(scope, &varIncr[T]{
+		n:     NewNode("var"),
 		value: t,
 	})
 }
@@ -84,5 +84,5 @@ func (vn *varIncr[T]) Stabilize(ctx context.Context) error {
 
 // String implements fmt.Striger.
 func (vn *varIncr[T]) String() string {
-	return vn.n.String("var")
+	return vn.n.String()
 }

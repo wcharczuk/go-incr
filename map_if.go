@@ -10,15 +10,15 @@ import (
 //
 // Specifically, we term this _Apply_If because the nodes are all
 // linked in the graph, but the value changes during stabilization.
-func MapIf[A any](scope *BindScope, a, b Incr[A], p Incr[bool]) Incr[A] {
+func MapIf[A any](scope Scope, a, b Incr[A], p Incr[bool]) Incr[A] {
 	o := &mapIfIncr[A]{
-		n: NewNode(),
+		n: NewNode("map_if"),
 		a: a,
 		b: b,
 		p: p,
 	}
 	Link(o, a, b, p)
-	return WithinBindScope(scope, o)
+	return WithinScope(scope, o)
 }
 
 var (
@@ -51,4 +51,4 @@ func (mi *mapIfIncr[A]) Stabilize(ctx context.Context) error {
 	return nil
 }
 
-func (mi *mapIfIncr[A]) String() string { return mi.n.String("map_if") }
+func (mi *mapIfIncr[A]) String() string { return mi.n.String() }

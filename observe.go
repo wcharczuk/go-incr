@@ -7,7 +7,7 @@ import (
 
 // Observe observes a node, specifically including it for computation
 // as well as all of its parents.
-func Observe[A any](scope *BindScope, g *Graph, input Incr[A]) ObserveIncr[A] {
+func Observe[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
 	o := &observeIncr[A]{
 		n:     NewNode(),
 		input: input,
@@ -22,7 +22,7 @@ func Observe[A any](scope *BindScope, g *Graph, input Incr[A]) ObserveIncr[A] {
 	// in the DiscoverObserver function.
 	g.recomputeHeap.Add(o)
 	g.observeNodes(input, o)
-	return WithinBindScope(scope, o)
+	return o
 }
 
 // ObserveIncr is an incremental that observes a graph

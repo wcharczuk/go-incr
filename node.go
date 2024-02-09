@@ -6,98 +6,44 @@ import (
 )
 
 // NewNode returns a new node.
-func NewNode() *Node {
+func NewNode(kind string) *Node {
 	return &Node{
-		id: NewIdentifier(),
+		id:                        NewIdentifier(),
+		kind:                      kind,
+		heightInRecomputeHeap:     -1,
+		heightInAdjustHeightsHeap: -1,
+		isValid:                   true,
 	}
 }
 
 // Node is the common metadata for any node in the computation graph.
 type Node struct {
-	// id is a unique identifier for the node
-	id Identifier
-	// metadata is any additional metadata a user wants to attach to a node.
-	metadata any
-	// graph is the graph this node is attached to currently.
-	graph *Graph
-	// label is a descriptive string for the
-	// node, and is set with `SetLabel`
-	label string
-	// parents are the nodes that this node depends on, that is
-	// parents are nodes that this node takes as inputs
-	parents []INode
-	// children are the nodes that depend on this node, that is
-	// children take this node as an input
-	children []INode
-	// observers are observer nodes that are attached to this
-	// node or its children.
-	observers []IObserver
-	// height is the topological sort pseudo-height of the
-	// node and is used to order recomputation
-	// it is established when the graph is initialized but
-	// can also update if bind nodes change their graphs.
-	// largely it represents how many levels of inputs feed into
-	// this node, e.g. how many other nodes have to update before
-	// this node has to update.
-	height int
-	// changedAt connotes when the node was changed last,
-	// specifically if any of the node's parents were set or bound
-	changedAt uint64
-	// setAt connotes when the node was set last, specifically
-	// for var nodes so that we can track their "changed" state separately
-	// from their set state
-	setAt uint64
-	// boundAt connotes when the node was bound last, specifically
-	// for bind nodes so that we can track their changed state separately
-	// from their bound state
-	boundAt uint64
-	// recomputedAt connotes when the node was last stabilized
-	recomputedAt uint64
-	// onUpdateHandlers are functions that are called when the node updates.
-	// they are added with `OnUpdate(...)`.
-	onUpdateHandlers []func(context.Context)
-	// onErrorHandlers are functions that are called when the node updates.
-	// they are added with `OnUpdate(...)`.
-	onErrorHandlers []func(context.Context, error)
-	// onObservedHandlers are functions that are called when the node is observed.
-	// they are added with `OnObserved(...)`.
-	onObservedHandlers []func(IObserver)
-	// onUnobservedHandlers are functions that are called when the node is unobserved.
-	// they are added with `OnUnobserved(...)`.
-	onUnobservedHandlers []func(IObserver)
-	// stabilize is set during initialization and is a shortcut
-	// to the interface sniff for the node for the IStabilize interface.
-	stabilize func(context.Context) error
-	// cutoff is set during initialization and is a shortcut
-	// to the interface sniff for the node for the ICutoff interface.
-	cutoff func(context.Context) (bool, error)
-	// always determines if we always recompute this node.
-	always bool
-	// numRecomputes is the number of times we recomputed the node
-	numRecomputes uint64
-	// numChanges is the number of times we changed the node
-	numChanges uint64
-	// createdIn is the "bind scope" the node was created in
-	createdIn *BindScope
-	// numComputePseudoheights is the number of times we call "computePseudoheight"
-	// on this particular node
-	numComputePseudoheights uint64
-}
-
-func nodeSorter(a, b INode) int {
-	if a.Node().height == b.Node().height {
-		aID := a.Node().ID().String()
-		bID := b.Node().ID().String()
-		if aID == bID {
-			return 0
-		} else if aID > bID {
-			return -1
-		}
-		return 1
-	} else if a.Node().height > b.Node().height {
-		return -1
-	}
-	return 1
+	id                        Identifier
+	kind                      string
+	metadata                  any
+	label                     string
+	graph                     *Graph
+	createdIn                 Scope
+	parents                   []INode
+	children                  []INode
+	observers                 []IObserver
+	height                    int
+	heightInRecomputeHeap     int
+	heightInAdjustHeightsHeap int
+	isValid                   bool
+	changedAt                 uint64
+	setAt                     uint64
+	recomputedAt              uint64
+	onUpdateHandlers          []func(context.Context)
+	onErrorHandlers           []func(context.Context, error)
+	onObservedHandlers        []func(IObserver)
+	onUnobservedHandlers      []func(IObserver)
+	stabilize                 func(context.Context) error
+	cutoff                    func(context.Context) (bool, error)
+	always                    bool
+	numRecomputes             uint64
+	numChanges                uint64
+	numComputePseudoheights   uint64
 }
 
 //
@@ -110,11 +56,11 @@ func (n *Node) ID() Identifier {
 }
 
 // String returns a string form of the node metadata.
-func (n *Node) String(nodeType string) string {
+func (n *Node) String() string {
 	if n.label != "" {
-		return fmt.Sprintf("%s[%s]:%s@%d", nodeType, n.id.Short(), n.label, n.height)
+		return fmt.Sprintf("%s[%s]:%s@%d", n.kind, n.id.Short(), n.label, n.height)
 	}
-	return fmt.Sprintf("%s[%s]@%d", nodeType, n.id.Short(), n.height)
+	return fmt.Sprintf("%s[%s]@%d", n.kind, n.id.Short(), n.height)
 }
 
 // Set/Get properties
@@ -163,11 +109,18 @@ func (n *Node) SetMetadata(md any) {
 // Parent / Child helpers
 
 // Parents returns the node parent list.
+//
+// Parents are the nodes that depend on this node, that is
+// parents are the nodes that will be recomputed if this node changes.
 func (n *Node) Parents() []INode {
 	return n.parents
 }
 
-// Parents returns the node child list.
+// Children returns the node child list.
+//
+// Children are the nodes that this node depends on, that is
+// children are the nodes that if they change will force this
+// node to change as well.
 func (n *Node) Children() []INode {
 	return n.children
 }
@@ -180,6 +133,10 @@ func (n *Node) Observers() []IObserver {
 //
 // Internal Helpers
 //
+
+func (n *Node) isNecessary() bool {
+	return len(n.parents) > 0 || len(n.observers) > 0
+}
 
 func (n *Node) addChildren(children ...INode) {
 	for _, c := range children {
@@ -249,8 +206,7 @@ func (n *Node) detectStabilize(gn INode) {
 	}
 }
 
-// ShouldRecompute returns whether or not a given node needs to be recomputed.
-func (n *Node) ShouldRecompute() bool {
+func (n *Node) shouldRecompute() bool {
 	// we should always recompute on the first stabilization
 	if n.recomputedAt == 0 {
 		return true
@@ -270,16 +226,11 @@ func (n *Node) ShouldRecompute() bool {
 	if n.setAt > n.recomputedAt {
 		return true
 	}
-	// if the node had a bind change recently
-	if n.boundAt > n.recomputedAt {
-		return true
-	}
 	if n.changedAt > n.recomputedAt {
 		return true
 	}
-
-	for _, p := range n.parents {
-		if p.Node().changedAt > n.recomputedAt || p.Node().boundAt > n.recomputedAt {
+	for _, c := range n.children {
+		if c.Node().changedAt > n.recomputedAt {
 			return true
 		}
 	}

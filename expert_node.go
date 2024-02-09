@@ -27,8 +27,6 @@ type IExpertNode interface {
 	SetSetAt(uint64)
 	RecomputedAt() uint64
 	SetRecomputedAt(uint64)
-	BoundAt() uint64
-	SetBoundAt(uint64)
 	Always() bool
 	SetAlways(bool)
 
@@ -47,11 +45,6 @@ type IExpertNode interface {
 	// This method is useful in advanced scenarios where you may be
 	// rebuilding a graph from scratch dynamically.
 	ComputePseudoHeight() int
-
-	// PropagateHeightChange recomputes the pseudoheight in respect to parents.
-	//
-	// This is very sensitive to the ordering of construction as a result.
-	PropagateHeightChange() error
 
 	// Value returns the underlying value of the node
 	// as an untyped `interface{}` for use in debugging.
@@ -91,12 +84,6 @@ func (en *expertNode) RecomputedAt() uint64 { return en.node.recomputedAt }
 
 func (en *expertNode) SetRecomputedAt(recomputedAt uint64) {
 	en.node.recomputedAt = recomputedAt
-}
-
-func (en *expertNode) BoundAt() uint64 { return en.node.boundAt }
-
-func (en *expertNode) SetBoundAt(boundAt uint64) {
-	en.node.boundAt = boundAt
 }
 
 func (en *expertNode) Always() bool { return en.node.always }
@@ -156,8 +143,4 @@ func (en *expertNode) computePseudoHeightCached(cache map[Identifier]int, n INod
 	}
 	cache[nn.ID()] = finalHeight
 	return finalHeight
-}
-
-func (en *expertNode) PropagateHeightChange() error {
-	return propagateHeightChange(en.incr)
 }
