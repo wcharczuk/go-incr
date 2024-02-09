@@ -139,14 +139,14 @@ func Test_Graph_addObserver_rediscover(t *testing.T) {
 	testutil.ItsEqual(t, true, ok)
 	testutil.ItsEqual(t, 2, g.numNodes)
 	testutil.ItsEqual(t, 2, o.Node().height)
-	testutil.ItsEqual(t, true, g.recomputeHeap.Has(o))
-	g.recomputeHeap.Remove(o)
-	testutil.ItsEqual(t, false, g.recomputeHeap.Has(o))
+	testutil.ItsEqual(t, true, g.recomputeHeap.has(o))
+	g.recomputeHeap.remove(o)
+	testutil.ItsEqual(t, false, g.recomputeHeap.has(o))
 
 	g.addObserver(o)
 	testutil.ItsEqual(t, 2, g.numNodes)
 	testutil.ItsEqual(t, 2, o.Node().height)
-	testutil.ItsEqual(t, false, g.recomputeHeap.Has(o))
+	testutil.ItsEqual(t, false, g.recomputeHeap.has(o))
 }
 
 func Test_Graph_recompute_recomputesObservers(t *testing.T) {
@@ -155,11 +155,11 @@ func Test_Graph_recompute_recomputesObservers(t *testing.T) {
 	o := Observe(Root(), g, n)
 	g.recomputeHeap.Clear()
 
-	testutil.ItsEqual(t, false, g.recomputeHeap.Has(n))
-	testutil.ItsEqual(t, false, g.recomputeHeap.Has(o))
+	testutil.ItsEqual(t, false, g.recomputeHeap.has(n))
+	testutil.ItsEqual(t, false, g.recomputeHeap.has(o))
 
 	err := g.recompute(testContext(), n)
 	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, 1, g.recomputeHeap.Len())
-	testutil.ItsEqual(t, true, g.recomputeHeap.Has(o))
+	testutil.ItsEqual(t, 1, g.recomputeHeap.len())
+	testutil.ItsEqual(t, true, g.recomputeHeap.has(o))
 }

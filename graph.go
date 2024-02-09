@@ -2,6 +2,7 @@ package incr
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -28,7 +29,8 @@ func New(opts ...GraphOption) *Graph {
 		status:                   StatusNotStabilizing,
 		observed:                 make(map[Identifier]INode),
 		observers:                make(map[Identifier]IObserver),
-		recomputeHeap:            newNodeHeap(options.MaxRecomputeHeapHeight),
+		recomputeHeap:            newRecomputeHeap(options.MaxRecomputeHeapHeight),
+		adjustHeightsQueue:       new(queue[Identifier]),
 		setDuringStabilization:   make(map[Identifier]INode),
 		handleAfterStabilization: make(map[Identifier][]func(context.Context)),
 	}
@@ -81,7 +83,10 @@ type Graph struct {
 	// recomputeHeap is the heap of nodes to be processed
 	// organized by pseudo-height. The recompute heap
 	// itself is concurrent safe.
-	recomputeHeap *nodeHeap
+	recomputeHeap *recomputeHeap
+
+	// adjustHeightsQueue is a list of nodes to adjust the heights for.
+	adjustHeightsQueue *queue[Identifier]
 
 	// setDuringStabilizationMu interlocks acces to setDuringStabilization
 	setDuringStabilizationMu sync.Mutex
@@ -192,7 +197,7 @@ func (graph *Graph) OnStabilizationEnd(handler func(context.Context, time.Time, 
 func (graph *Graph) SetStale(gn INode) {
 	n := gn.Node()
 	n.setAt = graph.stabilizationNum
-	graph.recomputeHeap.Add(gn)
+	graph.recomputeHeap.add(gn)
 }
 
 //
@@ -216,13 +221,15 @@ func (graph *Graph) observeSingleNode(gn INode, observers ...IObserver) {
 	if alreadyObservedByGraph {
 		return
 	}
+
 	graph.numNodes++
 	gnn.graph = graph
+	gnn.height = graph.computePseudoHeight(gn)
 	gnn.detectCutoff(gn)
 	gnn.detectAlways(gn)
 	gnn.detectStabilize(gn)
 	if gnn.ShouldRecompute() {
-		graph.recomputeHeap.Add(gn)
+		graph.recomputeHeap.add(gn)
 	}
 }
 
@@ -261,6 +268,8 @@ func (graph *Graph) unobserveSingleNode(ctx context.Context, gn INode, observers
 func (graph *Graph) removeNodeFromGraph(gn INode) {
 	gnn := gn.Node()
 	gnn.graph = nil
+	gnn.height = 0
+	gnn.heightInRecomputeHeap = 0
 	gnn.setAt = 0
 	gnn.boundAt = 0
 	gnn.recomputedAt = 0
@@ -270,7 +279,10 @@ func (graph *Graph) removeNodeFromGraph(gn INode) {
 	graph.observedMu.Unlock()
 	graph.numNodes--
 
-	graph.recomputeHeap.Remove(gn)
+	graph.recomputeHeap.remove(gn)
+	graph.adjustHeightsQueue.filter(func(id Identifier) bool {
+		return id != gnn.id
+	})
 
 	graph.handleAfterStabilizationMu.Lock()
 	delete(graph.handleAfterStabilization, gn.Node().ID())
@@ -328,7 +340,7 @@ func (graph *Graph) removeObserver(on IObserver) {
 	onn := on.Node()
 	onn.graph = nil
 	graph.numNodes--
-	graph.recomputeHeap.Remove(on)
+	graph.recomputeHeap.remove(on)
 
 	graph.handleAfterStabilizationMu.Lock()
 	delete(graph.handleAfterStabilization, on.Node().ID())
@@ -458,7 +470,7 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	for _, c := range nn.children {
 		shouldRecompute := c.Node().ShouldRecompute()
 		if graph.isNecessary(c) && shouldRecompute {
-			graph.recomputeHeap.Add(c)
+			graph.recomputeHeap.add(c)
 		}
 	}
 	return
@@ -467,4 +479,78 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 func (graph *Graph) isNecessary(n INode) bool {
 	ng := n.Node().graph
 	return ng != nil && ng.id == graph.id
+}
+
+// internal height management methods
+
+//
+// internal height management methods
+//
+
+func (graph *Graph) fixAdjustHeightsQueue() {
+	var nextID Identifier
+	for graph.adjustHeightsQueue.len() > 0 {
+		nextID, _ = graph.adjustHeightsQueue.pop()
+		graph.recomputeHeap.fixUnsafe(nextID)
+	}
+}
+
+func (graph *Graph) recomputeHeights(in INode) error {
+	return graph.recomputeHeightsRecursive(in.Node().id, in)
+}
+
+func (graph *Graph) recomputeHeightsRecursive(rootID Identifier, in INode) (err error) {
+	n := in.Node()
+	oldHeight := n.height
+	n.height = graph.computePseudoHeight(in)
+
+	for _, c := range n.children {
+		if c.Node().id == rootID {
+			err = fmt.Errorf("cycle detected at %v", c)
+			return
+		}
+		if err = graph.recomputeHeights(c); err != nil {
+			return
+		}
+	}
+	if oldHeight != n.height {
+		graph.adjustHeightsQueue.push(n.id)
+	}
+	return
+}
+
+func (graph *Graph) computePseudoHeight(in INode) int {
+	return graph.computePseudoHeightCached(make(map[Identifier]int), in)
+}
+
+// computePseudoHeightCached calculates the nodes height in respect to its parents.
+func (graph *Graph) computePseudoHeightCached(cache map[Identifier]int, in INode) int {
+	n := in.Node()
+	if height, ok := cache[n.id]; ok {
+		return height
+	}
+
+	n.numComputePseudoheights++
+
+	var maxParentHeight int
+	var parentHeight int
+	for _, p := range n.parents {
+		parentHeight = graph.computePseudoHeightCached(cache, p)
+		if parentHeight > maxParentHeight {
+			maxParentHeight = parentHeight
+		}
+	}
+
+	var finalHeight int
+	// we do this to prevent the height
+	// changing a bunch with bind nodes.
+	// basically just stick with the overall maximum
+	// height the node has seen ever.
+	if n.height > maxParentHeight {
+		finalHeight = n.height
+	} else {
+		finalHeight = maxParentHeight + 1
+	}
+	cache[n.id] = finalHeight
+	return finalHeight
 }

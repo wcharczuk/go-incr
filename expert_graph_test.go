@@ -32,7 +32,7 @@ func Test_ExpertGraph_RecomputeHeapAdd(t *testing.T) {
 	n2 := newMockBareNode()
 
 	eg.RecomputeHeapAdd(n1, n2)
-	testutil.ItsEqual(t, 2, g.recomputeHeap.Len())
+	testutil.ItsEqual(t, 2, g.recomputeHeap.len())
 	testutil.ItsEqual(t, 2, eg.RecomputeHeapLen())
 }
 
@@ -57,7 +57,7 @@ func Test_ExpertGraph_RecomputeHeapIDs(t *testing.T) {
 	n2.n.height = 3
 
 	eg.RecomputeHeapAdd(n1, n2)
-	testutil.ItsEqual(t, 2, g.recomputeHeap.Len())
+	testutil.ItsEqual(t, 2, g.recomputeHeap.len())
 
 	recomputeHeapIDs := eg.RecomputeHeapIDs()
 	testutil.ItsEqual(t, 2, len(recomputeHeapIDs))

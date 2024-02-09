@@ -20,7 +20,7 @@ func Observe[A any](scope *BindScope, g *Graph, input Incr[A]) ObserveIncr[A] {
 	//
 	// So we just add it here explicitly and don't add it implicitly
 	// in the DiscoverObserver function.
-	g.recomputeHeap.Add(o)
+	g.recomputeHeap.add(o)
 	g.observeNodes(input, o)
 	return WithinBindScope(scope, o)
 }

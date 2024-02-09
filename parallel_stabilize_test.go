@@ -268,7 +268,7 @@ func Test_ParallelStabilize_always_cutoff_error(t *testing.T) {
 	testutil.ItsNotNil(t, err)
 	testutil.ItsEqual(t, "", o.Value())
 
-	testutil.ItsEqual(t, 3, g.recomputeHeap.Len())
+	testutil.ItsEqual(t, 3, g.recomputeHeap.len())
 }
 
 func Test_ParallelStabilize_recoversPanics(t *testing.T) {

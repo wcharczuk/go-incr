@@ -36,7 +36,7 @@ type MapNContextFunc[A, B any] func(context.Context, ...A) (B, error)
 // MapNIncr is a type of incremental that can add inputs over time.
 type MapNIncr[A, B any] interface {
 	Incr[B]
-	AddInput(Incr[A]) error
+	AddInput(Incr[A])
 }
 
 var (
@@ -54,9 +54,9 @@ type mapNIncr[A, B any] struct {
 	val    B
 }
 
-func (mn *mapNIncr[A, B]) AddInput(i Incr[A]) error {
+func (mn *mapNIncr[A, B]) AddInput(i Incr[A]) {
 	mn.inputs = append(mn.inputs, i)
-	return link(mn, i)
+	Link(mn, i)
 }
 
 func (mn *mapNIncr[A, B]) Node() *Node { return mn.n }

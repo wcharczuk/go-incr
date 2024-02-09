@@ -145,31 +145,22 @@ func (hi heightIncr) Node() *Node {
 	return hi.n
 }
 
-func allHeight(values []*recomputeHeapItem, height int) bool {
+func allHeight(values []INode, height int) bool {
 	for _, v := range values {
-		if v.node.Node().height != height {
+		if v.Node().height != height {
 			return false
 		}
 	}
 	return true
 }
 
-func newList(items ...INode) map[Identifier]*recomputeHeapItem {
-	l := make(map[Identifier]*recomputeHeapItem, len(items))
+func newList(items ...INode) map[Identifier]INode {
+	l := make(map[Identifier]INode, len(items))
 	for _, i := range items {
-		l[i.Node().id] = &recomputeHeapItem{node: i, height: i.Node().height}
+		i.Node().heightInRecomputeHeap = i.Node().height
+		l[i.Node().id] = i
 	}
 	return l
-}
-
-func newListWithItems(items ...INode) (l map[Identifier]*recomputeHeapItem, outputItems []*recomputeHeapItem) {
-	l = make(map[Identifier]*recomputeHeapItem)
-	for _, i := range items {
-		newItem := &recomputeHeapItem{node: i, height: i.Node().height}
-		l[i.Node().id] = newItem
-		outputItems = append(outputItems, newItem)
-	}
-	return
 }
 
 func createDynamicMaps(scope *BindScope, label string) Incr[string] {

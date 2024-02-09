@@ -46,6 +46,8 @@ type Node struct {
 	// this node, e.g. how many other nodes have to update before
 	// this node has to update.
 	height int
+	// heightInRecomputeHeap is the height of a node in the recompute heap
+	heightInRecomputeHeap int
 	// changedAt connotes when the node was changed last,
 	// specifically if any of the node's parents were set or bound
 	changedAt uint64

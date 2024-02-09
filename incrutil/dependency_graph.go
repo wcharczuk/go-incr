@@ -74,9 +74,7 @@ func (dg DependencyGraph[Result]) createDependencyIncrLookup(ctx context.Context
 	}
 	for _, p := range dg.Dependencies {
 		for _, d := range p.DependsOn {
-			if err = output[p.Name].AddInput(output[d]); err != nil {
-				return
-			}
+			output[p.Name].AddInput(output[d])
 		}
 	}
 	return

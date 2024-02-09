@@ -35,27 +35,28 @@ func (graph *Graph) ParallelStabilize(ctx context.Context) (err error) {
 }
 
 func (graph *Graph) parallelStabilize(ctx context.Context) (err error) {
-	if graph.recomputeHeap.Len() == 0 {
+	if graph.recomputeHeap.len() == 0 {
 		return
 	}
 	workerPool := new(parallelBatch)
 	workerPool.SetLimit(runtime.NumCPU())
 
 	var immediateRecompute []INode
-	var minHeightBlock []*recomputeHeapItem
-	for graph.recomputeHeap.Len() > 0 {
-		minHeightBlock = graph.recomputeHeap.RemoveMinHeight()
+	var minHeightBlock []INode
+	for graph.recomputeHeap.len() > 0 {
+		minHeightBlock = graph.recomputeHeap.removeMinHeight()
 		for _, n := range minHeightBlock {
-			workerPool.Go(graph.parallelRecomputeNode(ctx, n.node))
-			if n.node.Node().always {
-				immediateRecompute = append(immediateRecompute, n.node)
+			workerPool.Go(graph.parallelRecomputeNode(ctx, n))
+			if n.Node().always {
+				immediateRecompute = append(immediateRecompute, n)
 			}
 		}
 		if err = workerPool.Wait(); err != nil {
 			break
 		}
+		graph.fixAdjustHeightsQueue()
 	}
-	graph.recomputeHeap.Add(immediateRecompute...)
+	graph.recomputeHeap.add(immediateRecompute...)
 	return
 }
 

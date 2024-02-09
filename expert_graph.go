@@ -65,11 +65,11 @@ func (eg *expertGraph) SetStabilizationNum(stabilizationNum uint64) {
 }
 
 func (eg *expertGraph) RecomputeHeapAdd(nodes ...INode) {
-	eg.graph.recomputeHeap.Add(nodes...)
+	eg.graph.recomputeHeap.add(nodes...)
 }
 
 func (eg *expertGraph) RecomputeHeapLen() int {
-	return eg.graph.recomputeHeap.Len()
+	return eg.graph.recomputeHeap.len()
 }
 
 func (eg *expertGraph) RecomputeHeapIDs() []Identifier {

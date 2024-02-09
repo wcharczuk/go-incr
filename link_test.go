@@ -81,18 +81,3 @@ func Test_Link_propagatesHeightChanges_twoLargeGraphs(t *testing.T) {
 	testutil.ItsEqual(t, 6, b20.Node().height)
 	testutil.ItsEqual(t, 6, b21.Node().height)
 }
-
-func Test_Link_detectsCycles(t *testing.T) {
-	n0 := newMockBareNode()
-	n1 := newMockBareNode()
-	n2 := newMockBareNode()
-
-	err := link(n0, n1)
-	testutil.ItsNil(t, err)
-
-	err = link(n1, n2)
-	testutil.ItsNil(t, err)
-
-	err = link(n2, n0)
-	testutil.ItsNotNil(t, err)
-}

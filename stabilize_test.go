@@ -392,10 +392,10 @@ func Test_Stabilize_doubleVarSet_singleUpdate(t *testing.T) {
 	ItsEqual(t, "a b", m.Value())
 
 	a.Set("aa")
-	ItsEqual(t, 1, graph.recomputeHeap.Len())
+	ItsEqual(t, 1, graph.recomputeHeap.len())
 
 	a.Set("aaa")
-	ItsEqual(t, 1, graph.recomputeHeap.Len())
+	ItsEqual(t, 1, graph.recomputeHeap.len())
 
 	_ = graph.Stabilize(ctx)
 	ItsEqual(t, "aaa b", m.Value())
@@ -541,7 +541,7 @@ func Test_Stabilize_bind(t *testing.T) {
 	ItsEqual(t, "bar-loo-baz", mb.Value())
 
 	sw.Set(true)
-	ItsEqual(t, true, graph.recomputeHeap.Has(sw))
+	ItsEqual(t, true, graph.recomputeHeap.has(sw))
 
 	err = graph.Stabilize(ctx)
 	ItsNil(t, err)
@@ -1076,9 +1076,9 @@ func Test_Stabilize_MapN_AddInput(t *testing.T) {
 	c1 := Return(Root(), 2)
 	c2 := Return(Root(), 3)
 	mn := MapN(Root(), sum)
-	_ = mn.AddInput(c0)
-	_ = mn.AddInput(c1)
-	_ = mn.AddInput(c2)
+	mn.AddInput(c0)
+	mn.AddInput(c1)
+	mn.AddInput(c2)
 
 	graph := New()
 	_ = Observe(Root(), graph, mn)
@@ -1319,7 +1319,7 @@ func Test_Stabilize_always_cutoff_error(t *testing.T) {
 	ItsNotNil(t, err)
 	ItsEqual(t, "", o.Value())
 
-	ItsEqual(t, 3, g.recomputeHeap.Len())
+	ItsEqual(t, 3, g.recomputeHeap.len())
 }
 
 func Test_Stabilize_printsErrors(t *testing.T) {

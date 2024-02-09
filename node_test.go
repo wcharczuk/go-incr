@@ -101,7 +101,7 @@ func Test_SetStale(t *testing.T) {
 	testutil.ItsEqual(t, 0, n.n.recomputedAt)
 	testutil.ItsEqual(t, 1, n.n.setAt)
 
-	testutil.ItsEqual(t, true, n.n.graph.recomputeHeap.Has(n))
+	testutil.ItsEqual(t, true, n.n.graph.recomputeHeap.has(n))
 
 	// find the node in the recompute heap layer
 	testutil.ItsEqual(t, 1, len(n.n.graph.recomputeHeap.heights[1]))
@@ -112,7 +112,7 @@ func Test_SetStale(t *testing.T) {
 	testutil.ItsEqual(t, 0, n.n.recomputedAt)
 	testutil.ItsEqual(t, 1, n.n.setAt)
 
-	testutil.ItsEqual(t, true, n.n.graph.recomputeHeap.Has(n))
+	testutil.ItsEqual(t, true, n.n.graph.recomputeHeap.has(n))
 
 	testutil.ItsEqual(t, 1, len(n.n.graph.recomputeHeap.heights[1]))
 }
@@ -395,7 +395,7 @@ func Test_Node_recompute(t *testing.T) {
 	testutil.ItsNil(t, err)
 
 	// find the node in the recompute heap layer
-	testutil.ItsEqual(t, true, g.recomputeHeap.Has(p))
+	testutil.ItsEqual(t, true, g.recomputeHeap.has(p))
 	testutil.ItsEqual(t, true, calledStabilize)
 
 	// we don't call these handlers directly
@@ -460,7 +460,7 @@ func Test_Node_stabilize_error(t *testing.T) {
 	testutil.ItsNotNil(t, "test error", err.Error())
 
 	// find the node in the recompute heap layer
-	testutil.ItsEqual(t, false, g.recomputeHeap.Has(p))
+	testutil.ItsEqual(t, false, g.recomputeHeap.has(p))
 	testutil.ItsEqual(t, true, calledStabilize)
 	testutil.ItsEqual(t, false, calledUpdateHandler0)
 	testutil.ItsEqual(t, false, calledUpdateHandler1)
