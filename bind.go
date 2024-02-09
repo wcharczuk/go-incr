@@ -64,7 +64,6 @@ type BindIncr[A any] interface {
 
 var (
 	_ BindIncr[bool] = (*bindIncr[string, bool])(nil)
-	_ IExpertBind    = (*bindIncr[string, bool])(nil)
 	_ fmt.Stringer   = (*bindIncr[string, bool])(nil)
 )
 
@@ -93,6 +92,10 @@ func (b *bindIncr[A, B]) Bound() INode {
 
 func (b *bindIncr[A, B]) BindChange() INode {
 	return b.bindChange
+}
+
+func (b *bindIncr[A, B]) Scope() *BindScope {
+	return b.scope
 }
 
 func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
@@ -131,10 +134,8 @@ func (b *bindIncr[A, B]) Unobserve(ctx context.Context, observers ...IObserver) 
 func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
 	if b.bound != nil {
 		Link(b, b.bound)
-		for _, c := range b.n.children {
-			if err = b.n.graph.recomputeHeights(c); err != nil {
-				return
-			}
+		if err = b.n.graph.recomputeHeights(b); err != nil {
+			return
 		}
 		for _, n := range b.scope.rhsNodes {
 			if typed, ok := n.(IBind); ok {
@@ -172,10 +173,8 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) (err erro
 	}
 	Link(b, b.bound)
 	b.n.graph.observeNodes(b.bound, b.n.Observers()...)
-	for _, c := range b.n.children {
-		if err = b.n.graph.recomputeHeights(c); err != nil {
-			return
-		}
+	if err = b.n.graph.recomputeHeights(b); err != nil {
+		return
 	}
 	for _, n := range b.scope.rhsNodes {
 		if typed, ok := n.(IBind); ok {

@@ -53,15 +53,18 @@ func Test_Bind_basic(t *testing.T) {
 	o.Node().SetLabel("o")
 
 	// we shouldn't have bind internals set up on construction
-	testutil.ItsNil(t, ExpertBind(bind).BindChange())
-	testutil.ItsNil(t, ExpertBind(bind).Bound())
+	testutil.ItsNil(t, bind.BindChange())
+	testutil.ItsNil(t, bind.Bound())
 
 	g := New()
 	_ = Observe(Root(), g, o)
 
+	testutil.ItsEqual(t, 2, o.Node().numComputePseudoHeights)
+	testutil.ItsEqual(t, 0, o.Node().numRecomputeHeights)
+
 	// we shouldn't have bind internals set up after observation either
-	testutil.ItsNil(t, ExpertBind(bind).BindChange())
-	testutil.ItsNil(t, ExpertBind(bind).Bound())
+	testutil.ItsNil(t, bind.BindChange())
+	testutil.ItsNil(t, bind.Bound())
 
 	var err error
 	testutil.ItsEqual(t, 1, bindVar.Node().height)
@@ -89,14 +92,17 @@ func Test_Bind_basic(t *testing.T) {
 	err = g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 
+	testutil.ItsEqual(t, 4, o.Node().numComputePseudoHeights)
+	testutil.ItsEqual(t, 1, o.Node().numRecomputeHeights)
+
 	err = dumpDot(g, homedir("bind_basic_00.png"))
 	testutil.ItsNil(t, err)
 
 	// we _should_ have bind internals set up after stabilization
-	testutil.ItsNotNil(t, ExpertBind(bind).BindChange())
-	testutil.ItsNotNil(t, ExpertBind(bind).Bound())
+	testutil.ItsNotNil(t, bind.BindChange())
+	testutil.ItsNotNil(t, bind.Bound())
 
-	bindChange := ExpertBind(bind).BindChange()
+	bindChange := bind.BindChange()
 	testutil.ItsEqual(t, true, hasKey(bindChange.Node().parents, bindVar.Node().ID()))
 	testutil.ItsEqual(t, true, hasKey(bindChange.Node().children, a1.Node().ID()))
 	testutil.ItsEqual(t, false, hasKey(bindChange.Node().children, b1.Node().ID()))
@@ -142,7 +148,7 @@ func Test_Bind_basic(t *testing.T) {
 	err = dumpDot(g, homedir("bind_basic_01.png"))
 	testutil.ItsNil(t, err)
 
-	bindChange = ExpertBind(bind).BindChange()
+	bindChange = bind.BindChange()
 	testutil.ItsEqual(t, true, hasKey(bindChange.Node().parents, bindVar.Node().ID()))
 	testutil.ItsEqual(t, false, hasKey(bindChange.Node().children, a1.Node().ID()))
 	testutil.ItsEqual(t, true, hasKey(bindChange.Node().children, b2.Node().ID()))
@@ -189,7 +195,7 @@ func Test_Bind_basic(t *testing.T) {
 	err = dumpDot(g, homedir("bind_basic_02.png"))
 	testutil.ItsNil(t, err)
 
-	bindChange = ExpertBind(bind).BindChange()
+	bindChange = bind.BindChange()
 	testutil.ItsNil(t, bindChange)
 
 	testutil.ItsEqual(t, 1, bindVar.Node().height)

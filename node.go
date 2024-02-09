@@ -87,9 +87,11 @@ type Node struct {
 	numChanges uint64
 	// createdIn is the "bind scope" the node was created in
 	createdIn *BindScope
-	// numComputePseudoheights is the number of times we call "computePseudoheight"
+	// numComputePseudoHeights is the number of times we call "computePseudoheight"
 	// on this particular node
-	numComputePseudoheights uint64
+	numComputePseudoHeights uint64
+	// numRecomputeHeights is incremented everytime we recompute a given node's height
+	numRecomputeHeights uint64
 }
 
 func nodeSorter(a, b INode) int {
@@ -191,7 +193,7 @@ func (n *Node) Observers() []IObserver {
 
 func (n *Node) addChildren(children ...INode) {
 	for _, c := range children {
-		if !n.childLookup.has(c.Node().id) {
+		if !n.hasChild(c) {
 			n.children = append(n.children, c)
 			n.childLookup.add(c.Node().id)
 		}
@@ -200,7 +202,7 @@ func (n *Node) addChildren(children ...INode) {
 
 func (n *Node) addParents(parents ...INode) {
 	for _, p := range parents {
-		if !n.parentLookup.has(p.Node().id) {
+		if !n.hasParent(p) {
 			n.parents = append(n.parents, p)
 			n.parentLookup.add(p.Node().id)
 		}
@@ -209,7 +211,7 @@ func (n *Node) addParents(parents ...INode) {
 
 func (n *Node) addObservers(observers ...IObserver) {
 	for _, o := range observers {
-		if !n.observerLookup.has(o.Node().id) {
+		if !n.hasObserver(o) {
 			n.observers = append(n.observers, o)
 			n.observerLookup.add(o.Node().id)
 			for _, handler := range n.onObservedHandlers {
@@ -217,6 +219,21 @@ func (n *Node) addObservers(observers ...IObserver) {
 			}
 		}
 	}
+}
+
+func (n *Node) hasChild(in INode) (ok bool) {
+	_, ok = n.childLookup[in.Node().id]
+	return
+}
+
+func (n *Node) hasParent(in INode) (ok bool) {
+	_, ok = n.parentLookup[in.Node().id]
+	return
+}
+
+func (n *Node) hasObserver(in INode) (ok bool) {
+	_, ok = n.observerLookup[in.Node().id]
+	return
 }
 
 func (n *Node) removeChild(id Identifier) {

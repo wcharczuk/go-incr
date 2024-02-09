@@ -221,7 +221,6 @@ func (graph *Graph) observeSingleNode(gn INode, observers ...IObserver) {
 	if alreadyObservedByGraph {
 		return
 	}
-
 	graph.numNodes++
 	gnn.graph = graph
 	gnn.height = graph.computePseudoHeight(gn)
@@ -310,7 +309,9 @@ func (graph *Graph) canReachObserver(gn INode, oid Identifier) bool {
 
 func (graph *Graph) canReachObserverRecursive(root, gn INode, oid Identifier) bool {
 	for _, c := range gn.Node().children {
-		if hasKey(c.Node().observers, oid) {
+		// if any of our children still have the observer in their observed lists
+		// return true immediately
+		if _, ok := c.Node().observerLookup[oid]; ok {
 			return true
 		}
 		if c.Node().id == oid {
@@ -504,17 +505,27 @@ func (graph *Graph) recomputeHeightsRecursive(rootID Identifier, in INode) (err 
 	n := in.Node()
 	oldHeight := n.height
 	n.height = graph.computePseudoHeight(in)
-	if oldHeight != n.height {
-		for _, c := range n.children {
-			if c.Node().id == rootID {
-				err = fmt.Errorf("cycle detected at %v", c)
-				return
-			}
-			if err = graph.recomputeHeights(c); err != nil {
-				return
-			}
+	n.numRecomputeHeights++
+	for _, c := range n.children {
+		if c.Node().id == rootID {
+			err = fmt.Errorf("cycle detected at %v", c)
+			return
 		}
+		if err = graph.recomputeHeights(c); err != nil {
+			return
+		}
+	}
+	if oldHeight != n.height {
 		graph.adjustHeightsQueue.push(n.id)
+	}
+	return
+}
+
+func (graph *Graph) computePseudoHeightFromParents(in INode) (out int) {
+	for _, p := range in.Node().parents {
+		if p.Node().height > out {
+			out = p.Node().height
+		}
 	}
 	return
 }
@@ -530,8 +541,8 @@ func (graph *Graph) computePseudoHeightCached(cache map[Identifier]int, in INode
 		return height
 	}
 
-	n.numComputePseudoheights++
-
+	// TracePrintf(WithTracing(context.Background()), "compute pseudoheight %v\n", in)
+	n.numComputePseudoHeights++
 	var maxParentHeight int
 	var parentHeight int
 	for _, p := range n.parents {
