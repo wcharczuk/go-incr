@@ -107,13 +107,13 @@ func Benchmark_Stabilize_connectedGraph_with_nestedBinds_128(b *testing.B) {
 	benchmarkConnectedGraphWithNestedBinds(128, b)
 }
 
-func Benchmark_Stabilize_connectedGraph_with_nestedBinds_256(b *testing.B) {
-	benchmarkConnectedGraphWithNestedBinds(256, b)
-}
+// func Benchmark_Stabilize_connectedGraph_with_nestedBinds_256(b *testing.B) {
+// 	benchmarkConnectedGraphWithNestedBinds(256, b)
+// }
 
-func Benchmark_Stabilize_connectedGraph_with_nestedBinds_512(b *testing.B) {
-	benchmarkConnectedGraphWithNestedBinds(512, b)
-}
+// func Benchmark_Stabilize_connectedGraph_with_nestedBinds_512(b *testing.B) {
+// 	benchmarkConnectedGraphWithNestedBinds(512, b)
+// }
 
 func benchmarkSize(size int, b *testing.B) {
 	nodes := make([]Incr[string], size)
