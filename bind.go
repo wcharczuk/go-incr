@@ -120,6 +120,7 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 	} else if b.bound != nil {
 		bindChanged = true
 		b.unlinkOld(ctx, b.n.Observers()...)
+		b.unlinkBindChange(ctx)
 	}
 	if bindChanged {
 		b.n.boundAt = b.n.graph.stabilizationNum
@@ -129,6 +130,7 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 
 func (b *bindIncr[A, B]) Unobserve(ctx context.Context, observers ...IObserver) {
 	b.unlinkOld(ctx, observers...)
+	b.unlinkBindChange(ctx)
 }
 
 func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
@@ -146,29 +148,25 @@ func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
 	return
 }
 
-func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) error {
-	b.bindChange = &bindChangeIncr[A, B]{
-		n:   NewNode(),
-		lhs: b.input,
-		rhs: b.bound,
+func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) {
+	if b.bindChange == nil {
+		b.bindChange = &bindChangeIncr[A, B]{
+			n:   NewNode(),
+			lhs: b.input,
+			rhs: b.bound,
+		}
+		if b.n.label != "" {
+			b.bindChange.n.SetLabel(fmt.Sprintf("%s-change", b.n.label))
+		}
+		Link(b.bindChange, b.input)
+		b.n.graph.observeSingleNode(b.bindChange, b.n.Observers()...)
 	}
-	if b.n.label != "" {
-		b.bindChange.n.SetLabel(fmt.Sprintf("%s-change", b.n.label))
-	}
-	Link(b.bindChange, b.input)
-	Link(b.bound, b.bindChange)
-	if b.n.graph == nil {
-		return fmt.Errorf("%v is unobserved, cannot continue", b)
-	}
-	b.n.graph.observeSingleNode(b.bindChange, b.n.Observers()...)
-	return nil
 }
 
 func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) (err error) {
 	b.bound = newIncr
-	if err = b.linkBindChange(ctx); err != nil {
-		return
-	}
+	b.linkBindChange(ctx)
+	Link(b.bound, b.bindChange)
 	Link(b, b.bound)
 	b.n.graph.observeNodes(b.bound, b.n.Observers()...)
 	_ = b.n.graph.adjustHeightsHeap.ensureHeightRequirement(b, b.bound)
@@ -184,19 +182,20 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) (err erro
 }
 
 func (b *bindIncr[A, B]) unlinkBindChange(ctx context.Context) {
-	Unlink(b.bindChange, b.input)
-	Unlink(b.bound, b.bindChange)
+	if b.bindChange != nil {
+		Unlink(b.input, b.bindChange)
+		b.n.graph.unobserveSingleNode(ctx, b.bindChange, b.n.observers...)
+		b.bindChange = nil
+	}
 }
 
 func (b *bindIncr[A, B]) unlinkOld(ctx context.Context, observers ...IObserver) {
 	if b.bound != nil {
 		TracePrintf(ctx, "%v unbinding old rhs %v", b, b.bound)
-		b.unlinkBindChange(ctx)
+		Unlink(b.bound, b.bindChange)
 		b.removeNodesFromScope(ctx, b.scope, observers...)
 		Unlink(b, b.bound)
 		b.n.graph.unobserveNodes(ctx, b.bound, observers...)
-		b.n.graph.unobserveSingleNode(ctx, b.bindChange, observers...)
-		b.bindChange = nil
 		b.bound = nil
 	}
 }
