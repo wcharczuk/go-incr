@@ -5,20 +5,16 @@ import (
 	"sync"
 )
 
-const (
-	heightUnset = -1
-)
-
 func newAdjustHeightsHeap(maxHeightAllowed int) *adjustHeightsHeap {
 	return &adjustHeightsHeap{
-		nodesByHeight: make([]*queue[INode], maxHeightAllowed+32),
+		nodesByHeight: make([]map[Identifier]INode, maxHeightAllowed+32),
 		lookup:        make(set[Identifier]),
 	}
 }
 
 type adjustHeightsHeap struct {
 	mu               sync.Mutex
-	nodesByHeight    []*queue[INode]
+	nodesByHeight    []map[Identifier]INode
 	lookup           set[Identifier]
 	maxHeightSeen    int
 	heightLowerBound int
@@ -43,7 +39,7 @@ func (ah *adjustHeightsHeap) setMaxHeightAllowed(height int) {
 	if height < ah.maxHeightSeen {
 		return
 	}
-	ah.nodesByHeight = make([]*queue[INode], height)
+	ah.nodesByHeight = make([]map[Identifier]INode, height)
 }
 
 func (ah *adjustHeightsHeap) remove(node INode) {
@@ -61,11 +57,9 @@ func (ah *adjustHeightsHeap) removeUnsafe(node INode) {
 	}
 	delete(ah.lookup, node.Node().id)
 	height := node.Node().heightInAdjustHeightsHeap
-	if height > ah.heightLowerBound && height < ah.maxHeightSeen {
+	if height >= ah.heightLowerBound && height <= ah.maxHeightSeen {
 		if ah.nodesByHeight[height] != nil {
-			ah.nodesByHeight[height].filter(func(qn INode) bool {
-				return qn.Node().id != node.Node().id
-			})
+			delete(ah.nodesByHeight[height], node.Node().id)
 		}
 	}
 }
@@ -82,9 +76,22 @@ func (ah *adjustHeightsHeap) addUnsafe(node INode) {
 	height := node.Node().height
 	node.Node().heightInAdjustHeightsHeap = height
 	if ah.nodesByHeight[height] == nil {
-		ah.nodesByHeight[height] = new(queue[INode])
+		ah.nodesByHeight[height] = make(map[Identifier]INode)
 	}
-	ah.nodesByHeight[height].push(node)
+	if height > ah.maxHeightSeen {
+		ah.maxHeightSeen = height
+	}
+	ah.nodesByHeight[height][node.Node().id] = node
+}
+
+func pop[K comparable, V any](m map[K]V) (v V, ok bool) {
+	var k K
+	for k, v = range m {
+		ok = true
+		break
+	}
+	delete(m, k)
+	return
 }
 
 func (ah *adjustHeightsHeap) removeMin() (node INode, ok bool) {
@@ -93,10 +100,9 @@ func (ah *adjustHeightsHeap) removeMin() (node INode, ok bool) {
 	if len(ah.lookup) == 0 {
 		return
 	}
-	for x := 0; x <= ah.maxHeightSeen; x++ {
-		if ah.nodesByHeight[x] != nil && ah.nodesByHeight[x].len() > 0 {
-			node, _ = ah.nodesByHeight[x].pop()
-			node.Node().heightInAdjustHeightsHeap = heightUnset
+	for x := ah.heightLowerBound; x <= ah.maxHeightSeen; x++ {
+		if ah.nodesByHeight[x] != nil && len(ah.nodesByHeight[x]) > 0 {
+			node, _ = pop(ah.nodesByHeight[x])
 			ok = true
 			ah.heightLowerBound = x
 			delete(ah.lookup, node.Node().id)
