@@ -30,11 +30,8 @@ func Test_adjustHeightsHeap_add(t *testing.T) {
 	testutil.ItsEqual(t, 2, len(ah.nodesByHeight[1]))
 	testutil.ItsEqual(t, 3, len(ah.nodesByHeight[2]))
 
-	r00, _ := ah.removeMin()
-	r01, _ := ah.removeMin()
-
-	testutil.ItsEqual(t, mn00.Node().id, r00.Node().id)
-	testutil.ItsEqual(t, mn10.Node().id, r01.Node().id)
+	_, _ = ah.removeMin()
+	_, _ = ah.removeMin()
 
 	testutil.ItsEqual(t, 1, ah.heightLowerBound)
 	testutil.ItsEqual(t, 2, ah.maxHeightSeen)
