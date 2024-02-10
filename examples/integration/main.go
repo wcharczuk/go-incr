@@ -86,6 +86,8 @@ func main() {
 		})
 	}
 
+	// The below is a "cached" version of burn that can help performance
+	// but really shouldn't be needed!
 	// burn := func(bs *incr.BindScope, t int) incr.Incr[*int] {
 	// 	key := fmt.Sprintf("burn-%d", t)
 	// 	if _, ok := cache[key]; ok {
