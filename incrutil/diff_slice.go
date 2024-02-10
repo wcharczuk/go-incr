@@ -10,7 +10,7 @@ import (
 // incremental that is just the added elements per pass.
 func DiffSliceByIndicesAdded[T any](scope *incr.BindScope, i incr.Incr[[]T]) incr.Incr[[]T] {
 	o := &diffSliceByIndicesAddedIncr[T]{
-		n: incr.NewNode(),
+		n: incr.NewNode("diff_slice_by_indices_added"),
 		i: i,
 	}
 	incr.Link(o, i)
@@ -25,7 +25,7 @@ type diffSliceByIndicesAddedIncr[T any] struct {
 }
 
 func (dsi *diffSliceByIndicesAddedIncr[T]) String() string {
-	return dsi.n.String("diff_slice_by_indices_added")
+	return dsi.n.String()
 }
 
 func (dsi *diffSliceByIndicesAddedIncr[T]) Node() *incr.Node { return dsi.n }

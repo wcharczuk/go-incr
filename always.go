@@ -4,7 +4,7 @@ package incr
 // marked for recomputation.
 func Always[A any](scope *BindScope, input Incr[A]) Incr[A] {
 	a := &alwaysIncr[A]{
-		n:     NewNode(),
+		n:     NewNode("always"),
 		input: input,
 	}
 	Link(a, input)
@@ -31,5 +31,5 @@ func (a *alwaysIncr[A]) Value() A {
 func (a *alwaysIncr[A]) Node() *Node { return a.n }
 
 func (a *alwaysIncr[A]) String() string {
-	return a.n.String("always")
+	return a.n.String()
 }

@@ -18,7 +18,7 @@ func Map2[A, B, C any](scope *BindScope, a Incr[A], b Incr[B], fn func(A, B) C) 
 // the output type of that function.
 func Map2Context[A, B, C any](scope *BindScope, a Incr[A], b Incr[B], fn func(context.Context, A, B) (C, error)) Incr[C] {
 	o := &map2Incr[A, B, C]{
-		n:  NewNode(),
+		n:  NewNode("map2"),
 		a:  a,
 		b:  b,
 		fn: fn,
@@ -57,5 +57,5 @@ func (m2n *map2Incr[A, B, C]) Stabilize(ctx context.Context) (err error) {
 }
 
 func (m2n *map2Incr[A, B, C]) String() string {
-	return m2n.n.String("map2")
+	return m2n.n.String()
 }

@@ -23,7 +23,7 @@ func Cutoff[A any](bs *BindScope, i Incr[A], fn CutoffFunc[A]) Incr[A] {
 // significant enough to warrant a full recomputation of the children of this node.
 func CutoffContext[A any](bs *BindScope, i Incr[A], fn CutoffContextFunc[A]) Incr[A] {
 	o := &cutoffIncr[A]{
-		n:  NewNode(),
+		n:  NewNode("cutoff"),
 		i:  i,
 		fn: fn,
 	}
@@ -74,4 +74,4 @@ func (c *cutoffIncr[A]) Node() *Node {
 	return c.n
 }
 
-func (c *cutoffIncr[A]) String() string { return c.n.String("cutoff") }
+func (c *cutoffIncr[A]) String() string { return c.n.String() }

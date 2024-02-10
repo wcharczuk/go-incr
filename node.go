@@ -6,9 +6,10 @@ import (
 )
 
 // NewNode returns a new node.
-func NewNode() *Node {
+func NewNode(kind string) *Node {
 	return &Node{
 		id:             NewIdentifier(),
+		kind:           kind,
 		parentLookup:   make(set[Identifier]),
 		childLookup:    make(set[Identifier]),
 		observerLookup: make(set[Identifier]),
@@ -19,6 +20,8 @@ func NewNode() *Node {
 type Node struct {
 	// id is a unique identifier for the node
 	id Identifier
+	// kind is the meta-type of the node
+	kind string
 	// metadata is any additional metadata a user wants to attach to a node.
 	metadata any
 	// graph is the graph this node is attached to currently.
@@ -122,11 +125,11 @@ func (n *Node) ID() Identifier {
 }
 
 // String returns a string form of the node metadata.
-func (n *Node) String(nodeType string) string {
+func (n *Node) String() string {
 	if n.label != "" {
-		return fmt.Sprintf("%s[%s]:%s@%d", nodeType, n.id.Short(), n.label, n.height)
+		return fmt.Sprintf("%s[%s]:%s@%d", n.kind, n.id.Short(), n.label, n.height)
 	}
-	return fmt.Sprintf("%s[%s]@%d", nodeType, n.id.Short(), n.height)
+	return fmt.Sprintf("%s[%s]@%d", n.kind, n.id.Short(), n.height)
 }
 
 // Set/Get properties
@@ -170,6 +173,16 @@ func (n *Node) Metadata() any {
 // SetMetadata sets the metadata on the node.
 func (n *Node) SetMetadata(md any) {
 	n.metadata = md
+}
+
+// Kind returns the meta type of the node.
+func (n *Node) Kind() string {
+	return n.kind
+}
+
+// SetMetadata sets the metadata on the node.
+func (n *Node) SetKind(kind string) {
+	n.kind = kind
 }
 
 // Parent / Child helpers

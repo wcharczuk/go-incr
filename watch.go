@@ -9,7 +9,7 @@ import (
 // values for a given incremental.
 func Watch[A any](scope *BindScope, i Incr[A]) WatchIncr[A] {
 	o := &watchIncr[A]{
-		n:    NewNode(),
+		n:    NewNode("watch"),
 		incr: i,
 	}
 	Link(o, i)
@@ -60,4 +60,4 @@ func (w *watchIncr[A]) Node() *Node {
 }
 
 // String implements fmt.Stringer.
-func (w *watchIncr[A]) String() string { return w.n.String("watch") }
+func (w *watchIncr[A]) String() string { return w.n.String() }

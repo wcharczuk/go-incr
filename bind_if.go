@@ -6,6 +6,6 @@ import "context"
 // on a given boolean incremental predicate.
 func BindIf[A any](scope *BindScope, p Incr[bool], fn func(context.Context, *BindScope, bool) (Incr[A], error)) BindIncr[A] {
 	b := BindContext[bool, A](scope, p, fn).(*bindIncr[bool, A])
-	b.bt = "bind_if"
+	b.Node().SetKind("bind_if")
 	return WithinBindScope(scope, b)
 }

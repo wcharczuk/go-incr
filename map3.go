@@ -18,7 +18,7 @@ func Map3[A, B, C, D any](scope *BindScope, a Incr[A], b Incr[B], c Incr[C], fn 
 // new incremental of the output type of that function.
 func Map3Context[A, B, C, D any](scope *BindScope, a Incr[A], b Incr[B], c Incr[C], fn func(context.Context, A, B, C) (D, error)) Incr[D] {
 	o := &map3Incr[A, B, C, D]{
-		n:  NewNode(),
+		n:  NewNode("map3"),
 		a:  a,
 		b:  b,
 		c:  c,
@@ -59,5 +59,5 @@ func (mn *map3Incr[A, B, C, D]) Stabilize(ctx context.Context) (err error) {
 }
 
 func (mn *map3Incr[A, B, C, D]) String() string {
-	return mn.n.String("map3")
+	return mn.n.String()
 }

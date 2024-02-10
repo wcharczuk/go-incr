@@ -10,9 +10,10 @@ import (
 )
 
 func Test_NewNode(t *testing.T) {
-	n := NewNode()
+	n := NewNode("test_node")
 	testutil.ItsNotNil(t, n.id)
 	testutil.ItsNil(t, n.graph)
+	testutil.ItsEqual(t, "test_node", n.kind)
 	testutil.ItsEqual(t, 0, len(n.parents))
 	testutil.ItsEqual(t, 0, len(n.children))
 	testutil.ItsEqual(t, "", n.label)
@@ -29,7 +30,7 @@ func Test_NewNode(t *testing.T) {
 }
 
 func Test_Node_ID(t *testing.T) {
-	n := NewNode()
+	n := NewNode("test_node")
 	testutil.ItsEqual(t, false, n.ID().IsZero())
 
 	other := NewIdentifier()
@@ -38,14 +39,14 @@ func Test_Node_ID(t *testing.T) {
 }
 
 func Test_Node_Label(t *testing.T) {
-	n := NewNode()
+	n := NewNode("test_node")
 	testutil.ItsEqual(t, "", n.Label())
 	n.SetLabel("foo")
 	testutil.ItsEqual(t, "foo", n.Label())
 }
 
 func Test_Node_Metadata(t *testing.T) {
-	n := NewNode()
+	n := NewNode("test_node")
 	testutil.ItsEqual(t, nil, n.Metadata())
 	n.SetMetadata("foo")
 	testutil.ItsEqual(t, "foo", n.Metadata())
@@ -85,10 +86,10 @@ func Test_Node_String(t *testing.T) {
 	n := newMockBareNode()
 	n.n.height = 2
 
-	testutil.ItsEqual(t, "test["+n.n.id.Short()+"]@2", n.Node().String("test"))
+	testutil.ItsEqual(t, "bare_node["+n.n.id.Short()+"]@2", n.Node().String())
 
 	n.Node().SetLabel("test_label")
-	testutil.ItsEqual(t, "test["+n.n.id.Short()+"]:test_label@2", n.Node().String("test"))
+	testutil.ItsEqual(t, "bare_node["+n.n.id.Short()+"]:test_label@2", n.Node().String())
 }
 
 func Test_SetStale(t *testing.T) {
@@ -118,7 +119,7 @@ func Test_SetStale(t *testing.T) {
 }
 
 func Test_Node_OnUpdate(t *testing.T) {
-	n := NewNode()
+	n := NewNode("test_node")
 
 	testutil.ItsEqual(t, 0, len(n.onUpdateHandlers))
 	n.OnUpdate(func(_ context.Context) {})
@@ -126,7 +127,7 @@ func Test_Node_OnUpdate(t *testing.T) {
 }
 
 func Test_Node_OnError(t *testing.T) {
-	n := NewNode()
+	n := NewNode("test_node")
 
 	testutil.ItsEqual(t, 0, len(n.onErrorHandlers))
 	n.OnError(func(_ context.Context, _ error) {})
@@ -134,7 +135,7 @@ func Test_Node_OnError(t *testing.T) {
 }
 
 func Test_Node_SetLabel(t *testing.T) {
-	n := NewNode()
+	n := NewNode("test_node")
 
 	testutil.ItsEqual(t, "", n.label)
 	n.SetLabel("test-label")
@@ -250,7 +251,7 @@ func Test_Node_removeParent(t *testing.T) {
 
 func Test_Node_maybeStabilize(t *testing.T) {
 	ctx := testContext()
-	n := NewNode()
+	n := NewNode("test_node")
 
 	// assert it doesn't panic
 	err := n.maybeStabilize(ctx)
@@ -270,7 +271,7 @@ func Test_Node_maybeStabilize(t *testing.T) {
 
 func Test_Node_maybeStabilize_error(t *testing.T) {
 	ctx := testContext()
-	n := NewNode()
+	n := NewNode("test_node")
 
 	n.stabilize = func(ictx context.Context) error {
 		testutil.ItsBlueDye(ictx, t)
@@ -286,7 +287,7 @@ func Test_Node_maybeStabilize_error(t *testing.T) {
 
 func Test_Node_maybeCutoff(t *testing.T) {
 	ctx := testContext()
-	n := NewNode()
+	n := NewNode("test_node")
 
 	shouldCutoff, err := n.maybeCutoff(ctx)
 	testutil.ItsNil(t, err)
@@ -311,27 +312,27 @@ func Test_Node_maybeCutoff(t *testing.T) {
 }
 
 func Test_Node_detectCutoff(t *testing.T) {
-	yes := NewNode()
+	yes := NewNode("test_node")
 	yes.detectCutoff(new(cutoffIncr[string]))
 	testutil.ItsNotNil(t, yes.cutoff)
 
-	no := NewNode()
+	no := NewNode("test_node")
 	no.detectCutoff(new(mockBareNode))
 	testutil.ItsNil(t, no.cutoff)
 }
 
 func Test_Node_detectStabilize(t *testing.T) {
-	yes := NewNode()
+	yes := NewNode("test_node")
 	yes.detectStabilize(new(mapIncr[string, string]))
 	testutil.ItsNotNil(t, yes.stabilize)
 
-	no := NewNode()
+	no := NewNode("test_node")
 	no.detectStabilize(new(mockBareNode))
 	testutil.ItsNil(t, no.stabilize)
 }
 
 func Test_Node_shouldRecompute(t *testing.T) {
-	n := NewNode()
+	n := NewNode("test_node")
 	testutil.ItsEqual(t, true, n.ShouldRecompute())
 
 	n.recomputedAt = 1
@@ -544,10 +545,10 @@ func Test_Node_ShouldRecompute_unit(t *testing.T) {
 
 func Test_Node_Observers(t *testing.T) {
 	one := &observeIncr[any]{
-		n: NewNode(),
+		n: NewNode("test_node"),
 	}
 	two := &observeIncr[any]{
-		n: NewNode(),
+		n: NewNode("test_node"),
 	}
 	n := &Node{
 		observers: []IObserver{one, two},

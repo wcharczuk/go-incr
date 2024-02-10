@@ -87,13 +87,13 @@ var _ Incr[any] = (*mockBareNode)(nil)
 
 func mockObserver() IObserver {
 	return &observeIncr[any]{
-		n: NewNode(),
+		n: NewNode("mock_observer"),
 	}
 }
 
 func newMockBareNodeWithHeight(height int) *mockBareNode {
 	mbn := &mockBareNode{
-		n: NewNode(),
+		n: NewNode("bare_node"),
 	}
 	mbn.n.height = height
 	return mbn
@@ -101,7 +101,7 @@ func newMockBareNodeWithHeight(height int) *mockBareNode {
 
 func newMockBareNode() *mockBareNode {
 	return &mockBareNode{
-		n: NewNode(),
+		n: NewNode("bare_node"),
 	}
 }
 

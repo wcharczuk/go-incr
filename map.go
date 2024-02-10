@@ -18,7 +18,7 @@ func Map[A, B any](scope *BindScope, a Incr[A], fn func(A) B) Incr[B] {
 // and can also return an error, aborting stabilization.
 func MapContext[A, B any](scope *BindScope, a Incr[A], fn func(context.Context, A) (B, error)) Incr[B] {
 	m := &mapIncr[A, B]{
-		n:  NewNode(),
+		n:  NewNode("map"),
 		a:  a,
 		fn: fn,
 	}
@@ -57,5 +57,5 @@ func (mn *mapIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 }
 
 func (mn *mapIncr[A, B]) String() string {
-	return mn.n.String("map")
+	return mn.n.String()
 }

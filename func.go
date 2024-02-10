@@ -16,7 +16,7 @@ import (
 // incrementals but is included for "expert" use cases.
 func Func[T any](scope *BindScope, fn func(context.Context) (T, error)) Incr[T] {
 	return WithinBindScope(scope, &funcIncr[T]{
-		n:  NewNode(),
+		n:  NewNode("func"),
 		fn: fn,
 	})
 }
@@ -46,5 +46,5 @@ func (f *funcIncr[T]) Stabilize(ctx context.Context) error {
 }
 
 func (f *funcIncr[T]) String() string {
-	return f.n.String("func")
+	return f.n.String()
 }

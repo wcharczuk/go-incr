@@ -12,7 +12,7 @@ import (
 // linked in the graph, but the value changes during stabilization.
 func MapIf[A any](scope *BindScope, a, b Incr[A], p Incr[bool]) Incr[A] {
 	o := &mapIfIncr[A]{
-		n: NewNode(),
+		n: NewNode("map_if"),
 		a: a,
 		b: b,
 		p: p,
@@ -51,4 +51,4 @@ func (mi *mapIfIncr[A]) Stabilize(ctx context.Context) error {
 	return nil
 }
 
-func (mi *mapIfIncr[A]) String() string { return mi.n.String("map_if") }
+func (mi *mapIfIncr[A]) String() string { return mi.n.String() }

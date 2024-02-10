@@ -39,10 +39,9 @@ func Bind[A, B any](scope *BindScope, input Incr[A], fn func(*BindScope, A) Incr
 // If an error returned, the bind is aborted and the error listener(s) will fire for the node.
 func BindContext[A, B any](scope *BindScope, input Incr[A], fn func(context.Context, *BindScope, A) (Incr[B], error)) BindIncr[B] {
 	o := &bindIncr[A, B]{
-		n:     NewNode(),
+		n:     NewNode("bind"),
 		input: input,
 		fn:    fn,
-		bt:    "bind",
 	}
 	o.scope = &BindScope{
 		bind: o,
@@ -69,7 +68,6 @@ var (
 
 type bindIncr[A, B any] struct {
 	n          *Node
-	bt         string
 	input      Incr[A]
 	fn         func(context.Context, *BindScope, A) (Incr[B], error)
 	scope      *BindScope
@@ -150,7 +148,7 @@ func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
 func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) {
 	if b.bindChange == nil {
 		b.bindChange = &bindChangeIncr[A, B]{
-			n:   NewNode(),
+			n:   NewNode("bind-lhs-change"),
 			lhs: b.input,
 			rhs: b.bound,
 		}
@@ -211,7 +209,7 @@ func (b *bindIncr[A, B]) removeNodesFromScope(ctx context.Context, scope *BindSc
 }
 
 func (b *bindIncr[A, B]) String() string {
-	return b.n.String(b.bt)
+	return b.n.String()
 }
 
 var (
@@ -236,5 +234,5 @@ func (b *bindChangeIncr[A, B]) Value() (output B) {
 }
 
 func (b *bindChangeIncr[A, B]) String() string {
-	return b.n.String("bind-lhs-change")
+	return b.n.String()
 }

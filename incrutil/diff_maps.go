@@ -12,13 +12,13 @@ import (
 // of the map that changed since the last pass according to the keys.
 func DiffMapByKeys[K comparable, V any](scope *incr.BindScope, i incr.Incr[map[K]V]) (add incr.Incr[map[K]V], rem incr.Incr[map[K]V]) {
 	add = &diffMapByKeysAddedIncr[K, V]{
-		n: incr.NewNode(),
+		n: incr.NewNode("diff_maps_by_keys_added"),
 		i: i,
 	}
 	incr.Link(add, i)
 	add = incr.WithinBindScope(scope, add)
 	rem = &diffMapByKeysRemovedIncr[K, V]{
-		n: incr.NewNode(),
+		n: incr.NewNode("diff_maps_by_keys_removed"),
 		i: i,
 	}
 	incr.Link(rem, i)
@@ -31,7 +31,7 @@ func DiffMapByKeys[K comparable, V any](scope *incr.BindScope, i incr.Incr[map[K
 // of the map that was added since the last pass according to the keys.
 func DiffMapByKeysAdded[K comparable, V any](scope *incr.BindScope, i incr.Incr[map[K]V]) incr.Incr[map[K]V] {
 	o := &diffMapByKeysAddedIncr[K, V]{
-		n: incr.NewNode(),
+		n: incr.NewNode("diff_maps_by_keys_added"),
 		i: i,
 	}
 	incr.Link(o, i)
@@ -43,7 +43,7 @@ func DiffMapByKeysAdded[K comparable, V any](scope *incr.BindScope, i incr.Incr[
 // of the map that was removed since the last pass according to the keys.
 func DiffMapByKeysRemoved[K comparable, V any](scope *incr.BindScope, i incr.Incr[map[K]V]) incr.Incr[map[K]V] {
 	o := &diffMapByKeysRemovedIncr[K, V]{
-		n: incr.NewNode(),
+		n: incr.NewNode("diff_maps_by_keys_removed"),
 		i: i,
 	}
 	incr.Link(o, i)
@@ -65,7 +65,7 @@ type diffMapByKeysAddedIncr[K comparable, V any] struct {
 }
 
 func (mfn *diffMapByKeysAddedIncr[K, V]) String() string {
-	return mfn.n.String("diff_map_by_keys_added")
+	return mfn.n.String()
 }
 
 func (mfn *diffMapByKeysAddedIncr[K, V]) Node() *incr.Node { return mfn.n }
@@ -93,7 +93,7 @@ type diffMapByKeysRemovedIncr[K comparable, V any] struct {
 }
 
 func (mfn *diffMapByKeysRemovedIncr[K, V]) String() string {
-	return mfn.n.String("diff_map_by_keys_removed")
+	return mfn.n.String()
 }
 
 func (mfn *diffMapByKeysRemovedIncr[K, V]) Node() *incr.Node { return mfn.n }

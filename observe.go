@@ -9,7 +9,7 @@ import (
 // as well as all of its parents.
 func Observe[A any](scope *BindScope, g *Graph, input Incr[A]) ObserveIncr[A] {
 	o := &observeIncr[A]{
-		n:     NewNode(),
+		n:     NewNode("observer"),
 		input: input,
 	}
 	Link(o, input)
@@ -96,5 +96,5 @@ func (o *observeIncr[A]) Value() (output A) {
 }
 
 func (o *observeIncr[A]) String() string {
-	return o.n.String("observer")
+	return o.n.String()
 }

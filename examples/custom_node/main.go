@@ -9,7 +9,7 @@ import (
 
 func Custom[T any](scope *incr.BindScope, a incr.Incr[T]) incr.Incr[T] {
 	o := &customIncr[T]{
-		n: incr.NewNode(),
+		n: incr.NewNode("custom"),
 		a: a,
 	}
 	incr.Link(o, a)

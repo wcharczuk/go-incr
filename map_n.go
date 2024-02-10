@@ -17,7 +17,7 @@ func MapN[A, B any](scope *BindScope, fn MapNFunc[A, B], inputs ...Incr[A]) MapN
 // a new incremental of the output type of that function.
 func MapNContext[A, B any](scope *BindScope, fn MapNContextFunc[A, B], inputs ...Incr[A]) MapNIncr[A, B] {
 	o := &mapNIncr[A, B]{
-		n:      NewNode(),
+		n:      NewNode("map_n"),
 		inputs: inputs,
 		fn:     fn,
 	}
@@ -78,5 +78,5 @@ func (mn *mapNIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 }
 
 func (mn *mapNIncr[A, B]) String() string {
-	return mn.n.String("map_n")
+	return mn.n.String()
 }

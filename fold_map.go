@@ -20,7 +20,7 @@ func FoldMap[K comparable, V any, O any](
 	fn func(K, V, O) O,
 ) Incr[O] {
 	o := &foldMapIncr[K, V, O]{
-		n:   NewNode(),
+		n:   NewNode("fold_map"),
 		i:   i,
 		fn:  fn,
 		val: v0,
@@ -43,7 +43,7 @@ type foldMapIncr[K comparable, V any, O any] struct {
 	val O
 }
 
-func (fmi *foldMapIncr[K, V, O]) String() string { return fmi.n.String("fold_map") }
+func (fmi *foldMapIncr[K, V, O]) String() string { return fmi.n.String() }
 
 func (fmi *foldMapIncr[K, V, O]) Node() *Node { return fmi.n }
 
