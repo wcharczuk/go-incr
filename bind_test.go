@@ -1165,3 +1165,43 @@ func Test_Bind_unbind_propagatesUnobserved(t *testing.T) {
 	testutil.Equal(t, false, bm2.Node().hasObserver(o01))
 	testutil.Equal(t, false, bm2.Node().hasObserver(o02))
 }
+
+func Test_Bind_boundChange_doesntCauseRebind(t *testing.T) {
+	ctx := testContext()
+
+	v0 := Var(Root(), "foo")
+	m0 := Map(Root(), v0, ident)
+
+	var bindUpdates int
+	bv := Var(Root(), "a")
+	b := Bind(Root(), bv, func(bs *BindScope, _ string) Incr[string] {
+		bindUpdates++
+		return m0
+	})
+
+	m1 := Map(Root(), b, ident)
+
+	var m1Updates int
+	m1.Node().OnUpdate(func(_ context.Context) {
+		m1Updates++
+	})
+
+	g := New()
+	o := Observe(Root(), g, m1)
+
+	err := g.Stabilize(ctx)
+	testutil.NoError(t, err)
+
+	testutil.Equal(t, "foo", o.Value())
+	testutil.Equal(t, 1, bindUpdates)
+	testutil.Equal(t, 1, m1Updates)
+
+	v0.Set("not-foo")
+
+	err = g.Stabilize(ctx)
+	testutil.NoError(t, err)
+
+	testutil.Equal(t, 1, bindUpdates)
+	testutil.Equal(t, 2, m1Updates)
+	testutil.Equal(t, "not-foo", o.Value())
+}

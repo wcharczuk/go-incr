@@ -97,7 +97,23 @@ func (b *bindIncr[A, B]) Scope() *BindScope {
 	return b.scope
 }
 
+func (b *bindIncr[A, B]) didInputChange() bool {
+	return b.input.Node().changedAt >= b.n.recomputedAt
+}
+
 func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
+	// did input change?
+	if !b.didInputChange() {
+		// NOTE (wc): ok so this is a tangle.
+		// we halt computation based on boundAt for nodes that
+		// set their bound at. So if our bound node triggered
+		// this stabilization, and we want the stabilization
+		// to continue down to our children, we have to
+		// update our boundAt. Event though we didn't bind.
+		b.n.boundAt = b.n.graph.stabilizationNum
+		return nil
+	}
+
 	newIncr, err := b.fn(ctx, b.scope, b.input.Value())
 	if err != nil {
 		return err

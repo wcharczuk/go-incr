@@ -80,24 +80,24 @@ func main() {
 	}
 
 	// burn(t) = f(t)
-	// burn := func(bs *incr.BindScope, t int) incr.Incr[*int] {
-	// 	return incr.Bind(bs, fakeFormula, func(bs *incr.BindScope, formula string) incr.Incr[*int] {
-	// 		return f(bs, t)
-	// 	})
-	// }
-
 	burn := func(bs *incr.BindScope, t int) incr.Incr[*int] {
-		key := fmt.Sprintf("burn-%d", t)
-		if _, ok := cache[key]; ok {
-			return incr.WithinBindScope(bs, cache[key])
-		}
-		o := incr.Bind(bs, fakeFormula, func(bs *incr.BindScope, formula string) incr.Incr[*int] {
+		return incr.Bind(bs, fakeFormula, func(bs *incr.BindScope, formula string) incr.Incr[*int] {
 			return f(bs, t)
 		})
-		o.Node().SetLabel(key)
-		cache[key] = o
-		return o
 	}
+
+	// burn := func(bs *incr.BindScope, t int) incr.Incr[*int] {
+	// 	key := fmt.Sprintf("burn-%d", t)
+	// 	if _, ok := cache[key]; ok {
+	// 		return incr.WithinBindScope(bs, cache[key])
+	// 	}
+	// 	o := incr.Bind(bs, fakeFormula, func(bs *incr.BindScope, formula string) incr.Incr[*int] {
+	// 		return f(bs, t)
+	// 	})
+	// 	o.Node().SetLabel(key)
+	// 	cache[key] = o
+	// 	return o
+	// }
 
 	// cashbalance = cashbalance(t-1) - burn(t)
 	var cashBalance func(bs *incr.BindScope, t int) incr.Incr[*int]
