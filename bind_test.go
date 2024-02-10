@@ -971,6 +971,7 @@ func Test_Bind_unbindRegression(t *testing.T) {
 		cache[key] = r
 		return r
 	}
+
 	t.Run("m(0) = 0; if 3 <= t < 9, m(t) = m(t-1) + 1 else m(t) = m(t-1) - passes", func(t *testing.T) {
 		graph := New()
 		o := m(Root(), 9)

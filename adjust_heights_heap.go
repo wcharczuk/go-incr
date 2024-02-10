@@ -27,19 +27,8 @@ func (ah *adjustHeightsHeap) len() (out int) {
 	return
 }
 
-func (ah *adjustHeightsHeap) isEmpty() bool {
-	return ah.len() == 0
-}
-
 func (ah *adjustHeightsHeap) maxHeightAllowed() int {
 	return len(ah.nodesByHeight)
-}
-
-func (ah *adjustHeightsHeap) setMaxHeightAllowed(height int) {
-	if height < ah.maxHeightSeen {
-		return
-	}
-	ah.nodesByHeight = make([]map[Identifier]INode, height)
 }
 
 func (ah *adjustHeightsHeap) remove(node INode) {
