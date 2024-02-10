@@ -464,8 +464,15 @@ func Test_Bind_rebind(t *testing.T) {
 	s1 := Map(Root(), s0, ident)
 	s1.Node().SetLabel("s1")
 
-	o := Map2(Root(), bind, s1, concat)
+	o := Map2(Root(), bind, s1, func(a, b string) string {
+		return concat(a, b)
+	})
 	o.Node().SetLabel("o")
+
+	var childRecomputes int
+	o.Node().OnUpdate(func(_ context.Context) {
+		childRecomputes++
+	})
 
 	g := New()
 	_ = Observe(Root(), g, o)
@@ -475,6 +482,7 @@ func Test_Bind_rebind(t *testing.T) {
 	err = g.Stabilize(ctx)
 	testutil.Nil(t, err)
 	testutil.Equal(t, 1, bind.Node().boundAt)
+	testutil.Equal(t, 1, childRecomputes)
 
 	testutil.Equal(t, "a-value", av.Value())
 	testutil.Equal(t, "b-value", bv.Value())
@@ -485,6 +493,7 @@ func Test_Bind_rebind(t *testing.T) {
 	err = g.Stabilize(ctx)
 	testutil.Nil(t, err)
 	testutil.Equal(t, 1, bind.Node().boundAt)
+	testutil.Equal(t, 1, childRecomputes)
 
 	testutil.Equal(t, "a-value", av.Value())
 	testutil.Equal(t, "b-value", bv.Value())

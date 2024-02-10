@@ -327,9 +327,14 @@ func (n *Node) ShouldRecompute() bool {
 	if n.changedAt > n.recomputedAt {
 		return true
 	}
-
 	for _, p := range n.parents {
-		if p.Node().changedAt > n.recomputedAt || p.Node().boundAt > n.recomputedAt {
+		if p.Node().boundAt > 0 {
+			if p.Node().boundAt > n.recomputedAt {
+				return true
+			}
+			continue
+		}
+		if p.Node().changedAt > n.recomputedAt {
 			return true
 		}
 	}

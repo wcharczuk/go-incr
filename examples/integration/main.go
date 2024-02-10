@@ -80,6 +80,12 @@ func main() {
 	}
 
 	// burn(t) = f(t)
+	// burn := func(bs *incr.BindScope, t int) incr.Incr[*int] {
+	// 	return incr.Bind(bs, fakeFormula, func(bs *incr.BindScope, formula string) incr.Incr[*int] {
+	// 		return f(bs, t)
+	// 	})
+	// }
+
 	burn := func(bs *incr.BindScope, t int) incr.Incr[*int] {
 		key := fmt.Sprintf("burn-%d", t)
 		if _, ok := cache[key]; ok {
