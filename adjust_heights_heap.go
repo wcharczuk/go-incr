@@ -94,9 +94,7 @@ func pop[K comparable, V any](m map[K]V) (v V, ok bool) {
 	return
 }
 
-func (ah *adjustHeightsHeap) removeMin() (node INode, ok bool) {
-	ah.mu.Lock()
-	defer ah.mu.Unlock()
+func (ah *adjustHeightsHeap) removeMinUnsafe() (node INode, ok bool) {
 	if len(ah.lookup) == 0 {
 		return
 	}
@@ -127,21 +125,30 @@ func (ah *adjustHeightsHeap) setHeight(node INode, height int) error {
 }
 
 func (ah *adjustHeightsHeap) ensureHeightRequirement(child, parent INode) error {
+	ah.mu.Lock()
+	defer ah.mu.Unlock()
+	return ah.ensureHeightRequirementUnsafe(child, parent)
+}
+
+func (ah *adjustHeightsHeap) ensureHeightRequirementUnsafe(child, parent INode) error {
 	if parent.Node().height >= child.Node().height {
 		if err := ah.setHeight(child, parent.Node().height+1); err != nil {
 			return err
 		}
-		ah.add(child)
+		ah.removeUnsafe(child)
+		ah.addUnsafe(child)
 	}
 	return nil
 }
 
 func (ah *adjustHeightsHeap) adjustHeights(rh *recomputeHeap) error {
-	for ah.len() > 0 {
-		node, _ := ah.removeMin()
+	ah.mu.Lock()
+	defer ah.mu.Unlock()
+	for len(ah.lookup) > 0 {
+		node, _ := ah.removeMinUnsafe()
 		rh.fix(node.Node().id)
 		for _, child := range node.Node().children {
-			if err := ah.ensureHeightRequirement(child, node); err != nil {
+			if err := ah.ensureHeightRequirementUnsafe(child, node); err != nil {
 				return err
 			}
 		}
@@ -149,7 +156,7 @@ func (ah *adjustHeightsHeap) adjustHeights(rh *recomputeHeap) error {
 			scope := typed.Scope()
 			for _, nodeOnRight := range scope.rhsNodes {
 				if node.Node().graph.isNecessary(nodeOnRight) {
-					if err := ah.ensureHeightRequirement(node, nodeOnRight); err != nil {
+					if err := ah.ensureHeightRequirementUnsafe(node, nodeOnRight); err != nil {
 						return err
 					}
 				}
