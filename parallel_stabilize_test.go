@@ -24,35 +24,35 @@ func Test_ParallelStabilize(t *testing.T) {
 	_ = Observe(Root(), graph, m0)
 
 	err := graph.ParallelStabilize(ctx)
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
-	testutil.ItsEqual(t, 0, v0.Node().setAt)
-	testutil.ItsEqual(t, 1, v0.Node().changedAt)
-	testutil.ItsEqual(t, 0, v1.Node().setAt)
-	testutil.ItsEqual(t, 1, v1.Node().changedAt)
-	testutil.ItsEqual(t, 1, m0.Node().changedAt)
-	testutil.ItsEqual(t, 1, v0.Node().recomputedAt)
-	testutil.ItsEqual(t, 1, v1.Node().recomputedAt)
-	testutil.ItsEqual(t, 1, m0.Node().recomputedAt)
+	testutil.Equal(t, 0, v0.Node().setAt)
+	testutil.Equal(t, 1, v0.Node().changedAt)
+	testutil.Equal(t, 0, v1.Node().setAt)
+	testutil.Equal(t, 1, v1.Node().changedAt)
+	testutil.Equal(t, 1, m0.Node().changedAt)
+	testutil.Equal(t, 1, v0.Node().recomputedAt)
+	testutil.Equal(t, 1, v1.Node().recomputedAt)
+	testutil.Equal(t, 1, m0.Node().recomputedAt)
 
-	testutil.ItsEqual(t, "foo bar", m0.Value())
+	testutil.Equal(t, "foo bar", m0.Value())
 
 	v0.Set("not foo")
-	testutil.ItsEqual(t, 2, v0.Node().setAt)
-	testutil.ItsEqual(t, 0, v1.Node().setAt)
+	testutil.Equal(t, 2, v0.Node().setAt)
+	testutil.Equal(t, 0, v1.Node().setAt)
 
 	err = graph.ParallelStabilize(ctx)
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
-	testutil.ItsEqual(t, 2, v0.Node().changedAt)
-	testutil.ItsEqual(t, 1, v1.Node().changedAt)
-	testutil.ItsEqual(t, 2, m0.Node().changedAt)
+	testutil.Equal(t, 2, v0.Node().changedAt)
+	testutil.Equal(t, 1, v1.Node().changedAt)
+	testutil.Equal(t, 2, m0.Node().changedAt)
 
-	testutil.ItsEqual(t, 2, v0.Node().recomputedAt)
-	testutil.ItsEqual(t, 1, v1.Node().recomputedAt)
-	testutil.ItsEqual(t, 2, m0.Node().recomputedAt)
+	testutil.Equal(t, 2, v0.Node().recomputedAt)
+	testutil.Equal(t, 1, v1.Node().recomputedAt)
+	testutil.Equal(t, 2, m0.Node().recomputedAt)
 
-	testutil.ItsEqual(t, "not foo bar", m0.Value())
+	testutil.Equal(t, "not foo bar", m0.Value())
 }
 
 func Test_ParallelStabilize_alreadyStabilizing(t *testing.T) {
@@ -62,7 +62,7 @@ func Test_ParallelStabilize_alreadyStabilizing(t *testing.T) {
 	graph.status = StatusStabilizing
 
 	err := graph.ParallelStabilize(ctx)
-	testutil.ItsNotNil(t, err)
+	testutil.NotNil(t, err)
 }
 
 func Test_ParallelStabilize_jsDocs(t *testing.T) {
@@ -101,20 +101,20 @@ func Test_ParallelStabilize_jsDocs(t *testing.T) {
 	_ = Observe(Root(), graph, output)
 
 	err := graph.ParallelStabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, 2, len(output.Value()))
+	testutil.Nil(t, err)
+	testutil.Equal(t, 2, len(output.Value()))
 
 	data = append(data, Entry{
 		"5", now.Add(5 * time.Second),
 	})
 	err = graph.ParallelStabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, 2, len(output.Value()))
+	testutil.Nil(t, err)
+	testutil.Equal(t, 2, len(output.Value()))
 
 	i.Set(data)
 	err = graph.ParallelStabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, 3, len(output.Value()))
+	testutil.Nil(t, err)
+	testutil.Equal(t, 3, len(output.Value()))
 }
 
 func Test_ParallelStabilize_error(t *testing.T) {
@@ -129,7 +129,7 @@ func Test_ParallelStabilize_error(t *testing.T) {
 	_ = Observe(Root(), graph, m0)
 
 	err := graph.ParallelStabilize(ctx)
-	testutil.ItsNotNil(t, err)
+	testutil.NotNil(t, err)
 }
 
 func Test_parallelBatch(t *testing.T) {
@@ -141,9 +141,9 @@ func Test_parallelBatch(t *testing.T) {
 		return nil
 	})
 	err := pb.Wait()
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 	got := <-values
-	testutil.ItsEqual(t, "hello", got)
+	testutil.Equal(t, "hello", got)
 }
 
 func Test_parallelBatch_error(t *testing.T) {
@@ -153,18 +153,18 @@ func Test_parallelBatch_error(t *testing.T) {
 		return fmt.Errorf("this is a test")
 	})
 	err := pb.Wait()
-	testutil.ItsNotNil(t, err)
+	testutil.NotNil(t, err)
 }
 
 func Test_parallelBatch_SetLimit(t *testing.T) {
 	pb := new(parallelBatch)
 
 	pb.SetLimit(4)
-	testutil.ItsEqual(t, 0, len(pb.sem))
-	testutil.ItsEqual(t, 4, cap(pb.sem))
+	testutil.Equal(t, 0, len(pb.sem))
+	testutil.Equal(t, 4, cap(pb.sem))
 
 	pb.SetLimit(-1)
-	testutil.ItsNil(t, pb.sem)
+	testutil.Nil(t, pb.sem)
 
 	var recovered any
 	func() {
@@ -177,7 +177,7 @@ func Test_parallelBatch_SetLimit(t *testing.T) {
 		pb.SetLimit(4)
 	}()
 
-	testutil.ItsNotNil(t, recovered)
+	testutil.NotNil(t, recovered)
 }
 
 func Test_ParallelStabilize_Always(t *testing.T) {
@@ -197,20 +197,20 @@ func Test_ParallelStabilize_Always(t *testing.T) {
 
 	_ = g.ParallelStabilize(ctx)
 
-	testutil.ItsEqual(t, "foo", o.Value())
-	testutil.ItsEqual(t, 1, updates)
+	testutil.Equal(t, "foo", o.Value())
+	testutil.Equal(t, 1, updates)
 
 	_ = g.ParallelStabilize(ctx)
 
-	testutil.ItsEqual(t, "foo", o.Value())
-	testutil.ItsEqual(t, 2, updates)
+	testutil.Equal(t, "foo", o.Value())
+	testutil.Equal(t, 2, updates)
 
 	v.Set("bar")
 
 	_ = g.ParallelStabilize(ctx)
 
-	testutil.ItsEqual(t, "bar", o.Value())
-	testutil.ItsEqual(t, 3, updates)
+	testutil.Equal(t, "bar", o.Value())
+	testutil.Equal(t, 3, updates)
 }
 
 func Test_ParallelStabilize_always_cutoff(t *testing.T) {
@@ -230,22 +230,22 @@ func Test_ParallelStabilize_always_cutoff(t *testing.T) {
 	o := Observe(Root(), g, readFile)
 
 	err := g.ParallelStabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, "test-1", o.Value())
+	testutil.Nil(t, err)
+	testutil.Equal(t, "test-1", o.Value())
 
 	err = g.ParallelStabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, "test-1", o.Value())
+	testutil.Nil(t, err)
+	testutil.Equal(t, "test-1", o.Value())
 
 	modtime = 2
 
 	err = g.ParallelStabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, "test-2", o.Value())
+	testutil.Nil(t, err)
+	testutil.Equal(t, "test-2", o.Value())
 
 	err = g.ParallelStabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, "test-2", o.Value())
+	testutil.Nil(t, err)
+	testutil.Equal(t, "test-2", o.Value())
 }
 
 func Test_ParallelStabilize_always_cutoff_error(t *testing.T) {
@@ -265,10 +265,10 @@ func Test_ParallelStabilize_always_cutoff_error(t *testing.T) {
 	o := Observe(Root(), g, readFile)
 
 	err := g.ParallelStabilize(ctx)
-	testutil.ItsNotNil(t, err)
-	testutil.ItsEqual(t, "", o.Value())
+	testutil.NotNil(t, err)
+	testutil.Equal(t, "", o.Value())
 
-	testutil.ItsEqual(t, 3, g.recomputeHeap.len())
+	testutil.Equal(t, 3, g.recomputeHeap.len())
 }
 
 func Test_ParallelStabilize_recoversPanics(t *testing.T) {
@@ -280,7 +280,7 @@ func Test_ParallelStabilize_recoversPanics(t *testing.T) {
 	})
 	_ = Observe(Root(), g, gonnaPanic)
 	err := g.ParallelStabilize(testContext())
-	testutil.ItsNotNil(t, err)
+	testutil.NotNil(t, err)
 }
 
 func Test_ParallelStabilize_printsErrors(t *testing.T) {
@@ -298,8 +298,8 @@ func Test_ParallelStabilize_printsErrors(t *testing.T) {
 	_ = Observe(Root(), g, gonnaPanic)
 
 	err := g.ParallelStabilize(ctx)
-	testutil.ItsNotNil(t, err)
-	testutil.ItsNotEqual(t, 0, len(outBuf.String()))
-	testutil.ItsNotEqual(t, 0, len(errBuf.String()))
-	testutil.ItsEqual(t, true, strings.Contains(errBuf.String(), "this is only a test"))
+	testutil.NotNil(t, err)
+	testutil.NotEqual(t, 0, len(outBuf.String()))
+	testutil.NotEqual(t, 0, len(errBuf.String()))
+	testutil.Equal(t, true, strings.Contains(errBuf.String(), "this is only a test"))
 }

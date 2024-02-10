@@ -15,5 +15,5 @@ func Test_remove(t *testing.T) {
 	}
 	nodes = remove(nodes, n1.Node().id)
 
-	testutil.ItsEqual(t, 2, len(nodes))
+	testutil.Equal(t, 2, len(nodes))
 }

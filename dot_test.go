@@ -33,8 +33,8 @@ func Test_Dot(t *testing.T) {
 
 	buf := new(bytes.Buffer)
 	err := Dot(buf, g)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, golden, buf.String())
+	testutil.Nil(t, err)
+	testutil.Equal(t, golden, buf.String())
 }
 
 type errorWriter struct {
@@ -58,7 +58,7 @@ func Test_Dot_writeError(t *testing.T) {
 
 	buf := errorWriter{fmt.Errorf("this is just a test")}
 	err := Dot(buf, g)
-	testutil.ItsNotNil(t, err)
+	testutil.NotNil(t, err)
 }
 
 func Test_Dot_setAt(t *testing.T) {
@@ -85,8 +85,8 @@ func Test_Dot_setAt(t *testing.T) {
 
 	buf := new(bytes.Buffer)
 	err := Dot(buf, g)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, golden, buf.String())
+	testutil.Nil(t, err)
+	testutil.Equal(t, golden, buf.String())
 }
 
 func Test_Dot_changedAt(t *testing.T) {
@@ -113,6 +113,6 @@ func Test_Dot_changedAt(t *testing.T) {
 
 	buf := new(bytes.Buffer)
 	err := Dot(buf, g)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, golden, buf.String())
+	testutil.Nil(t, err)
+	testutil.Equal(t, golden, buf.String())
 }

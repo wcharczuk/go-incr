@@ -17,42 +17,42 @@ func Test_recomputeHeap_add(t *testing.T) {
 
 	// assertions post add n50
 	{
-		ItsEqual(t, 1, rh.len())
-		ItsEqual(t, 1, len(rh.heights[5]))
-		ItsEqual(t, true, rh.has(n50))
-		ItsEqual(t, false, rh.has(n60))
-		ItsEqual(t, false, rh.has(n70))
-		ItsEqual(t, 5, rh.minHeight)
-		ItsEqual(t, 5, rh.maxHeight)
+		Equal(t, 1, rh.len())
+		Equal(t, 1, len(rh.heights[5]))
+		Equal(t, true, rh.has(n50))
+		Equal(t, false, rh.has(n60))
+		Equal(t, false, rh.has(n70))
+		Equal(t, 5, rh.minHeight)
+		Equal(t, 5, rh.maxHeight)
 	}
 
 	rh.add(n60)
 
 	// assertions post add n60
 	{
-		ItsEqual(t, 2, rh.len())
-		ItsEqual(t, 1, len(rh.heights[5]))
-		ItsEqual(t, 1, len(rh.heights[6]))
-		ItsEqual(t, true, rh.has(n50))
-		ItsEqual(t, true, rh.has(n50))
-		ItsEqual(t, false, rh.has(n70))
-		ItsEqual(t, 5, rh.minHeight)
-		ItsEqual(t, 6, rh.maxHeight)
+		Equal(t, 2, rh.len())
+		Equal(t, 1, len(rh.heights[5]))
+		Equal(t, 1, len(rh.heights[6]))
+		Equal(t, true, rh.has(n50))
+		Equal(t, true, rh.has(n50))
+		Equal(t, false, rh.has(n70))
+		Equal(t, 5, rh.minHeight)
+		Equal(t, 6, rh.maxHeight)
 	}
 
 	rh.add(n70)
 
 	// assertions post add n70
 	{
-		ItsEqual(t, 3, rh.len())
-		ItsEqual(t, 1, len(rh.heights[5]))
-		ItsEqual(t, 1, len(rh.heights[6]))
-		ItsEqual(t, 1, len(rh.heights[7]))
-		ItsEqual(t, true, rh.has(n50))
-		ItsEqual(t, true, rh.has(n60))
-		ItsEqual(t, true, rh.has(n70))
-		ItsEqual(t, 5, rh.minHeight)
-		ItsEqual(t, 7, rh.maxHeight)
+		Equal(t, 3, rh.len())
+		Equal(t, 1, len(rh.heights[5]))
+		Equal(t, 1, len(rh.heights[6]))
+		Equal(t, 1, len(rh.heights[7]))
+		Equal(t, true, rh.has(n50))
+		Equal(t, true, rh.has(n60))
+		Equal(t, true, rh.has(n70))
+		Equal(t, 5, rh.minHeight)
+		Equal(t, 7, rh.maxHeight)
 	}
 }
 
@@ -87,36 +87,36 @@ func Test_recomputeHeap_removeMinHeight(t *testing.T) {
 	rh.add(n53)
 	rh.add(n54)
 
-	ItsEqual(t, 12, rh.len())
-	ItsEqual(t, 0, rh.minHeight)
-	ItsEqual(t, 5, rh.maxHeight)
+	Equal(t, 12, rh.len())
+	Equal(t, 0, rh.minHeight)
+	Equal(t, 5, rh.maxHeight)
 
 	output := rh.removeMinHeight()
-	ItsNil(t, rh.sanityCheck())
-	ItsEqual(t, 9, rh.len())
-	ItsEqual(t, 3, len(output))
-	ItsEqual(t, 0, len(rh.heights[0]))
-	ItsEqual(t, 4, len(rh.heights[1]))
-	ItsEqual(t, 5, len(rh.heights[5]))
+	Nil(t, rh.sanityCheck())
+	Equal(t, 9, rh.len())
+	Equal(t, 3, len(output))
+	Equal(t, 0, len(rh.heights[0]))
+	Equal(t, 4, len(rh.heights[1]))
+	Equal(t, 5, len(rh.heights[5]))
 
-	ItsEqual(t, 1, rh.minHeight)
-	ItsEqual(t, 5, rh.maxHeight)
-
-	output = rh.removeMinHeight()
-	ItsNil(t, rh.sanityCheck())
-	ItsEqual(t, 5, rh.len())
-	ItsEqual(t, 4, len(output))
-	ItsEqual(t, 0, len(rh.heights[0]))
-	ItsEqual(t, 0, len(rh.heights[1]))
-	ItsEqual(t, 5, len(rh.heights[5]))
+	Equal(t, 1, rh.minHeight)
+	Equal(t, 5, rh.maxHeight)
 
 	output = rh.removeMinHeight()
-	ItsNil(t, rh.sanityCheck())
-	ItsEqual(t, 0, rh.len())
-	ItsEqual(t, 5, len(output))
-	ItsEqual(t, 0, len(rh.heights[0]))
-	ItsEqual(t, 0, len(rh.heights[1]))
-	ItsEqual(t, 0, len(rh.heights[5]))
+	Nil(t, rh.sanityCheck())
+	Equal(t, 5, rh.len())
+	Equal(t, 4, len(output))
+	Equal(t, 0, len(rh.heights[0]))
+	Equal(t, 0, len(rh.heights[1]))
+	Equal(t, 5, len(rh.heights[5]))
+
+	output = rh.removeMinHeight()
+	Nil(t, rh.sanityCheck())
+	Equal(t, 0, rh.len())
+	Equal(t, 5, len(output))
+	Equal(t, 0, len(rh.heights[0]))
+	Equal(t, 0, len(rh.heights[1]))
+	Equal(t, 0, len(rh.heights[5]))
 
 	rh.add(n50)
 	rh.add(n51)
@@ -124,18 +124,18 @@ func Test_recomputeHeap_removeMinHeight(t *testing.T) {
 	rh.add(n53)
 	rh.add(n54)
 
-	ItsNil(t, rh.sanityCheck())
-	ItsEqual(t, 5, rh.len())
-	ItsEqual(t, 5, rh.minHeight)
-	ItsEqual(t, 5, rh.maxHeight)
+	Nil(t, rh.sanityCheck())
+	Equal(t, 5, rh.len())
+	Equal(t, 5, rh.minHeight)
+	Equal(t, 5, rh.maxHeight)
 
 	output = rh.removeMinHeight()
-	ItsNil(t, rh.sanityCheck())
-	ItsEqual(t, 0, rh.len())
-	ItsEqual(t, 5, len(output))
-	ItsEqual(t, 0, len(rh.heights[0]))
-	ItsEqual(t, 0, len(rh.heights[1]))
-	ItsEqual(t, 0, len(rh.heights[5]))
+	Nil(t, rh.sanityCheck())
+	Equal(t, 0, rh.len())
+	Equal(t, 5, len(output))
+	Equal(t, 0, len(rh.heights[0]))
+	Equal(t, 0, len(rh.heights[1]))
+	Equal(t, 0, len(rh.heights[5]))
 }
 
 func Test_recomputeHeap_remove(t *testing.T) {
@@ -157,49 +157,49 @@ func Test_recomputeHeap_remove(t *testing.T) {
 	rh.add(n22)
 	rh.add(n30)
 
-	ItsNil(t, rh.sanityCheck())
-	ItsEqual(t, true, rh.has(n10))
-	ItsEqual(t, true, rh.has(n11))
-	ItsEqual(t, true, rh.has(n20))
-	ItsEqual(t, true, rh.has(n21))
-	ItsEqual(t, true, rh.has(n22))
-	ItsEqual(t, true, rh.has(n30))
+	Nil(t, rh.sanityCheck())
+	Equal(t, true, rh.has(n10))
+	Equal(t, true, rh.has(n11))
+	Equal(t, true, rh.has(n20))
+	Equal(t, true, rh.has(n21))
+	Equal(t, true, rh.has(n22))
+	Equal(t, true, rh.has(n30))
 
 	rh.remove(n21)
 
-	ItsNil(t, rh.sanityCheck())
-	ItsEqual(t, 5, rh.len())
-	ItsEqual(t, true, rh.has(n10))
-	ItsEqual(t, true, rh.has(n11))
-	ItsEqual(t, true, rh.has(n20))
-	ItsEqual(t, false, rh.has(n21))
+	Nil(t, rh.sanityCheck())
+	Equal(t, 5, rh.len())
+	Equal(t, true, rh.has(n10))
+	Equal(t, true, rh.has(n11))
+	Equal(t, true, rh.has(n20))
+	Equal(t, false, rh.has(n21))
 
 	for _, h := range rh.heights {
 		_, ok := h[n21.n.id]
-		ItsEqual(t, false, ok)
+		Equal(t, false, ok)
 	}
 
-	ItsEqual(t, true, rh.has(n22))
-	ItsEqual(t, true, rh.has(n30))
+	Equal(t, true, rh.has(n22))
+	Equal(t, true, rh.has(n30))
 
-	ItsEqual(t, 2, len(rh.heights[2]))
+	Equal(t, 2, len(rh.heights[2]))
 
 	rh.remove(n10)
 	rh.remove(n11)
 
-	ItsNil(t, rh.sanityCheck())
-	ItsEqual(t, 3, rh.len())
-	ItsEqual(t, 0, len(rh.heights[1]))
-	ItsEqual(t, 2, rh.minHeight)
-	ItsEqual(t, 3, rh.maxHeight)
+	Nil(t, rh.sanityCheck())
+	Equal(t, 3, rh.len())
+	Equal(t, 0, len(rh.heights[1]))
+	Equal(t, 2, rh.minHeight)
+	Equal(t, 3, rh.maxHeight)
 
 	for _, h := range rh.heights {
 		_, ok := h[n10.n.id]
-		ItsEqual(t, false, ok)
+		Equal(t, false, ok)
 	}
 	for _, h := range rh.heights {
 		_, ok := h[n11.n.id]
-		ItsEqual(t, false, ok)
+		Equal(t, false, ok)
 	}
 }
 
@@ -210,7 +210,7 @@ func Test_recomputeHeap_nextMinHeightUnsafe_noItems(t *testing.T) {
 	rh.maxHeight = 3
 
 	next := rh.nextMinHeightUnsafe()
-	ItsEqual(t, 0, next)
+	Equal(t, 0, next)
 }
 
 func Test_recomputeHeap_nextMinHeightUnsafe_pastMax(t *testing.T) {
@@ -221,31 +221,31 @@ func Test_recomputeHeap_nextMinHeightUnsafe_pastMax(t *testing.T) {
 
 	rh.lookup[r0.Node().id] = r0
 	next := rh.nextMinHeightUnsafe()
-	ItsEqual(t, 0, next)
+	Equal(t, 0, next)
 }
 
 func Test_recomputeHeap_maybeAddNewHeights(t *testing.T) {
 	rh := newRecomputeHeap(8)
-	ItsEqual(t, 8, len(rh.heights))
+	Equal(t, 8, len(rh.heights))
 	rh.maybeAddNewHeights(9) // we use (1) indexing!
-	ItsEqual(t, 10, len(rh.heights))
+	Equal(t, 10, len(rh.heights))
 }
 
 func Test_recomputeHeap_add_adjustsHeights(t *testing.T) {
 	rh := newRecomputeHeap(8)
-	ItsEqual(t, 8, len(rh.heights))
+	Equal(t, 8, len(rh.heights))
 
 	v0 := newHeightIncr(32)
 	rh.add(v0)
-	ItsEqual(t, 33, len(rh.heights))
-	ItsEqual(t, 32, rh.minHeight)
-	ItsEqual(t, 32, rh.maxHeight)
+	Equal(t, 33, len(rh.heights))
+	Equal(t, 32, rh.minHeight)
+	Equal(t, 32, rh.maxHeight)
 
 	v1 := newHeightIncr(64)
 	rh.add(v1)
-	ItsEqual(t, 65, len(rh.heights))
-	ItsEqual(t, 32, rh.minHeight)
-	ItsEqual(t, 64, rh.maxHeight)
+	Equal(t, 65, len(rh.heights))
+	Equal(t, 32, rh.minHeight)
+	Equal(t, 64, rh.maxHeight)
 }
 
 func Test_recomputeHeap_add_regression2(t *testing.T) {
@@ -303,12 +303,12 @@ func Test_recomputeHeap_add_regression2(t *testing.T) {
 
 	// now start """stabilization"""
 
-	ItsEqual(t, 1, rh.minHeight)
-	ItsEqual(t, 5, len(rh.heights[1]))
+	Equal(t, 1, rh.minHeight)
+	Equal(t, 5, len(rh.heights[1]))
 
 	minHeightBlock := rh.removeMinHeight()
-	ItsEqual(t, 5, len(minHeightBlock))
-	ItsEqual(t, true, allHeight(minHeightBlock, 1))
+	Equal(t, 5, len(minHeightBlock))
+	Equal(t, true, allHeight(minHeightBlock, 1))
 }
 
 func Test_recomputeHeap_fix(t *testing.T) {
@@ -320,40 +320,40 @@ func Test_recomputeHeap_fix(t *testing.T) {
 	v2 := newHeightIncr(4)
 	rh.add(v2)
 
-	ItsEqual(t, 2, rh.minHeight)
-	ItsEqual(t, 1, len(rh.heights[2]))
-	ItsEqual(t, 1, len(rh.heights[3]))
-	ItsEqual(t, 1, len(rh.heights[4]))
-	ItsEqual(t, 4, rh.maxHeight)
+	Equal(t, 2, rh.minHeight)
+	Equal(t, 1, len(rh.heights[2]))
+	Equal(t, 1, len(rh.heights[3]))
+	Equal(t, 1, len(rh.heights[4]))
+	Equal(t, 4, rh.maxHeight)
 
 	v0.n.height = 1
 	rh.fix(v0.n.id)
 
-	ItsEqual(t, 1, rh.minHeight)
-	ItsEqual(t, 1, len(rh.heights[1]))
-	ItsEqual(t, 0, len(rh.heights[2]))
-	ItsEqual(t, 1, len(rh.heights[3]))
-	ItsEqual(t, 1, len(rh.heights[4]))
-	ItsEqual(t, 4, rh.maxHeight)
+	Equal(t, 1, rh.minHeight)
+	Equal(t, 1, len(rh.heights[1]))
+	Equal(t, 0, len(rh.heights[2]))
+	Equal(t, 1, len(rh.heights[3]))
+	Equal(t, 1, len(rh.heights[4]))
+	Equal(t, 4, rh.maxHeight)
 
 	rh.fix(v0.n.id)
-	ItsEqual(t, 1, rh.minHeight)
-	ItsEqual(t, 1, len(rh.heights[1]))
-	ItsEqual(t, 0, len(rh.heights[2]))
-	ItsEqual(t, 1, len(rh.heights[3]))
-	ItsEqual(t, 1, len(rh.heights[4]))
-	ItsEqual(t, 4, rh.maxHeight)
+	Equal(t, 1, rh.minHeight)
+	Equal(t, 1, len(rh.heights[1]))
+	Equal(t, 0, len(rh.heights[2]))
+	Equal(t, 1, len(rh.heights[3]))
+	Equal(t, 1, len(rh.heights[4]))
+	Equal(t, 4, rh.maxHeight)
 
 	v2.n.height = 5
 	rh.fix(v2.n.id)
 
-	ItsEqual(t, 1, rh.minHeight)
-	ItsEqual(t, 1, len(rh.heights[1]))
-	ItsEqual(t, 0, len(rh.heights[2]))
-	ItsEqual(t, 1, len(rh.heights[3]))
-	ItsEqual(t, 0, len(rh.heights[4]))
-	ItsEqual(t, 1, len(rh.heights[5]))
-	ItsEqual(t, 5, rh.maxHeight)
+	Equal(t, 1, rh.minHeight)
+	Equal(t, 1, len(rh.heights[1]))
+	Equal(t, 0, len(rh.heights[2]))
+	Equal(t, 1, len(rh.heights[3]))
+	Equal(t, 0, len(rh.heights[4]))
+	Equal(t, 1, len(rh.heights[5]))
+	Equal(t, 5, rh.maxHeight)
 }
 
 func Test_recomputeHeap_sanityCheck_ok_badNodeHeight(t *testing.T) {
@@ -374,12 +374,12 @@ func Test_recomputeHeap_sanityCheck_ok_badNodeHeight(t *testing.T) {
 	}
 
 	err := rh.sanityCheck()
-	ItsNil(t, err)
+	Nil(t, err)
 
 	n_3_00.n.height = 2
 
 	err = rh.sanityCheck()
-	ItsNotNil(t, err)
+	NotNil(t, err)
 }
 
 func Test_recomputeHeap_sanityCheck_badItemHeight(t *testing.T) {
@@ -403,7 +403,7 @@ func Test_recomputeHeap_sanityCheck_badItemHeight(t *testing.T) {
 
 	n_2_00.Node().heightInRecomputeHeap = 1
 	err := rh.sanityCheck()
-	ItsNotNil(t, err)
+	NotNil(t, err)
 }
 
 func Test_recomputeHeap_clear(t *testing.T) {
@@ -417,29 +417,29 @@ func Test_recomputeHeap_clear(t *testing.T) {
 	rh.add(n60)
 	rh.add(n70)
 
-	ItsEqual(t, 3, len(rh.lookup))
-	ItsEqual(t, 1, len(rh.heights[5]))
-	ItsEqual(t, 1, len(rh.heights[6]))
-	ItsEqual(t, 1, len(rh.heights[7]))
-	ItsEqual(t, 5, rh.minHeight)
-	ItsEqual(t, 7, rh.maxHeight)
+	Equal(t, 3, len(rh.lookup))
+	Equal(t, 1, len(rh.heights[5]))
+	Equal(t, 1, len(rh.heights[6]))
+	Equal(t, 1, len(rh.heights[7]))
+	Equal(t, 5, rh.minHeight)
+	Equal(t, 7, rh.maxHeight)
 
 	rh.Clear()
 
-	ItsEqual(t, 0, len(rh.lookup))
-	ItsEqual(t, 0, len(rh.heights[5]))
-	ItsEqual(t, 0, len(rh.heights[6]))
-	ItsEqual(t, 0, len(rh.heights[7]))
-	ItsEqual(t, 0, rh.minHeight)
-	ItsEqual(t, 0, rh.maxHeight)
+	Equal(t, 0, len(rh.lookup))
+	Equal(t, 0, len(rh.heights[5]))
+	Equal(t, 0, len(rh.heights[6]))
+	Equal(t, 0, len(rh.heights[7]))
+	Equal(t, 0, rh.minHeight)
+	Equal(t, 0, rh.maxHeight)
 
 	rh.add(n50)
 	rh.add(n60)
 	rh.add(n70)
 
-	ItsEqual(t, 3, len(rh.lookup))
-	ItsEqual(t, 1, len(rh.heights[5]))
-	ItsEqual(t, 1, len(rh.heights[6]))
-	ItsEqual(t, 1, len(rh.heights[7]))
-	ItsEqual(t, 7, rh.maxHeight)
+	Equal(t, 3, len(rh.lookup))
+	Equal(t, 1, len(rh.heights[5]))
+	Equal(t, 1, len(rh.heights[6]))
+	Equal(t, 1, len(rh.heights[7]))
+	Equal(t, 7, rh.maxHeight)
 }

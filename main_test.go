@@ -33,7 +33,7 @@ func epsilonContext(t *testing.T, delta float64) func(context.Context, float64, 
 	t.Helper()
 	return func(ctx context.Context, v0, v1 float64) (bool, error) {
 		t.Helper()
-		testutil.ItsBlueDye(ctx, t)
+		testutil.BlueDye(ctx, t)
 		return math.Abs(v1-v0) <= delta, nil
 	}
 }

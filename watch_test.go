@@ -12,5 +12,5 @@ func Test_Watch(t *testing.T) {
 	w0 := Watch(Root(), r0)
 	w0.Node().SetLabel("w0")
 
-	testutil.ItMatches(t, "watch\\[.*\\]:w0", w0.(fmt.Stringer).String())
+	testutil.Matches(t, "watch\\[.*\\]:w0", w0.(fmt.Stringer).String())
 }

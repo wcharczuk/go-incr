@@ -13,32 +13,32 @@ func Test_New(t *testing.T) {
 	g := New()
 	_ = Observe(Root(), g, m0)
 
-	testutil.ItsEqual(t, true, g.IsObserving(r0))
-	testutil.ItsEqual(t, true, g.IsObserving(r1))
-	testutil.ItsEqual(t, true, g.IsObserving(m0))
+	testutil.Equal(t, true, g.IsObserving(r0))
+	testutil.Equal(t, true, g.IsObserving(r1))
+	testutil.Equal(t, true, g.IsObserving(m0))
 
 	m1 := Map2(Root(), r0, r1, func(v0, v1 string) string { return v0 + v1 })
-	testutil.ItsEqual(t, false, g.IsObserving(m1))
+	testutil.Equal(t, false, g.IsObserving(m1))
 }
 
 func Test_New_options(t *testing.T) {
 	g := New(GraphMaxRecomputeHeapHeight(1024))
-	testutil.ItsNotEqual(t, 1024, DefaultMaxHeight)
-	testutil.ItsEqual(t, 1024, len(g.recomputeHeap.heights))
+	testutil.NotEqual(t, 1024, DefaultMaxHeight)
+	testutil.Equal(t, 1024, len(g.recomputeHeap.heights))
 }
 
 func Test_Graph_Metadata(t *testing.T) {
 	g := New()
-	testutil.ItsNil(t, g.Metadata())
+	testutil.Nil(t, g.Metadata())
 	g.SetMetadata("foo")
-	testutil.ItsEqual(t, "foo", g.Metadata())
+	testutil.Equal(t, "foo", g.Metadata())
 }
 
 func Test_Graph_Label(t *testing.T) {
 	g := New()
-	testutil.ItsEqual(t, "", g.Label())
+	testutil.Equal(t, "", g.Label())
 	g.SetLabel("hello")
-	testutil.ItsEqual(t, "hello", g.Label())
+	testutil.Equal(t, "hello", g.Label())
 }
 
 func Test_Graph_UnobserveNodes(t *testing.T) {
@@ -58,33 +58,33 @@ func Test_Graph_UnobserveNodes(t *testing.T) {
 	o1 := Observe(Root(), g, m1)
 	_ = Observe(Root(), g, am2)
 
-	testutil.ItsEqual(t, true, g.IsObserving(r0))
-	testutil.ItsEqual(t, true, g.IsObserving(m0))
-	testutil.ItsEqual(t, true, g.IsObserving(m1))
-	testutil.ItsEqual(t, false, g.IsObserving(m2), "using the Observe incremental we actually don't care about m2!")
+	testutil.Equal(t, true, g.IsObserving(r0))
+	testutil.Equal(t, true, g.IsObserving(m0))
+	testutil.Equal(t, true, g.IsObserving(m1))
+	testutil.Equal(t, false, g.IsObserving(m2), "using the Observe incremental we actually don't care about m2!")
 
-	testutil.ItsEqual(t, true, g.IsObserving(ar0))
-	testutil.ItsEqual(t, true, g.IsObserving(am0))
-	testutil.ItsEqual(t, true, g.IsObserving(am1))
-	testutil.ItsEqual(t, true, g.IsObserving(am2))
+	testutil.Equal(t, true, g.IsObserving(ar0))
+	testutil.Equal(t, true, g.IsObserving(am0))
+	testutil.Equal(t, true, g.IsObserving(am1))
+	testutil.Equal(t, true, g.IsObserving(am2))
 
 	Unlink(o1, m1)
 	g.unobserveNodes(ctx, m1, o1)
 
-	testutil.ItsEqual(t, false, g.IsObserving(r0))
-	testutil.ItsEqual(t, false, g.IsObserving(m0))
-	testutil.ItsEqual(t, false, g.IsObserving(m1))
-	testutil.ItsEqual(t, false, g.IsObserving(m2))
+	testutil.Equal(t, false, g.IsObserving(r0))
+	testutil.Equal(t, false, g.IsObserving(m0))
+	testutil.Equal(t, false, g.IsObserving(m1))
+	testutil.Equal(t, false, g.IsObserving(m2))
 
-	testutil.ItsNil(t, r0.Node().graph)
-	testutil.ItsNil(t, m0.Node().graph)
-	testutil.ItsNil(t, m1.Node().graph)
-	testutil.ItsNil(t, m2.Node().graph)
+	testutil.Nil(t, r0.Node().graph)
+	testutil.Nil(t, m0.Node().graph)
+	testutil.Nil(t, m1.Node().graph)
+	testutil.Nil(t, m2.Node().graph)
 
-	testutil.ItsEqual(t, true, g.IsObserving(ar0))
-	testutil.ItsEqual(t, true, g.IsObserving(am0))
-	testutil.ItsEqual(t, true, g.IsObserving(am1))
-	testutil.ItsEqual(t, true, g.IsObserving(am2))
+	testutil.Equal(t, true, g.IsObserving(ar0))
+	testutil.Equal(t, true, g.IsObserving(am0))
+	testutil.Equal(t, true, g.IsObserving(am1))
+	testutil.Equal(t, true, g.IsObserving(am2))
 }
 
 func Test_Graph_UnobserveNodes_notObserving(t *testing.T) {
@@ -103,31 +103,31 @@ func Test_Graph_UnobserveNodes_notObserving(t *testing.T) {
 	g := New()
 	o := Observe(Root(), g, m1)
 
-	testutil.ItsEqual(t, true, g.IsObserving(r0))
-	testutil.ItsEqual(t, true, g.IsObserving(m0))
-	testutil.ItsEqual(t, true, g.IsObserving(m1))
-	testutil.ItsEqual(t, false, g.IsObserving(m2), "we observed m1, which is the parent of m2!")
+	testutil.Equal(t, true, g.IsObserving(r0))
+	testutil.Equal(t, true, g.IsObserving(m0))
+	testutil.Equal(t, true, g.IsObserving(m1))
+	testutil.Equal(t, false, g.IsObserving(m2), "we observed m1, which is the parent of m2!")
 
-	testutil.ItsEqual(t, false, g.IsObserving(ar0))
-	testutil.ItsEqual(t, false, g.IsObserving(am0))
-	testutil.ItsEqual(t, false, g.IsObserving(am1))
-	testutil.ItsEqual(t, false, g.IsObserving(am2))
+	testutil.Equal(t, false, g.IsObserving(ar0))
+	testutil.Equal(t, false, g.IsObserving(am0))
+	testutil.Equal(t, false, g.IsObserving(am1))
+	testutil.Equal(t, false, g.IsObserving(am2))
 
 	g.unobserveNodes(ctx, am1, o)
 
-	testutil.ItsEqual(t, true, g.IsObserving(r0))
-	testutil.ItsEqual(t, true, g.IsObserving(m0))
-	testutil.ItsEqual(t, true, g.IsObserving(m1))
-	testutil.ItsEqual(t, false, g.IsObserving(m2))
+	testutil.Equal(t, true, g.IsObserving(r0))
+	testutil.Equal(t, true, g.IsObserving(m0))
+	testutil.Equal(t, true, g.IsObserving(m1))
+	testutil.Equal(t, false, g.IsObserving(m2))
 }
 
 func Test_Graph_IsStabilizing(t *testing.T) {
 	g := New()
-	testutil.ItsEqual(t, false, g.IsStabilizing())
+	testutil.Equal(t, false, g.IsStabilizing())
 	g.status = StatusStabilizing
-	testutil.ItsEqual(t, true, g.IsStabilizing())
+	testutil.Equal(t, true, g.IsStabilizing())
 	g.status = StatusNotStabilizing
-	testutil.ItsEqual(t, false, g.IsStabilizing())
+	testutil.Equal(t, false, g.IsStabilizing())
 }
 
 func Test_Graph_addObserver_rediscover(t *testing.T) {
@@ -136,17 +136,17 @@ func Test_Graph_addObserver_rediscover(t *testing.T) {
 	v := Var(Root(), "hello")
 	o := Observe(Root(), g, v)
 	_, ok := g.observers[o.Node().ID()]
-	testutil.ItsEqual(t, true, ok)
-	testutil.ItsEqual(t, 2, g.numNodes)
-	testutil.ItsEqual(t, 1, o.Node().height)
-	testutil.ItsEqual(t, true, g.recomputeHeap.has(o))
+	testutil.Equal(t, true, ok)
+	testutil.Equal(t, 2, g.numNodes)
+	testutil.Equal(t, 1, o.Node().height)
+	testutil.Equal(t, true, g.recomputeHeap.has(o))
 	g.recomputeHeap.remove(o)
-	testutil.ItsEqual(t, false, g.recomputeHeap.has(o))
+	testutil.Equal(t, false, g.recomputeHeap.has(o))
 
 	g.addObserver(o)
-	testutil.ItsEqual(t, 2, g.numNodes)
-	testutil.ItsEqual(t, 1, o.Node().height)
-	testutil.ItsEqual(t, false, g.recomputeHeap.has(o))
+	testutil.Equal(t, 2, g.numNodes)
+	testutil.Equal(t, 1, o.Node().height)
+	testutil.Equal(t, false, g.recomputeHeap.has(o))
 }
 
 func Test_Graph_recompute_recomputesObservers(t *testing.T) {
@@ -155,11 +155,11 @@ func Test_Graph_recompute_recomputesObservers(t *testing.T) {
 	o := Observe(Root(), g, n)
 	g.recomputeHeap.Clear()
 
-	testutil.ItsEqual(t, false, g.recomputeHeap.has(n))
-	testutil.ItsEqual(t, false, g.recomputeHeap.has(o))
+	testutil.Equal(t, false, g.recomputeHeap.has(n))
+	testutil.Equal(t, false, g.recomputeHeap.has(o))
 
 	err := g.recompute(testContext(), n)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, 1, g.recomputeHeap.len())
-	testutil.ItsEqual(t, true, g.recomputeHeap.has(o))
+	testutil.Nil(t, err)
+	testutil.Equal(t, 1, g.recomputeHeap.len())
+	testutil.Equal(t, true, g.recomputeHeap.has(o))
 }

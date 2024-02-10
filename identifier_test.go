@@ -16,16 +16,16 @@ var (
 
 func Test_Identifier(t *testing.T) {
 	id := NewIdentifier()
-	testutil.ItsEqual(t, hex.EncodeToString(id[:]), id.String())
-	testutil.ItsEqual(t, hex.EncodeToString(id[12:]), id.Short())
+	testutil.Equal(t, hex.EncodeToString(id[:]), id.String())
+	testutil.Equal(t, hex.EncodeToString(id[12:]), id.Short())
 }
 
 func Test_Identifier_IsZero(t *testing.T) {
 	id := NewIdentifier()
-	testutil.ItsEqual(t, false, id.IsZero())
-	testutil.ItsEqual(t, true, zero.IsZero())
+	testutil.Equal(t, false, id.IsZero())
+	testutil.Equal(t, true, zero.IsZero())
 	var test Identifier
-	testutil.ItsEqual(t, true, test.IsZero())
+	testutil.Equal(t, true, test.IsZero())
 }
 
 func Test_ParseIdentifier(t *testing.T) {
@@ -44,11 +44,11 @@ func Test_ParseIdentifier(t *testing.T) {
 	for _, tc := range testCases {
 		parsed, err := ParseIdentifier(tc.Input)
 		if tc.ExpectedErr != nil {
-			testutil.ItsNotNil(t, err)
-			testutil.ItsEqual(t, tc.ExpectedErr.Error(), err.Error())
+			testutil.NotNil(t, err)
+			testutil.Equal(t, tc.ExpectedErr.Error(), err.Error())
 		} else {
-			testutil.ItsNil(t, err, tc.Input)
-			testutil.ItsEqual(t, tc.Expected, parsed, tc.Input)
+			testutil.Nil(t, err, tc.Input)
+			testutil.Equal(t, tc.Expected, parsed, tc.Input)
 		}
 	}
 }
@@ -62,20 +62,20 @@ func Test_Identifier_json(t *testing.T) {
 		ID: NewIdentifier(),
 	}
 	data, err := json.Marshal(testValue)
-	testutil.ItsNil(t, err)
-	testutil.ItsNotEqual(t, 0, len(data))
+	testutil.Nil(t, err)
+	testutil.NotEqual(t, 0, len(data))
 
 	var verify jsonTest
 	err = json.Unmarshal(data, &verify)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, testValue.ID, verify.ID)
+	testutil.Nil(t, err)
+	testutil.Equal(t, testValue.ID, verify.ID)
 }
 
 func Test_Identifier_jsonError(t *testing.T) {
 	data := []byte(`{"id":"----------"}`)
 	var verify jsonTest
 	err := json.Unmarshal(data, &verify)
-	testutil.ItsNotNil(t, err)
+	testutil.NotNil(t, err)
 	var zero Identifier
-	testutil.ItsEqual(t, zero, verify.ID)
+	testutil.Equal(t, zero, verify.ID)
 }

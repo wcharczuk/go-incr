@@ -11,45 +11,45 @@ import (
 
 func Test_NewNode(t *testing.T) {
 	n := NewNode("test_node")
-	testutil.ItsNotNil(t, n.id)
-	testutil.ItsNil(t, n.graph)
-	testutil.ItsEqual(t, "test_node", n.kind)
-	testutil.ItsEqual(t, 0, len(n.parents))
-	testutil.ItsEqual(t, 0, len(n.children))
-	testutil.ItsEqual(t, "", n.label)
-	testutil.ItsEqual(t, 0, n.height)
-	testutil.ItsEqual(t, 0, n.changedAt)
-	testutil.ItsEqual(t, 0, n.setAt)
-	testutil.ItsEqual(t, 0, n.recomputedAt)
-	testutil.ItsNil(t, n.onUpdateHandlers)
-	testutil.ItsNil(t, n.onErrorHandlers)
-	testutil.ItsNil(t, n.stabilize)
-	testutil.ItsNil(t, n.cutoff)
-	testutil.ItsEqual(t, 0, n.numRecomputes)
-	testutil.ItsNil(t, n.metadata)
+	testutil.NotNil(t, n.id)
+	testutil.Nil(t, n.graph)
+	testutil.Equal(t, "test_node", n.kind)
+	testutil.Equal(t, 0, len(n.parents))
+	testutil.Equal(t, 0, len(n.children))
+	testutil.Equal(t, "", n.label)
+	testutil.Equal(t, 0, n.height)
+	testutil.Equal(t, 0, n.changedAt)
+	testutil.Equal(t, 0, n.setAt)
+	testutil.Equal(t, 0, n.recomputedAt)
+	testutil.Nil(t, n.onUpdateHandlers)
+	testutil.Nil(t, n.onErrorHandlers)
+	testutil.Nil(t, n.stabilize)
+	testutil.Nil(t, n.cutoff)
+	testutil.Equal(t, 0, n.numRecomputes)
+	testutil.Nil(t, n.metadata)
 }
 
 func Test_Node_ID(t *testing.T) {
 	n := NewNode("test_node")
-	testutil.ItsEqual(t, false, n.ID().IsZero())
+	testutil.Equal(t, false, n.ID().IsZero())
 
 	other := NewIdentifier()
 	n.id = other
-	testutil.ItsEqual(t, other, n.ID())
+	testutil.Equal(t, other, n.ID())
 }
 
 func Test_Node_Label(t *testing.T) {
 	n := NewNode("test_node")
-	testutil.ItsEqual(t, "", n.Label())
+	testutil.Equal(t, "", n.Label())
 	n.SetLabel("foo")
-	testutil.ItsEqual(t, "foo", n.Label())
+	testutil.Equal(t, "foo", n.Label())
 }
 
 func Test_Node_Metadata(t *testing.T) {
 	n := NewNode("test_node")
-	testutil.ItsEqual(t, nil, n.Metadata())
+	testutil.Equal(t, nil, n.Metadata())
 	n.SetMetadata("foo")
-	testutil.ItsEqual(t, "foo", n.Metadata())
+	testutil.Equal(t, "foo", n.Metadata())
 }
 
 func Test_Link(t *testing.T) {
@@ -62,34 +62,34 @@ func Test_Link(t *testing.T) {
 	Link(c, p0, p1, p2)
 
 	// no nodes depend on p, p is not an input to any nodes
-	testutil.ItsEqual(t, 3, len(c.n.parents))
-	testutil.ItsEqual(t, 0, len(c.n.children))
+	testutil.Equal(t, 3, len(c.n.parents))
+	testutil.Equal(t, 0, len(c.n.children))
 
-	testutil.ItsEqual(t, true, hasKey(c.n.parents, p0.n.id))
-	testutil.ItsEqual(t, true, hasKey(c.n.parents, p1.n.id))
-	testutil.ItsEqual(t, true, hasKey(c.n.parents, p2.n.id))
+	testutil.Equal(t, true, hasKey(c.n.parents, p0.n.id))
+	testutil.Equal(t, true, hasKey(c.n.parents, p1.n.id))
+	testutil.Equal(t, true, hasKey(c.n.parents, p2.n.id))
 
-	testutil.ItsEqual(t, 1, len(p0.n.children))
-	testutil.ItsEqual(t, true, hasKey(p0.n.children, c.n.id))
-	testutil.ItsEqual(t, 0, len(p0.n.parents))
+	testutil.Equal(t, 1, len(p0.n.children))
+	testutil.Equal(t, true, hasKey(p0.n.children, c.n.id))
+	testutil.Equal(t, 0, len(p0.n.parents))
 
-	testutil.ItsEqual(t, 1, len(p1.n.children))
-	testutil.ItsEqual(t, true, hasKey(p1.n.children, c.n.id))
-	testutil.ItsEqual(t, 0, len(p1.n.parents))
+	testutil.Equal(t, 1, len(p1.n.children))
+	testutil.Equal(t, true, hasKey(p1.n.children, c.n.id))
+	testutil.Equal(t, 0, len(p1.n.parents))
 
-	testutil.ItsEqual(t, 1, len(p2.n.children))
-	testutil.ItsEqual(t, true, hasKey(p2.n.children, c.n.id))
-	testutil.ItsEqual(t, 0, len(p2.n.parents))
+	testutil.Equal(t, 1, len(p2.n.children))
+	testutil.Equal(t, true, hasKey(p2.n.children, c.n.id))
+	testutil.Equal(t, 0, len(p2.n.parents))
 }
 
 func Test_Node_String(t *testing.T) {
 	n := newMockBareNode()
 	n.n.height = 2
 
-	testutil.ItsEqual(t, "bare_node["+n.n.id.Short()+"]@2", n.Node().String())
+	testutil.Equal(t, "bare_node["+n.n.id.Short()+"]@2", n.Node().String())
 
 	n.Node().SetLabel("test_label")
-	testutil.ItsEqual(t, "bare_node["+n.n.id.Short()+"]:test_label@2", n.Node().String())
+	testutil.Equal(t, "bare_node["+n.n.id.Short()+"]:test_label@2", n.Node().String())
 }
 
 func Test_SetStale(t *testing.T) {
@@ -98,48 +98,48 @@ func Test_SetStale(t *testing.T) {
 	_ = Observe(Root(), g, n)
 	g.SetStale(n)
 
-	testutil.ItsEqual(t, 0, n.n.changedAt)
-	testutil.ItsEqual(t, 0, n.n.recomputedAt)
-	testutil.ItsEqual(t, 1, n.n.setAt)
+	testutil.Equal(t, 0, n.n.changedAt)
+	testutil.Equal(t, 0, n.n.recomputedAt)
+	testutil.Equal(t, 1, n.n.setAt)
 
-	testutil.ItsEqual(t, true, n.n.graph.recomputeHeap.has(n))
+	testutil.Equal(t, true, n.n.graph.recomputeHeap.has(n))
 
 	// find the node in the recompute heap layer
-	testutil.ItsEqual(t, 1, len(n.n.graph.recomputeHeap.heights[1]))
+	testutil.Equal(t, 1, len(n.n.graph.recomputeHeap.heights[1]))
 
 	g.SetStale(n)
 
-	testutil.ItsEqual(t, 0, n.n.changedAt)
-	testutil.ItsEqual(t, 0, n.n.recomputedAt)
-	testutil.ItsEqual(t, 1, n.n.setAt)
+	testutil.Equal(t, 0, n.n.changedAt)
+	testutil.Equal(t, 0, n.n.recomputedAt)
+	testutil.Equal(t, 1, n.n.setAt)
 
-	testutil.ItsEqual(t, true, n.n.graph.recomputeHeap.has(n))
+	testutil.Equal(t, true, n.n.graph.recomputeHeap.has(n))
 
-	testutil.ItsEqual(t, 1, len(n.n.graph.recomputeHeap.heights[1]))
+	testutil.Equal(t, 1, len(n.n.graph.recomputeHeap.heights[1]))
 }
 
 func Test_Node_OnUpdate(t *testing.T) {
 	n := NewNode("test_node")
 
-	testutil.ItsEqual(t, 0, len(n.onUpdateHandlers))
+	testutil.Equal(t, 0, len(n.onUpdateHandlers))
 	n.OnUpdate(func(_ context.Context) {})
-	testutil.ItsEqual(t, 1, len(n.onUpdateHandlers))
+	testutil.Equal(t, 1, len(n.onUpdateHandlers))
 }
 
 func Test_Node_OnError(t *testing.T) {
 	n := NewNode("test_node")
 
-	testutil.ItsEqual(t, 0, len(n.onErrorHandlers))
+	testutil.Equal(t, 0, len(n.onErrorHandlers))
 	n.OnError(func(_ context.Context, _ error) {})
-	testutil.ItsEqual(t, 1, len(n.onErrorHandlers))
+	testutil.Equal(t, 1, len(n.onErrorHandlers))
 }
 
 func Test_Node_SetLabel(t *testing.T) {
 	n := NewNode("test_node")
 
-	testutil.ItsEqual(t, "", n.label)
+	testutil.Equal(t, "", n.label)
 	n.SetLabel("test-label")
-	testutil.ItsEqual(t, "test-label", n.label)
+	testutil.Equal(t, "test-label", n.label)
 }
 
 func Test_Node_addChildren(t *testing.T) {
@@ -152,16 +152,16 @@ func Test_Node_addChildren(t *testing.T) {
 	c1 := newMockBareNode()
 	_ = c1.Node()
 
-	testutil.ItsEqual(t, 0, len(n.n.parents))
-	testutil.ItsEqual(t, 0, len(n.n.children))
+	testutil.Equal(t, 0, len(n.n.parents))
+	testutil.Equal(t, 0, len(n.n.children))
 
 	n.Node().addChildren(c0, c1)
 
-	testutil.ItsEqual(t, 0, len(n.n.parents))
-	testutil.ItsEqual(t, 2, len(n.n.children))
+	testutil.Equal(t, 0, len(n.n.parents))
+	testutil.Equal(t, 2, len(n.n.children))
 
-	testutil.ItsEqual(t, true, hasKey(n.n.children, c0.n.id))
-	testutil.ItsEqual(t, true, hasKey(n.n.children, c1.n.id))
+	testutil.Equal(t, true, hasKey(n.n.children, c0.n.id))
+	testutil.Equal(t, true, hasKey(n.n.children, c1.n.id))
 }
 
 func Test_Node_removeChild(t *testing.T) {
@@ -179,20 +179,20 @@ func Test_Node_removeChild(t *testing.T) {
 
 	n.Node().addChildren(c0, c1, c2)
 
-	testutil.ItsEqual(t, 0, len(n.n.parents))
-	testutil.ItsEqual(t, 3, len(n.n.children))
+	testutil.Equal(t, 0, len(n.n.parents))
+	testutil.Equal(t, 3, len(n.n.children))
 
-	testutil.ItsEqual(t, true, hasKey(n.n.children, c0.n.id))
-	testutil.ItsEqual(t, true, hasKey(n.n.children, c1.n.id))
-	testutil.ItsEqual(t, true, hasKey(n.n.children, c2.n.id))
+	testutil.Equal(t, true, hasKey(n.n.children, c0.n.id))
+	testutil.Equal(t, true, hasKey(n.n.children, c1.n.id))
+	testutil.Equal(t, true, hasKey(n.n.children, c2.n.id))
 
 	n.Node().removeChild(c1.n.id)
 
-	testutil.ItsEqual(t, 0, len(n.n.parents))
-	testutil.ItsEqual(t, 2, len(n.n.children))
-	testutil.ItsEqual(t, true, hasKey(n.n.children, c0.n.id))
-	testutil.ItsEqual(t, false, hasKey(n.n.children, c1.n.id))
-	testutil.ItsEqual(t, true, hasKey(n.n.children, c2.n.id))
+	testutil.Equal(t, 0, len(n.n.parents))
+	testutil.Equal(t, 2, len(n.n.children))
+	testutil.Equal(t, true, hasKey(n.n.children, c0.n.id))
+	testutil.Equal(t, false, hasKey(n.n.children, c1.n.id))
+	testutil.Equal(t, true, hasKey(n.n.children, c2.n.id))
 }
 
 func Test_Node_addParents(t *testing.T) {
@@ -205,16 +205,16 @@ func Test_Node_addParents(t *testing.T) {
 	c1 := newMockBareNode()
 	_ = c1.Node()
 
-	testutil.ItsEqual(t, 0, len(n.n.parents))
-	testutil.ItsEqual(t, 0, len(n.n.children))
+	testutil.Equal(t, 0, len(n.n.parents))
+	testutil.Equal(t, 0, len(n.n.children))
 
 	n.Node().addParents(c0, c1)
 
-	testutil.ItsEqual(t, 2, len(n.n.parents))
-	testutil.ItsEqual(t, 0, len(n.n.children))
+	testutil.Equal(t, 2, len(n.n.parents))
+	testutil.Equal(t, 0, len(n.n.children))
 
-	testutil.ItsEqual(t, true, hasKey(n.n.parents, c0.n.id))
-	testutil.ItsEqual(t, true, hasKey(n.n.parents, c1.n.id))
+	testutil.Equal(t, true, hasKey(n.n.parents, c0.n.id))
+	testutil.Equal(t, true, hasKey(n.n.parents, c1.n.id))
 }
 
 func Test_Node_removeParent(t *testing.T) {
@@ -232,21 +232,21 @@ func Test_Node_removeParent(t *testing.T) {
 
 	n.Node().addParents(c0, c1, c2)
 
-	testutil.ItsEqual(t, 3, len(n.n.parents))
-	testutil.ItsEqual(t, 0, len(n.n.children))
+	testutil.Equal(t, 3, len(n.n.parents))
+	testutil.Equal(t, 0, len(n.n.children))
 
-	testutil.ItsEqual(t, true, hasKey(n.n.parents, c0.n.id))
-	testutil.ItsEqual(t, true, hasKey(n.n.parents, c1.n.id))
-	testutil.ItsEqual(t, true, hasKey(n.n.parents, c2.n.id))
+	testutil.Equal(t, true, hasKey(n.n.parents, c0.n.id))
+	testutil.Equal(t, true, hasKey(n.n.parents, c1.n.id))
+	testutil.Equal(t, true, hasKey(n.n.parents, c2.n.id))
 
 	n.Node().removeParent(c1.n.id)
 
-	testutil.ItsEqual(t, 2, len(n.n.parents))
-	testutil.ItsEqual(t, 0, len(n.n.children))
+	testutil.Equal(t, 2, len(n.n.parents))
+	testutil.Equal(t, 0, len(n.n.children))
 
-	testutil.ItsEqual(t, true, hasKey(n.n.parents, c0.n.id))
-	testutil.ItsEqual(t, false, hasKey(n.n.parents, c1.n.id))
-	testutil.ItsEqual(t, true, hasKey(n.n.parents, c2.n.id))
+	testutil.Equal(t, true, hasKey(n.n.parents, c0.n.id))
+	testutil.Equal(t, false, hasKey(n.n.parents, c1.n.id))
+	testutil.Equal(t, true, hasKey(n.n.parents, c2.n.id))
 }
 
 func Test_Node_maybeStabilize(t *testing.T) {
@@ -255,18 +255,18 @@ func Test_Node_maybeStabilize(t *testing.T) {
 
 	// assert it doesn't panic
 	err := n.maybeStabilize(ctx)
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
 	var calledStabilize bool
 	n.stabilize = func(ictx context.Context) error {
 		calledStabilize = true
-		testutil.ItsBlueDye(ictx, t)
+		testutil.BlueDye(ictx, t)
 		return nil
 	}
 
 	err = n.maybeStabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, true, calledStabilize)
+	testutil.Nil(t, err)
+	testutil.Equal(t, true, calledStabilize)
 }
 
 func Test_Node_maybeStabilize_error(t *testing.T) {
@@ -274,15 +274,15 @@ func Test_Node_maybeStabilize_error(t *testing.T) {
 	n := NewNode("test_node")
 
 	n.stabilize = func(ictx context.Context) error {
-		testutil.ItsBlueDye(ictx, t)
+		testutil.BlueDye(ictx, t)
 		return fmt.Errorf("just a test")
 	}
 
 	err := n.maybeStabilize(ctx)
-	testutil.ItsNotNil(t, err)
-	testutil.ItsEqual(t, "just a test", err.Error())
-	testutil.ItsEqual(t, 0, n.numRecomputes)
-	testutil.ItsEqual(t, 0, n.recomputedAt)
+	testutil.NotNil(t, err)
+	testutil.Equal(t, "just a test", err.Error())
+	testutil.Equal(t, 0, n.numRecomputes)
+	testutil.Equal(t, 0, n.recomputedAt)
 }
 
 func Test_Node_maybeCutoff(t *testing.T) {
@@ -290,71 +290,71 @@ func Test_Node_maybeCutoff(t *testing.T) {
 	n := NewNode("test_node")
 
 	shouldCutoff, err := n.maybeCutoff(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, false, shouldCutoff)
+	testutil.Nil(t, err)
+	testutil.Equal(t, false, shouldCutoff)
 
 	n.cutoff = func(ictx context.Context) (bool, error) {
-		testutil.ItsBlueDye(ictx, t)
+		testutil.BlueDye(ictx, t)
 		return true, nil
 	}
 
 	shouldCutoff, err = n.maybeCutoff(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, true, shouldCutoff)
+	testutil.Nil(t, err)
+	testutil.Equal(t, true, shouldCutoff)
 
 	n.cutoff = func(ictx context.Context) (bool, error) {
-		testutil.ItsBlueDye(ictx, t)
+		testutil.BlueDye(ictx, t)
 		return true, fmt.Errorf("this is just a test")
 	}
 	shouldCutoff, err = n.maybeCutoff(ctx)
-	testutil.ItsNotNil(t, err)
-	testutil.ItsEqual(t, true, shouldCutoff)
+	testutil.NotNil(t, err)
+	testutil.Equal(t, true, shouldCutoff)
 }
 
 func Test_Node_detectCutoff(t *testing.T) {
 	yes := NewNode("test_node")
 	yes.detectCutoff(new(cutoffIncr[string]))
-	testutil.ItsNotNil(t, yes.cutoff)
+	testutil.NotNil(t, yes.cutoff)
 
 	no := NewNode("test_node")
 	no.detectCutoff(new(mockBareNode))
-	testutil.ItsNil(t, no.cutoff)
+	testutil.Nil(t, no.cutoff)
 }
 
 func Test_Node_detectStabilize(t *testing.T) {
 	yes := NewNode("test_node")
 	yes.detectStabilize(new(mapIncr[string, string]))
-	testutil.ItsNotNil(t, yes.stabilize)
+	testutil.NotNil(t, yes.stabilize)
 
 	no := NewNode("test_node")
 	no.detectStabilize(new(mockBareNode))
-	testutil.ItsNil(t, no.stabilize)
+	testutil.Nil(t, no.stabilize)
 }
 
 func Test_Node_shouldRecompute(t *testing.T) {
 	n := NewNode("test_node")
-	testutil.ItsEqual(t, true, n.ShouldRecompute())
+	testutil.Equal(t, true, n.ShouldRecompute())
 
 	n.recomputedAt = 1
-	testutil.ItsEqual(t, false, n.ShouldRecompute())
+	testutil.Equal(t, false, n.ShouldRecompute())
 
 	n.stabilize = func(_ context.Context) error { return nil }
 	n.setAt = 2
-	testutil.ItsEqual(t, true, n.ShouldRecompute())
+	testutil.Equal(t, true, n.ShouldRecompute())
 
 	n.setAt = 1
 	n.changedAt = 2
-	testutil.ItsEqual(t, true, n.ShouldRecompute())
+	testutil.Equal(t, true, n.ShouldRecompute())
 
 	n.changedAt = 1
 	c1 := newMockBareNode()
 	c1.Node().changedAt = 2
 
 	n.addParents(newMockBareNode(), c1)
-	testutil.ItsEqual(t, true, n.ShouldRecompute())
+	testutil.Equal(t, true, n.ShouldRecompute())
 
 	c1.Node().changedAt = 1
-	testutil.ItsEqual(t, false, n.ShouldRecompute())
+	testutil.Equal(t, false, n.ShouldRecompute())
 }
 
 func Test_Node_recompute(t *testing.T) {
@@ -364,7 +364,7 @@ func Test_Node_recompute(t *testing.T) {
 	var calledStabilize bool
 	m0 := MapContext(Root(), Return(Root(), ""), func(ictx context.Context, _ string) (string, error) {
 		calledStabilize = true
-		testutil.ItsBlueDye(ictx, t)
+		testutil.BlueDye(ictx, t)
 		return "hello", nil
 	})
 
@@ -374,47 +374,47 @@ func Test_Node_recompute(t *testing.T) {
 
 	var calledUpdateHandler0, calledUpdateHandler1 bool
 	m0.Node().OnUpdate(func(ictx context.Context) {
-		testutil.ItsBlueDye(ictx, t)
+		testutil.BlueDye(ictx, t)
 		calledUpdateHandler0 = true
 	})
 	m0.Node().OnUpdate(func(ictx context.Context) {
-		testutil.ItsBlueDye(ictx, t)
+		testutil.BlueDye(ictx, t)
 		calledUpdateHandler1 = true
 	})
 
 	var calledErrorHandler0, calledErrorHandler1 bool
 	m0.Node().OnError(func(ictx context.Context, err error) {
-		testutil.ItsBlueDye(ictx, t)
+		testutil.BlueDye(ictx, t)
 		calledErrorHandler0 = true
 	})
 	m0.Node().OnError(func(ictx context.Context, err error) {
-		testutil.ItsBlueDye(ictx, t)
+		testutil.BlueDye(ictx, t)
 		calledErrorHandler1 = true
 	})
 
 	err := g.recompute(ctx, m0)
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
 	// find the node in the recompute heap layer
-	testutil.ItsEqual(t, true, g.recomputeHeap.has(p))
-	testutil.ItsEqual(t, true, calledStabilize)
+	testutil.Equal(t, true, g.recomputeHeap.has(p))
+	testutil.Equal(t, true, calledStabilize)
 
 	// we don't call these handlers directly
-	testutil.ItsEqual(t, false, calledUpdateHandler0)
-	testutil.ItsEqual(t, false, calledUpdateHandler1)
+	testutil.Equal(t, false, calledUpdateHandler0)
+	testutil.Equal(t, false, calledUpdateHandler1)
 	// we don't call these handlers at all b/c no error
-	testutil.ItsEqual(t, false, calledErrorHandler0)
-	testutil.ItsEqual(t, false, calledErrorHandler1)
+	testutil.Equal(t, false, calledErrorHandler0)
+	testutil.Equal(t, false, calledErrorHandler1)
 
-	testutil.ItsEqual(t, 1, len(g.handleAfterStabilization))
+	testutil.Equal(t, 1, len(g.handleAfterStabilization))
 
 	for _, handlers := range g.handleAfterStabilization {
 		for _, h := range handlers {
 			h(ctx)
 		}
 	}
-	testutil.ItsEqual(t, true, calledUpdateHandler0)
-	testutil.ItsEqual(t, true, calledUpdateHandler1)
+	testutil.Equal(t, true, calledUpdateHandler0)
+	testutil.Equal(t, true, calledUpdateHandler1)
 }
 
 func Test_Node_stabilize_error(t *testing.T) {
@@ -424,7 +424,7 @@ func Test_Node_stabilize_error(t *testing.T) {
 	var calledStabilize bool
 	m0 := MapContext(Root(), Return(Root(), ""), func(ictx context.Context, _ string) (string, error) {
 		calledStabilize = true
-		testutil.ItsBlueDye(ictx, t)
+		testutil.BlueDye(ictx, t)
 		return "", fmt.Errorf("test error")
 	})
 
@@ -434,39 +434,39 @@ func Test_Node_stabilize_error(t *testing.T) {
 
 	var calledUpdateHandler0, calledUpdateHandler1 bool
 	m0.Node().OnUpdate(func(ictx context.Context) {
-		testutil.ItsBlueDye(ictx, t)
+		testutil.BlueDye(ictx, t)
 		calledUpdateHandler0 = true
 	})
 	m0.Node().OnUpdate(func(ictx context.Context) {
-		testutil.ItsBlueDye(ictx, t)
+		testutil.BlueDye(ictx, t)
 		calledUpdateHandler1 = true
 	})
 
 	var calledErrorHandler0, calledErrorHandler1 bool
 	m0.Node().OnError(func(ictx context.Context, err error) {
-		testutil.ItsBlueDye(ictx, t)
+		testutil.BlueDye(ictx, t)
 		calledErrorHandler0 = true
-		testutil.ItsNotNil(t, err)
-		testutil.ItsEqual(t, "test error", err.Error())
+		testutil.NotNil(t, err)
+		testutil.Equal(t, "test error", err.Error())
 	})
 	m0.Node().OnError(func(ictx context.Context, err error) {
-		testutil.ItsBlueDye(ictx, t)
+		testutil.BlueDye(ictx, t)
 		calledErrorHandler1 = true
-		testutil.ItsNotNil(t, err)
-		testutil.ItsEqual(t, "test error", err.Error())
+		testutil.NotNil(t, err)
+		testutil.Equal(t, "test error", err.Error())
 	})
 
 	err := g.Stabilize(ctx)
-	testutil.ItsNotNil(t, err)
-	testutil.ItsNotNil(t, "test error", err.Error())
+	testutil.NotNil(t, err)
+	testutil.NotNil(t, "test error", err.Error())
 
 	// find the node in the recompute heap layer
-	testutil.ItsEqual(t, false, g.recomputeHeap.has(p))
-	testutil.ItsEqual(t, true, calledStabilize)
-	testutil.ItsEqual(t, false, calledUpdateHandler0)
-	testutil.ItsEqual(t, false, calledUpdateHandler1)
-	testutil.ItsEqual(t, true, calledErrorHandler0)
-	testutil.ItsEqual(t, true, calledErrorHandler1)
+	testutil.Equal(t, false, g.recomputeHeap.has(p))
+	testutil.Equal(t, true, calledStabilize)
+	testutil.Equal(t, false, calledUpdateHandler0)
+	testutil.Equal(t, false, calledUpdateHandler1)
+	testutil.Equal(t, true, calledErrorHandler0)
+	testutil.Equal(t, true, calledErrorHandler1)
 }
 
 func Test_nodeFormatters(t *testing.T) {
@@ -500,7 +500,7 @@ func Test_nodeFormatters(t *testing.T) {
 	for _, tc := range testCases {
 		tc.Node.Node().id = id
 		tc.Node.Node().height = 2
-		testutil.ItsEqual(t, fmt.Sprintf("%s[%s]@2", tc.Label, id.Short()), fmt.Sprint(tc.Node))
+		testutil.Equal(t, fmt.Sprintf("%s[%s]@2", tc.Label, id.Short()), fmt.Sprint(tc.Node))
 	}
 }
 
@@ -520,8 +520,8 @@ func Test_Node_Properties_readonly(t *testing.T) {
 		},
 	}
 
-	testutil.ItsEqual(t, 2, len(n.Children()))
-	testutil.ItsEqual(t, 3, len(n.Parents()))
+	testutil.Equal(t, 2, len(n.Children()))
+	testutil.Equal(t, 3, len(n.Parents()))
 }
 
 type emptyNode struct {
@@ -534,13 +534,13 @@ func (en emptyNode) Node() *Node {
 
 func Test_Node_ShouldRecompute_unit(t *testing.T) {
 	var noop = func(_ context.Context) error { return nil }
-	testutil.ItsEqual(t, true, (&Node{recomputedAt: 0}).ShouldRecompute())
-	testutil.ItsEqual(t, false, (&Node{recomputedAt: 1}).ShouldRecompute())
-	testutil.ItsEqual(t, true, (&Node{recomputedAt: 1, stabilize: noop, setAt: 2}).ShouldRecompute())
-	testutil.ItsEqual(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 3}).ShouldRecompute())
-	testutil.ItsEqual(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 3}).ShouldRecompute())
-	testutil.ItsEqual(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 2, parents: []INode{emptyNode{&Node{changedAt: 3}}}}).ShouldRecompute())
-	testutil.ItsEqual(t, false, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 2, parents: []INode{emptyNode{&Node{changedAt: 2}}}}).ShouldRecompute())
+	testutil.Equal(t, true, (&Node{recomputedAt: 0}).ShouldRecompute())
+	testutil.Equal(t, false, (&Node{recomputedAt: 1}).ShouldRecompute())
+	testutil.Equal(t, true, (&Node{recomputedAt: 1, stabilize: noop, setAt: 2}).ShouldRecompute())
+	testutil.Equal(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 3}).ShouldRecompute())
+	testutil.Equal(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 3}).ShouldRecompute())
+	testutil.Equal(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 2, parents: []INode{emptyNode{&Node{changedAt: 3}}}}).ShouldRecompute())
+	testutil.Equal(t, false, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 2, parents: []INode{emptyNode{&Node{changedAt: 2}}}}).ShouldRecompute())
 }
 
 func Test_Node_Observers(t *testing.T) {
@@ -554,7 +554,7 @@ func Test_Node_Observers(t *testing.T) {
 		observers: []IObserver{one, two},
 	}
 
-	testutil.ItsEqual(t, 2, len(n.Observers()))
+	testutil.Equal(t, 2, len(n.Observers()))
 }
 
 func Test_nodeSorter(t *testing.T) {
@@ -574,12 +574,12 @@ func Test_nodeSorter(t *testing.T) {
 	d.Node().height = 2
 	d.Node().id, _ = ParseIdentifier(strings.Repeat("3", 32))
 
-	testutil.ItsEqual(t, true, "00000000000000000000000000000000" < "11111111111111111111111111111111")
-	testutil.ItsEqual(t, 0, nodeSorter(a, a))
-	testutil.ItsEqual(t, 1, nodeSorter(a, b))
-	testutil.ItsEqual(t, -1, nodeSorter(c, b))
-	testutil.ItsEqual(t, -1, nodeSorter(d, c))
-	testutil.ItsEqual(t, 1, nodeSorter(a, d))
+	testutil.Equal(t, true, "00000000000000000000000000000000" < "11111111111111111111111111111111")
+	testutil.Equal(t, 0, nodeSorter(a, a))
+	testutil.Equal(t, 1, nodeSorter(a, b))
+	testutil.Equal(t, -1, nodeSorter(c, b))
+	testutil.Equal(t, -1, nodeSorter(d, c))
+	testutil.Equal(t, 1, nodeSorter(a, d))
 }
 
 func Test_Node_onUpdate_regression(t *testing.T) {
@@ -611,12 +611,12 @@ func Test_Node_onUpdate_regression(t *testing.T) {
 	scaledVolumeObs.Node().SetLabel("scaledVolumeObs")
 
 	err := g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
 	_ = dumpDot(g, homedir("node_onupdate_regression_00.png"))
 
-	testutil.ItsEqual(t, 12, areaObs.Value())
-	testutil.ItsEqual(t, 48, scaledVolumeObs.Value())
+	testutil.Equal(t, 12, areaObs.Value())
+	testutil.Equal(t, 48, scaledVolumeObs.Value())
 
 	areaTriggerCount := 0
 	area.Node().OnUpdate(func(ctx context.Context) {
@@ -631,13 +631,13 @@ func Test_Node_onUpdate_regression(t *testing.T) {
 	length.Set(5)
 
 	err = g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
 	_ = dumpDot(g, homedir("node_onupdate_regression_01.png"))
 
-	testutil.ItsEqual(t, true, areaTriggerCount > 0)
-	testutil.ItsEqual(t, true, scaledVolumeTriggerCount > 0) // should be triggered because area changed so volume change therefore scaled_volume changed too
+	testutil.Equal(t, true, areaTriggerCount > 0)
+	testutil.Equal(t, true, scaledVolumeTriggerCount > 0) // should be triggered because area changed so volume change therefore scaled_volume changed too
 
-	testutil.ItsEqual(t, 15, areaObs.Value())
-	testutil.ItsEqual(t, 60, scaledVolumeObs.Value())
+	testutil.Equal(t, 15, areaObs.Value())
+	testutil.Equal(t, 60, scaledVolumeObs.Value())
 }

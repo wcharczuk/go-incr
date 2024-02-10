@@ -26,18 +26,18 @@ func Test_Always(t *testing.T) {
 	ctx := testContext()
 	_ = g.Stabilize(ctx)
 
-	testutil.ItsEqual(t, "foo", o.Value())
-	testutil.ItsEqual(t, 1, updates)
+	testutil.Equal(t, "foo", o.Value())
+	testutil.Equal(t, 1, updates)
 
 	_ = g.Stabilize(ctx)
 
-	testutil.ItsEqual(t, "foo", o.Value())
-	testutil.ItsEqual(t, 2, updates)
+	testutil.Equal(t, "foo", o.Value())
+	testutil.Equal(t, 2, updates)
 
 	v.Set("bar")
 
 	_ = g.Stabilize(ctx)
 
-	testutil.ItsEqual(t, "bar", o.Value())
-	testutil.ItsEqual(t, 3, updates)
+	testutil.Equal(t, "bar", o.Value())
+	testutil.Equal(t, 3, updates)
 }

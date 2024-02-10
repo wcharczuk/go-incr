@@ -25,35 +25,35 @@ func Test_Stabilize(t *testing.T) {
 	_ = Observe(Root(), graph, m0)
 
 	err := graph.Stabilize(ctx)
-	ItsNil(t, err)
+	Nil(t, err)
 
-	ItsEqual(t, 0, v0.Node().setAt)
-	ItsEqual(t, 1, v0.Node().changedAt)
-	ItsEqual(t, 0, v1.Node().setAt)
-	ItsEqual(t, 1, v1.Node().changedAt)
-	ItsEqual(t, 1, m0.Node().changedAt)
-	ItsEqual(t, 1, v0.Node().recomputedAt)
-	ItsEqual(t, 1, v1.Node().recomputedAt)
-	ItsEqual(t, 1, m0.Node().recomputedAt)
+	Equal(t, 0, v0.Node().setAt)
+	Equal(t, 1, v0.Node().changedAt)
+	Equal(t, 0, v1.Node().setAt)
+	Equal(t, 1, v1.Node().changedAt)
+	Equal(t, 1, m0.Node().changedAt)
+	Equal(t, 1, v0.Node().recomputedAt)
+	Equal(t, 1, v1.Node().recomputedAt)
+	Equal(t, 1, m0.Node().recomputedAt)
 
-	ItsEqual(t, "foo bar", m0.Value())
+	Equal(t, "foo bar", m0.Value())
 
 	v0.Set("not foo")
-	ItsEqual(t, 2, v0.Node().setAt)
-	ItsEqual(t, 0, v1.Node().setAt)
+	Equal(t, 2, v0.Node().setAt)
+	Equal(t, 0, v1.Node().setAt)
 
 	err = graph.Stabilize(ctx)
-	ItsNil(t, err)
+	Nil(t, err)
 
-	ItsEqual(t, 2, v0.Node().changedAt)
-	ItsEqual(t, 1, v1.Node().changedAt)
-	ItsEqual(t, 2, m0.Node().changedAt)
+	Equal(t, 2, v0.Node().changedAt)
+	Equal(t, 1, v1.Node().changedAt)
+	Equal(t, 2, m0.Node().changedAt)
 
-	ItsEqual(t, 2, v0.Node().recomputedAt)
-	ItsEqual(t, 1, v1.Node().recomputedAt)
-	ItsEqual(t, 2, m0.Node().recomputedAt)
+	Equal(t, 2, v0.Node().recomputedAt)
+	Equal(t, 1, v1.Node().recomputedAt)
+	Equal(t, 2, m0.Node().recomputedAt)
 
-	ItsEqual(t, "not foo bar", m0.Value())
+	Equal(t, "not foo bar", m0.Value())
 }
 
 func Test_Stabilize_error(t *testing.T) {
@@ -67,8 +67,8 @@ func Test_Stabilize_error(t *testing.T) {
 	_ = Observe(Root(), graph, m0)
 
 	err := graph.Stabilize(ctx)
-	ItsNotNil(t, err)
-	ItsEqual(t, "this is just a test", err.Error())
+	NotNil(t, err)
+	Equal(t, "this is just a test", err.Error())
 }
 
 func Test_Stabilize_errorHandler(t *testing.T) {
@@ -79,7 +79,7 @@ func Test_Stabilize_errorHandler(t *testing.T) {
 	})
 	var gotError error
 	m0.Node().OnError(func(ctx context.Context, err error) {
-		ItsBlueDye(ctx, t)
+		BlueDye(ctx, t)
 		gotError = err
 	})
 
@@ -87,9 +87,9 @@ func Test_Stabilize_errorHandler(t *testing.T) {
 	_ = Observe(Root(), graph, m0)
 
 	err := graph.Stabilize(ctx)
-	ItsNotNil(t, err)
-	ItsEqual(t, "this is just a test", err.Error())
-	ItsEqual(t, "this is just a test", gotError.Error())
+	NotNil(t, err)
+	Equal(t, "this is just a test", err.Error())
+	Equal(t, "this is just a test", gotError.Error())
 }
 
 func Test_Stabilize_alreadyStabilizing(t *testing.T) {
@@ -121,10 +121,10 @@ func Test_Stabilize_alreadyStabilizing(t *testing.T) {
 		}
 	}()
 	err := <-errs
-	ItsEqual(t, ErrAlreadyStabilizing, err)
+	Equal(t, ErrAlreadyStabilizing, err)
 	close(hold)
 	wg.Wait()
-	ItsEqual(t, "ok!", m0.Value())
+	Equal(t, "ok!", m0.Value())
 }
 
 func Test_Stabilize_updateHandlers(t *testing.T) {
@@ -145,13 +145,13 @@ func Test_Stabilize_updateHandlers(t *testing.T) {
 	_ = Observe(Root(), graph, m0)
 
 	err := graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, 1, updates)
+	Nil(t, err)
+	Equal(t, 1, updates)
 
 	v0.Set("not foo")
 	err = graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, 2, updates)
+	Nil(t, err)
+	Equal(t, 2, updates)
 }
 
 func Test_Stabilize_observedHandlers(t *testing.T) {
@@ -172,16 +172,16 @@ func Test_Stabilize_observedHandlers(t *testing.T) {
 	_ = Observe(Root(), graph, m0)
 
 	err := graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, 1, observes)
+	Nil(t, err)
+	Equal(t, 1, observes)
 
 	v0.Set("not foo")
 	err = graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, 1, observes)
+	Nil(t, err)
+	Equal(t, 1, observes)
 
 	_ = Observe(Root(), graph, m0)
-	ItsEqual(t, 2, observes)
+	Equal(t, 2, observes)
 }
 
 func Test_Stabilize_unobservedHandlers(t *testing.T) {
@@ -205,22 +205,22 @@ func Test_Stabilize_unobservedHandlers(t *testing.T) {
 	o0 := Observe(Root(), graph, m0)
 
 	err := graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, 1, observes)
-	ItsEqual(t, 0, unobserves)
+	Nil(t, err)
+	Equal(t, 1, observes)
+	Equal(t, 0, unobserves)
 
 	v0.Set("not foo")
 	err = graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, 1, observes)
+	Nil(t, err)
+	Equal(t, 1, observes)
 
 	_ = Observe(Root(), graph, m0)
-	ItsEqual(t, 2, observes)
-	ItsEqual(t, 0, unobserves)
+	Equal(t, 2, observes)
+	Equal(t, 0, unobserves)
 
 	o0.Unobserve(ctx)
-	ItsEqual(t, 2, observes)
-	ItsEqual(t, 1, unobserves)
+	Equal(t, 2, observes)
+	Equal(t, 1, unobserves)
 }
 
 func Test_Stabilize_unevenHeights(t *testing.T) {
@@ -240,13 +240,13 @@ func Test_Stabilize_unevenHeights(t *testing.T) {
 	_ = Observe(Root(), graph, m1)
 
 	err := graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, "moo != foo bar", m1.Value())
+	Nil(t, err)
+	Equal(t, "moo != foo bar", m1.Value())
 
 	v0.Set("not foo")
 	err = graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, "moo != not foo bar", m1.Value())
+	Nil(t, err)
+	Equal(t, "moo != not foo bar", m1.Value())
 }
 
 func Test_Stabilize_chain(t *testing.T) {
@@ -268,12 +268,12 @@ func Test_Stabilize_chain(t *testing.T) {
 	o := Observe(Root(), graph, maps[len(maps)-1])
 
 	err := graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, strings.Repeat(".", 101), o.Value())
+	Nil(t, err)
+	Equal(t, strings.Repeat(".", 101), o.Value())
 
-	ItsEqual(t, 102, graph.numNodes, "should include the observer!")
-	ItsEqual(t, 102, graph.numNodesChanged)
-	ItsEqual(t, 102, graph.numNodesRecomputed)
+	Equal(t, 102, graph.numNodes, "should include the observer!")
+	Equal(t, 102, graph.numNodesChanged)
+	Equal(t, 102, graph.numNodesRecomputed)
 }
 
 func Test_Stabilize_setDuringStabilization(t *testing.T) {
@@ -301,15 +301,15 @@ func Test_Stabilize_setDuringStabilization(t *testing.T) {
 
 	// we're now stabilizing
 	v0.Set("not-foo")
-	ItsEqual(t, "foo", v0.Value())
+	Equal(t, "foo", v0.Value())
 
 	close(wait)
 	<-done
 
 	// we're now _done_ stabilizing
-	ItsEqual(t, "not-foo", v0.Value())
-	ItsEqual(t, graph.stabilizationNum, v0.Node().setAt)
-	ItsEqual(t, 1, len(graph.recomputeHeap.lookup))
+	Equal(t, "not-foo", v0.Value())
+	Equal(t, graph.stabilizationNum, v0.Node().setAt)
+	Equal(t, 1, len(graph.recomputeHeap.lookup))
 }
 
 func Test_Stabilize_onUpdate(t *testing.T) {
@@ -330,10 +330,10 @@ func Test_Stabilize_onUpdate(t *testing.T) {
 	_ = Observe(Root(), graph, m0)
 
 	err := graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, "helloworld", m0.Value())
-	ItsEqual(t, true, didCallUpdateHandler0)
-	ItsEqual(t, true, didCallUpdateHandler1)
+	Nil(t, err)
+	Equal(t, "helloworld", m0.Value())
+	Equal(t, true, didCallUpdateHandler0)
+	Equal(t, true, didCallUpdateHandler1)
 }
 
 func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
@@ -364,16 +364,16 @@ func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
 	_ = Observe(Root(), graph, z)
 
 	err := graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, 1, z.Node().numRecomputes)
-	ItsEqual(t, "a->b->c->d+a->f->e->z", z.Value())
+	Nil(t, err)
+	Equal(t, 1, z.Node().numRecomputes)
+	Equal(t, "a->b->c->d+a->f->e->z", z.Value())
 
 	a.Set("!a")
 
 	err = graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, "!a->b->c->d+!a->f->e->z", z.Value())
-	ItsEqual(t, 2, z.Node().numRecomputes)
+	Nil(t, err)
+	Equal(t, "!a->b->c->d+!a->f->e->z", z.Value())
+	Equal(t, 2, z.Node().numRecomputes)
 }
 
 func Test_Stabilize_doubleVarSet_singleUpdate(t *testing.T) {
@@ -389,16 +389,16 @@ func Test_Stabilize_doubleVarSet_singleUpdate(t *testing.T) {
 	_ = Observe(Root(), graph, m)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, "a b", m.Value())
+	Equal(t, "a b", m.Value())
 
 	a.Set("aa")
-	ItsEqual(t, 1, graph.recomputeHeap.len())
+	Equal(t, 1, graph.recomputeHeap.len())
 
 	a.Set("aaa")
-	ItsEqual(t, 1, graph.recomputeHeap.len())
+	Equal(t, 1, graph.recomputeHeap.len())
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, "aaa b", m.Value())
+	Equal(t, "aaa b", m.Value())
 }
 
 func Test_Stabilize_verifyPartial(t *testing.T) {
@@ -429,14 +429,14 @@ func Test_Stabilize_verifyPartial(t *testing.T) {
 	_ = Observe(Root(), graph, mi)
 
 	err := graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, "foo bar", mi.Value())
+	Nil(t, err)
+	Equal(t, "foo bar", mi.Value())
 
 	v0.Set("Foo")
 
 	err = graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, "foo bar", mi.Value())
+	Nil(t, err)
+	Equal(t, "foo bar", mi.Value())
 }
 
 func Test_Stabilize_jsDocs(t *testing.T) {
@@ -477,8 +477,8 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 	err := graph.Stabilize(
 		ctx,
 	)
-	ItsNil(t, err)
-	ItsEqual(t, 2, len(output.Value()))
+	Nil(t, err)
+	Equal(t, 2, len(output.Value()))
 
 	data = append(data, Entry{
 		"5", now.Add(5 * time.Second),
@@ -486,15 +486,15 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 	err = graph.Stabilize(
 		ctx,
 	)
-	ItsNil(t, err)
-	ItsEqual(t, 2, len(output.Value()))
+	Nil(t, err)
+	Equal(t, 2, len(output.Value()))
 
 	i.Set(data)
 	err = graph.Stabilize(
 		context.Background(),
 	)
-	ItsNil(t, err)
-	ItsEqual(t, 3, len(output.Value()))
+	Nil(t, err)
+	Equal(t, 3, len(output.Value()))
 }
 
 func Test_Stabilize_bind(t *testing.T) {
@@ -523,40 +523,40 @@ func Test_Stabilize_bind(t *testing.T) {
 	graph := New()
 	_ = Observe(Root(), graph, mb)
 
-	ItsEqual(t, true, graph.IsObserving(sw))
+	Equal(t, true, graph.IsObserving(sw))
 
 	err := graph.Stabilize(ctx)
-	ItsNil(t, err)
+	Nil(t, err)
 
-	ItsEqual(t, false, graph.IsObserving(i0))
-	ItsEqual(t, false, graph.IsObserving(m0))
-	ItsNil(t, i0.Node().graph, "i0 should not be in the graph after the first stabilization")
-	ItsNil(t, m0.Node().graph, "m0 should not be in the graph after the first stabilization")
+	Equal(t, false, graph.IsObserving(i0))
+	Equal(t, false, graph.IsObserving(m0))
+	Nil(t, i0.Node().graph, "i0 should not be in the graph after the first stabilization")
+	Nil(t, m0.Node().graph, "m0 should not be in the graph after the first stabilization")
 
-	ItsEqual(t, true, graph.IsObserving(i1))
-	ItsEqual(t, true, graph.IsObserving(m1))
-	ItsNotNil(t, i1.Node().graph, "i1 should be in the graph after the first stabilization")
-	ItsNotNil(t, m1.Node().graph, "m1 should be in the graph after the first stabilization")
+	Equal(t, true, graph.IsObserving(i1))
+	Equal(t, true, graph.IsObserving(m1))
+	NotNil(t, i1.Node().graph, "i1 should be in the graph after the first stabilization")
+	NotNil(t, m1.Node().graph, "m1 should be in the graph after the first stabilization")
 
-	ItsEqual(t, "bar-loo-baz", mb.Value())
+	Equal(t, "bar-loo-baz", mb.Value())
 
 	sw.Set(true)
-	ItsEqual(t, true, graph.recomputeHeap.has(sw))
+	Equal(t, true, graph.recomputeHeap.has(sw))
 
 	err = graph.Stabilize(ctx)
-	ItsNil(t, err)
+	Nil(t, err)
 
-	ItsEqual(t, true, graph.IsObserving(i0))
-	ItsEqual(t, true, graph.IsObserving(m0))
-	ItsNotNil(t, i0.Node().graph, "i0 should be in the graph after the second stabilization")
-	ItsNotNil(t, m0.Node().graph, "m0 should be in the graph after the second stabilization")
+	Equal(t, true, graph.IsObserving(i0))
+	Equal(t, true, graph.IsObserving(m0))
+	NotNil(t, i0.Node().graph, "i0 should be in the graph after the second stabilization")
+	NotNil(t, m0.Node().graph, "m0 should be in the graph after the second stabilization")
 
-	ItsEqual(t, false, graph.IsObserving(i1))
-	ItsEqual(t, false, graph.IsObserving(m1))
-	ItsNil(t, i1.Node().graph, "i1 should not be in the graph after the second stabilization")
-	ItsNil(t, m1.Node().graph, "m1 should not be in the graph after the second stabilization")
+	Equal(t, false, graph.IsObserving(i1))
+	Equal(t, false, graph.IsObserving(m1))
+	Nil(t, i1.Node().graph, "i1 should not be in the graph after the second stabilization")
+	Nil(t, m1.Node().graph, "m1 should not be in the graph after the second stabilization")
 
-	ItsEqual(t, "foo-moo-baz", mb.Value())
+	Equal(t, "foo-moo-baz", mb.Value())
 }
 
 func Test_Stabilize_bindIf(t *testing.T) {
@@ -567,7 +567,7 @@ func Test_Stabilize_bindIf(t *testing.T) {
 	i1 := Return(Root(), "bar")
 
 	b := BindIf(Root(), sw, func(ctx context.Context, bs *BindScope, swv bool) (Incr[string], error) {
-		ItsBlueDye(ctx, t)
+		BlueDye(ctx, t)
 		if swv {
 			return i0, nil
 		}
@@ -578,21 +578,21 @@ func Test_Stabilize_bindIf(t *testing.T) {
 	_ = Observe(Root(), graph, b)
 
 	err := graph.Stabilize(ctx)
-	ItsNil(t, err)
+	Nil(t, err)
 
-	ItsNil(t, i0.Node().graph, "i0 should not be in the graph after the first stabilization")
-	ItsNotNil(t, i1.Node().graph, "i1 should be in the graph after the first stabilization")
+	Nil(t, i0.Node().graph, "i0 should not be in the graph after the first stabilization")
+	NotNil(t, i1.Node().graph, "i1 should be in the graph after the first stabilization")
 
-	ItsEqual(t, "bar", b.Value())
+	Equal(t, "bar", b.Value())
 
 	sw.Set(true)
 	err = graph.Stabilize(ctx)
-	ItsNil(t, err)
+	Nil(t, err)
 
-	ItsNil(t, i1.Node().graph, "i0 should be in the graph after the third stabilization")
-	ItsNotNil(t, i0.Node().graph, "i1 should not be in the graph after the third stabilization")
+	Nil(t, i1.Node().graph, "i0 should be in the graph after the third stabilization")
+	NotNil(t, i0.Node().graph, "i1 should not be in the graph after the third stabilization")
 
-	ItsEqual(t, "foo", b.Value())
+	Equal(t, "foo", b.Value())
 }
 
 func Test_Stabilize_cutoff(t *testing.T) {
@@ -617,29 +617,29 @@ func Test_Stabilize_cutoff(t *testing.T) {
 	_ = graph.Stabilize(
 		ctx,
 	)
-	ItsEqual(t, 13.14, output.Value())
-	ItsEqual(t, 3.14, cutoff.Value())
+	Equal(t, 13.14, output.Value())
+	Equal(t, 3.14, cutoff.Value())
 
 	input.Set(3.15)
 
 	_ = graph.Stabilize(
 		ctx,
 	)
-	ItsEqual(t, 3.14, cutoff.Value())
-	ItsEqual(t, 13.14, output.Value())
+	Equal(t, 3.14, cutoff.Value())
+	Equal(t, 13.14, output.Value())
 
 	input.Set(3.26) // differs by 0.11, which is > 0.1
 
 	_ = graph.Stabilize(
 		ctx,
 	)
-	ItsEqual(t, 3.26, cutoff.Value())
-	ItsEqual(t, 13.26, output.Value())
+	Equal(t, 3.26, cutoff.Value())
+	Equal(t, 13.26, output.Value())
 
 	_ = graph.Stabilize(
 		ctx,
 	)
-	ItsEqual(t, 13.26, output.Value())
+	Equal(t, 13.26, output.Value())
 }
 
 func Test_Stabilize_cutoffContext(t *testing.T) {
@@ -665,29 +665,29 @@ func Test_Stabilize_cutoffContext(t *testing.T) {
 	_ = graph.Stabilize(
 		ctx,
 	)
-	ItsEqual(t, 13.14, output.Value())
-	ItsEqual(t, 3.14, cutoff.Value())
+	Equal(t, 13.14, output.Value())
+	Equal(t, 3.14, cutoff.Value())
 
 	input.Set(3.15)
 
 	_ = graph.Stabilize(
 		ctx,
 	)
-	ItsEqual(t, 3.14, cutoff.Value())
-	ItsEqual(t, 13.14, output.Value())
+	Equal(t, 3.14, cutoff.Value())
+	Equal(t, 13.14, output.Value())
 
 	input.Set(3.26) // differs by 0.11, which is > 0.1
 
 	_ = graph.Stabilize(
 		ctx,
 	)
-	ItsEqual(t, 3.26, cutoff.Value())
-	ItsEqual(t, 13.26, output.Value())
+	Equal(t, 3.26, cutoff.Value())
+	Equal(t, 13.26, output.Value())
 
 	_ = graph.Stabilize(
 		ctx,
 	)
-	ItsEqual(t, 13.26, output.Value())
+	Equal(t, 13.26, output.Value())
 }
 
 func Test_Stabilize_cutoffContext_error(t *testing.T) {
@@ -722,18 +722,18 @@ func Test_Stabilize_cutoffContext_error(t *testing.T) {
 	err := graph.Stabilize(
 		ctx,
 	)
-	ItsNotNil(t, err)
-	ItsEqual(t, 1, errors)
-	ItsEqual(t, 0, output.Value())
+	NotNil(t, err)
+	Equal(t, 1, errors)
+	Equal(t, 0, output.Value())
 
 	input.Set(3.15)
 
 	err = graph.Stabilize(
 		ctx,
 	)
-	ItsNotNil(t, err)
-	ItsEqual(t, 2, errors)
-	ItsEqual(t, 0, output.Value())
+	NotNil(t, err)
+	Equal(t, 2, errors)
+	Equal(t, 0, output.Value())
 }
 
 func Test_Stabilize_cutoff2(t *testing.T) {
@@ -760,29 +760,29 @@ func Test_Stabilize_cutoff2(t *testing.T) {
 	_ = graph.Stabilize(
 		ctx,
 	)
-	ItsEqual(t, 13.14, output.Value())
-	ItsEqual(t, 3.14, cutoff.Value())
+	Equal(t, 13.14, output.Value())
+	Equal(t, 3.14, cutoff.Value())
 
 	input.Set(3.15)
 
 	_ = graph.Stabilize(
 		ctx,
 	)
-	ItsEqual(t, 3.14, cutoff.Value())
-	ItsEqual(t, 13.14, output.Value())
+	Equal(t, 3.14, cutoff.Value())
+	Equal(t, 13.14, output.Value())
 
 	input.Set(3.26) // differs by 0.11, which is > 0.1
 
 	_ = graph.Stabilize(
 		ctx,
 	)
-	ItsEqual(t, 3.26, cutoff.Value())
-	ItsEqual(t, 13.26, output.Value())
+	Equal(t, 3.26, cutoff.Value())
+	Equal(t, 13.26, output.Value())
 
 	_ = graph.Stabilize(
 		ctx,
 	)
-	ItsEqual(t, 13.26, output.Value())
+	Equal(t, 13.26, output.Value())
 
 	epsilon.Set(0.5)
 	input.Set(3.37) // differs by 0.11, which is < 0.5
@@ -790,13 +790,13 @@ func Test_Stabilize_cutoff2(t *testing.T) {
 	_ = graph.Stabilize(
 		ctx,
 	)
-	ItsEqual(t, 3.26, cutoff.Value())
-	ItsEqual(t, 13.26, output.Value())
+	Equal(t, 3.26, cutoff.Value())
+	Equal(t, 13.26, output.Value())
 
 	_ = graph.Stabilize(
 		ctx,
 	)
-	ItsEqual(t, 13.26, output.Value())
+	Equal(t, 13.26, output.Value())
 }
 
 func Test_Stabilize_cutoff2Context_error(t *testing.T) {
@@ -833,18 +833,18 @@ func Test_Stabilize_cutoff2Context_error(t *testing.T) {
 	err := graph.Stabilize(
 		ctx,
 	)
-	ItsNotNil(t, err)
-	ItsEqual(t, 1, errors)
-	ItsEqual(t, 0, output.Value())
+	NotNil(t, err)
+	Equal(t, 1, errors)
+	Equal(t, 0, output.Value())
 
 	input.Set(3.15)
 
 	err = graph.Stabilize(
 		ctx,
 	)
-	ItsNotNil(t, err)
-	ItsEqual(t, 2, errors)
-	ItsEqual(t, 0, output.Value())
+	NotNil(t, err)
+	Equal(t, 2, errors)
+	Equal(t, 0, output.Value())
 }
 
 func Test_Stabilize_watch(t *testing.T) {
@@ -860,17 +860,17 @@ func Test_Stabilize_watch(t *testing.T) {
 
 	_ = graph.Stabilize(ctx)
 
-	ItsEqual(t, 1, len(w0.Values()))
-	ItsEqual(t, 2, w0.Values()[0])
-	ItsEqual(t, 2, w0.Value())
+	Equal(t, 1, len(w0.Values()))
+	Equal(t, 2, w0.Values()[0])
+	Equal(t, 2, w0.Value())
 
 	v0.Set(2)
 
 	_ = graph.Stabilize(ctx)
 
-	ItsEqual(t, 2, len(w0.Values()))
-	ItsEqual(t, 2, w0.Values()[0])
-	ItsEqual(t, 3, w0.Values()[1])
+	Equal(t, 2, len(w0.Values()))
+	Equal(t, 2, w0.Values()[0])
+	Equal(t, 3, w0.Values()[1])
 }
 
 func Test_Stabilize_Map(t *testing.T) {
@@ -885,7 +885,7 @@ func Test_Stabilize_Map(t *testing.T) {
 	_ = Observe(Root(), graph, m)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 11, m.Value())
+	Equal(t, 11, m.Value())
 }
 
 func Test_Stabilize_MapContext(t *testing.T) {
@@ -893,7 +893,7 @@ func Test_Stabilize_MapContext(t *testing.T) {
 
 	c0 := Return(Root(), 1)
 	m := MapContext(Root(), c0, func(ictx context.Context, a int) (int, error) {
-		ItsBlueDye(ictx, t)
+		BlueDye(ictx, t)
 		return a + 10, nil
 	})
 
@@ -901,7 +901,7 @@ func Test_Stabilize_MapContext(t *testing.T) {
 	_ = Observe(Root(), graph, m)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 11, m.Value())
+	Equal(t, 11, m.Value())
 }
 
 func Test_Stabilize_Map2(t *testing.T) {
@@ -917,7 +917,7 @@ func Test_Stabilize_Map2(t *testing.T) {
 	_ = Observe(Root(), graph, m2)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 3, m2.Value())
+	Equal(t, 3, m2.Value())
 }
 
 func Test_Stabilize_Map2Context(t *testing.T) {
@@ -926,7 +926,7 @@ func Test_Stabilize_Map2Context(t *testing.T) {
 	c0 := Return(Root(), 1)
 	c1 := Return(Root(), 2)
 	m2 := Map2Context(Root(), c0, c1, func(ictx context.Context, a, b int) (int, error) {
-		ItsBlueDye(ctx, t)
+		BlueDye(ctx, t)
 		return a + b, nil
 	})
 
@@ -934,7 +934,7 @@ func Test_Stabilize_Map2Context(t *testing.T) {
 	_ = Observe(Root(), graph, m2)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 3, m2.Value())
+	Equal(t, 3, m2.Value())
 }
 
 func Test_Stabilize_Map2Context_error(t *testing.T) {
@@ -943,7 +943,7 @@ func Test_Stabilize_Map2Context_error(t *testing.T) {
 	c0 := Return(Root(), 1)
 	c1 := Return(Root(), 2)
 	m2 := Map2Context(Root(), c0, c1, func(ictx context.Context, a, b int) (int, error) {
-		ItsBlueDye(ctx, t)
+		BlueDye(ctx, t)
 		return a + b, fmt.Errorf("this is just a test")
 	})
 
@@ -951,8 +951,8 @@ func Test_Stabilize_Map2Context_error(t *testing.T) {
 	_ = Observe(Root(), graph, m2)
 
 	err := graph.Stabilize(ctx)
-	ItsNotNil(t, err)
-	ItsEqual(t, 0, m2.Value())
+	NotNil(t, err)
+	Equal(t, 0, m2.Value())
 }
 
 func Test_Stabilize_Map3(t *testing.T) {
@@ -969,7 +969,7 @@ func Test_Stabilize_Map3(t *testing.T) {
 	_ = Observe(Root(), graph, m3)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 6, m3.Value())
+	Equal(t, 6, m3.Value())
 }
 
 func Test_Stabilize_Map3Context(t *testing.T) {
@@ -979,7 +979,7 @@ func Test_Stabilize_Map3Context(t *testing.T) {
 	c1 := Return(Root(), 2)
 	c2 := Return(Root(), 3)
 	m3 := Map3Context(Root(), c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
-		ItsBlueDye(ictx, t)
+		BlueDye(ictx, t)
 		return a + b + c, nil
 	})
 
@@ -987,7 +987,7 @@ func Test_Stabilize_Map3Context(t *testing.T) {
 	_ = Observe(Root(), graph, m3)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 6, m3.Value())
+	Equal(t, 6, m3.Value())
 }
 
 func Test_Stabilize_Map3Context_error(t *testing.T) {
@@ -997,7 +997,7 @@ func Test_Stabilize_Map3Context_error(t *testing.T) {
 	c1 := Return(Root(), 2)
 	c2 := Return(Root(), 3)
 	m3 := Map3Context(Root(), c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
-		ItsBlueDye(ictx, t)
+		BlueDye(ictx, t)
 		return a + b + c, fmt.Errorf("this is just a test")
 	})
 
@@ -1005,8 +1005,8 @@ func Test_Stabilize_Map3Context_error(t *testing.T) {
 	_ = Observe(Root(), graph, m3)
 
 	err := graph.Stabilize(ctx)
-	ItsNotNil(t, err)
-	ItsEqual(t, 0, m3.Value())
+	NotNil(t, err)
+	Equal(t, 0, m3.Value())
 }
 
 func Test_Stabilize_MapIf(t *testing.T) {
@@ -1021,15 +1021,15 @@ func Test_Stabilize_MapIf(t *testing.T) {
 	_ = Observe(Root(), graph, mi0)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 2, mi0.Value())
+	Equal(t, 2, mi0.Value())
 
 	v0.Set(true)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 1, mi0.Value())
+	Equal(t, 1, mi0.Value())
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 1, mi0.Value())
+	Equal(t, 1, mi0.Value())
 }
 
 func Test_Stabilize_MapN(t *testing.T) {
@@ -1055,7 +1055,7 @@ func Test_Stabilize_MapN(t *testing.T) {
 	_ = Observe(Root(), graph, mn)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 6, mn.Value())
+	Equal(t, 6, mn.Value())
 }
 
 func Test_Stabilize_MapN_AddInput(t *testing.T) {
@@ -1084,14 +1084,14 @@ func Test_Stabilize_MapN_AddInput(t *testing.T) {
 	_ = Observe(Root(), graph, mn)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 6, mn.Value())
+	Equal(t, 6, mn.Value())
 }
 
 func Test_Stabilize_MapNContext(t *testing.T) {
 	ctx := testContext()
 
 	sum := func(ctx context.Context, values ...int) (output int, err error) {
-		ItsBlueDye(ctx, t)
+		BlueDye(ctx, t)
 		if len(values) == 0 {
 			return
 		}
@@ -1111,14 +1111,14 @@ func Test_Stabilize_MapNContext(t *testing.T) {
 	_ = Observe(Root(), graph, mn)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 6, mn.Value())
+	Equal(t, 6, mn.Value())
 }
 
 func Test_Stabilize_MapNContext_error(t *testing.T) {
 	ctx := testContext()
 
 	sum := func(ctx context.Context, values ...int) (output int, err error) {
-		ItsBlueDye(ctx, t)
+		BlueDye(ctx, t)
 		for _, value := range values {
 			output += value
 		}
@@ -1135,8 +1135,8 @@ func Test_Stabilize_MapNContext_error(t *testing.T) {
 	_ = Observe(Root(), graph, mn)
 
 	err := graph.Stabilize(ctx)
-	ItsNotNil(t, err)
-	ItsEqual(t, 0, mn.Value())
+	NotNil(t, err)
+	Equal(t, 0, mn.Value())
 }
 
 func Test_Stabilize_func(t *testing.T) {
@@ -1144,11 +1144,11 @@ func Test_Stabilize_func(t *testing.T) {
 
 	value := "hello"
 	f := Func(Root(), func(ictx context.Context) (string, error) {
-		ItsBlueDye(ictx, t)
+		BlueDye(ictx, t)
 		return value, nil
 	})
 	m := MapContext(Root(), f, func(ictx context.Context, v string) (string, error) {
-		ItsBlueDye(ctx, t)
+		BlueDye(ctx, t)
 		return v + " world!", nil
 	})
 
@@ -1156,19 +1156,19 @@ func Test_Stabilize_func(t *testing.T) {
 	_ = Observe(Root(), graph, m)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, "hello world!", m.Value())
+	Equal(t, "hello world!", m.Value())
 
 	value = "not hello"
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, "hello world!", m.Value())
+	Equal(t, "hello world!", m.Value())
 
 	// mark the func node as stale
 	// not sure a better way to do this automatically?
 	graph.SetStale(f)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, "not hello world!", m.Value())
+	Equal(t, "not hello world!", m.Value())
 }
 
 func Test_Stabilize_foldMap(t *testing.T) {
@@ -1190,7 +1190,7 @@ func Test_Stabilize_foldMap(t *testing.T) {
 	_ = Observe(Root(), graph, mf)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, 21, mf.Value())
+	Equal(t, 21, mf.Value())
 }
 
 func Test_Stabilize_foldLeft(t *testing.T) {
@@ -1212,7 +1212,7 @@ func Test_Stabilize_foldLeft(t *testing.T) {
 	_ = Observe(Root(), graph, mf)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, "123456", mf.Value())
+	Equal(t, "123456", mf.Value())
 }
 
 func Test_Stabilize_foldRight(t *testing.T) {
@@ -1234,12 +1234,12 @@ func Test_Stabilize_foldRight(t *testing.T) {
 	_ = Observe(Root(), graph, mf)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, "654321", mf.Value())
+	Equal(t, "654321", mf.Value())
 
 	graph.SetStale(mf)
 
 	_ = graph.Stabilize(ctx)
-	ItsEqual(t, "654321654321", mf.Value())
+	Equal(t, "654321654321", mf.Value())
 }
 
 func Test_Stabilize_freeze(t *testing.T) {
@@ -1252,16 +1252,16 @@ func Test_Stabilize_freeze(t *testing.T) {
 	_ = Observe(Root(), graph, fv)
 
 	err := graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, "hello", v0.Value())
-	ItsEqual(t, "hello", fv.Value())
+	Nil(t, err)
+	Equal(t, "hello", v0.Value())
+	Equal(t, "hello", fv.Value())
 
 	v0.Set("not-hello")
 
 	err = graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, "not-hello", v0.Value())
-	ItsEqual(t, "hello", fv.Value())
+	Nil(t, err)
+	Equal(t, "not-hello", v0.Value())
+	Equal(t, "hello", fv.Value())
 }
 
 func Test_Stabilize_always_cutoff(t *testing.T) {
@@ -1281,22 +1281,22 @@ func Test_Stabilize_always_cutoff(t *testing.T) {
 	o := Observe(Root(), g, readFile)
 
 	err := g.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, "test-1", o.Value())
+	Nil(t, err)
+	Equal(t, "test-1", o.Value())
 
 	err = g.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, "test-1", o.Value())
+	Nil(t, err)
+	Equal(t, "test-1", o.Value())
 
 	modtime = 2
 
 	err = g.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, "test-2", o.Value())
+	Nil(t, err)
+	Equal(t, "test-2", o.Value())
 
 	err = g.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, "test-2", o.Value())
+	Nil(t, err)
+	Equal(t, "test-2", o.Value())
 }
 
 func Test_Stabilize_always_cutoff_error(t *testing.T) {
@@ -1316,10 +1316,10 @@ func Test_Stabilize_always_cutoff_error(t *testing.T) {
 	o := Observe(Root(), g, readFile)
 
 	err := g.Stabilize(ctx)
-	ItsNotNil(t, err)
-	ItsEqual(t, "", o.Value())
+	NotNil(t, err)
+	Equal(t, "", o.Value())
 
-	ItsEqual(t, 3, g.recomputeHeap.len())
+	Equal(t, 3, g.recomputeHeap.len())
 }
 
 func Test_Stabilize_printsErrors(t *testing.T) {
@@ -1337,10 +1337,10 @@ func Test_Stabilize_printsErrors(t *testing.T) {
 	_ = Observe(Root(), g, gonnaPanic)
 
 	err := g.Stabilize(ctx)
-	ItsNotNil(t, err)
-	ItsNotEqual(t, 0, len(outBuf.String()))
-	ItsNotEqual(t, 0, len(errBuf.String()))
-	ItsEqual(t, true, strings.Contains(errBuf.String(), "this is only a test"))
+	NotNil(t, err)
+	NotEqual(t, 0, len(outBuf.String()))
+	NotEqual(t, 0, len(errBuf.String()))
+	Equal(t, true, strings.Contains(errBuf.String(), "this is only a test"))
 }
 
 func Test_Stabilize_handlers(t *testing.T) {
@@ -1367,9 +1367,9 @@ func Test_Stabilize_handlers(t *testing.T) {
 		didCallStabilizationEnd = true
 	})
 	err := graph.Stabilize(ctx)
-	ItsNil(t, err)
-	ItsEqual(t, true, didCallStabilizationStart)
-	ItsEqual(t, true, didCallStabilizationEnd)
-	ItsEqual(t, true, startWasBlueDye)
-	ItsEqual(t, true, endWasBlueDye)
+	Nil(t, err)
+	Equal(t, true, didCallStabilizationStart)
+	Equal(t, true, didCallStabilizationEnd)
+	Equal(t, true, startWasBlueDye)
+	Equal(t, true, endWasBlueDye)
 }

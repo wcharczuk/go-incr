@@ -46,6 +46,10 @@ func addNodeToBindScope(scope *BindScope, node INode) {
 	if scope == nil || scope.root {
 		return
 	}
+
+	if node.Node().createdIn != nil {
+		node.Node().createdIn.rhsNodes = remove(node.Node().createdIn.rhsNodes, node.Node().id)
+	}
 	node.Node().createdIn = scope
 	scope.rhsNodes = append(scope.rhsNodes, node)
 }

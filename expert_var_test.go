@@ -10,5 +10,5 @@ func Test_ExpertVar(t *testing.T) {
 	v := Var(Root(), "hello")
 	ev := ExpertVar(v)
 	ev.SetInternalValue("not-hello")
-	testutil.ItsEqual(t, "not-hello", v.Value())
+	testutil.Equal(t, "not-hello", v.Value())
 }

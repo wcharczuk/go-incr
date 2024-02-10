@@ -40,19 +40,19 @@ func Test_Timer(t *testing.T) {
 	o := Observe(Root(), g, final)
 
 	err := g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, 0, timer.Value())
-	testutil.ItsEqual(t, 2, timed.Value())
-	testutil.ItsEqual(t, 2, untimed.Value())
-	testutil.ItsEqual(t, 4, o.Value())
+	testutil.Nil(t, err)
+	testutil.Equal(t, 0, timer.Value())
+	testutil.Equal(t, 2, timed.Value())
+	testutil.Equal(t, 2, untimed.Value())
+	testutil.Equal(t, 4, o.Value())
 
 	err = g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, 4, o.Value())
+	testutil.Nil(t, err)
+	testutil.Equal(t, 4, o.Value())
 
 	clock = clock.Add(time.Second)
 
 	err = g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, 5, o.Value())
+	testutil.Nil(t, err)
+	testutil.Equal(t, 5, o.Value())
 }

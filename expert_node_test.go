@@ -13,25 +13,25 @@ func Test_ExpertNode_setters(t *testing.T) {
 	id := NewIdentifier()
 	en.SetID(id)
 
-	testutil.ItsEqual(t, id, n.Node().ID())
+	testutil.Equal(t, id, n.Node().ID())
 
 	en.SetHeight(7)
-	testutil.ItsEqual(t, 7, en.Height())
+	testutil.Equal(t, 7, en.Height())
 
 	en.SetChangedAt(8)
-	testutil.ItsEqual(t, 8, en.ChangedAt())
+	testutil.Equal(t, 8, en.ChangedAt())
 
 	en.SetSetAt(9)
-	testutil.ItsEqual(t, 9, en.SetAt())
+	testutil.Equal(t, 9, en.SetAt())
 
 	en.SetRecomputedAt(10)
-	testutil.ItsEqual(t, 10, en.RecomputedAt())
+	testutil.Equal(t, 10, en.RecomputedAt())
 
 	en.SetBoundAt(11)
-	testutil.ItsEqual(t, 11, en.BoundAt())
+	testutil.Equal(t, 11, en.BoundAt())
 
 	en.SetAlways(true)
-	testutil.ItsEqual(t, true, en.Always())
+	testutil.Equal(t, true, en.Always())
 }
 
 func Test_ExpertNode_AddChildren(t *testing.T) {
@@ -39,7 +39,7 @@ func Test_ExpertNode_AddChildren(t *testing.T) {
 	en := ExpertNode(n)
 
 	en.AddChildren(newMockBareNode(), newMockBareNode())
-	testutil.ItsEqual(t, 2, len(n.Node().Children()))
+	testutil.Equal(t, 2, len(n.Node().Children()))
 }
 
 func Test_ExpertNode_AddParents(t *testing.T) {
@@ -47,7 +47,7 @@ func Test_ExpertNode_AddParents(t *testing.T) {
 	en := ExpertNode(n)
 
 	en.AddParents(newMockBareNode(), newMockBareNode())
-	testutil.ItsEqual(t, 2, len(n.Node().Parents()))
+	testutil.Equal(t, 2, len(n.Node().Parents()))
 }
 
 func Test_ExpertNode_RemoveChild(t *testing.T) {
@@ -57,10 +57,10 @@ func Test_ExpertNode_RemoveChild(t *testing.T) {
 	mbn0 := newMockBareNode()
 	mbn1 := newMockBareNode()
 	en.AddChildren(mbn0, mbn1)
-	testutil.ItsEqual(t, 2, len(n.Node().Children()))
+	testutil.Equal(t, 2, len(n.Node().Children()))
 
 	en.RemoveChild(mbn0.Node().ID())
-	testutil.ItsEqual(t, 1, len(n.Node().Children()))
+	testutil.Equal(t, 1, len(n.Node().Children()))
 }
 
 func Test_ExpertNode_RemoveParent(t *testing.T) {
@@ -70,10 +70,10 @@ func Test_ExpertNode_RemoveParent(t *testing.T) {
 	mbn0 := newMockBareNode()
 	mbn1 := newMockBareNode()
 	en.AddParents(mbn0, mbn1)
-	testutil.ItsEqual(t, 2, len(n.Node().Parents()))
+	testutil.Equal(t, 2, len(n.Node().Parents()))
 
 	en.RemoveParent(mbn0.Node().ID())
-	testutil.ItsEqual(t, 1, len(n.Node().Parents()))
+	testutil.Equal(t, 1, len(n.Node().Parents()))
 }
 
 func Test_ExpertNode_Value(t *testing.T) {
@@ -81,7 +81,7 @@ func Test_ExpertNode_Value(t *testing.T) {
 	en := ExpertNode(n)
 
 	value := en.Value()
-	testutil.ItsEqual(t, "hello", value)
+	testutil.Equal(t, "hello", value)
 }
 
 func Test_ExperNode_ComputePseudoHeight(t *testing.T) {
@@ -106,7 +106,7 @@ func Test_ExperNode_ComputePseudoHeight(t *testing.T) {
 	Link(b21, b10)
 	Link(b00, a20)
 
-	testutil.ItsEqual(t, 6, ExpertNode(b21).ComputePseudoHeight())
+	testutil.Equal(t, 6, ExpertNode(b21).ComputePseudoHeight())
 }
 
 func Test_ExperNode_ComputePseudoHeight_bare(t *testing.T) {
@@ -142,5 +142,5 @@ func Test_ExperNode_ComputePseudoHeight_bare(t *testing.T) {
 	ExpertNode(b20).SetHeight(0)
 	ExpertNode(b21).SetHeight(0)
 
-	testutil.ItsEqual(t, 6, ExpertNode(b21).ComputePseudoHeight())
+	testutil.Equal(t, 6, ExpertNode(b21).ComputePseudoHeight())
 }

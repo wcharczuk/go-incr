@@ -19,20 +19,20 @@ func Test_diffMapsByKeysAdded(t *testing.T) {
 	}
 
 	ma, orig := diffMapByKeysAdded(m0, m1)
-	testutil.ItsEqual(t, map[string]string{
+	testutil.Equal(t, map[string]string{
 		"a": "a",
 		"d": "d",
 	}, ma)
-	testutil.ItsEqual(t, m1, orig)
+	testutil.Equal(t, m1, orig)
 
 	ma, orig = diffMapByKeysAdded(nil, m1)
-	testutil.ItsEqual(t, map[string]string{
+	testutil.Equal(t, map[string]string{
 		"a": "a",
 		"b": "b",
 		"c": "c",
 		"d": "d",
 	}, ma)
-	testutil.ItsEqual(t, map[string]string{
+	testutil.Equal(t, map[string]string{
 		"a": "a",
 		"b": "b",
 		"c": "c",
@@ -53,18 +53,18 @@ func Test_diffMapsByKeysRemoved(t *testing.T) {
 	}
 
 	mr, orig := diffMapByKeysRemoved(m0, m1)
-	testutil.ItsEqual(t, map[string]string{
+	testutil.Equal(t, map[string]string{
 		"a": "a",
 		"d": "d",
 	}, mr)
-	testutil.ItsEqual(t, orig, m1)
+	testutil.Equal(t, orig, m1)
 
 	mr, orig = diffMapByKeysRemoved(m0, nil)
-	testutil.ItsEqual(t, map[string]string{
+	testutil.Equal(t, map[string]string{
 		"a": "a",
 		"b": "b",
 		"c": "c",
 		"d": "d",
 	}, mr)
-	testutil.ItsEqual(t, 0, len(orig))
+	testutil.Equal(t, 0, len(orig))
 }

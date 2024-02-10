@@ -42,7 +42,7 @@ func Test_Bind_basic(t *testing.T) {
 
 	bind.Node().SetLabel("bind")
 
-	testutil.ItMatches(t, "bind\\[(.*)\\]:bind", bind.String())
+	testutil.Matches(t, "bind\\[(.*)\\]:bind", bind.String())
 
 	s0 := Return(Root(), "hello")
 	s0.Node().SetLabel("s0")
@@ -53,179 +53,179 @@ func Test_Bind_basic(t *testing.T) {
 	o.Node().SetLabel("o")
 
 	// we shouldn't have bind internals set up on construction
-	testutil.ItsNil(t, bind.BindChange())
-	testutil.ItsNil(t, bind.Bound())
+	testutil.Nil(t, bind.BindChange())
+	testutil.Nil(t, bind.Bound())
 
 	g := New()
 	_ = Observe(Root(), g, o)
 
 	// we shouldn't have bind internals set up after observation either
-	testutil.ItsNil(t, bind.BindChange())
-	testutil.ItsNil(t, bind.Bound())
+	testutil.Nil(t, bind.BindChange())
+	testutil.Nil(t, bind.Bound())
 
 	var err error
-	testutil.ItsEqual(t, 0, bindVar.Node().height)
-	testutil.ItsEqual(t, 0, s0.Node().height)
-	testutil.ItsEqual(t, 1, s1.Node().height)
+	testutil.Equal(t, 0, bindVar.Node().height)
+	testutil.Equal(t, 0, s0.Node().height)
+	testutil.Equal(t, 1, s1.Node().height)
 
-	testutil.ItsEqual(t, 1, bind.Node().height)
-	testutil.ItsEqual(t, 2, o.Node().height)
+	testutil.Equal(t, 1, bind.Node().height)
+	testutil.Equal(t, 2, o.Node().height)
 
-	testutil.ItsEqual(t, true, g.IsObserving(bindVar))
-	testutil.ItsEqual(t, true, g.IsObserving(s0))
-	testutil.ItsEqual(t, true, g.IsObserving(s1))
-	testutil.ItsEqual(t, true, g.IsObserving(bind))
-	testutil.ItsEqual(t, true, g.IsObserving(o))
+	testutil.Equal(t, true, g.IsObserving(bindVar))
+	testutil.Equal(t, true, g.IsObserving(s0))
+	testutil.Equal(t, true, g.IsObserving(s1))
+	testutil.Equal(t, true, g.IsObserving(bind))
+	testutil.Equal(t, true, g.IsObserving(o))
 
-	testutil.ItsEqual(t, false, g.IsObserving(av))
-	testutil.ItsEqual(t, false, g.IsObserving(a0))
-	testutil.ItsEqual(t, false, g.IsObserving(a1))
+	testutil.Equal(t, false, g.IsObserving(av))
+	testutil.Equal(t, false, g.IsObserving(a0))
+	testutil.Equal(t, false, g.IsObserving(a1))
 
-	testutil.ItsEqual(t, false, g.IsObserving(bv))
-	testutil.ItsEqual(t, false, g.IsObserving(b0))
-	testutil.ItsEqual(t, false, g.IsObserving(b1))
-	testutil.ItsEqual(t, false, g.IsObserving(b2))
+	testutil.Equal(t, false, g.IsObserving(bv))
+	testutil.Equal(t, false, g.IsObserving(b0))
+	testutil.Equal(t, false, g.IsObserving(b1))
+	testutil.Equal(t, false, g.IsObserving(b2))
 
 	err = g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
 	err = dumpDot(g, homedir("bind_basic_00.png"))
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
 	// we _should_ have bind internals set up after stabilization
-	testutil.ItsNotNil(t, bind.BindChange())
-	testutil.ItsNotNil(t, bind.Bound())
+	testutil.NotNil(t, bind.BindChange())
+	testutil.NotNil(t, bind.Bound())
 
 	bindChange := bind.BindChange()
-	testutil.ItsEqual(t, true, hasKey(bindChange.Node().parents, bindVar.Node().ID()))
-	testutil.ItsEqual(t, true, hasKey(bindChange.Node().children, a1.Node().ID()))
-	testutil.ItsEqual(t, false, hasKey(bindChange.Node().children, b1.Node().ID()))
+	testutil.Equal(t, true, hasKey(bindChange.Node().parents, bindVar.Node().ID()))
+	testutil.Equal(t, true, hasKey(bindChange.Node().children, a1.Node().ID()))
+	testutil.Equal(t, false, hasKey(bindChange.Node().children, b1.Node().ID()))
 
-	testutil.ItsEqual(t, 1, bind.Node().boundAt)
-	testutil.ItsEqual(t, 1, bind.Node().changedAt)
-	testutil.ItsEqual(t, 1, a1.Node().changedAt)
+	testutil.Equal(t, 1, bind.Node().boundAt)
+	testutil.Equal(t, 1, bind.Node().changedAt)
+	testutil.Equal(t, 1, a1.Node().changedAt)
 
-	testutil.ItsEqual(t, 0, bindVar.Node().height)
-	testutil.ItsEqual(t, 0, s0.Node().height)
-	testutil.ItsEqual(t, 1, s1.Node().height)
+	testutil.Equal(t, 0, bindVar.Node().height)
+	testutil.Equal(t, 0, s0.Node().height)
+	testutil.Equal(t, 1, s1.Node().height)
 
-	testutil.ItsEqual(t, 0, av.Node().height)
-	testutil.ItsEqual(t, 1, a0.Node().height)
-	testutil.ItsEqual(t, 2, a1.Node().height)
+	testutil.Equal(t, 0, av.Node().height)
+	testutil.Equal(t, 1, a0.Node().height)
+	testutil.Equal(t, 2, a1.Node().height)
 
-	testutil.ItsEqual(t, 3, bind.Node().height)
-	testutil.ItsEqual(t, 4, o.Node().height)
+	testutil.Equal(t, 3, bind.Node().height)
+	testutil.Equal(t, 4, o.Node().height)
 
-	testutil.ItsEqual(t, true, g.IsObserving(bindVar))
-	testutil.ItsEqual(t, true, g.IsObserving(s0))
-	testutil.ItsEqual(t, true, g.IsObserving(s1))
-	testutil.ItsEqual(t, true, g.IsObserving(bind))
-	testutil.ItsEqual(t, true, g.IsObserving(o))
+	testutil.Equal(t, true, g.IsObserving(bindVar))
+	testutil.Equal(t, true, g.IsObserving(s0))
+	testutil.Equal(t, true, g.IsObserving(s1))
+	testutil.Equal(t, true, g.IsObserving(bind))
+	testutil.Equal(t, true, g.IsObserving(o))
 
-	testutil.ItsEqual(t, true, g.IsObserving(av))
-	testutil.ItsEqual(t, true, g.IsObserving(a0))
-	testutil.ItsEqual(t, true, g.IsObserving(a1))
+	testutil.Equal(t, true, g.IsObserving(av))
+	testutil.Equal(t, true, g.IsObserving(a0))
+	testutil.Equal(t, true, g.IsObserving(a1))
 
-	testutil.ItsEqual(t, false, g.IsObserving(bv))
-	testutil.ItsEqual(t, false, g.IsObserving(b0))
-	testutil.ItsEqual(t, false, g.IsObserving(b1))
-	testutil.ItsEqual(t, false, g.IsObserving(b2))
+	testutil.Equal(t, false, g.IsObserving(bv))
+	testutil.Equal(t, false, g.IsObserving(b0))
+	testutil.Equal(t, false, g.IsObserving(b1))
+	testutil.Equal(t, false, g.IsObserving(b2))
 
-	testutil.ItsEqual(t, "a-value", av.Value())
-	testutil.ItsEqual(t, "a-value", bind.Value())
-	testutil.ItsEqual(t, "a-valuehello", o.Value())
+	testutil.Equal(t, "a-value", av.Value())
+	testutil.Equal(t, "a-value", bind.Value())
+	testutil.Equal(t, "a-valuehello", o.Value())
 
 	bindVar.Set("b")
 	err = g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
 	err = dumpDot(g, homedir("bind_basic_01.png"))
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
 	bindChange = bind.BindChange()
-	testutil.ItsEqual(t, true, hasKey(bindChange.Node().parents, bindVar.Node().ID()))
-	testutil.ItsEqual(t, false, hasKey(bindChange.Node().children, a1.Node().ID()))
-	testutil.ItsEqual(t, true, hasKey(bindChange.Node().children, b2.Node().ID()))
+	testutil.Equal(t, true, hasKey(bindChange.Node().parents, bindVar.Node().ID()))
+	testutil.Equal(t, false, hasKey(bindChange.Node().children, a1.Node().ID()))
+	testutil.Equal(t, true, hasKey(bindChange.Node().children, b2.Node().ID()))
 
-	testutil.ItsEqual(t, 0, bindVar.Node().height)
-	testutil.ItsEqual(t, 0, s0.Node().height)
-	testutil.ItsEqual(t, 1, s1.Node().height)
+	testutil.Equal(t, 0, bindVar.Node().height)
+	testutil.Equal(t, 0, s0.Node().height)
+	testutil.Equal(t, 1, s1.Node().height)
 
-	testutil.ItsEqual(t, 0, av.Node().height)
-	testutil.ItsEqual(t, 0, a0.Node().height)
-	testutil.ItsEqual(t, 0, a1.Node().height)
+	testutil.Equal(t, 0, av.Node().height)
+	testutil.Equal(t, 0, a0.Node().height)
+	testutil.Equal(t, 0, a1.Node().height)
 
-	testutil.ItsEqual(t, 0, bv.Node().height)
-	testutil.ItsEqual(t, 1, b0.Node().height)
-	testutil.ItsEqual(t, 2, b1.Node().height)
-	testutil.ItsEqual(t, 3, b2.Node().height)
+	testutil.Equal(t, 0, bv.Node().height)
+	testutil.Equal(t, 1, b0.Node().height)
+	testutil.Equal(t, 2, b1.Node().height)
+	testutil.Equal(t, 3, b2.Node().height)
 
-	testutil.ItsEqual(t, 4, bind.Node().height)
-	testutil.ItsEqual(t, 5, o.Node().height)
+	testutil.Equal(t, 4, bind.Node().height)
+	testutil.Equal(t, 5, o.Node().height)
 
-	testutil.ItsEqual(t, true, g.IsObserving(bindVar))
-	testutil.ItsEqual(t, true, g.IsObserving(s0))
-	testutil.ItsEqual(t, true, g.IsObserving(s1))
-	testutil.ItsEqual(t, true, g.IsObserving(bind))
-	testutil.ItsEqual(t, true, g.IsObserving(o))
+	testutil.Equal(t, true, g.IsObserving(bindVar))
+	testutil.Equal(t, true, g.IsObserving(s0))
+	testutil.Equal(t, true, g.IsObserving(s1))
+	testutil.Equal(t, true, g.IsObserving(bind))
+	testutil.Equal(t, true, g.IsObserving(o))
 
-	testutil.ItsEqual(t, false, g.IsObserving(av), "if we switch to b, we should unobserve the 'a' tree")
-	testutil.ItsEqual(t, false, g.IsObserving(a0))
-	testutil.ItsEqual(t, false, g.IsObserving(a1))
+	testutil.Equal(t, false, g.IsObserving(av), "if we switch to b, we should unobserve the 'a' tree")
+	testutil.Equal(t, false, g.IsObserving(a0))
+	testutil.Equal(t, false, g.IsObserving(a1))
 
-	testutil.ItsEqual(t, true, g.IsObserving(bv))
-	testutil.ItsEqual(t, true, g.IsObserving(b0))
-	testutil.ItsEqual(t, true, g.IsObserving(b1))
-	testutil.ItsEqual(t, true, g.IsObserving(b2))
+	testutil.Equal(t, true, g.IsObserving(bv))
+	testutil.Equal(t, true, g.IsObserving(b0))
+	testutil.Equal(t, true, g.IsObserving(b1))
+	testutil.Equal(t, true, g.IsObserving(b2))
 
-	testutil.ItsEqual(t, "a-value", av.Value())
-	testutil.ItsEqual(t, "b-value", bv.Value())
-	testutil.ItsEqual(t, "b-valuehello", o.Value())
+	testutil.Equal(t, "a-value", av.Value())
+	testutil.Equal(t, "b-value", bv.Value())
+	testutil.Equal(t, "b-valuehello", o.Value())
 
 	bindVar.Set("neither")
 	err = g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
 	err = dumpDot(g, homedir("bind_basic_02.png"))
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
 	bindChange = bind.BindChange()
-	testutil.ItsNil(t, bindChange)
+	testutil.Nil(t, bindChange)
 
-	testutil.ItsEqual(t, 0, bindVar.Node().height)
-	testutil.ItsEqual(t, 0, s0.Node().height)
-	testutil.ItsEqual(t, 1, s1.Node().height)
+	testutil.Equal(t, 0, bindVar.Node().height)
+	testutil.Equal(t, 0, s0.Node().height)
+	testutil.Equal(t, 1, s1.Node().height)
 
-	testutil.ItsEqual(t, 0, av.Node().height)
-	testutil.ItsEqual(t, 0, a0.Node().height)
-	testutil.ItsEqual(t, 0, a1.Node().height)
+	testutil.Equal(t, 0, av.Node().height)
+	testutil.Equal(t, 0, a0.Node().height)
+	testutil.Equal(t, 0, a1.Node().height)
 
-	testutil.ItsEqual(t, 0, bv.Node().height)
-	testutil.ItsEqual(t, 0, b0.Node().height)
-	testutil.ItsEqual(t, 0, b1.Node().height)
-	testutil.ItsEqual(t, 0, b2.Node().height)
+	testutil.Equal(t, 0, bv.Node().height)
+	testutil.Equal(t, 0, b0.Node().height)
+	testutil.Equal(t, 0, b1.Node().height)
+	testutil.Equal(t, 0, b2.Node().height)
 
-	testutil.ItsEqual(t, 4, bind.Node().height)
-	testutil.ItsEqual(t, 5, o.Node().height)
+	testutil.Equal(t, 4, bind.Node().height)
+	testutil.Equal(t, 5, o.Node().height)
 
-	testutil.ItsEqual(t, true, g.IsObserving(bindVar))
-	testutil.ItsEqual(t, true, g.IsObserving(s0))
-	testutil.ItsEqual(t, true, g.IsObserving(s1))
-	testutil.ItsEqual(t, true, g.IsObserving(bind))
-	testutil.ItsEqual(t, true, g.IsObserving(o))
+	testutil.Equal(t, true, g.IsObserving(bindVar))
+	testutil.Equal(t, true, g.IsObserving(s0))
+	testutil.Equal(t, true, g.IsObserving(s1))
+	testutil.Equal(t, true, g.IsObserving(bind))
+	testutil.Equal(t, true, g.IsObserving(o))
 
-	testutil.ItsEqual(t, false, g.IsObserving(av))
-	testutil.ItsEqual(t, false, g.IsObserving(a0))
-	testutil.ItsEqual(t, false, g.IsObserving(a1))
+	testutil.Equal(t, false, g.IsObserving(av))
+	testutil.Equal(t, false, g.IsObserving(a0))
+	testutil.Equal(t, false, g.IsObserving(a1))
 
-	testutil.ItsEqual(t, false, g.IsObserving(bv))
-	testutil.ItsEqual(t, false, g.IsObserving(b0))
-	testutil.ItsEqual(t, false, g.IsObserving(b1))
-	testutil.ItsEqual(t, false, g.IsObserving(b2))
+	testutil.Equal(t, false, g.IsObserving(bv))
+	testutil.Equal(t, false, g.IsObserving(b0))
+	testutil.Equal(t, false, g.IsObserving(b1))
+	testutil.Equal(t, false, g.IsObserving(b2))
 
-	testutil.ItsEqual(t, "a-value", av.Value())
-	testutil.ItsEqual(t, "b-value", bv.Value())
-	testutil.ItsEqual(t, "hello", o.Value())
+	testutil.Equal(t, "a-value", av.Value())
+	testutil.Equal(t, "b-value", bv.Value())
+	testutil.Equal(t, "hello", o.Value())
 }
 
 func Test_Bind_scopes(t *testing.T) {
@@ -268,20 +268,20 @@ func Test_Bind_scopes(t *testing.T) {
 	o := Observe(Root(), g, t2)
 
 	err := g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, "t1-mappedt3-mapped", o.Value())
-	testutil.ItsNil(t, t1.Node().createdIn, "t1 should have an unset created_in as it was created outside a bind")
+	testutil.Nil(t, err)
+	testutil.Equal(t, "t1-mappedt3-mapped", o.Value())
+	testutil.Nil(t, t1.Node().createdIn, "t1 should have an unset created_in as it was created outside a bind")
 
 	scope := t2.(*bindIncr[string, string]).scope
-	testutil.ItsNotNil(t, scope)
+	testutil.NotNil(t, scope)
 
-	testutil.ItsEqual(t, t2.Node().ID(), scope.bind.Node().ID())
+	testutil.Equal(t, t2.Node().ID(), scope.bind.Node().ID())
 
-	testutil.ItsEqual(t, 3, len(scope.rhsNodes))
+	testutil.Equal(t, 3, len(scope.rhsNodes))
 
-	testutil.ItsEqual(t, true, hasKey(scope.rhsNodes, rt3id))
-	testutil.ItsEqual(t, true, hasKey(scope.rhsNodes, t3id))
-	testutil.ItsEqual(t, true, hasKey(scope.rhsNodes, rid))
+	testutil.Equal(t, true, hasKey(scope.rhsNodes, rt3id))
+	testutil.Equal(t, true, hasKey(scope.rhsNodes, t3id))
+	testutil.Equal(t, true, hasKey(scope.rhsNodes, rid))
 }
 
 func Test_Bind_necessary(t *testing.T) {
@@ -325,25 +325,25 @@ func Test_Bind_necessary(t *testing.T) {
 	g := New()
 	o := Observe(Root(), g, m2)
 
-	testutil.ItsEqual(t, true, hasKey(m2.Node().children, o.Node().id))
+	testutil.Equal(t, true, hasKey(m2.Node().children, o.Node().id))
 
 	err := g.Stabilize(testContext())
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, "hellohello", o.Value())
-	testutil.ItsEqual(t, true, g.canReachObserver(root, o.Node().id))
+	testutil.Nil(t, err)
+	testutil.Equal(t, "hellohello", o.Value())
+	testutil.Equal(t, true, g.canReachObserver(root, o.Node().id))
 
-	testutil.ItsEqual(t, true, hasKey(m2.Node().children, o.Node().id))
+	testutil.Equal(t, true, hasKey(m2.Node().children, o.Node().id))
 
 	_ = dumpDot(g, homedir("bind_necessary_00.png"))
 
 	b0v.Set("b")
 	err = g.Stabilize(testContext())
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
 	_ = dumpDot(g, homedir("bind_necessary_01.png"))
 
-	testutil.ItsEqual(t, true, g.canReachObserver(root, o.Node().id))
-	testutil.ItsEqual(t, true, g.IsObserving(root))
+	testutil.Equal(t, true, g.canReachObserver(root, o.Node().id))
+	testutil.Equal(t, true, g.IsObserving(root))
 }
 
 func Test_Bind_unbindConflict(t *testing.T) {
@@ -384,19 +384,19 @@ func Test_Bind_unbindConflict(t *testing.T) {
 	o := Observe(Root(), g, m2)
 
 	err := g.Stabilize(testContext())
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, "hellohello", o.Value())
-	testutil.ItsEqual(t, true, g.canReachObserver(root, o.Node().id))
+	testutil.Nil(t, err)
+	testutil.Equal(t, "hellohello", o.Value())
+	testutil.Equal(t, true, g.canReachObserver(root, o.Node().id))
 
 	_ = dumpDot(g, homedir("bind_unbind_confict_00.png"))
 
 	b0v.Set("b")
 	err = g.Stabilize(testContext())
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
 	_ = dumpDot(g, homedir("bind_unbind_conflict_01.png"))
 
-	testutil.ItsEqual(t, true, g.IsObserving(ma))
+	testutil.Equal(t, true, g.IsObserving(ma))
 }
 
 func Test_Bind_rebind(t *testing.T) {
@@ -437,7 +437,7 @@ func Test_Bind_rebind(t *testing.T) {
 
 	bind.Node().SetLabel("bind")
 
-	testutil.ItMatches(t, "bind\\[(.*)\\]:bind", bind.String())
+	testutil.Matches(t, "bind\\[(.*)\\]:bind", bind.String())
 
 	s0 := Return(Root(), "hello")
 	s0.Node().SetLabel("s0")
@@ -453,22 +453,22 @@ func Test_Bind_rebind(t *testing.T) {
 	var err error
 	ctx := testContext()
 	err = g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, 1, bind.Node().boundAt)
+	testutil.Nil(t, err)
+	testutil.Equal(t, 1, bind.Node().boundAt)
 
-	testutil.ItsEqual(t, "a-value", av.Value())
-	testutil.ItsEqual(t, "b-value", bv.Value())
-	testutil.ItsEqual(t, "a-valuehello", o.Value())
+	testutil.Equal(t, "a-value", av.Value())
+	testutil.Equal(t, "b-value", bv.Value())
+	testutil.Equal(t, "a-valuehello", o.Value())
 
 	bindVar.Set("a")
 
 	err = g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, 1, bind.Node().boundAt)
+	testutil.Nil(t, err)
+	testutil.Equal(t, 1, bind.Node().boundAt)
 
-	testutil.ItsEqual(t, "a-value", av.Value())
-	testutil.ItsEqual(t, "b-value", bv.Value())
-	testutil.ItsEqual(t, "a-valuehello", o.Value())
+	testutil.Equal(t, "a-value", av.Value())
+	testutil.Equal(t, "b-value", bv.Value())
+	testutil.Equal(t, "a-valuehello", o.Value())
 }
 
 func Test_Bind_error(t *testing.T) {
@@ -488,9 +488,9 @@ func Test_Bind_error(t *testing.T) {
 	_ = Observe(Root(), g, o)
 	ctx := testContext()
 	err := g.Stabilize(ctx)
-	testutil.ItsNotNil(t, err)
-	testutil.ItsEqual(t, "this is just a test", err.Error())
-	testutil.ItsEqual(t, "this is just a test", gotError.Error())
+	testutil.NotNil(t, err)
+	testutil.Equal(t, "this is just a test", err.Error())
+	testutil.Equal(t, "this is just a test", gotError.Error())
 }
 
 func Test_Bind_nested(t *testing.T) {
@@ -518,41 +518,41 @@ func Test_Bind_nested(t *testing.T) {
 	ctx := testContext()
 
 	err := g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 	err = dumpDot(g, homedir("bind_nested_00.png"))
-	testutil.ItsNil(t, err)
-	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
-	testutil.ItsEqual(t, "a0-0+a0-1->c->final", o.Value())
+	testutil.Nil(t, err)
+	testutil.Nil(t, g.recomputeHeap.sanityCheck())
+	testutil.Equal(t, "a0-0+a0-1->c->final", o.Value())
 
 	cv.Set("b")
 	_ = g.Stabilize(ctx)
 
 	err = dumpDot(g, homedir("bind_nested_01.png"))
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
-	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
-	testutil.ItsEqual(t, "a0-0+a0-1->b->c->final", o.Value())
+	testutil.Nil(t, g.recomputeHeap.sanityCheck())
+	testutil.Equal(t, "a0-0+a0-1->b->c->final", o.Value())
 
 	bv.Set("b")
 	_ = g.Stabilize(ctx)
 
 	err = dumpDot(g, homedir("bind_nested_02.png"))
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
-	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
-	testutil.ItsEqual(t, "a1-0+a1-1->b->c->final", o.Value())
+	testutil.Nil(t, g.recomputeHeap.sanityCheck())
+	testutil.Equal(t, "a1-0+a1-1->b->c->final", o.Value())
 
 	bv.Set("a")
 	_ = g.Stabilize(ctx)
 
-	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
-	testutil.ItsEqual(t, "a0-0+a0-1->b->c->final", o.Value())
+	testutil.Nil(t, g.recomputeHeap.sanityCheck())
+	testutil.Equal(t, "a0-0+a0-1->b->c->final", o.Value())
 
 	cv.Set("a")
 	_ = g.Stabilize(ctx)
 
-	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
-	testutil.ItsEqual(t, "a0-0+a0-1->c->final", o.Value())
+	testutil.Nil(t, g.recomputeHeap.sanityCheck())
+	testutil.Equal(t, "a0-0+a0-1->c->final", o.Value())
 }
 
 func Test_Bind_nested_unlinksBind(t *testing.T) {
@@ -599,39 +599,39 @@ func Test_Bind_nested_unlinksBind(t *testing.T) {
 
 	ctx := testContext()
 	err := g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsNil(t, dumpDot(g, homedir("bind_unobserve_00_base.png")))
-	testutil.ItsEqual(t, "a00", o.Value())
+	testutil.Nil(t, err)
+	testutil.Nil(t, dumpDot(g, homedir("bind_unobserve_00_base.png")))
+	testutil.Equal(t, "a00", o.Value())
 
-	testutil.ItsEqual(t, true, g.IsObserving(a00))
-	testutil.ItsEqual(t, true, g.IsObserving(a01))
-	testutil.ItsEqual(t, false, g.IsObserving(b00))
-	testutil.ItsEqual(t, false, g.IsObserving(b01))
+	testutil.Equal(t, true, g.IsObserving(a00))
+	testutil.Equal(t, true, g.IsObserving(a01))
+	testutil.Equal(t, false, g.IsObserving(b00))
+	testutil.Equal(t, false, g.IsObserving(b01))
 
 	bindv.Set("b")
 	err = g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsNil(t, dumpDot(g, homedir("bind_unobserve_01_switch_b.png")))
-	testutil.ItsEqual(t, "b00", o.Value())
+	testutil.Nil(t, err)
+	testutil.Nil(t, dumpDot(g, homedir("bind_unobserve_01_switch_b.png")))
+	testutil.Equal(t, "b00", o.Value())
 
-	testutil.ItsEqual(t, false, g.IsObserving(a00))
-	testutil.ItsEqual(t, false, g.IsObserving(a01))
-	testutil.ItsEqual(t, true, g.IsObserving(b00))
-	testutil.ItsEqual(t, true, g.IsObserving(b01))
+	testutil.Equal(t, false, g.IsObserving(a00))
+	testutil.Equal(t, false, g.IsObserving(a01))
+	testutil.Equal(t, true, g.IsObserving(b00))
+	testutil.Equal(t, true, g.IsObserving(b01))
 
 	bindv.Set("a")
 
 	err = g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsNil(t, dumpDot(g, homedir("bind_unobserve_02_switch_a.png")))
-	testutil.ItsEqual(t, "a00", a01.Value())
-	testutil.ItsEqual(t, "a00", o.Value())
+	testutil.Nil(t, err)
+	testutil.Nil(t, dumpDot(g, homedir("bind_unobserve_02_switch_a.png")))
+	testutil.Equal(t, "a00", a01.Value())
+	testutil.Equal(t, "a00", o.Value())
 
-	testutil.ItsEqual(t, true, g.IsObserving(a00))
-	testutil.ItsEqual(t, true, g.IsObserving(a01))
+	testutil.Equal(t, true, g.IsObserving(a00))
+	testutil.Equal(t, true, g.IsObserving(a01))
 
-	testutil.ItsEqual(t, false, g.IsObserving(b00))
-	testutil.ItsEqual(t, false, g.IsObserving(b01))
+	testutil.Equal(t, false, g.IsObserving(b00))
+	testutil.Equal(t, false, g.IsObserving(b01))
 }
 
 func Test_Bind_nested_bindCreatesBind(t *testing.T) {
@@ -668,39 +668,39 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 	o := Observe(Root(), g, final)
 
 	err := g.Stabilize(testContext())
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
-	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
-	testutil.ItsEqual(t, "a0-0+a0-1->b->final", o.Value())
+	testutil.Nil(t, g.recomputeHeap.sanityCheck())
+	testutil.Equal(t, "a0-0+a0-1->b->final", o.Value())
 
 	cv.Set("b")
 	err = g.Stabilize(testContext())
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
-	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
-	testutil.ItsEqual(t, "a0-0+a0-1->b->final", o.Value())
+	testutil.Nil(t, g.recomputeHeap.sanityCheck())
+	testutil.Equal(t, "a0-0+a0-1->b->final", o.Value())
 
 	bv.Set("b")
 	err = g.Stabilize(testContext())
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
-	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
-	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
-	testutil.ItsEqual(t, "a1-0+a1-1->b->final", o.Value())
+	testutil.Nil(t, g.recomputeHeap.sanityCheck())
+	testutil.Nil(t, g.recomputeHeap.sanityCheck())
+	testutil.Equal(t, "a1-0+a1-1->b->final", o.Value())
 
 	bv.Set("a")
 	err = g.Stabilize(testContext())
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
-	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
-	testutil.ItsEqual(t, "a0-0+a0-1->b->final", o.Value())
+	testutil.Nil(t, g.recomputeHeap.sanityCheck())
+	testutil.Equal(t, "a0-0+a0-1->b->final", o.Value())
 
 	cv.Set("a")
 	err = g.Stabilize(testContext())
-	testutil.ItsNil(t, err)
+	testutil.Nil(t, err)
 
-	testutil.ItsNil(t, g.recomputeHeap.sanityCheck())
-	testutil.ItsEqual(t, "a0-0+a0-1->b->final", o.Value())
+	testutil.Nil(t, g.recomputeHeap.sanityCheck())
+	testutil.Equal(t, "a0-0+a0-1->b->final", o.Value())
 }
 
 func Test_Bind_nested_bindHeightsChange(t *testing.T) {
@@ -742,9 +742,9 @@ func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 
 	ctx := testContext()
 	err := g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsNil(t, dumpDot(g, homedir("bind_user_00.png")))
-	testutil.ItsEqual(t, "driver01driver01", o.Value())
+	testutil.Nil(t, err)
+	testutil.Nil(t, dumpDot(g, homedir("bind_user_00.png")))
+	testutil.Equal(t, "driver01driver01", o.Value())
 }
 
 func Test_Bind_regression(t *testing.T) {
@@ -754,8 +754,8 @@ func Test_Bind_regression(t *testing.T) {
 	_ = graph.Stabilize(ctx)
 	_ = dumpDot(graph, homedir("bind_regression.png"))
 
-	testutil.ItsNotNil(t, o.Value())
-	testutil.ItsEqual(t, 24, *o.Value())
+	testutil.NotNil(t, o.Value())
+	testutil.Equal(t, 24, *o.Value())
 }
 
 func Test_Bind_regression_parallel(t *testing.T) {
@@ -765,8 +765,8 @@ func Test_Bind_regression_parallel(t *testing.T) {
 	_ = graph.ParallelStabilize(ctx)
 	_ = dumpDot(graph, homedir("bind_regression.png"))
 
-	testutil.ItsNotNil(t, o.Value())
-	testutil.ItsEqual(t, 24, *o.Value())
+	testutil.NotNil(t, o.Value())
+	testutil.Equal(t, 24, *o.Value())
 }
 
 func makeRegressionGraph(ctx context.Context) (*Graph, ObserveIncr[*int]) {
@@ -854,13 +854,13 @@ func Test_bindChange_value(t *testing.T) {
 		rhs: nil,
 	}
 
-	testutil.ItsEqual(t, "", bc.Value())
+	testutil.Equal(t, "", bc.Value())
 
 	bc.rhs = &returnIncr[string]{
 		v: "hello",
 	}
 
-	testutil.ItsEqual(t, "hello", bc.Value())
+	testutil.Equal(t, "hello", bc.Value())
 }
 
 func Test_Bind_regression2(t *testing.T) {
@@ -921,9 +921,9 @@ func Test_Bind_regression2(t *testing.T) {
 		ctx := testContext()
 		err := graph.Stabilize(ctx)
 
-		testutil.ItsNil(t, err)
-		testutil.ItsNotNil(t, o.Value())
-		testutil.ItsEqual(t, 35, *o.Value())
+		testutil.Nil(t, err)
+		testutil.NotNil(t, o.Value())
+		testutil.Equal(t, 35, *o.Value())
 	})
 }
 
@@ -978,17 +978,17 @@ func Test_Bind_unbindRegression(t *testing.T) {
 		_ = Observe(Root(), graph, o)
 		ctx := testContext()
 		err := graph.Stabilize(ctx)
-		testutil.ItsNil(t, err)
-		testutil.ItsNotNil(t, o.Value())
-		testutil.ItsEqual(t, 6, *o.Value())
+		testutil.Nil(t, err)
+		testutil.NotNil(t, o.Value())
+		testutil.Equal(t, 6, *o.Value())
 
 		graph.SetStale(fakeFormula)
 		err = graph.Stabilize(ctx)
-		testutil.ItsNil(t, err)
+		testutil.Nil(t, err)
 
 		_ = dumpDot(graph, homedir("bind_unbind_regression_00.png"))
-		testutil.ItsNotNil(t, o.Value())
-		testutil.ItsEqual(t, 6, *o.Value())
+		testutil.NotNil(t, o.Value())
+		testutil.Equal(t, 6, *o.Value())
 	})
 }
 
@@ -1005,18 +1005,18 @@ func Test_Bind_nested_amplification(t *testing.T) {
 		observed[i] = o
 	}
 	err := g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, 65, g.numNodes)
+	testutil.Nil(t, err)
+	testutil.Equal(t, 65, g.numNodes)
 
 	for _, o := range observed {
-		testutil.ItsNotNil(t, o.Value())
+		testutil.NotNil(t, o.Value())
 	}
 
 	err = g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, 65, g.numNodes)
+	testutil.Nil(t, err)
+	testutil.Equal(t, 65, g.numNodes)
 
 	err = g.Stabilize(ctx)
-	testutil.ItsNil(t, err)
-	testutil.ItsEqual(t, 65, g.numNodes)
+	testutil.Nil(t, err)
+	testutil.Equal(t, 65, g.numNodes)
 }

@@ -10,11 +10,11 @@ import (
 func Test_Var_Set_unobserved(t *testing.T) {
 	v := Var(Root(), "foo")
 
-	testutil.ItsEqual(t, "foo", v.Value())
+	testutil.Equal(t, "foo", v.Value())
 
 	v.Set("not-foo")
 
-	testutil.ItsEqual(t, "not-foo", v.Value())
+	testutil.Equal(t, "not-foo", v.Value())
 }
 
 func Test_Var_Stabilize_zero(t *testing.T) {
@@ -24,7 +24,7 @@ func Test_Var_Stabilize_zero(t *testing.T) {
 	_ = Observe(Root(), g, v)
 
 	_ = g.Stabilize(context.TODO())
-	testutil.ItsEqual(t, "foo", v.Value())
+	testutil.Equal(t, "foo", v.Value())
 }
 
 func Test_Var_Set_duringStabilization(t *testing.T) {
@@ -35,13 +35,13 @@ func Test_Var_Set_duringStabilization(t *testing.T) {
 
 	v.Set("not-foo")
 
-	testutil.ItsEqual(t, true, v.(*varIncr[string]).setDuringStabilization)
-	testutil.ItsEqual(t, "not-foo", v.(*varIncr[string]).setDuringStabilizationValue)
-	testutil.ItsEqual(t, "foo", v.(*varIncr[string]).value)
+	testutil.Equal(t, true, v.(*varIncr[string]).setDuringStabilization)
+	testutil.Equal(t, "not-foo", v.(*varIncr[string]).setDuringStabilizationValue)
+	testutil.Equal(t, "foo", v.(*varIncr[string]).value)
 
 	_ = v.(*varIncr[string]).Stabilize(context.TODO())
 
-	testutil.ItsEqual(t, false, v.(*varIncr[string]).setDuringStabilization)
-	testutil.ItsEqual(t, "", v.(*varIncr[string]).setDuringStabilizationValue)
-	testutil.ItsEqual(t, "not-foo", v.(*varIncr[string]).value)
+	testutil.Equal(t, false, v.(*varIncr[string]).setDuringStabilization)
+	testutil.Equal(t, "", v.(*varIncr[string]).setDuringStabilizationValue)
+	testutil.Equal(t, "not-foo", v.(*varIncr[string]).value)
 }
