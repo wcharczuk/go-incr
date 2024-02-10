@@ -103,6 +103,11 @@ func (b *bindIncr[A, B]) didInputChange() bool {
 
 func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 	// did input change?
+	//
+	// we only want to run the bind fn if the _input_ to this node changes.
+	//
+	// we do want to propagate changes to the bound node to the bind
+	// node's children however, so some trickery is involved.
 	if !b.didInputChange() {
 		// NOTE (wc): ok so this is a tangle.
 		// we halt computation based on boundAt for nodes that

@@ -352,10 +352,15 @@ func (n *Node) ShouldRecompute() bool {
 		return true
 	}
 	for _, p := range n.parents {
+		// NOTE (wc): we treat nodes that set "boundAt", i.e. bind nodes
+		// specially. they really only need to propagate their changes
+		// to children if the node they're bound to changes, or if
+		// the node they're bound to's value changes.
 		if p.Node().boundAt > 0 {
 			if p.Node().boundAt > n.recomputedAt {
 				return true
 			}
+			// don't consider changed at for bind nodes at all!
 			continue
 		}
 		if p.Node().changedAt > n.recomputedAt {
