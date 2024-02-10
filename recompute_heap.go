@@ -208,6 +208,9 @@ func (rh *recomputeHeap) sanityCheck() error {
 			if item.Node().heightInRecomputeHeap != item.Node().height {
 				return fmt.Errorf("recompute heap; sanity check; at height %d item has height %d and node has height %d", heightIndex, item.Node().heightInRecomputeHeap, item.Node().height)
 			}
+			if _, ok := rh.lookup[item.Node().id]; !ok {
+				return fmt.Errorf("recompute heap; sanity check; at height %d item seen that does not exist in recompute heap", heightIndex)
+			}
 		}
 	}
 	return nil

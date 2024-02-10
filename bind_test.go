@@ -89,17 +89,26 @@ func Test_Bind_basic(t *testing.T) {
 	err = g.Stabilize(ctx)
 	testutil.Nil(t, err)
 
-	err = dumpDot(g, homedir("bind_basic_00.png"))
-	testutil.Nil(t, err)
-
-	// we _should_ have bind internals set up after stabilization
-	testutil.NotNil(t, bind.BindChange())
-	testutil.NotNil(t, bind.Bound())
+	_ = dumpDot(g, homedir("bind_basic_00.png"))
 
 	bindChange := bind.BindChange()
+	bindScope := bind.Scope()
+	bound := bind.Bound()
+
+	testutil.NotNil(t, bindChange)
+	testutil.NotNil(t, bound)
+	testutil.NotNil(t, bindScope)
+
 	testutil.Equal(t, true, hasKey(bindChange.Node().parents, bindVar.Node().ID()))
 	testutil.Equal(t, true, hasKey(bindChange.Node().children, a1.Node().ID()))
 	testutil.Equal(t, false, hasKey(bindChange.Node().children, b1.Node().ID()))
+
+	testutil.Equal(t, bind.Node().id, bindScope.bind.Node().id)
+	testutil.Equal(t, 1, len(bindScope.lhsNodes))
+	testutil.Equal(t, bindVar.Node().id, bindScope.lhsNodes[0].Node().id)
+	testutil.Empty(t, bindScope.rhsNodes)
+
+	testutil.Equal(t, a1.Node().id, bound.Node().id)
 
 	testutil.Equal(t, 1, bind.Node().boundAt)
 	testutil.Equal(t, 1, bind.Node().changedAt)
@@ -142,10 +151,21 @@ func Test_Bind_basic(t *testing.T) {
 	err = dumpDot(g, homedir("bind_basic_01.png"))
 	testutil.Nil(t, err)
 
-	bindChange = bind.BindChange()
-	testutil.Equal(t, true, hasKey(bindChange.Node().parents, bindVar.Node().ID()))
-	testutil.Equal(t, false, hasKey(bindChange.Node().children, a1.Node().ID()))
-	testutil.Equal(t, true, hasKey(bindChange.Node().children, b2.Node().ID()))
+	bindChange01 := bind.BindChange()
+	bound01 := bind.Bound()
+	bindScope01 := bind.Scope()
+
+	testutil.Equal(t, bindChange.Node().id, bindChange01.Node().id)
+	testutil.Equal(t, true, hasKey(bindChange01.Node().parents, bindVar.Node().ID()))
+	testutil.Equal(t, false, hasKey(bindChange01.Node().children, a1.Node().ID()))
+	testutil.Equal(t, true, hasKey(bindChange01.Node().children, b2.Node().ID()))
+
+	testutil.Equal(t, b2.Node().id, bound01.Node().id)
+
+	testutil.Equal(t, bind.Node().id, bindScope01.bind.Node().id)
+	testutil.Equal(t, 1, len(bindScope01.lhsNodes))
+	testutil.Equal(t, bindVar.Node().id, bindScope01.lhsNodes[0].Node().id)
+	testutil.Empty(t, bindScope01.rhsNodes)
 
 	testutil.Equal(t, 0, bindVar.Node().height)
 	testutil.Equal(t, 0, s0.Node().height)
@@ -639,10 +659,10 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 	cv.Node().SetLabel("cv")
 	bv := Var(Root(), "a")
 	bv.Node().SetLabel("bv")
-	c := BindContext[string](Root(), cv, func(_ context.Context, scope *BindScope, _ string) (Incr[string], error) {
-		a0 := createDynamicMaps(scope, "a0")
-		a1 := createDynamicMaps(scope, "a1")
-		bind := BindContext(Root(), bv, func(_ context.Context, bs *BindScope, which string) (Incr[string], error) {
+	c := BindContext[string](Root(), cv, func(_ context.Context, bs *BindScope, _ string) (Incr[string], error) {
+		a0 := createDynamicMaps(bs, "a0")
+		a1 := createDynamicMaps(bs, "a1")
+		bind := BindContext(bs, bv, func(_ context.Context, bs *BindScope, which string) (Incr[string], error) {
 			switch which {
 			case "a":
 				return Map(bs, a0, func(v string) string {
@@ -1019,4 +1039,120 @@ func Test_Bind_nested_amplification(t *testing.T) {
 	err = g.Stabilize(ctx)
 	testutil.Nil(t, err)
 	testutil.Equal(t, 65, g.numNodes)
+}
+
+func Test_Bind_unbind_propagatesUnobserved(t *testing.T) {
+	/*
+
+		The pathological case here is that we have observers that work up from the
+		leaves (or bottom) of the graph, but that land on nodes that are not
+		strictly controlled by those observers.
+
+		Put more specifically, nodes that are created in a bind's scope should only
+		be observed by observers for that bind specifically.
+
+	*/
+
+	ctx := testContext()
+	g := New()
+
+	r0 := Return(Root(), "hello world!")
+	r0.Node().SetLabel("r0")
+	m0 := Map(Root(), r0, ident)
+	m0.Node().SetLabel("m0")
+
+	b0v := Var(Root(), "a")
+	b0v.Node().SetLabel("b0v")
+	var bm0 Incr[string]
+	b0 := Bind(Root(), b0v, func(bs *BindScope, bvv string) Incr[string] {
+		if bvv == "a" {
+			bm0 = Map(bs, m0, ident)
+			bm0.Node().SetLabel("bm0")
+			return bm0
+		}
+		return Return(bs, "nope")
+	})
+	b0.Node().SetLabel("b0")
+
+	b1v := Var(Root(), "a")
+	b1v.Node().SetLabel("b1v")
+	var bm1 Incr[string]
+	b1 := Bind(Root(), b1v, func(bs *BindScope, bvv string) Incr[string] {
+		if bvv == "a" {
+			bm1 = Map2(bs, m0, b0, concat)
+			bm1.Node().SetLabel("bm1")
+			return bm1
+		}
+		return Return(bs, "nope")
+	})
+	b1.Node().SetLabel("b1")
+
+	b2v := Var(Root(), "a")
+	b2v.Node().SetLabel("b2v")
+	var bm2 Incr[string]
+	b2 := Bind(Root(), b2v, func(bs *BindScope, bvv string) Incr[string] {
+		if bvv == "a" {
+			bm2 = Map2(bs, m0, b1, concat)
+			bm2.Node().SetLabel("bm2")
+			return bm2
+		}
+		return Return(bs, "nope")
+	})
+	b2.Node().SetLabel("b2")
+
+	o00 := Observe(Root(), g, b0)
+	o01 := Observe(Root(), g, b1)
+	o02 := Observe(Root(), g, b2)
+
+	err := g.Stabilize(ctx)
+	testutil.NoError(t, err)
+
+	testutil.Equal(t, "hello world!", o00.Value())
+	testutil.Equal(t, "hello world!hello world!", o01.Value())
+	testutil.Equal(t, "hello world!hello world!hello world!", o02.Value())
+
+	testutil.Equal(t, true, r0.Node().hasObserver(o00))
+	testutil.Equal(t, true, r0.Node().hasObserver(o01))
+	testutil.Equal(t, true, r0.Node().hasObserver(o02))
+
+	testutil.Equal(t, true, m0.Node().hasObserver(o00))
+	testutil.Equal(t, true, m0.Node().hasObserver(o01))
+	testutil.Equal(t, true, m0.Node().hasObserver(o02))
+
+	testutil.Equal(t, true, bm0.Node().hasObserver(o00))
+	testutil.Equal(t, true, bm0.Node().hasObserver(o01))
+	testutil.Equal(t, true, bm0.Node().hasObserver(o02))
+
+	testutil.Equal(t, false, bm1.Node().hasObserver(o00))
+	testutil.Equal(t, true, bm1.Node().hasObserver(o01))
+	testutil.Equal(t, true, bm1.Node().hasObserver(o02))
+
+	testutil.Equal(t, false, bm2.Node().hasObserver(o00))
+	testutil.Equal(t, false, bm2.Node().hasObserver(o01))
+	testutil.Equal(t, true, bm2.Node().hasObserver(o02))
+
+	b2v.Set("b")
+
+	err = g.Stabilize(ctx)
+	testutil.NoError(t, err)
+
+	testutil.Equal(t, true, r0.Node().hasObserver(o00))
+	testutil.Equal(t, true, r0.Node().hasObserver(o01))
+	testutil.Equal(t, false, r0.Node().hasObserver(o02))
+
+	testutil.Equal(t, true, m0.Node().hasObserver(o00))
+	testutil.Equal(t, true, m0.Node().hasObserver(o01))
+	testutil.Equal(t, false, m0.Node().hasObserver(o02))
+
+	testutil.Equal(t, true, bm0.Node().hasObserver(o00))
+	testutil.Equal(t, true, bm0.Node().hasObserver(o01))
+	testutil.Equal(t, false, bm0.Node().hasObserver(o02))
+
+	testutil.Equal(t, false, bm1.Node().hasObserver(o00))
+	testutil.Equal(t, true, bm1.Node().hasObserver(o01))
+	testutil.Equal(t, false, bm1.Node().hasObserver(o02))
+
+	testutil.Equal(t, false, bm2.Node().hasObserver(o00))
+	testutil.Equal(t, false, bm2.Node().hasObserver(o01))
+	testutil.Equal(t, false, bm2.Node().hasObserver(o02))
 }

@@ -67,6 +67,22 @@ func Matches(t *testing.T, expression string, actual any, message ...any) {
 	}
 }
 
+// Empty asserts a slice is empty.
+func Empty[A ~[]E, E any](t *testing.T, values A, message ...any) {
+	t.Helper()
+	if len(values) > 0 {
+		fatalf(t, "expected %v to be empty", []any{values}, message)
+	}
+}
+
+// NotEmpty asserts a slice is not empty.
+func NotEmpty[A ~[]E, E any](t *testing.T, values A, message ...any) {
+	t.Helper()
+	if len(values) == 0 {
+		fatalf(t, "expected slice not to be empty", []any{values}, message)
+	}
+}
+
 // isNil returns if a given reference is nil, but also returning true
 // if the reference is a valid typed pointer to nil, which may not strictly
 // be equal to nil.

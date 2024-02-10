@@ -1,6 +1,7 @@
 package incr
 
 import (
+	"context"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -162,4 +163,37 @@ func Test_Graph_recompute_recomputesObservers(t *testing.T) {
 	testutil.Nil(t, err)
 	testutil.Equal(t, 1, g.recomputeHeap.len())
 	testutil.Equal(t, true, g.recomputeHeap.has(o))
+}
+
+func Test_Graph_removeNodeFromGraph(t *testing.T) {
+	g := New()
+
+	mn00 := newMockBareNodeWithHeight(2)
+	g.numNodes = 2
+
+	g.observed[mn00.n.id] = mn00
+
+	g.handleAfterStabilization[mn00.n.id] = []func(context.Context){
+		func(_ context.Context) {},
+		func(_ context.Context) {},
+	}
+	g.recomputeHeap.add(mn00)
+	g.adjustHeightsHeap.add(mn00)
+
+	g.removeNodeFromGraph(mn00)
+
+	testutil.Equal(t, 1, g.numNodes)
+	testutil.Equal(t, false, g.recomputeHeap.has(mn00))
+	testutil.NoError(t, g.recomputeHeap.sanityCheck())
+
+	testutil.Equal(t, 1, g.numNodes)
+
+	testutil.Equal(t, 0, mn00.n.setAt)
+	testutil.Equal(t, 0, mn00.n.boundAt)
+	testutil.Equal(t, 0, mn00.n.recomputedAt)
+	testutil.Nil(t, mn00.n.createdIn)
+	testutil.Nil(t, mn00.n.graph)
+	testutil.Equal(t, 0, mn00.n.height)
+	testutil.Equal(t, 0, mn00.n.heightInRecomputeHeap)
+	testutil.Equal(t, 0, mn00.n.heightInAdjustHeightsHeap)
 }

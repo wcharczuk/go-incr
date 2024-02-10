@@ -246,8 +246,8 @@ func (n *Node) hasParent(in INode) (ok bool) {
 	return
 }
 
-func (n *Node) hasObserver(in INode) (ok bool) {
-	_, ok = n.observerLookup[in.Node().id]
+func (n *Node) hasObserver(o IObserver) (ok bool) {
+	_, ok = n.observerLookup[o.Node().id]
 	return
 }
 

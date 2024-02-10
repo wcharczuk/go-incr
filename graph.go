@@ -204,16 +204,16 @@ func (graph *Graph) SetStale(gn INode) {
 
 // observeNodes traverses up from a given node, adding a given
 // list of observers as "observing" that node, and recursing through it's inputs or parents.
-func (graph *Graph) observeNodes(gn INode, observers ...IObserver) {
-	graph.observeSingleNode(gn, observers...)
-	gnn := gn.Node()
-	for _, p := range gnn.parents {
-		graph.observeNodes(p, observers...)
+func (graph *Graph) observeNodes(observingScope *BindScope, gn INode, observers ...IObserver) {
+	graph.observeSingleNode(observingScope, gn, observers...)
+	for _, p := range gn.Node().parents {
+		graph.observeNodes(observingScope, p, observers...)
 	}
 }
 
-func (graph *Graph) observeSingleNode(gn INode, observers ...IObserver) {
+func (graph *Graph) observeSingleNode(observingScope *BindScope, gn INode, observers ...IObserver) {
 	gnn := gn.Node()
+
 	gnn.addObservers(observers...)
 	alreadyObservedByGraph := graph.maybeAddObservedNode(gn)
 	if alreadyObservedByGraph {
@@ -232,14 +232,14 @@ func (graph *Graph) observeSingleNode(gn INode, observers ...IObserver) {
 	}
 }
 
-func (graph *Graph) maybeAddObservedNode(gn INode) bool {
+func (graph *Graph) maybeAddObservedNode(gn INode) (ok bool) {
 	graph.observedMu.Lock()
 	defer graph.observedMu.Unlock()
-	if _, ok := graph.observed[gn.Node().id]; ok {
-		return true
+	if _, ok = graph.observed[gn.Node().id]; ok {
+		return
 	}
 	graph.observed[gn.Node().id] = gn
-	return false
+	return
 }
 
 func (graph *Graph) unobserveNodes(ctx context.Context, gn INode, observers ...IObserver) {
@@ -265,25 +265,29 @@ func (graph *Graph) unobserveSingleNode(ctx context.Context, gn INode, observers
 }
 
 func (graph *Graph) removeNodeFromGraph(gn INode) {
+	graph.recomputeHeap.remove(gn)
+	graph.adjustHeightsHeap.remove(gn)
+
+	graph.observedMu.Lock()
+	delete(graph.observed, gn.Node().id)
+	graph.observedMu.Unlock()
+
+	graph.numNodes--
+
 	gnn := gn.Node()
-	gnn.graph = nil
-	gnn.height = 0
-	gnn.heightInRecomputeHeap = 0
+
+	graph.handleAfterStabilizationMu.Lock()
+	delete(graph.handleAfterStabilization, gnn.ID())
+	graph.handleAfterStabilizationMu.Unlock()
+
 	gnn.setAt = 0
 	gnn.boundAt = 0
 	gnn.recomputedAt = 0
 	gnn.createdIn = nil
-	graph.observedMu.Lock()
-	delete(graph.observed, gn.Node().id)
-	graph.observedMu.Unlock()
-	graph.numNodes--
-
-	graph.recomputeHeap.remove(gn)
-	graph.adjustHeightsHeap.remove(gn)
-
-	graph.handleAfterStabilizationMu.Lock()
-	delete(graph.handleAfterStabilization, gn.Node().ID())
-	graph.handleAfterStabilizationMu.Unlock()
+	gnn.graph = nil
+	gnn.height = 0
+	gnn.heightInRecomputeHeap = 0
+	gnn.heightInAdjustHeightsHeap = 0
 }
 
 func (graph *Graph) removeNodeObservers(gn INode, observers ...IObserver) (remainingObserverCount int) {

@@ -372,6 +372,12 @@ func Test_recomputeHeap_sanityCheck_ok_badNodeHeight(t *testing.T) {
 		newList(n_2_00, n_2_01),
 		newList(n_3_00, n_3_01, n_3_02),
 	}
+	rh.lookup[n_1_00.n.id] = n_1_00
+	rh.lookup[n_2_00.n.id] = n_2_00
+	rh.lookup[n_2_01.n.id] = n_2_01
+	rh.lookup[n_3_00.n.id] = n_3_00
+	rh.lookup[n_3_01.n.id] = n_3_01
+	rh.lookup[n_3_02.n.id] = n_3_02
 
 	err := rh.sanityCheck()
 	Nil(t, err)
@@ -400,6 +406,12 @@ func Test_recomputeHeap_sanityCheck_badItemHeight(t *testing.T) {
 		height2,
 		newList(n_3_00, n_3_01, n_3_02),
 	}
+	rh.lookup[n_1_00.n.id] = n_1_00
+	rh.lookup[n_2_00.n.id] = n_2_00
+	rh.lookup[n_2_01.n.id] = n_2_01
+	rh.lookup[n_3_00.n.id] = n_3_00
+	rh.lookup[n_3_01.n.id] = n_3_01
+	rh.lookup[n_3_02.n.id] = n_3_02
 
 	n_2_00.Node().heightInRecomputeHeap = 1
 	err := rh.sanityCheck()
