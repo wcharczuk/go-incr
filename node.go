@@ -3,6 +3,7 @@ package incr
 import (
 	"context"
 	"fmt"
+	"sync"
 )
 
 // NewNode returns a new node.
@@ -31,16 +32,19 @@ type Node struct {
 	label string
 	// parents are the nodes that this node depends on, that is
 	// parents are nodes that this node takes as inputs
-	parents      []INode
-	parentLookup set[Identifier]
+	parents        []INode
+	parentLookupMu sync.Mutex
+	parentLookup   set[Identifier]
 	// children are the nodes that depend on this node, that is
 	// children take this node as an input
-	children    []INode
-	childLookup set[Identifier]
+	children      []INode
+	childLookupMu sync.Mutex
+	childLookup   set[Identifier]
 	// observers are observer nodes that are attached to this
 	// node or its children.
-	observers      []IObserver
-	observerLookup set[Identifier]
+	observers        []IObserver
+	observerLookupMu sync.Mutex
+	observerLookup   set[Identifier]
 	// height is the topological sort pseudo-height of the
 	// node and is used to order recomputation
 	// it is established when the graph is initialized but
@@ -207,8 +211,11 @@ func (n *Node) Observers() []IObserver {
 //
 
 func (n *Node) addChildren(children ...INode) {
+	n.childLookupMu.Lock()
+	defer n.childLookupMu.Unlock()
+
 	for _, c := range children {
-		if !n.hasChild(c) {
+		if !n.childLookup.has(c.Node().id) {
 			n.children = append(n.children, c)
 			n.childLookup.add(c.Node().id)
 		}
@@ -216,8 +223,11 @@ func (n *Node) addChildren(children ...INode) {
 }
 
 func (n *Node) addParents(parents ...INode) {
+	n.parentLookupMu.Lock()
+	defer n.parentLookupMu.Unlock()
+
 	for _, p := range parents {
-		if !n.hasParent(p) {
+		if !n.parentLookup.has(p.Node().id) {
 			n.parents = append(n.parents, p)
 			n.parentLookup.add(p.Node().id)
 		}
@@ -225,8 +235,10 @@ func (n *Node) addParents(parents ...INode) {
 }
 
 func (n *Node) addObservers(observers ...IObserver) {
+	n.observerLookupMu.Lock()
+	defer n.observerLookupMu.Unlock()
 	for _, o := range observers {
-		if !n.hasObserver(o) {
+		if !n.observerLookup.has(o.Node().id) {
 			n.observers = append(n.observers, o)
 			n.observerLookup.add(o.Node().id)
 			for _, handler := range n.onObservedHandlers {
@@ -237,33 +249,45 @@ func (n *Node) addObservers(observers ...IObserver) {
 }
 
 func (n *Node) hasChild(in INode) (ok bool) {
+	n.childLookupMu.Lock()
 	_, ok = n.childLookup[in.Node().id]
+	n.childLookupMu.Unlock()
 	return
 }
 
 func (n *Node) hasParent(in INode) (ok bool) {
+	n.parentLookupMu.Lock()
 	_, ok = n.parentLookup[in.Node().id]
+	n.parentLookupMu.Unlock()
 	return
 }
 
 func (n *Node) hasObserver(o IObserver) (ok bool) {
+	n.observerLookupMu.Lock()
 	_, ok = n.observerLookup[o.Node().id]
+	n.observerLookupMu.Unlock()
 	return
 }
 
 func (n *Node) removeChild(id Identifier) {
+	n.childLookupMu.Lock()
 	n.children = remove(n.children, id)
 	delete(n.childLookup, id)
+	n.childLookupMu.Unlock()
 }
 
 func (n *Node) removeParent(id Identifier) {
+	n.parentLookupMu.Lock()
 	n.parents = remove(n.parents, id)
 	delete(n.parentLookup, id)
+	n.parentLookupMu.Unlock()
 }
 
 func (n *Node) removeObserver(id Identifier) {
+	n.observerLookupMu.Lock()
 	n.observers = remove(n.observers, id)
 	delete(n.observerLookup, id)
+	n.observerLookupMu.Unlock()
 }
 
 // maybeCutoff calls the cutoff delegate if it's set, otherwise
