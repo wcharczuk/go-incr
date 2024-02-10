@@ -179,9 +179,6 @@ func (b *bindIncr[A, B]) linkNew(ctx context.Context, newIncr Incr[B]) (err erro
 			}
 		}
 	}
-	if err = b.n.graph.recomputeHeights(); err != nil {
-		return
-	}
 	TracePrintf(ctx, "%v bound new rhs %v", b, b.bound)
 	return
 }

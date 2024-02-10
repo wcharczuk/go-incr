@@ -971,57 +971,6 @@ func Test_Bind_unbindRegression(t *testing.T) {
 		cache[key] = r
 		return r
 	}
-
-	// t.Run("m(0) = 0; if 3 <= t < 9, m(t) = m(t-1) + 1 else m(t) = m(t-1) - fails", func(t *testing.T) {
-	// 	graph := New()
-
-	// 	for i := 0; i < 10; i++ {
-	// 		o := m(Root(), i)
-	// 		_ = Observe(Root(), graph, o)
-	// 		err := graph.Stabilize(ctx)
-
-	// 		_ = dumpDot(graph, homedir("unbind_regression_00.png"))
-
-	// 		testutil.ItsNil(t, err)
-	// 		testutil.ItsNotNil(t, o.Value())
-
-	// 		if i >= right_bound {
-	// 			testutil.ItsEqual(t, 6, *o.Value())
-	// 		} else if i >= left_bound {
-	// 			testutil.ItsEqual(t, i-2, *o.Value())
-	// 		} else {
-	// 			testutil.ItsEqual(t, 0, *o.Value())
-	// 		}
-	// 	}
-	// })
-
-	// cache = make(map[string]Incr[*int]) // clear
-
-	// t.Run("m(0) = 0; if 3 <= t < 9, m(t) = m(t-1) + 1 else m(t) = m(t-1) - passes", func(t *testing.T) {
-	// 	graph := New()
-	// 	observed := make([]ObserveIncr[*int], 10)
-	// 	for i := 0; i < 10; i++ {
-	// 		o := m(Root(), i)
-	// 		obsIncr := Observe(Root(), graph, o)
-	// 		observed[i] = obsIncr
-	// 	}
-
-	// 	err := graph.Stabilize(testContext())
-	// 	testutil.ItsNil(t, err)
-	// 	for i := 0; i < 10; i++ {
-	// 		o := observed[i]
-	// 		if i >= right_bound {
-	// 			testutil.ItsEqual(t, 6, *o.Value())
-	// 		} else if i >= left_bound {
-	// 			testutil.ItsEqual(t, i-2, *o.Value())
-	// 		} else {
-	// 			testutil.ItsEqual(t, 0, *o.Value())
-	// 		}
-	// 	}
-	// })
-
-	// cache = make(map[string]Incr[*int]) // clear
-
 	t.Run("m(0) = 0; if 3 <= t < 9, m(t) = m(t-1) + 1 else m(t) = m(t-1) - passes", func(t *testing.T) {
 		graph := New()
 		o := m(Root(), 9)
@@ -1054,7 +1003,6 @@ func Test_Bind_nested_amplification(t *testing.T) {
 		o := makeSimpleNestedBindGraph(g, depth, fakeFormula)
 		observed[i] = o
 	}
-
 	err := g.Stabilize(ctx)
 	testutil.ItsNil(t, err)
 	testutil.ItsEqual(t, 65, g.numNodes)
