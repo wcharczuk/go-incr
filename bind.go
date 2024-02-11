@@ -28,8 +28,8 @@ import (
 // More information is available at:
 //
 //	https://github.com/janestreet/incremental/blob/master/src/incremental_intf.ml
-func Bind[A, B any](scope *BindScope, input Incr[A], fn func(*BindScope, A) Incr[B]) BindIncr[B] {
-	return BindContext[A, B](scope, input, func(_ context.Context, bs *BindScope, va A) (Incr[B], error) {
+func Bind[A, B any](scope Scope, input Incr[A], fn func(Scope, A) Incr[B]) BindIncr[B] {
+	return BindContext[A, B](scope, input, func(_ context.Context, bs Scope, va A) (Incr[B], error) {
 		return fn(bs, va), nil
 	})
 }
@@ -37,18 +37,17 @@ func Bind[A, B any](scope *BindScope, input Incr[A], fn func(*BindScope, A) Incr
 // BindContext is like Bind but allows the bind delegate to take a context and return an error.
 //
 // If an error returned, the bind is aborted and the error listener(s) will fire for the node.
-func BindContext[A, B any](scope *BindScope, input Incr[A], fn func(context.Context, *BindScope, A) (Incr[B], error)) BindIncr[B] {
+func BindContext[A, B any](scope Scope, input Incr[A], fn func(context.Context, Scope, A) (Incr[B], error)) BindIncr[B] {
 	o := &bindIncr[A, B]{
 		n:     NewNode("bind"),
 		input: input,
 		fn:    fn,
 	}
-	o.scope = &BindScope{
-		lhsNodes: []INode{input},
-		bind:     o,
+	o.scope = &bindScope{
+		bind: o,
 	}
 	Link(o, input)
-	return WithinBindScope(scope, o)
+	return WithinScope(scope, o)
 }
 
 // BindIncr is a node that implements Bind, which
@@ -70,8 +69,8 @@ var (
 type bindIncr[A, B any] struct {
 	n          *Node
 	input      Incr[A]
-	fn         func(context.Context, *BindScope, A) (Incr[B], error)
-	scope      *BindScope
+	fn         func(context.Context, Scope, A) (Incr[B], error)
+	scope      *bindScope
 	bindChange *bindChangeIncr[A, B]
 	bound      Incr[B]
 }
@@ -93,7 +92,7 @@ func (b *bindIncr[A, B]) BindChange() INode {
 	return b.bindChange
 }
 
-func (b *bindIncr[A, B]) Scope() *BindScope {
+func (b *bindIncr[A, B]) Scope() Scope {
 	return b.scope
 }
 
@@ -179,7 +178,7 @@ func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) {
 	}
 	b.bindChange.n.createdIn = b.n.createdIn
 	Link(b.bindChange, b.input)
-	b.n.graph.observeSingleNode(b.n.createdIn, b.bindChange, b.n.Observers()...)
+	b.n.graph.observeSingleNode(b.bindChange, b.n.Observers()...)
 }
 
 func (b *bindIncr[A, B]) unlinkBindChange(ctx context.Context) {
@@ -202,7 +201,7 @@ func (b *bindIncr[A, B]) linkNewBound(ctx context.Context, newIncr Incr[B]) (err
 	b.bound = newIncr
 	Link(b.bound, b.bindChange)
 	Link(b, b.bound)
-	b.n.graph.observeNodes(b.scope, b.bound, b.n.Observers()...)
+	b.n.graph.observeNodes(b.bound, b.n.Observers()...)
 	_ = b.n.graph.adjustHeightsHeap.ensureHeightRequirement(b, b.bound)
 	for _, n := range b.scope.rhsNodes {
 		if typed, ok := n.(IBind); ok {
@@ -226,7 +225,7 @@ func (b *bindIncr[A, B]) unlinkOldBound(ctx context.Context, observers ...IObser
 	}
 }
 
-func (b *bindIncr[A, B]) removeNodesFromScope(ctx context.Context, scope *BindScope, observers ...IObserver) {
+func (b *bindIncr[A, B]) removeNodesFromScope(ctx context.Context, scope *bindScope, observers ...IObserver) {
 	for _, n := range scope.rhsNodes {
 		n.Node().createdIn = nil
 		if typed, ok := n.(IUnobserve); ok {

@@ -8,8 +8,8 @@ import (
 //
 // Note that it does not implement `IStabilize` and is effectively
 // always the same value (and treated as such).
-func Return[A any](scope *BindScope, v A) Incr[A] {
-	return WithinBindScope(scope, &returnIncr[A]{
+func Return[A any](scope Scope, v A) Incr[A] {
+	return WithinScope(scope, &returnIncr[A]{
 		n: NewNode("return"),
 		v: v,
 	})

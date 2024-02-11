@@ -7,7 +7,7 @@ import (
 
 // Map2 applies a function to a given input incremental and returns
 // a new incremental of the output type of that function.
-func Map2[A, B, C any](scope *BindScope, a Incr[A], b Incr[B], fn func(A, B) C) Incr[C] {
+func Map2[A, B, C any](scope Scope, a Incr[A], b Incr[B], fn func(A, B) C) Incr[C] {
 	return Map2Context(scope, a, b, func(_ context.Context, a A, b B) (C, error) {
 		return fn(a, b), nil
 	})
@@ -16,7 +16,7 @@ func Map2[A, B, C any](scope *BindScope, a Incr[A], b Incr[B], fn func(A, B) C) 
 // Map2Context applies a function that accepts a context and returns an error,
 // to a given input incremental and returns a new incremental of
 // the output type of that function.
-func Map2Context[A, B, C any](scope *BindScope, a Incr[A], b Incr[B], fn func(context.Context, A, B) (C, error)) Incr[C] {
+func Map2Context[A, B, C any](scope Scope, a Incr[A], b Incr[B], fn func(context.Context, A, B) (C, error)) Incr[C] {
 	o := &map2Incr[A, B, C]{
 		n:  NewNode("map2"),
 		a:  a,
@@ -24,7 +24,7 @@ func Map2Context[A, B, C any](scope *BindScope, a Incr[A], b Incr[B], fn func(co
 		fn: fn,
 	}
 	Link(o, a, b)
-	return WithinBindScope(scope, o)
+	return WithinScope(scope, o)
 }
 
 var (

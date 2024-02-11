@@ -10,44 +10,44 @@ import (
 // DiffMapByKeys returns two incrementals, one for keys added, and one
 // for keys removed, and each stabilization pass returns just the subset
 // of the map that changed since the last pass according to the keys.
-func DiffMapByKeys[K comparable, V any](scope *incr.BindScope, i incr.Incr[map[K]V]) (add incr.Incr[map[K]V], rem incr.Incr[map[K]V]) {
+func DiffMapByKeys[K comparable, V any](scope incr.Scope, i incr.Incr[map[K]V]) (add incr.Incr[map[K]V], rem incr.Incr[map[K]V]) {
 	add = &diffMapByKeysAddedIncr[K, V]{
 		n: incr.NewNode("diff_maps_by_keys_added"),
 		i: i,
 	}
 	incr.Link(add, i)
-	add = incr.WithinBindScope(scope, add)
+	add = incr.WithinScope(scope, add)
 	rem = &diffMapByKeysRemovedIncr[K, V]{
 		n: incr.NewNode("diff_maps_by_keys_removed"),
 		i: i,
 	}
 	incr.Link(rem, i)
-	rem = incr.WithinBindScope(scope, rem)
+	rem = incr.WithinScope(scope, rem)
 	return
 }
 
 // DiffMapByKeysAdded returns an incremental that takes an input map typed
 // incremental, and each stabilization pass returns just the subset
 // of the map that was added since the last pass according to the keys.
-func DiffMapByKeysAdded[K comparable, V any](scope *incr.BindScope, i incr.Incr[map[K]V]) incr.Incr[map[K]V] {
+func DiffMapByKeysAdded[K comparable, V any](scope incr.Scope, i incr.Incr[map[K]V]) incr.Incr[map[K]V] {
 	o := &diffMapByKeysAddedIncr[K, V]{
 		n: incr.NewNode("diff_maps_by_keys_added"),
 		i: i,
 	}
 	incr.Link(o, i)
-	return incr.WithinBindScope(scope, o)
+	return incr.WithinScope(scope, o)
 }
 
 // DiffMapByKeysRemoved returns an incremental that takes an input map typed
 // incremental, and each stabilization pass returns just the subset
 // of the map that was removed since the last pass according to the keys.
-func DiffMapByKeysRemoved[K comparable, V any](scope *incr.BindScope, i incr.Incr[map[K]V]) incr.Incr[map[K]V] {
+func DiffMapByKeysRemoved[K comparable, V any](scope incr.Scope, i incr.Incr[map[K]V]) incr.Incr[map[K]V] {
 	o := &diffMapByKeysRemovedIncr[K, V]{
 		n: incr.NewNode("diff_maps_by_keys_removed"),
 		i: i,
 	}
 	incr.Link(o, i)
-	return incr.WithinBindScope(scope, o)
+	return incr.WithinScope(scope, o)
 }
 
 var (

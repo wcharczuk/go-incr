@@ -13,17 +13,17 @@ import (
 
 func Test_ParallelStabilize(t *testing.T) {
 	ctx := testContext()
+	g := New()
 
-	v0 := Var(Root(), "foo")
-	v1 := Var(Root(), "bar")
-	m0 := Map2(Root(), v0, v1, func(a, b string) string {
+	v0 := Var(g, "foo")
+	v1 := Var(g, "bar")
+	m0 := Map2(g, v0, v1, func(a, b string) string {
 		return a + " " + b
 	})
 
-	graph := New()
-	_ = Observe(Root(), graph, m0)
+	_ = Observe(g, m0)
 
-	err := graph.ParallelStabilize(ctx)
+	err := g.ParallelStabilize(ctx)
 	testutil.Nil(t, err)
 
 	testutil.Equal(t, 0, v0.Node().setAt)
@@ -41,7 +41,7 @@ func Test_ParallelStabilize(t *testing.T) {
 	testutil.Equal(t, 2, v0.Node().setAt)
 	testutil.Equal(t, 0, v1.Node().setAt)
 
-	err = graph.ParallelStabilize(ctx)
+	err = g.ParallelStabilize(ctx)
 	testutil.Nil(t, err)
 
 	testutil.Equal(t, 2, v0.Node().changedAt)
@@ -67,6 +67,7 @@ func Test_ParallelStabilize_alreadyStabilizing(t *testing.T) {
 
 func Test_ParallelStabilize_jsDocs(t *testing.T) {
 	ctx := testContext()
+	g := New()
 
 	type Entry struct {
 		Entry string
@@ -83,9 +84,9 @@ func Test_ParallelStabilize_jsDocs(t *testing.T) {
 		{"4", now.Add(4 * time.Second)},
 	}
 
-	i := Var(Root(), data)
+	i := Var(g, data)
 	output := Map(
-		Root(),
+		g,
 		i,
 		func(entries []Entry) (output []string) {
 			for _, e := range entries {
@@ -97,38 +98,37 @@ func Test_ParallelStabilize_jsDocs(t *testing.T) {
 		},
 	)
 
-	graph := New()
-	_ = Observe(Root(), graph, output)
+	_ = Observe(g, output)
 
-	err := graph.ParallelStabilize(ctx)
+	err := g.ParallelStabilize(ctx)
 	testutil.Nil(t, err)
 	testutil.Equal(t, 2, len(output.Value()))
 
 	data = append(data, Entry{
 		"5", now.Add(5 * time.Second),
 	})
-	err = graph.ParallelStabilize(ctx)
+	err = g.ParallelStabilize(ctx)
 	testutil.Nil(t, err)
 	testutil.Equal(t, 2, len(output.Value()))
 
 	i.Set(data)
-	err = graph.ParallelStabilize(ctx)
+	err = g.ParallelStabilize(ctx)
 	testutil.Nil(t, err)
 	testutil.Equal(t, 3, len(output.Value()))
 }
 
 func Test_ParallelStabilize_error(t *testing.T) {
 	ctx := testContext()
+	g := New()
 
-	v0 := Var(Root(), "foo")
-	m0 := MapContext(Root(), v0, func(ctx context.Context, a string) (string, error) {
+	v0 := Var(g, "foo")
+	m0 := MapContext(g, v0, func(ctx context.Context, a string) (string, error) {
 		return "", fmt.Errorf("this is only a test")
 	})
 
-	graph := New()
-	_ = Observe(Root(), graph, m0)
+	_ = Observe(g, m0)
 
-	err := graph.ParallelStabilize(ctx)
+	err := g.ParallelStabilize(ctx)
 	testutil.NotNil(t, err)
 }
 
@@ -182,18 +182,19 @@ func Test_parallelBatch_SetLimit(t *testing.T) {
 
 func Test_ParallelStabilize_Always(t *testing.T) {
 	ctx := testContext()
-	v := Var(Root(), "foo")
-	m0 := Map(Root(), v, ident)
-	a := Always(Root(), m0)
-	m1 := Map(Root(), a, ident)
+	g := New()
+
+	v := Var(g, "foo")
+	m0 := Map(g, v, ident)
+	a := Always(g, m0)
+	m1 := Map(g, a, ident)
 
 	var updates int
 	m1.Node().OnUpdate(func(_ context.Context) {
 		updates++
 	})
 
-	g := New()
-	o := Observe(Root(), g, m1)
+	o := Observe(g, m1)
 
 	_ = g.ParallelStabilize(ctx)
 
@@ -217,17 +218,17 @@ func Test_ParallelStabilize_always_cutoff(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
-	filename := Var(Root(), "test")
-	filenameAlways := Always(Root(), filename)
+	filename := Var(g, "test")
+	filenameAlways := Always(g, filename)
 	modtime := 1
-	statfile := Map(Root(), filenameAlways, func(s string) int { return modtime })
-	statfileCutoff := Cutoff(Root(), statfile, func(ov, nv int) bool {
+	statfile := Map(g, filenameAlways, func(s string) int { return modtime })
+	statfileCutoff := Cutoff(g, statfile, func(ov, nv int) bool {
 		return ov == nv
 	})
-	readFile := Map2(Root(), filename, statfileCutoff, func(p string, mt int) string {
+	readFile := Map2(g, filename, statfileCutoff, func(p string, mt int) string {
 		return fmt.Sprintf("%s-%d", p, mt)
 	})
-	o := Observe(Root(), g, readFile)
+	o := Observe(g, readFile)
 
 	err := g.ParallelStabilize(ctx)
 	testutil.Nil(t, err)
@@ -252,17 +253,17 @@ func Test_ParallelStabilize_always_cutoff_error(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
-	filename := Var(Root(), "test")
-	filenameAlways := Always(Root(), filename)
+	filename := Var(g, "test")
+	filenameAlways := Always(g, filename)
 	modtime := 1
-	statfile := Map(Root(), filenameAlways, func(s string) int { return modtime })
-	statfileCutoff := CutoffContext(Root(), statfile, func(_ context.Context, ov, nv int) (bool, error) {
+	statfile := Map(g, filenameAlways, func(s string) int { return modtime })
+	statfileCutoff := CutoffContext(g, statfile, func(_ context.Context, ov, nv int) (bool, error) {
 		return false, fmt.Errorf("this is only a test")
 	})
-	readFile := Map2(Root(), filename, statfileCutoff, func(p string, mt int) string {
+	readFile := Map2(g, filename, statfileCutoff, func(p string, mt int) string {
 		return fmt.Sprintf("%s-%d", p, mt)
 	})
-	o := Observe(Root(), g, readFile)
+	o := Observe(g, readFile)
 
 	err := g.ParallelStabilize(ctx)
 	testutil.NotNil(t, err)
@@ -274,11 +275,11 @@ func Test_ParallelStabilize_always_cutoff_error(t *testing.T) {
 func Test_ParallelStabilize_recoversPanics(t *testing.T) {
 	g := New()
 
-	v0 := Var(Root(), "hello")
-	gonnaPanic := Map(Root(), v0, func(_ string) string {
+	v0 := Var(g, "hello")
+	gonnaPanic := Map(g, v0, func(_ string) string {
 		panic("help!")
 	})
-	_ = Observe(Root(), g, gonnaPanic)
+	_ = Observe(g, gonnaPanic)
 	err := g.ParallelStabilize(testContext())
 	testutil.NotNil(t, err)
 }
@@ -291,11 +292,11 @@ func Test_ParallelStabilize_printsErrors(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	ctx = WithTracingOutputs(ctx, outBuf, errBuf)
 
-	v0 := Var(Root(), "hello")
-	gonnaPanic := MapContext(Root(), v0, func(_ context.Context, _ string) (string, error) {
+	v0 := Var(g, "hello")
+	gonnaPanic := MapContext(g, v0, func(_ context.Context, _ string) (string, error) {
 		return "", fmt.Errorf("this is only a test")
 	})
-	_ = Observe(Root(), g, gonnaPanic)
+	_ = Observe(g, gonnaPanic)
 
 	err := g.ParallelStabilize(ctx)
 	testutil.NotNil(t, err)

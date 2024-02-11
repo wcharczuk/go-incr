@@ -32,7 +32,7 @@ type IBind interface {
 	Link(context.Context) error
 	Bound() INode
 	BindChange() INode
-	Scope() *BindScope
+	Scope() Scope
 	IUnobserve
 }
 

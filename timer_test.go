@@ -11,33 +11,33 @@ import (
 func Test_Timer(t *testing.T) {
 	ctx := testContext()
 	clock := time.Now()
+	g := New()
 
-	timer := Timer(Root(), Return(Root(), 0), 500*time.Millisecond)
+	timer := Timer(g, Return(g, 0), 500*time.Millisecond)
 	timer.(*timerIncr[int]).clockSource = func(_ context.Context) time.Time {
 		return clock
 	}
 
 	var counterTimed int
-	timed := Map(Root(), timer, func(base int) int {
+	timed := Map(g, timer, func(base int) int {
 		counterTimed++
 		return base + counterTimed + 1
 	})
 	timed.Node().SetLabel("timed")
 
 	var counterUntimed int
-	untimed := Map(Root(), Return(Root(), 0), func(base int) int {
+	untimed := Map(g, Return(g, 0), func(base int) int {
 		counterUntimed++
 		return base + counterUntimed + 1
 	})
 	untimed.Node().SetLabel("untimed")
 
-	final := Map2(Root(), timed, untimed, func(a, b int) int {
+	final := Map2(g, timed, untimed, func(a, b int) int {
 		return a + b
 	})
 	final.Node().SetLabel("final")
 
-	g := New()
-	o := Observe(Root(), g, final)
+	o := Observe(g, final)
 
 	err := g.Stabilize(ctx)
 	testutil.Nil(t, err)

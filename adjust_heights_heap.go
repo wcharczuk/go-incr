@@ -141,12 +141,14 @@ func (ah *adjustHeightsHeap) adjustHeights(rh *recomputeHeap) error {
 				return err
 			}
 		}
-		if typed, ok := node.(IBind); ok {
-			scope := typed.Scope()
-			for _, nodeOnRight := range scope.rhsNodes {
-				if node.Node().graph.isNecessary(nodeOnRight) {
-					if err := ah.ensureHeightRequirementUnsafe(node, nodeOnRight); err != nil {
-						return err
+		if typed, typedOK := node.(IBind); typedOK {
+			scope, scopeOK := typed.Scope().(*bindScope)
+			if scopeOK {
+				for _, nodeOnRight := range scope.rhsNodes {
+					if node.Node().graph.isNecessary(nodeOnRight) {
+						if err := ah.ensureHeightRequirementUnsafe(node, nodeOnRight); err != nil {
+							return err
+						}
 					}
 				}
 			}

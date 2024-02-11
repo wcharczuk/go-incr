@@ -4,7 +4,7 @@ import "context"
 
 // FoldLeft folds an array from 0 to N carrying the previous value
 // to the next interation, yielding a single value.
-func FoldLeft[T, O any](scope *BindScope, i Incr[[]T], v0 O, fn func(O, T) O) Incr[O] {
+func FoldLeft[T, O any](scope Scope, i Incr[[]T], v0 O, fn func(O, T) O) Incr[O] {
 	o := &foldLeftIncr[T, O]{
 		n:   NewNode("fold_left"),
 		i:   i,
@@ -12,7 +12,7 @@ func FoldLeft[T, O any](scope *BindScope, i Incr[[]T], v0 O, fn func(O, T) O) In
 		val: v0,
 	}
 	Link(o, i)
-	return WithinBindScope(scope, o)
+	return WithinScope(scope, o)
 }
 
 type foldLeftIncr[T, O any] struct {

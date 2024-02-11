@@ -95,7 +95,7 @@ func Test_Node_String(t *testing.T) {
 func Test_SetStale(t *testing.T) {
 	g := New()
 	n := newMockBareNode()
-	_ = Observe(Root(), g, n)
+	_ = Observe(g, n)
 	g.SetStale(n)
 
 	testutil.Equal(t, 0, n.n.changedAt)
@@ -362,7 +362,7 @@ func Test_Node_recompute(t *testing.T) {
 
 	g := New()
 	var calledStabilize bool
-	m0 := MapContext(Root(), Return(Root(), ""), func(ictx context.Context, _ string) (string, error) {
+	m0 := MapContext(g, Return(g, ""), func(ictx context.Context, _ string) (string, error) {
 		calledStabilize = true
 		testutil.BlueDye(ictx, t)
 		return "hello", nil
@@ -370,7 +370,7 @@ func Test_Node_recompute(t *testing.T) {
 
 	p := newMockBareNode()
 	m0.Node().addParents(p)
-	_ = Observe(Root(), g, m0)
+	_ = Observe(g, m0)
 
 	var calledUpdateHandler0, calledUpdateHandler1 bool
 	m0.Node().OnUpdate(func(ictx context.Context) {
@@ -419,10 +419,10 @@ func Test_Node_recompute(t *testing.T) {
 
 func Test_Node_stabilize_error(t *testing.T) {
 	ctx := testContext()
-
 	g := New()
+
 	var calledStabilize bool
-	m0 := MapContext(Root(), Return(Root(), ""), func(ictx context.Context, _ string) (string, error) {
+	m0 := MapContext(g, Return(g, ""), func(ictx context.Context, _ string) (string, error) {
 		calledStabilize = true
 		testutil.BlueDye(ictx, t)
 		return "", fmt.Errorf("test error")
@@ -430,7 +430,7 @@ func Test_Node_stabilize_error(t *testing.T) {
 
 	p := newMockBareNode()
 	m0.Node().addParents(p)
-	_ = Observe(Root(), g, m0)
+	_ = Observe(g, m0)
 
 	var calledUpdateHandler0, calledUpdateHandler1 bool
 	m0.Node().OnUpdate(func(ictx context.Context) {
@@ -477,24 +477,24 @@ func Test_nodeFormatters(t *testing.T) {
 		Node  INode
 		Label string
 	}{
-		{Bind[string, string](Root(), Return(Root(), ""), nil), "bind"},
-		{Cutoff(Root(), Return(Root(), ""), nil), "cutoff"},
-		{Cutoff2(Root(), Return(Root(), ""), Return(Root(), ""), nil), "cutoff2"},
-		{Func[string](Root(), nil), "func"},
-		{MapN[string, bool](Root(), nil), "map_n"},
-		{Map[string, bool](Root(), Return(Root(), ""), nil), "map"},
-		{Map2[string, int, bool](Root(), Return(Root(), ""), Return(Root(), 0), nil), "map2"},
-		{Map3[string, int, float64, bool](Root(), Return(Root(), ""), Return(Root(), 0), Return(Root(), 1.0), nil), "map3"},
-		{MapIf(Root(), Return(Root(), ""), Return(Root(), ""), Return(Root(), false)), "map_if"},
-		{Return(Root(), ""), "return"},
-		{Watch(Root(), Return(Root(), "")), "watch"},
-		{Freeze(Root(), Return(Root(), "")), "freeze"},
-		{Var(Root(), ""), "var"},
-		{FoldLeft(Root(), Return(Root(), []string{}), "", nil), "fold_left"},
-		{FoldRight(Root(), Return(Root(), []string{}), "", nil), "fold_right"},
-		{FoldMap(Root(), Return(Root(), map[string]int{}), "", nil), "fold_map"},
-		{Observe(Root(), g, Return(Root(), "")), "observer"},
-		{Always(Root(), Return(Root(), "")), "always"},
+		{Bind[string, string](g, Return(g, ""), nil), "bind"},
+		{Cutoff(g, Return(g, ""), nil), "cutoff"},
+		{Cutoff2(g, Return(g, ""), Return(g, ""), nil), "cutoff2"},
+		{Func[string](g, nil), "func"},
+		{MapN[string, bool](g, nil), "map_n"},
+		{Map[string, bool](g, Return(g, ""), nil), "map"},
+		{Map2[string, int, bool](g, Return(g, ""), Return(g, 0), nil), "map2"},
+		{Map3[string, int, float64, bool](g, Return(g, ""), Return(g, 0), Return(g, 1.0), nil), "map3"},
+		{MapIf(g, Return(g, ""), Return(g, ""), Return(g, false)), "map_if"},
+		{Return(g, ""), "return"},
+		{Watch(g, Return(g, "")), "watch"},
+		{Freeze(g, Return(g, "")), "freeze"},
+		{Var(g, ""), "var"},
+		{FoldLeft(g, Return(g, []string{}), "", nil), "fold_left"},
+		{FoldRight(g, Return(g, []string{}), "", nil), "fold_right"},
+		{FoldMap(g, Return(g, map[string]int{}), "", nil), "fold_map"},
+		{Observe(g, Return(g, "")), "observer"},
+		{Always(g, Return(g, "")), "always"},
 	}
 
 	for _, tc := range testCases {
@@ -553,7 +553,6 @@ func Test_Node_Observers(t *testing.T) {
 	n := &Node{
 		observers: []IObserver{one, two},
 	}
-
 	testutil.Equal(t, 2, len(n.Observers()))
 }
 
@@ -584,30 +583,30 @@ func Test_nodeSorter(t *testing.T) {
 
 func Test_Node_onUpdate_regression(t *testing.T) {
 	ctx := testContext()
+	g := New()
 
-	width := Var(Root(), 3)
-	length := Var(Root(), 4)
+	width := Var(g, 3)
+	length := Var(g, 4)
 
-	area := Map2(Root(), width, length, func(w int, l int) int {
+	area := Map2(g, width, length, func(w int, l int) int {
 		return w * l
 	})
 	area.Node().SetLabel("area")
 
-	height := Var(Root(), 2)
+	height := Var(g, 2)
 	height.Node().SetLabel("height")
-	volume := Map2(Root(), area, height, func(a int, h int) int {
+	volume := Map2(g, area, height, func(a int, h int) int {
 		return a * h
 	})
 	volume.Node().SetLabel("volume")
-	scaledVolume := Map(Root(), volume, func(v int) int {
+	scaledVolume := Map(g, volume, func(v int) int {
 		return v * 2
 	})
 	scaledVolume.Node().SetLabel("scaledVolume")
 
-	g := New()
-	areaObs := Observe(Root(), g, area)
+	areaObs := Observe(g, area)
 	areaObs.Node().SetLabel("areaObs")
-	scaledVolumeObs := Observe(Root(), g, scaledVolume)
+	scaledVolumeObs := Observe(g, scaledVolume)
 	scaledVolumeObs.Node().SetLabel("scaledVolumeObs")
 
 	err := g.Stabilize(ctx)

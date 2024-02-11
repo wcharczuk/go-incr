@@ -11,14 +11,14 @@ func Test_Observe_Unobserve(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
-	v0 := Var(Root(), "hello 0")
-	m0 := Map(Root(), v0, ident)
+	v0 := Var(g, "hello 0")
+	m0 := Map(g, v0, ident)
 
-	v1 := Var(Root(), "hello 1")
-	m1 := Map(Root(), v1, ident)
+	v1 := Var(g, "hello 1")
+	m1 := Map(g, v1, ident)
 
-	o0 := Observe(Root(), g, m0)
-	o1 := Observe(Root(), g, m1)
+	o0 := Observe(g, m0)
+	o1 := Observe(g, m1)
 
 	testutil.Equal(t, 6, g.numNodes)
 
@@ -56,15 +56,15 @@ func Test_Observe_Unobserve_multiple(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
-	v0 := Var(Root(), "hello 0")
-	m0 := Map(Root(), v0, ident)
+	v0 := Var(g, "hello 0")
+	m0 := Map(g, v0, ident)
 
-	v1 := Var(Root(), "hello 1")
-	m1 := Map(Root(), v1, ident)
+	v1 := Var(g, "hello 1")
+	m1 := Map(g, v1, ident)
 
-	o0 := Observe(Root(), g, m0)
-	o1 := Observe(Root(), g, m1)
-	o11 := Observe(Root(), g, m1)
+	o0 := Observe(g, m0)
+	o1 := Observe(g, m1)
+	o11 := Observe(g, m1)
 
 	testutil.Equal(t, true, g.IsObserving(v0))
 	testutil.Equal(t, true, g.IsObserving(m0))
@@ -119,9 +119,9 @@ func Test_Observe_Unobserve_multiple(t *testing.T) {
 func Test_Observer_Unobserve_reobserve(t *testing.T) {
 	ctx := testContext()
 	g := New()
-	v0 := Var(Root(), "hello")
-	m0 := Map(Root(), v0, ident)
-	o0 := Observe(Root(), g, m0)
+	v0 := Var(g, "hello")
+	m0 := Map(g, v0, ident)
+	o0 := Observe(g, m0)
 
 	_ = g.Stabilize(context.TODO())
 	testutil.Equal(t, "hello", o0.Value())
@@ -133,7 +133,7 @@ func Test_Observer_Unobserve_reobserve(t *testing.T) {
 	// strictly, the value shouldn't change ...
 	testutil.Equal(t, "hello", m0.Value())
 
-	o1 := Observe(Root(), g, m0)
+	o1 := Observe(g, m0)
 	_ = g.Stabilize(context.TODO())
 	testutil.Equal(t, "hello", o1.Value())
 }

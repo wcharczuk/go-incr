@@ -14,7 +14,7 @@ import (
 // be what it will be and there is no way to know ahead of time what
 // "left" or "right" would even mean in practice.
 func FoldMap[K comparable, V any, O any](
-	scope *BindScope,
+	scope Scope,
 	i Incr[map[K]V],
 	v0 O,
 	fn func(K, V, O) O,
@@ -26,7 +26,7 @@ func FoldMap[K comparable, V any, O any](
 		val: v0,
 	}
 	Link(o, i)
-	return WithinBindScope(scope, o)
+	return WithinScope(scope, o)
 }
 
 var (

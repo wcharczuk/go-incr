@@ -94,8 +94,8 @@ type Node struct {
 	numRecomputes uint64
 	// numChanges is the number of times we changed the node
 	numChanges uint64
-	// createdIn is the "bind scope" the node was created in
-	createdIn *BindScope
+	// createdIn is the "scope" the node was created in
+	createdIn Scope
 	// numComputePseudoHeights is the number of times we call "computePseudoheight"
 	// on this particular node
 	numComputePseudoHeights uint64
