@@ -1,7 +1,7 @@
 package incr
 
-// BindIf lets you swap out an entire subgraph of a computation based
-// on a given boolean incremental predicate.
+// Bind4 lets you swap out an entire subgraph of a computation based
+// on a given boolean incremental predicate with 4 arguments.
 func Bind4[A, B, C, D, E any](scope Scope, a Incr[A], b Incr[B], c Incr[C], d Incr[D], fn func(Scope, A, B, C, D) Incr[E]) BindIncr[E] {
 	m := Map4(scope, a, b, c, d, func(av A, bv B, cv C, dv D) Tuple4[A, B, C, D] {
 		return Tuple4[A, B, C, D]{av, bv, cv, dv}

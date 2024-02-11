@@ -1,7 +1,7 @@
 package incr
 
-// BindIf lets you swap out an entire subgraph of a computation based
-// on a given boolean incremental predicate.
+// Bind2 lets you swap out an entire subgraph of a computation based
+// on a given boolean incremental predicate with 2 arguments.
 func Bind2[A, B, C any](scope Scope, a Incr[A], b Incr[B], fn func(Scope, A, B) Incr[C]) BindIncr[C] {
 	m := Map2(scope, a, b, func(av A, bv B) Tuple2[A, B] {
 		return Tuple2[A, B]{av, bv}
