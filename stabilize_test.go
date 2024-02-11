@@ -1503,21 +1503,6 @@ func Test_Stabilize_handlers(t *testing.T) {
 }
 
 func Test_Stabilize_bindCombination(t *testing.T) {
-	/*
-
-		let v1 = Var.create_ [%here] 1 in
-		let v2 = Var.create_ [%here] 2 in
-		let v3 = Var.create_ [%here] 3 in
-		let v4 = Var.create_ [%here] 4 in
-		let o =
-			observe
-			(bind4 (watch v1) (watch v2) (watch v3) (watch v4) ~f:(fun x1 x2 x3 x4 ->
-				bind3 (watch v2) (watch v3) (watch v4) ~f:(fun y2 y3 y4 ->
-					bind2 (watch v3) (watch v4) ~f:(fun z3 z4 ->
-					bind (watch v4) ~f:(fun w4 ->
-						return (x1 + x2 + x3 + x4 + y2 + y3 + y4 + z3 + z4 + w4))))))
-	*/
-
 	ctx := testContext()
 	g := New()
 
@@ -1538,13 +1523,6 @@ func Test_Stabilize_bindCombination(t *testing.T) {
 
 	err := g.Stabilize(ctx)
 	NoError(t, err)
-
-	/*
-		(Var.value v1
-		+ (2 * Var.value v2)
-		+ (3 * Var.value v3)
-		+ (4 * Var.value v4))
-	*/
 
 	Equal(t, v1.Value()+(2*v2.Value())+(3*v3.Value())+(4*v4.Value()), o.Value())
 
