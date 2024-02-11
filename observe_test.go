@@ -25,6 +25,9 @@ func Test_Observe_Unobserve(t *testing.T) {
 	testutil.Equal(t, true, g.IsObserving(m0))
 	testutil.Equal(t, true, g.IsObserving(m1))
 
+	testutil.Equal(t, true, g.recomputeHeap.has(o0))
+	testutil.Equal(t, true, g.recomputeHeap.has(o1))
+
 	testutil.Equal(t, "", o0.Value())
 	testutil.Equal(t, "", o1.Value())
 
@@ -35,6 +38,9 @@ func Test_Observe_Unobserve(t *testing.T) {
 	testutil.Equal(t, "hello 1", o1.Value())
 
 	o1.Unobserve(ctx)
+
+	testutil.Equal(t, false, g.recomputeHeap.has(o0))
+	testutil.Equal(t, false, g.recomputeHeap.has(o1))
 
 	testutil.Equal(t, len(g.observed), g.numNodes-1, "we don't observe the observer but we do track it!")
 	testutil.Nil(t, o1.Node().graph)
