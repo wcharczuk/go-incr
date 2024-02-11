@@ -8,10 +8,11 @@ import (
 )
 
 func Test_Always(t *testing.T) {
-	v := Var(Root(), "foo")
-	m0 := Map(Root(), v, ident)
-	a := Always(Root(), m0)
-	m1 := Map(Root(), a, ident)
+	g := New()
+	v := Var(g, "foo")
+	m0 := Map(g, v, ident)
+	a := Always(g, m0)
+	m1 := Map(g, a, ident)
 
 	a.(AlwaysIncr[string]).Always() // does nothing
 
@@ -20,8 +21,7 @@ func Test_Always(t *testing.T) {
 		updates++
 	})
 
-	g := New()
-	o := Observe(Root(), g, m1)
+	o := Observe(g, m1)
 
 	ctx := testContext()
 	_ = g.Stabilize(ctx)

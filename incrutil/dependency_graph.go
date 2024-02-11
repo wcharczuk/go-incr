@@ -36,10 +36,12 @@ func (dg DependencyGraph[Result]) Create(ctx context.Context) (*incr.Graph, map[
 		}
 	}
 
+	graph := incr.New()
+
 	// build package incrementals
 	// including the relationships between the
 	// packages and their dependencies.
-	packageIncrementals, err := dg.createDependencyIncrLookup(ctx)
+	packageIncrementals, err := dg.createDependencyIncrLookup(ctx, graph)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -52,9 +54,8 @@ func (dg DependencyGraph[Result]) Create(ctx context.Context) (*incr.Graph, map[
 			leaves = append(leaves, packageIncrementals[d.Name])
 		}
 	}
-	graph := incr.New()
 	for _, n := range leaves {
-		_ = incr.Observe[Result](incr.Root(), graph, n)
+		_ = incr.Observe[Result](graph, n)
 	}
 	return graph, packageIncrementals, nil
 }
@@ -67,10 +68,10 @@ func (dg DependencyGraph[Result]) createDependencyLookup() (output map[string]*d
 	return
 }
 
-func (dg DependencyGraph[Result]) createDependencyIncrLookup(ctx context.Context) (output map[string]DependencyIncr[Result], err error) {
+func (dg DependencyGraph[Result]) createDependencyIncrLookup(ctx context.Context, g *incr.Graph) (output map[string]DependencyIncr[Result], err error) {
 	output = make(map[string]DependencyIncr[Result])
 	for _, d := range dg.Dependencies {
-		output[d.Name] = dg.createDependencyIncr(d)
+		output[d.Name] = dg.createDependencyIncr(g, d)
 	}
 	for _, p := range dg.Dependencies {
 		for _, d := range p.DependsOn {
@@ -92,8 +93,8 @@ func (dg DependencyGraph[Result]) mapOnUpdate(d Dependency) func(context.Context
 	}
 }
 
-func (dg DependencyGraph[Result]) createDependencyIncr(d Dependency) DependencyIncr[Result] {
-	output := incr.MapNContext[Result, Result](incr.Root(), dg.mapAction(d))
+func (dg DependencyGraph[Result]) createDependencyIncr(g *incr.Graph, d Dependency) DependencyIncr[Result] {
+	output := incr.MapNContext[Result, Result](g, dg.mapAction(d))
 	if dg.OnUpdate != nil {
 		output.Node().OnUpdate(dg.mapOnUpdate(d))
 	}

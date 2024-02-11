@@ -163,7 +163,7 @@ func newList(items ...INode) map[Identifier]INode {
 	return l
 }
 
-func createDynamicMaps(scope *BindScope, label string) Incr[string] {
+func createDynamicMaps(scope Scope, label string) Incr[string] {
 	mapVar0 := Var(scope, fmt.Sprintf("%s-0", label))
 	mapVar0.Node().SetLabel(fmt.Sprintf("%sv-0", label))
 	mapVar1 := Var(scope, fmt.Sprintf("%s-1", label))
@@ -175,10 +175,10 @@ func createDynamicMaps(scope *BindScope, label string) Incr[string] {
 	return m
 }
 
-func createDynamicBind(scope *BindScope, label string, a, b Incr[string]) (VarIncr[string], BindIncr[string]) {
+func createDynamicBind(scope Scope, label string, a, b Incr[string]) (VarIncr[string], BindIncr[string]) {
 	bindVar := Var(scope, "a")
 	bindVar.Node().SetLabel(fmt.Sprintf("bind - %s - var", label))
-	bind := Bind(scope, bindVar, func(scope *BindScope, which string) Incr[string] {
+	bind := Bind(scope, bindVar, func(scope Scope, which string) Incr[string] {
 		if which == "a" {
 			m := Map(scope, a, func(v string) string {
 				return v + "->" + label

@@ -57,6 +57,10 @@ const (
 	DefaultMaxHeight = 256
 )
 
+var (
+	_ Scope = (*Graph)(nil)
+)
+
 // Graph is the state that is shared across nodes.
 //
 // You should instantiate this type with `New()`.
@@ -199,19 +203,25 @@ func (graph *Graph) SetStale(gn INode) {
 }
 
 //
+// Scope interface methods
+//
+
+func (graph *Graph) isRootScope() bool { return true }
+
+//
 // Internal discovery & observe methods
 //
 
 // observeNodes traverses up from a given node, adding a given
 // list of observers as "observing" that node, and recursing through it's inputs or parents.
-func (graph *Graph) observeNodes(observingScope *BindScope, gn INode, observers ...IObserver) {
-	graph.observeSingleNode(observingScope, gn, observers...)
+func (graph *Graph) observeNodes(gn INode, observers ...IObserver) {
+	graph.observeSingleNode(gn, observers...)
 	for _, p := range gn.Node().parents {
-		graph.observeNodes(observingScope, p, observers...)
+		graph.observeNodes(p, observers...)
 	}
 }
 
-func (graph *Graph) observeSingleNode(observingScope *BindScope, gn INode, observers ...IObserver) {
+func (graph *Graph) observeSingleNode(gn INode, observers ...IObserver) {
 	gnn := gn.Node()
 
 	gnn.addObservers(observers...)

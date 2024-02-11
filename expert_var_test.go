@@ -7,7 +7,8 @@ import (
 )
 
 func Test_ExpertVar(t *testing.T) {
-	v := Var(Root(), "hello")
+	g := New()
+	v := Var(g, "hello")
 	ev := ExpertVar(v)
 	ev.SetInternalValue("not-hello")
 	testutil.Equal(t, "not-hello", v.Value())

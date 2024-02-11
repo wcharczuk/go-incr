@@ -8,7 +8,8 @@ import (
 )
 
 func Test_Var_Set_unobserved(t *testing.T) {
-	v := Var(Root(), "foo")
+	g := New()
+	v := Var(g, "foo")
 
 	testutil.Equal(t, "foo", v.Value())
 
@@ -18,19 +19,19 @@ func Test_Var_Set_unobserved(t *testing.T) {
 }
 
 func Test_Var_Stabilize_zero(t *testing.T) {
-	v := Var(Root(), "foo")
-
 	g := New()
-	_ = Observe(Root(), g, v)
+	v := Var(g, "foo")
+
+	_ = Observe(g, v)
 
 	_ = g.Stabilize(context.TODO())
 	testutil.Equal(t, "foo", v.Value())
 }
 
 func Test_Var_Set_duringStabilization(t *testing.T) {
-	v := Var(Root(), "foo")
 	g := New()
-	_ = Observe(Root(), g, v)
+	v := Var(g, "foo")
+	_ = Observe(g, v)
 	g.status = StatusStabilizing
 
 	v.Set("not-foo")

@@ -7,14 +7,15 @@ import (
 )
 
 func Test_DetectCycleIfLinked(t *testing.T) {
-	n0 := MapN[any, any](Root(), identMany)
-	n01 := MapN[any, any](Root(), identMany)
-	n02 := MapN[any, any](Root(), identMany)
-	n03 := MapN[any, any](Root(), identMany)
-	n1 := MapN[any, any](Root(), identMany)
-	n11 := MapN[any, any](Root(), identMany)
-	n12 := MapN[any, any](Root(), identMany)
-	n13 := MapN[any, any](Root(), identMany)
+	g := New()
+	n0 := MapN[any, any](g, identMany)
+	n01 := MapN[any, any](g, identMany)
+	n02 := MapN[any, any](g, identMany)
+	n03 := MapN[any, any](g, identMany)
+	n1 := MapN[any, any](g, identMany)
+	n11 := MapN[any, any](g, identMany)
+	n12 := MapN[any, any](g, identMany)
+	n13 := MapN[any, any](g, identMany)
 
 	n01.AddInput(n0)
 	n02.AddInput(n01)
@@ -31,7 +32,8 @@ func Test_DetectCycleIfLinked(t *testing.T) {
 }
 
 func detectCycleNode(label string) MapNIncr[any, any] {
-	n := MapN[any, any](Root(), identMany)
+	g := New()
+	n := MapN[any, any](g, identMany)
 	n.Node().SetLabel(label)
 	return n
 }
@@ -104,9 +106,10 @@ func Test_DetectCycleIfLinked_complex2(t *testing.T) {
 
 func Test_DetectCycleIfLinked_2(t *testing.T) {
 	/* these are some trivial cases to make sure bases are covered */
-	n0 := MapN[any, any](Root(), identMany)
-	n1 := MapN[any, any](Root(), identMany)
-	n2 := MapN[any, any](Root(), identMany)
+	g := New()
+	n0 := MapN[any, any](g, identMany)
+	n1 := MapN[any, any](g, identMany)
+	n2 := MapN[any, any](g, identMany)
 
 	err := DetectCycleIfLinked(n0, n0)
 	testutil.NotNil(t, err)
@@ -122,28 +125,30 @@ func Test_DetectCycleIfLinked_2(t *testing.T) {
 }
 
 func Test_DetectCycleIfLinked_regression(t *testing.T) {
-	table := Var(Root(), "table")
-	columnDownload := Map(Root(), table, ident)
-	lastDownload := Map(Root(), columnDownload, ident)
-	targetUpload := Map(Root(), lastDownload, ident)
+	g := New()
+	table := Var(g, "table")
+	columnDownload := Map(g, table, ident)
+	lastDownload := Map(g, columnDownload, ident)
+	targetUpload := Map(g, lastDownload, ident)
 
-	columnUpload := Map(Root(), table, ident)
-	lastUpload := Map(Root(), columnUpload, ident)
-	uploadRemaining := MapN(Root(), identMany, lastUpload)
+	columnUpload := Map(g, table, ident)
+	lastUpload := Map(g, columnUpload, ident)
+	uploadRemaining := MapN(g, identMany, lastUpload)
 
 	err := DetectCycleIfLinked(uploadRemaining, targetUpload)
 	testutil.Nil(t, err, "this should _not_ cause a cycle!")
 }
 
 func Test_DetectCycleIfLinked_regression2(t *testing.T) {
-	table := Var(Root(), "table")
-	columnDownload := MapN(Root(), identMany[string])
-	lastDownload := Map(Root(), columnDownload, ident)
-	_ = Map(Root(), lastDownload, ident)
+	g := New()
+	table := Var(g, "table")
+	columnDownload := MapN(g, identMany[string])
+	lastDownload := Map(g, columnDownload, ident)
+	_ = Map(g, lastDownload, ident)
 
-	columnUpload := Map(Root(), table, ident)
-	lastUpload := Map(Root(), columnUpload, ident)
-	_ = MapN(Root(), identMany, lastUpload)
+	columnUpload := Map(g, table, ident)
+	lastUpload := Map(g, columnUpload, ident)
+	_ = MapN(g, identMany, lastUpload)
 
 	err := DetectCycleIfLinked(columnDownload, table)
 	testutil.Nil(t, err, "this should _not_ cause a cycle!")
