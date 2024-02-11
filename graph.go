@@ -240,20 +240,8 @@ func (graph *Graph) observeSingleNode(gn INode, observers ...IObserver) error {
 	gnn := gn.Node()
 
 	gnn.addObservers(observers...)
-
-	if err := graph.adjustHeightsHeap.setHeight(gn, gnn.createdIn.scopeHeight()+1); err != nil {
+	if err := graph.adjustHeight(gn); err != nil {
 		return err
-	}
-	for _, parent := range gnn.parents {
-		if parent.Node().height >= gnn.height {
-			if err := graph.adjustHeightsHeap.setHeight(gn, parent.Node().height+1); err != nil {
-				return err
-			}
-		}
-		// Note(wc): when _would_ we need to do this?
-		// if err := graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, gn, parent); err != nil {
-		// 	return err
-		// }
 	}
 
 	alreadyObservedByGraph := graph.maybeAddObservedNode(gn)
@@ -353,8 +341,6 @@ func (graph *Graph) canReachObserver(gn INode, oid Identifier) bool {
 
 func (graph *Graph) canReachObserverRecursive(root, gn INode, oid Identifier) bool {
 	for _, c := range gn.Node().children {
-		// if any of our children still have the observer in their observed lists
-		// return true immediately
 		if _, ok := c.Node().observerLookup[oid]; ok {
 			return true
 		}
@@ -378,17 +364,8 @@ func (graph *Graph) addObserver(on IObserver) error {
 		graph.numNodes++
 	}
 	onn.detectStabilize(on)
-
-	if err := graph.adjustHeightsHeap.setHeight(on, onn.createdIn.scopeHeight()+1); err != nil {
+	if err := graph.adjustHeight(on); err != nil {
 		return err
-	}
-	for _, parent := range onn.parents {
-		if parent.Node().height >= onn.height {
-			_ = graph.adjustHeightsHeap.setHeight(on, parent.Node().height+1)
-		}
-		if err := graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, on, parent); err != nil {
-			return err
-		}
 	}
 	graph.observers[onn.id] = on
 	return nil
@@ -407,6 +384,33 @@ func (graph *Graph) removeObserver(on IObserver) {
 	graph.observersMu.Lock()
 	delete(graph.observers, onn.id)
 	graph.observersMu.Unlock()
+
+	graph.recomputeHeap.remove(on)
+	graph.adjustHeightsHeap.remove(on)
+
+	onn.height = 0
+	onn.heightInRecomputeHeap = 0
+	onn.heightInAdjustHeightsHeap = 0
+	onn.setAt = 0
+	onn.changedAt = 0
+	onn.recomputedAt = 0
+}
+
+func (graph *Graph) adjustHeight(gn INode) error {
+	if err := graph.adjustHeightsHeap.setHeight(gn, gn.Node().createdIn.scopeHeight()+1); err != nil {
+		return err
+	}
+	for _, parent := range gn.Node().parents {
+		if parent.Node().height >= gn.Node().height {
+			if err := graph.adjustHeightsHeap.setHeight(gn, parent.Node().height+1); err != nil {
+				return err
+			}
+		}
+		if err := graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, gn, parent); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 //
