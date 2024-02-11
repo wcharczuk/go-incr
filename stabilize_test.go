@@ -607,6 +607,8 @@ func Test_Stabilize_Bind2(t *testing.T) {
 		return Return(bs, a+b)
 	})
 
+	Equal(t, "bind2", b2.Node().Kind())
+
 	o := Observe(g, b2)
 	err := g.Stabilize(ctx)
 	NoError(t, err)
@@ -633,11 +635,12 @@ func Test_Stabilize_Bind3(t *testing.T) {
 	v1 := Var(g, "b")
 	v2 := Var(g, "c")
 
-	b2 := Bind3(g, v0, v1, v2, func(bs Scope, a, b, c string) Incr[string] {
+	b3 := Bind3(g, v0, v1, v2, func(bs Scope, a, b, c string) Incr[string] {
 		return Return(bs, a+b+c)
 	})
+	Equal(t, "bind3", b3.Node().Kind())
 
-	o := Observe(g, b2)
+	o := Observe(g, b3)
 	err := g.Stabilize(ctx)
 	NoError(t, err)
 	Equal(t, "abc", o.Value())
@@ -670,11 +673,12 @@ func Test_Stabilize_Bind4(t *testing.T) {
 	v2 := Var(g, "c")
 	v3 := Var(g, "d")
 
-	b2 := Bind4(g, v0, v1, v2, v3, func(bs Scope, a, b, c, d string) Incr[string] {
+	b4 := Bind4(g, v0, v1, v2, v3, func(bs Scope, a, b, c, d string) Incr[string] {
 		return Return(bs, a+b+c+d)
 	})
+	Equal(t, "bind4", b4.Node().Kind())
 
-	o := Observe(g, b2)
+	o := Observe(g, b4)
 	err := g.Stabilize(ctx)
 	NoError(t, err)
 	Equal(t, "abcd", o.Value())
