@@ -20,17 +20,17 @@ The inspiration for `go-incr` is Jane Street's [incremental](https://github.com/
 Given an example computation:
 
 ```go
-v0 := incr.Var(incr.Root(), "foo")
-v1 := incr.Var(incr.Root(), "bar")
+g := incr.New()
+v0 := incr.Var(g, "foo")
+v1 := incr.Var(g, "bar")
 
-output := incr.Map2(incr.Root(), v0, v1, func(a, b string) string { return a + " and " + b })
+output := incr.Map2(g, v0, v1, func(a, b string) string { return a + " and " + b })
 ```
 
 In order to realize the values, we need to observe nodes in a graph, and then call `Stabilize` on the graph:
 
 ```go
-g := incr.New()
-o := incr.Observe(incr.Root(), g, output)
+o := incr.Observe(g, output)
 if err := g.Stabilize(context.Background()); err != nil {
   // ... handle error if it comes up
 }
@@ -89,12 +89,12 @@ Because `Bind` nodes rely on scopes to operate correctly, the bind function you 
 An example of a use case for bind might be:
 
 ```
-t1 := incr.Map(incr.Root(), Return(ctx, "hello"), func(v string) string { return v + " world!" })
-t2v := incr.Var(incr.Root(), "a")
-t2 := incr.Bind(incr.Root(), t2v, func(scope *incr.BindScope, t2vv string) Incr[string] {
+g := incr.New()
+t1 := incr.Map(g, Return(g, "hello"), func(v string) string { return v + " world!" })
+t2v := incr.Var(g, "a")
+t2 := incr.Bind(g, t2v, func(scope incr.Scope, t2vv string) Incr[string] {
   return Map(scope, t1, func(v string) string { return v + " Ipsum" })
 })
-...
 
 ```
 
