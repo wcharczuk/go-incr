@@ -67,8 +67,12 @@ func addConst(v float64) func(float64) float64 {
 	}
 }
 
+type addable interface {
+	~int | ~float64
+}
+
 // add is a map2 fn that adds two values and returns the result
-func add[T Ordered](v0, v1 T) T {
+func add[T addable](v0, v1 T) T {
 	return v0 + v1
 }
 

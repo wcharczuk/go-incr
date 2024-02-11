@@ -25,6 +25,7 @@ func WithinScope[A INode](scope Scope, node A) A {
 // If you're within a bind, you should pass the scope that is passed to your bind function.
 type Scope interface {
 	isRootScope() bool
+	scopeGraph() *Graph
 }
 
 // BindScope is the scope that nodes are created in.
@@ -35,7 +36,8 @@ type bindScope struct {
 	rhsNodes []INode
 }
 
-func (bs *bindScope) isRootScope() bool { return false }
+func (bs *bindScope) isRootScope() bool  { return false }
+func (bs *bindScope) scopeGraph() *Graph { return bs.bind.Node().graph }
 
 func maybeRemoveScopeNode(scope Scope, node INode) {
 	if scope != nil && scope.isRootScope() {

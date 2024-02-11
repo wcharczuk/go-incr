@@ -208,6 +208,8 @@ func (graph *Graph) SetStale(gn INode) {
 
 func (graph *Graph) isRootScope() bool { return true }
 
+func (graph *Graph) scopeGraph() *Graph { return graph }
+
 //
 // Internal discovery & observe methods
 //
