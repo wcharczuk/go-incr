@@ -27,10 +27,10 @@ func MapNContext[A, B any](scope Scope, fn MapNContextFunc[A, B], inputs ...Incr
 	return WithinScope(scope, o)
 }
 
-// MapNFunc is the function that the ApplyN incremental applies.
+// MapNFunc is the function that the MapN incremental applies.
 type MapNFunc[A, B any] func(...A) B
 
-// MapNContextFunc is the function that the ApplyN incremental applies.
+// MapNContextFunc is the function that the MapNContext incremental applies.
 type MapNContextFunc[A, B any] func(context.Context, ...A) (B, error)
 
 // MapNIncr is a type of incremental that can add inputs over time.

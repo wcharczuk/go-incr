@@ -7,14 +7,17 @@ import (
 	"time"
 )
 
-// New returns a new graph state, which is the type that
-// represents the shared state of a computation graph.
+// New returns a new graph state, which is the type that represents the
+// shared state of a computation graph.
+//
+// You can pass configuration options as `GraphOption` to customize settings
+// within the graph, such as what the maximum "height" a node can be.
 //
 // This is the entrypoint for all stabilization and computation
-// operations.
+// operations, and generally the Graph will be passed to node constructors.
 //
-// Nodes you initialize the graph with will be "observed" before
-// the graph is returned, saving that step later.
+// Nodes you initialize the graph with will need to be be observed by
+// an `Observer` before you can stabilize them.
 func New(opts ...GraphOption) *Graph {
 	options := GraphOptions{
 		MaxHeight: DefaultMaxHeight,
@@ -61,12 +64,12 @@ var (
 	_ Scope = (*Graph)(nil)
 )
 
-// Graph is the state that is shared across nodes.
+// Graph is the state that is shared across nodes in a computation graph.
 //
-// You should instantiate this type with `New()`.
+// You should instantiate this type with the `New()` function.
 //
-// It is important to note that most operations on the graph are _not_ concurrent
-// safe and you should use your own mutex to synchronize access to internal state.
+// The graph holds information such as, how many stabilizations have happened,
+// what node are currently observed, and what nodes need to be recomputed.
 type Graph struct {
 	// id is a unique identifier for the graph
 	id Identifier

@@ -36,7 +36,8 @@ func Bind[A, B any](scope Scope, input Incr[A], fn func(Scope, A) Incr[B]) BindI
 
 // BindContext is like Bind but allows the bind delegate to take a context and return an error.
 //
-// If an error returned, the bind is aborted and the error listener(s) will fire for the node.
+// If an error returned, the bind is aborted, the error listener(s) will fire for the node, and the
+// computation will stop.
 func BindContext[A, B any](scope Scope, input Incr[A], fn func(context.Context, Scope, A) (Incr[B], error)) BindIncr[B] {
 	o := &bindIncr[A, B]{
 		n:     NewNode("bind"),
@@ -50,9 +51,11 @@ func BindContext[A, B any](scope Scope, input Incr[A], fn func(context.Context, 
 	return WithinScope(scope, o)
 }
 
-// BindIncr is a node that implements Bind, which
-// dynamically swaps out entire subgraphs
-// based on input incrementals.
+// BindIncr is a node that implements Bind, which can dynamically swap out
+// subgraphs based on input incrementals changing.
+//
+// BindIncr gives the graph dynamism, but as a result is somewhat expensive to
+// compute and should be used tactically.
 type BindIncr[A any] interface {
 	Incr[A]
 	IStabilize

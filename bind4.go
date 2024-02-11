@@ -13,18 +13,18 @@ func Bind4[A, B, C, D, E any](scope Scope, a Incr[A], b Incr[B], c Incr[C], d In
 // Bind4Context lets you swap out an entire subgraph of a computation based
 // on a given set of 4 input incrementals, taking a context and as well returning an error.
 func Bind4Context[A, B, C, D, E any](scope Scope, a Incr[A], b Incr[B], c Incr[C], d Incr[D], fn func(context.Context, Scope, A, B, C, D) (Incr[E], error)) BindIncr[E] {
-	m := Map4(scope, a, b, c, d, func(av A, bv B, cv C, dv D) Tuple4[A, B, C, D] {
-		return Tuple4[A, B, C, D]{av, bv, cv, dv}
+	m := Map4(scope, a, b, c, d, func(av A, bv B, cv C, dv D) tuple4[A, B, C, D] {
+		return tuple4[A, B, C, D]{av, bv, cv, dv}
 	})
-	bind := BindContext[Tuple4[A, B, C, D], E](scope, m, func(ctx context.Context, bs Scope, tv Tuple4[A, B, C, D]) (Incr[E], error) {
+	bind := BindContext[tuple4[A, B, C, D], E](scope, m, func(ctx context.Context, bs Scope, tv tuple4[A, B, C, D]) (Incr[E], error) {
 		return fn(ctx, scope, tv.A, tv.B, tv.C, tv.D)
 	})
 	bind.Node().SetKind("bind4")
 	return bind
 }
 
-// Tuple4 is a tuple of values.
-type Tuple4[A, B, C, D any] struct {
+// tuple4 is a tuple of values.
+type tuple4[A, B, C, D any] struct {
 	A A
 	B B
 	C C
