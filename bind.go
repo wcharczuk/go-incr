@@ -130,7 +130,7 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 	if b.bound != nil && newIncr != nil {
 		if b.bound.Node().id != newIncr.Node().id {
 			bindChanged = true
-			b.unlinkOldBound(ctx, b.n.Observers()...)
+			b.unlinkOldBound(ctx, b.n.observers...)
 			if err := b.linkNewBound(ctx, newIncr); err != nil {
 				return err
 			}
@@ -145,7 +145,7 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 		}
 	} else if b.bound != nil {
 		bindChanged = true
-		b.unlinkOldBound(ctx, b.n.Observers()...)
+		b.unlinkOldBound(ctx, b.n.observers...)
 		b.unlinkBindChange(ctx)
 	}
 	if bindChanged {
@@ -155,6 +155,7 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 }
 
 func (b *bindIncr[A, B]) Unobserve(ctx context.Context, observers ...IObserver) {
+	fmt.Printf("unobserve %v\n", b)
 	b.unlinkOldBound(ctx, observers...)
 	b.unlinkBindChange(ctx)
 }
@@ -186,7 +187,7 @@ func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) error {
 		b.bindChange.n.SetLabel(fmt.Sprintf("%s-change", b.n.label))
 	}
 	Link(b.bindChange, b.input)
-	return b.n.graph.observeSingleNode(b.bindChange, b.n.Observers()...)
+	return b.n.graph.observeSingleNode(b.bindChange, b.n.observers...)
 }
 
 func (b *bindIncr[A, B]) unlinkBindChange(ctx context.Context) {
@@ -209,7 +210,7 @@ func (b *bindIncr[A, B]) linkNewBound(ctx context.Context, newIncr Incr[B]) (err
 	b.bound = newIncr
 	Link(b.bound, b.bindChange)
 	Link(b, b.bound)
-	if err = b.n.graph.observeNodes(b.bound, b.n.Observers()...); err != nil {
+	if err = b.n.graph.observeNodes(b.bound, b.n.observers...); err != nil {
 		return
 	}
 	for _, n := range b.scope.rhsNodes {
@@ -225,12 +226,12 @@ func (b *bindIncr[A, B]) linkNewBound(ctx context.Context, newIncr Incr[B]) (err
 
 func (b *bindIncr[A, B]) unlinkOldBound(ctx context.Context, observers ...IObserver) {
 	if b.bound != nil {
-		TracePrintf(ctx, "%v unbinding old rhs %v", b, b.bound)
 		Unlink(b.bound, b.bindChange)
-		b.removeNodesFromScope(ctx, b.scope, observers...)
 		Unlink(b, b.bound)
 		b.n.graph.unobserveNodes(ctx, b.bound, observers...)
+		b.removeNodesFromScope(ctx, b.scope, observers...)
 		b.bound = nil
+		TracePrintf(ctx, "%v unbound old rhs %v", b, b.bound)
 	}
 }
 

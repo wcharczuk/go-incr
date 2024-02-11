@@ -569,7 +569,7 @@ func Test_Node_Observers(t *testing.T) {
 	n := &Node{
 		observers: []IObserver{one, two},
 	}
-	testutil.Equal(t, 2, len(n.Observers()))
+	testutil.Equal(t, 2, len(n.observers))
 }
 
 func Test_nodeSorter(t *testing.T) {

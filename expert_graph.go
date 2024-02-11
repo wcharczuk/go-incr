@@ -22,6 +22,7 @@ type IExpertGraph interface {
 	NumNodes() uint64
 	NumNodesRecomputed() uint64
 	NumNodesChanged() uint64
+	NumObservers() uint64
 	StabilizationNum() uint64
 	SetStabilizationNum(uint64)
 
@@ -42,6 +43,10 @@ type expertGraph struct {
 
 func (eg *expertGraph) NumNodes() uint64 {
 	return eg.graph.numNodes
+}
+
+func (eg *expertGraph) NumObservers() uint64 {
+	return uint64(len(eg.graph.observers))
 }
 
 func (eg *expertGraph) NumNodesRecomputed() uint64 {

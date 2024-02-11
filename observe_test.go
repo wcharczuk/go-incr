@@ -77,10 +77,10 @@ func Test_Observe_Unobserve_multiple(t *testing.T) {
 	testutil.Equal(t, true, g.IsObserving(v1))
 	testutil.Equal(t, true, g.IsObserving(m1))
 
-	testutil.Equal(t, 1, len(v0.Node().Observers()))
-	testutil.Equal(t, 1, len(m0.Node().Observers()))
-	testutil.Equal(t, 2, len(v1.Node().Observers()))
-	testutil.Equal(t, 2, len(m1.Node().Observers()))
+	testutil.Equal(t, 1, len(v0.Node().observers))
+	testutil.Equal(t, 1, len(m0.Node().observers))
+	testutil.Equal(t, 2, len(v1.Node().observers))
+	testutil.Equal(t, 2, len(m1.Node().observers))
 
 	testutil.Equal(t, "", o0.Value())
 	testutil.Equal(t, "", o1.Value())
@@ -107,10 +107,10 @@ func Test_Observe_Unobserve_multiple(t *testing.T) {
 	testutil.Equal(t, true, g.IsObserving(m0))
 	testutil.Equal(t, true, g.IsObserving(m1))
 
-	testutil.Equal(t, 1, len(v0.Node().Observers()))
-	testutil.Equal(t, 1, len(m0.Node().Observers()))
-	testutil.Equal(t, 1, len(v1.Node().Observers()))
-	testutil.Equal(t, 1, len(m1.Node().Observers()))
+	testutil.Equal(t, 1, len(v0.Node().observers))
+	testutil.Equal(t, 1, len(m0.Node().observers))
+	testutil.Equal(t, 1, len(v1.Node().observers))
+	testutil.Equal(t, 1, len(m1.Node().observers))
 
 	v0.Set("not hello 0")
 	v1.Set("not hello 1")

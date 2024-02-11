@@ -19,9 +19,8 @@ func Observe[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
 	//
 	// So we just add it here explicitly and don't add it implicitly
 	// in the AddObserver function.
-	_ = g.observeNodes(input, o)
-
 	_ = g.addObserver(o)
+	_ = g.observeNodes(input, o)
 	g.recomputeHeap.add(o)
 	return o
 }

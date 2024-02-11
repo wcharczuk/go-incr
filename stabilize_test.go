@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/wcharczuk/go-incr/testutil"
 	. "github.com/wcharczuk/go-incr/testutil"
 )
 
@@ -166,7 +167,8 @@ func Test_Stabilize_observedHandlers(t *testing.T) {
 	})
 
 	var observes int
-	m0.Node().OnObserved(func(IObserver) {
+	m0.Node().OnObserved(func(on IObserver) {
+		testutil.NotNil(t, on)
 		observes++
 	})
 

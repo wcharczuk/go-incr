@@ -239,6 +239,7 @@ func (graph *Graph) observeNodes(gn INode, observers ...IObserver) error {
 func (graph *Graph) observeSingleNode(gn INode, observers ...IObserver) error {
 	gnn := gn.Node()
 
+	gnn.graph = graph
 	gnn.addObservers(observers...)
 	if err := graph.adjustHeight(gn); err != nil {
 		return err
@@ -248,8 +249,8 @@ func (graph *Graph) observeSingleNode(gn INode, observers ...IObserver) error {
 	if alreadyObservedByGraph {
 		return nil
 	}
+
 	graph.numNodes++
-	gnn.graph = graph
 
 	gnn.detectCutoff(gn)
 	gnn.detectAlways(gn)
@@ -322,14 +323,14 @@ func (graph *Graph) removeNodeFromGraph(gn INode) {
 
 func (graph *Graph) removeNodeObservers(gn INode, observers ...IObserver) (remainingObserverCount int) {
 	gnn := gn.Node()
-	for _, on := range observers {
-		if graph.canReachObserver(gn, on.Node().id) {
+	for _, o := range observers {
+		if graph.canReachObserver(gn, o.Node().id) {
 			continue
 		}
-		gnn.removeObserver(on.Node().id)
 		for _, handler := range gnn.onUnobservedHandlers {
-			handler(on)
+			handler(o)
 		}
+		gnn.removeObserver(o.Node().id)
 	}
 	remainingObserverCount = len(gnn.observers)
 	return
@@ -341,7 +342,7 @@ func (graph *Graph) canReachObserver(gn INode, oid Identifier) bool {
 
 func (graph *Graph) canReachObserverRecursive(root, gn INode, oid Identifier) bool {
 	for _, c := range gn.Node().children {
-		if _, ok := c.Node().observerLookup[oid]; ok {
+		if ok := hasKey(c.Node().observers, oid); ok {
 			return true
 		}
 		if c.Node().id == oid {
