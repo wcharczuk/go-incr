@@ -498,7 +498,7 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 	Equal(t, 3, len(output.Value()))
 }
 
-func Test_Stabilize_bind(t *testing.T) {
+func Test_Stabilize_Bind(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
@@ -560,7 +560,7 @@ func Test_Stabilize_bind(t *testing.T) {
 	Equal(t, "foo-moo-baz", mb.Value())
 }
 
-func Test_Stabilize_bindIf(t *testing.T) {
+func Test_Stabilize_BindIf(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
@@ -594,6 +594,114 @@ func Test_Stabilize_bindIf(t *testing.T) {
 	NotNil(t, i0.Node().graph, "i1 should not be in the graph after the third stabilization")
 
 	Equal(t, "foo", b.Value())
+}
+
+func Test_Stabilize_Bind2(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	v0 := Var(g, "a")
+	v1 := Var(g, "b")
+
+	b2 := Bind2(g, v0, v1, func(bs Scope, a, b string) Incr[string] {
+		return Return(bs, a+b)
+	})
+
+	o := Observe(g, b2)
+	err := g.Stabilize(ctx)
+	NoError(t, err)
+	Equal(t, "ab", o.Value())
+
+	v0.Set("xa")
+
+	err = g.Stabilize(ctx)
+	NoError(t, err)
+	Equal(t, "xab", o.Value())
+
+	v1.Set("xb")
+
+	err = g.Stabilize(ctx)
+	NoError(t, err)
+	Equal(t, "xaxb", o.Value())
+}
+
+func Test_Stabilize_Bind3(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	v0 := Var(g, "a")
+	v1 := Var(g, "b")
+	v2 := Var(g, "c")
+
+	b2 := Bind3(g, v0, v1, v2, func(bs Scope, a, b, c string) Incr[string] {
+		return Return(bs, a+b+c)
+	})
+
+	o := Observe(g, b2)
+	err := g.Stabilize(ctx)
+	NoError(t, err)
+	Equal(t, "abc", o.Value())
+
+	v0.Set("xa")
+
+	err = g.Stabilize(ctx)
+	NoError(t, err)
+	Equal(t, "xabc", o.Value())
+
+	v1.Set("xb")
+
+	err = g.Stabilize(ctx)
+	NoError(t, err)
+	Equal(t, "xaxbc", o.Value())
+
+	v2.Set("xc")
+
+	err = g.Stabilize(ctx)
+	NoError(t, err)
+	Equal(t, "xaxbxc", o.Value())
+}
+
+func Test_Stabilize_Bind4(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	v0 := Var(g, "a")
+	v1 := Var(g, "b")
+	v2 := Var(g, "c")
+	v3 := Var(g, "d")
+
+	b2 := Bind4(g, v0, v1, v2, v3, func(bs Scope, a, b, c, d string) Incr[string] {
+		return Return(bs, a+b+c+d)
+	})
+
+	o := Observe(g, b2)
+	err := g.Stabilize(ctx)
+	NoError(t, err)
+	Equal(t, "abcd", o.Value())
+
+	v0.Set("xa")
+
+	err = g.Stabilize(ctx)
+	NoError(t, err)
+	Equal(t, "xabcd", o.Value())
+
+	v1.Set("xb")
+
+	err = g.Stabilize(ctx)
+	NoError(t, err)
+	Equal(t, "xaxbcd", o.Value())
+
+	v2.Set("xc")
+
+	err = g.Stabilize(ctx)
+	NoError(t, err)
+	Equal(t, "xaxbxcd", o.Value())
+
+	v3.Set("xd")
+
+	err = g.Stabilize(ctx)
+	NoError(t, err)
+	Equal(t, "xaxbxcxd", o.Value())
 }
 
 func Test_Stabilize_cutoff(t *testing.T) {
@@ -971,6 +1079,24 @@ func Test_Stabilize_Map3(t *testing.T) {
 
 	_ = g.Stabilize(ctx)
 	Equal(t, 6, m3.Value())
+}
+
+func Test_Stabilize_Map4(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	c0 := Return(g, 1)
+	c1 := Return(g, 2)
+	c2 := Return(g, 3)
+	c3 := Return(g, 4)
+	m3 := Map4(g, c0, c1, c2, c3, func(a, b, c, d int) int {
+		return a + b + c + d
+	})
+
+	_ = Observe(g, m3)
+
+	_ = g.Stabilize(ctx)
+	Equal(t, 10, m3.Value())
 }
 
 func Test_Stabilize_Map3Context(t *testing.T) {
@@ -1374,4 +1500,62 @@ func Test_Stabilize_handlers(t *testing.T) {
 	Equal(t, true, didCallStabilizationEnd)
 	Equal(t, true, startWasBlueDye)
 	Equal(t, true, endWasBlueDye)
+}
+
+func Test_Stabilize_bindCombination(t *testing.T) {
+	/*
+
+		let v1 = Var.create_ [%here] 1 in
+		let v2 = Var.create_ [%here] 2 in
+		let v3 = Var.create_ [%here] 3 in
+		let v4 = Var.create_ [%here] 4 in
+		let o =
+			observe
+			(bind4 (watch v1) (watch v2) (watch v3) (watch v4) ~f:(fun x1 x2 x3 x4 ->
+				bind3 (watch v2) (watch v3) (watch v4) ~f:(fun y2 y3 y4 ->
+					bind2 (watch v3) (watch v4) ~f:(fun z3 z4 ->
+					bind (watch v4) ~f:(fun w4 ->
+						return (x1 + x2 + x3 + x4 + y2 + y3 + y4 + z3 + z4 + w4))))))
+	*/
+
+	ctx := testContext()
+	g := New()
+
+	v1 := Var(g, 1)
+	v2 := Var(g, 2)
+	v3 := Var(g, 3)
+	v4 := Var(g, 4)
+
+	o := Observe(g, Bind4(g, v1, v2, v3, v4, func(bs Scope, x1, x2, x3, x4 int) Incr[int] {
+		return Bind3(bs, v2, v3, v3, func(bs Scope, y2, y3, y4 int) Incr[int] {
+			return Bind2(bs, v4, v4, func(bs Scope, z3, z4 int) Incr[int] {
+				return Bind(bs, v4, func(bs Scope, w4 int) Incr[int] {
+					return Return(bs, x1+x2+x3+x4+y2+y3+y4+z3+z4+w4)
+				})
+			})
+		})
+	}))
+
+	err := g.Stabilize(ctx)
+	NoError(t, err)
+
+	/*
+		(Var.value v1
+		+ (2 * Var.value v2)
+		+ (3 * Var.value v3)
+		+ (4 * Var.value v4))
+	*/
+
+	Equal(t, v1.Value()+(2*v2.Value())+(3*v3.Value())+(4*v4.Value()), o.Value())
+
+	v1.Set(9)
+	v2.Set(10)
+	v3.Set(11)
+	v4.Set(12)
+
+	err = g.Stabilize(ctx)
+	NoError(t, err)
+
+	Equal(t, v1.Value()+(2*v2.Value())+(3*v3.Value())+(4*v4.Value()), o.Value())
+
 }

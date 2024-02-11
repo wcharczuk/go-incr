@@ -95,7 +95,6 @@ t2v := incr.Var(g, "a")
 t2 := incr.Bind(g, t2v, func(scope incr.Scope, t2vv string) Incr[string] {
   return Map(scope, t1, func(v string) string { return v + " Ipsum" })
 })
-
 ```
 
 Here `t1` is _not_ created within a bind scope, but the map that adds `" Ipsum"` to the value _is_ created within a bind scope. This is done transparently by passing the context through the `Map` constructor within the bind.
@@ -104,10 +103,10 @@ Here `t1` is _not_ created within a bind scope, but the map that adds `" Ipsum"`
 
 Many of the original library types are implemented, including:
 - Always|Timer
-- Bind(If)
+- Bind(2,3,4,If)
 - Cutoff(2)
 - Freeze
-- Map(2,3,If,N)
+- Map(2,3,4,If,N)
 - Observe
 - Return
 - Var
