@@ -6,14 +6,14 @@ import (
 )
 
 // Watch returns a new watch incremental that tracks
-// values for a given incremental.
+// values for a given incremental each time it stabilizes.
 func Watch[A any](scope Scope, i Incr[A]) WatchIncr[A] {
-	o := &watchIncr[A]{
+	o := WithinScope(scope, &watchIncr[A]{
 		n:    NewNode("watch"),
 		incr: i,
-	}
+	})
 	Link(o, i)
-	return WithinScope(scope, o)
+	return o
 }
 
 // WatchIncr is a type that implements the watch interface.

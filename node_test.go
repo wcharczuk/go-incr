@@ -53,10 +53,12 @@ func Test_Node_Metadata(t *testing.T) {
 }
 
 func Test_Link(t *testing.T) {
-	c := newMockBareNode()
-	p0 := newMockBareNode()
-	p1 := newMockBareNode()
-	p2 := newMockBareNode()
+	g := New()
+
+	c := newMockBareNode(g)
+	p0 := newMockBareNode(g)
+	p1 := newMockBareNode(g)
+	p2 := newMockBareNode(g)
 
 	// set up P with (3) inputs
 	Link(c, p0, p1, p2)
@@ -83,7 +85,9 @@ func Test_Link(t *testing.T) {
 }
 
 func Test_Node_String(t *testing.T) {
-	n := newMockBareNode()
+	g := New()
+
+	n := newMockBareNode(g)
 	n.n.height = 2
 
 	testutil.Equal(t, "bare_node["+n.n.id.Short()+"]@2", n.Node().String())
@@ -94,7 +98,7 @@ func Test_Node_String(t *testing.T) {
 
 func Test_SetStale(t *testing.T) {
 	g := New()
-	n := newMockBareNode()
+	n := newMockBareNode(g)
 	_ = Observe(g, n)
 	g.SetStale(n)
 
@@ -143,13 +147,15 @@ func Test_Node_SetLabel(t *testing.T) {
 }
 
 func Test_Node_addChildren(t *testing.T) {
-	n := newMockBareNode()
+	g := New()
+
+	n := newMockBareNode(g)
 	_ = n.Node()
 
-	c0 := newMockBareNode()
+	c0 := newMockBareNode(g)
 	_ = c0.Node()
 
-	c1 := newMockBareNode()
+	c1 := newMockBareNode(g)
 	_ = c1.Node()
 
 	testutil.Equal(t, 0, len(n.n.parents))
@@ -165,16 +171,18 @@ func Test_Node_addChildren(t *testing.T) {
 }
 
 func Test_Node_removeChild(t *testing.T) {
-	n := newMockBareNode()
+	g := New()
+
+	n := newMockBareNode(g)
 	_ = n.Node()
 
-	c0 := newMockBareNode()
+	c0 := newMockBareNode(g)
 	_ = c0.Node()
 
-	c1 := newMockBareNode()
+	c1 := newMockBareNode(g)
 	_ = c1.Node()
 
-	c2 := newMockBareNode()
+	c2 := newMockBareNode(g)
 	_ = c2.Node()
 
 	n.Node().addChildren(c0, c1, c2)
@@ -196,13 +204,15 @@ func Test_Node_removeChild(t *testing.T) {
 }
 
 func Test_Node_addParents(t *testing.T) {
-	n := newMockBareNode()
+	g := New()
+
+	n := newMockBareNode(g)
 	_ = n.Node()
 
-	c0 := newMockBareNode()
+	c0 := newMockBareNode(g)
 	_ = c0.Node()
 
-	c1 := newMockBareNode()
+	c1 := newMockBareNode(g)
 	_ = c1.Node()
 
 	testutil.Equal(t, 0, len(n.n.parents))
@@ -218,16 +228,18 @@ func Test_Node_addParents(t *testing.T) {
 }
 
 func Test_Node_removeParent(t *testing.T) {
-	n := newMockBareNode()
+	g := New()
+
+	n := newMockBareNode(g)
 	_ = n.Node()
 
-	c0 := newMockBareNode()
+	c0 := newMockBareNode(g)
 	_ = c0.Node()
 
-	c1 := newMockBareNode()
+	c1 := newMockBareNode(g)
 	_ = c1.Node()
 
-	c2 := newMockBareNode()
+	c2 := newMockBareNode(g)
 	_ = c2.Node()
 
 	n.Node().addParents(c0, c1, c2)
@@ -332,6 +344,8 @@ func Test_Node_detectStabilize(t *testing.T) {
 }
 
 func Test_Node_shouldRecompute(t *testing.T) {
+	g := New()
+
 	n := NewNode("test_node")
 	testutil.Equal(t, true, n.ShouldRecompute())
 
@@ -347,10 +361,10 @@ func Test_Node_shouldRecompute(t *testing.T) {
 	testutil.Equal(t, true, n.ShouldRecompute())
 
 	n.changedAt = 1
-	c1 := newMockBareNode()
+	c1 := newMockBareNode(g)
 	c1.Node().changedAt = 2
 
-	n.addParents(newMockBareNode(), c1)
+	n.addParents(newMockBareNode(g), c1)
 	testutil.Equal(t, true, n.ShouldRecompute())
 
 	c1.Node().changedAt = 1
@@ -368,7 +382,7 @@ func Test_Node_recompute(t *testing.T) {
 		return "hello", nil
 	})
 
-	p := newMockBareNode()
+	p := newMockBareNode(g)
 	m0.Node().addParents(p)
 	_ = Observe(g, m0)
 
@@ -428,7 +442,7 @@ func Test_Node_stabilize_error(t *testing.T) {
 		return "", fmt.Errorf("test error")
 	})
 
-	p := newMockBareNode()
+	p := newMockBareNode(g)
 	m0.Node().addParents(p)
 	_ = Observe(g, m0)
 
@@ -505,18 +519,20 @@ func Test_nodeFormatters(t *testing.T) {
 }
 
 func Test_Node_Properties_readonly(t *testing.T) {
+	g := New()
+
 	n := &Node{
 		height:    1,
 		setAt:     2,
 		changedAt: 3,
 		children: []INode{
-			newMockBareNode(),
-			newMockBareNode(),
+			newMockBareNode(g),
+			newMockBareNode(g),
 		},
 		parents: []INode{
-			newMockBareNode(),
-			newMockBareNode(),
-			newMockBareNode(),
+			newMockBareNode(g),
+			newMockBareNode(g),
+			newMockBareNode(g),
 		},
 	}
 
@@ -557,19 +573,21 @@ func Test_Node_Observers(t *testing.T) {
 }
 
 func Test_nodeSorter(t *testing.T) {
-	a := newMockBareNode()
+	g := New()
+
+	a := newMockBareNode(g)
 	a.Node().height = 1
 	a.Node().id, _ = ParseIdentifier(strings.Repeat("0", 32))
 
-	b := newMockBareNode()
+	b := newMockBareNode(g)
 	b.Node().height = 1
 	b.Node().id, _ = ParseIdentifier(strings.Repeat("1", 32))
 
-	c := newMockBareNode()
+	c := newMockBareNode(g)
 	c.Node().height = 1
 	c.Node().id, _ = ParseIdentifier(strings.Repeat("2", 32))
 
-	d := newMockBareNode()
+	d := newMockBareNode(g)
 	d.Node().height = 2
 	d.Node().id, _ = ParseIdentifier(strings.Repeat("3", 32))
 

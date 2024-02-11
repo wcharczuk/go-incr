@@ -8,22 +8,22 @@ import (
 // Observe observes a node, specifically including it for computation
 // as well as all of its parents.
 func Observe[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
-	o := &observeIncr[A]{
+	o := WithinScope(g, &observeIncr[A]{
 		n:     NewNode("observer"),
 		input: input,
-	}
+	})
 	Link(o, input)
-	g.addObserver(o)
-	// NOTE(wc): we do this here because some """expert""" use cases for `ExpertGraph::DiscoverObserver`
+	// NOTE(wc): we do this here because some """expert""" use cases for `ExpertGraph::AddObserver`
 	// require us to add the observer to the graph observer list but _not_
 	// add it to the recompute heap.
 	//
 	// So we just add it here explicitly and don't add it implicitly
-	// in the DiscoverObserver function.
+	// in the AddObserver function.
+	_ = g.observeNodes(input, o)
+
+	_ = g.addObserver(o)
 	g.recomputeHeap.add(o)
-	g.observeNodes(input, o)
-	_ = g.recomputeHeights()
-	return WithinScope(g, o)
+	return o
 }
 
 // ObserveIncr is an incremental that observes a graph

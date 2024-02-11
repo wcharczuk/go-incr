@@ -144,7 +144,7 @@ func Test_Graph_addObserver_rediscover(t *testing.T) {
 	g.recomputeHeap.remove(o)
 	testutil.Equal(t, false, g.recomputeHeap.has(o))
 
-	g.addObserver(o)
+	_ = g.addObserver(o)
 	testutil.Equal(t, 2, g.numNodes)
 	testutil.Equal(t, 1, o.Node().height)
 	testutil.Equal(t, false, g.recomputeHeap.has(o))
@@ -152,7 +152,7 @@ func Test_Graph_addObserver_rediscover(t *testing.T) {
 
 func Test_Graph_recompute_recomputesObservers(t *testing.T) {
 	g := New()
-	n := newMockBareNode()
+	n := newMockBareNode(g)
 	o := Observe(g, n)
 	g.recomputeHeap.Clear()
 

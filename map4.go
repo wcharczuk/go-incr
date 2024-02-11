@@ -17,16 +17,16 @@ func Map4[A, B, C, D, E any](scope Scope, a Incr[A], b Incr[B], c Incr[C], d Inc
 // an error, to given input incrementals and returns a
 // new incremental of the output type of that function.
 func Map4Context[A, B, C, D, E any](scope Scope, a Incr[A], b Incr[B], c Incr[C], d Incr[D], fn func(context.Context, A, B, C, D) (E, error)) Incr[E] {
-	o := &map4Incr[A, B, C, D, E]{
+	o := WithinScope(scope, &map4Incr[A, B, C, D, E]{
 		n:  NewNode("map4"),
 		a:  a,
 		b:  b,
 		c:  c,
 		d:  d,
 		fn: fn,
-	}
+	})
 	Link(o, a, b, c, d)
-	return WithinScope(scope, o)
+	return o
 }
 
 var (

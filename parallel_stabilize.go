@@ -54,9 +54,6 @@ func (graph *Graph) parallelStabilize(ctx context.Context) (err error) {
 		if err = workerPool.Wait(); err != nil {
 			break
 		}
-		if err = graph.recomputeHeights(); err != nil {
-			break
-		}
 	}
 	graph.recomputeHeap.add(immediateRecompute...)
 	return

@@ -19,14 +19,14 @@ func FoldMap[K comparable, V any, O any](
 	v0 O,
 	fn func(K, V, O) O,
 ) Incr[O] {
-	o := &foldMapIncr[K, V, O]{
+	o := WithinScope(scope, &foldMapIncr[K, V, O]{
 		n:   NewNode("fold_map"),
 		i:   i,
 		fn:  fn,
 		val: v0,
-	}
+	})
 	Link(o, i)
-	return WithinScope(scope, o)
+	return o
 }
 
 var (
@@ -51,11 +51,11 @@ func (fmi *foldMapIncr[K, V, O]) Value() O { return fmi.val }
 
 func (fmi *foldMapIncr[K, V, O]) Stabilize(_ context.Context) error {
 	new := fmi.i.Value()
-	fmi.val = foldMap(new, fmi.val, fmi.fn)
+	fmi.val = foldMapImpl(new, fmi.val, fmi.fn)
 	return nil
 }
 
-func foldMap[K comparable, V any, O any](
+func foldMapImpl[K comparable, V any, O any](
 	input map[K]V,
 	zero O,
 	fn func(K, V, O) O,

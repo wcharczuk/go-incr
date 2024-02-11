@@ -17,15 +17,15 @@ func Map3[A, B, C, D any](scope Scope, a Incr[A], b Incr[B], c Incr[C], fn func(
 // an error, to given input incrementals and returns a
 // new incremental of the output type of that function.
 func Map3Context[A, B, C, D any](scope Scope, a Incr[A], b Incr[B], c Incr[C], fn func(context.Context, A, B, C) (D, error)) Incr[D] {
-	o := &map3Incr[A, B, C, D]{
+	o := WithinScope(scope, &map3Incr[A, B, C, D]{
 		n:  NewNode("map3"),
 		a:  a,
 		b:  b,
 		c:  c,
 		fn: fn,
-	}
+	})
 	Link(o, a, b, c)
-	return WithinScope(scope, o)
+	return o
 }
 
 var (

@@ -113,13 +113,16 @@ func (ah *adjustHeightsHeap) setHeight(node INode, height int) error {
 	return nil
 }
 
-func (ah *adjustHeightsHeap) ensureHeightRequirement(child, parent INode) error {
+func (ah *adjustHeightsHeap) ensureHeightRequirement(originalChild, originalParent, child, parent INode) error {
 	ah.mu.Lock()
 	defer ah.mu.Unlock()
-	return ah.ensureHeightRequirementUnsafe(child, parent)
+	return ah.ensureHeightRequirementUnsafe(originalChild, originalParent, child, parent)
 }
 
-func (ah *adjustHeightsHeap) ensureHeightRequirementUnsafe(child, parent INode) error {
+func (ah *adjustHeightsHeap) ensureHeightRequirementUnsafe(originalChild, originalParent, child, parent INode) error {
+	if originalParent.Node().id == child.Node().id {
+		return fmt.Errorf("cycle detected at %v", child)
+	}
 	if parent.Node().height >= child.Node().height {
 		if err := ah.setHeight(child, parent.Node().height+1); err != nil {
 			return err
@@ -130,14 +133,17 @@ func (ah *adjustHeightsHeap) ensureHeightRequirementUnsafe(child, parent INode) 
 	return nil
 }
 
-func (ah *adjustHeightsHeap) adjustHeights(rh *recomputeHeap) error {
+func (ah *adjustHeightsHeap) adjustHeights(rh *recomputeHeap, originalChild, originalParent INode) error {
 	ah.mu.Lock()
 	defer ah.mu.Unlock()
+	if err := ah.ensureHeightRequirementUnsafe(originalChild, originalParent, originalChild, originalParent); err != nil {
+		return err
+	}
 	for len(ah.lookup) > 0 {
 		node, _ := ah.removeMinUnsafe()
 		rh.fix(node.Node().id)
 		for _, child := range node.Node().children {
-			if err := ah.ensureHeightRequirementUnsafe(child, node); err != nil {
+			if err := ah.ensureHeightRequirementUnsafe(originalChild, originalParent, child, node); err != nil {
 				return err
 			}
 		}
@@ -146,7 +152,7 @@ func (ah *adjustHeightsHeap) adjustHeights(rh *recomputeHeap) error {
 			if scopeOK {
 				for _, nodeOnRight := range scope.rhsNodes {
 					if node.Node().graph.isNecessary(nodeOnRight) {
-						if err := ah.ensureHeightRequirementUnsafe(node, nodeOnRight); err != nil {
+						if err := ah.ensureHeightRequirementUnsafe(originalChild, originalParent, node, nodeOnRight); err != nil {
 							return err
 						}
 					}

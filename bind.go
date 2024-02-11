@@ -39,16 +39,17 @@ func Bind[A, B any](scope Scope, input Incr[A], fn func(Scope, A) Incr[B]) BindI
 // If an error returned, the bind is aborted, the error listener(s) will fire for the node, and the
 // computation will stop.
 func BindContext[A, B any](scope Scope, input Incr[A], fn func(context.Context, Scope, A) (Incr[B], error)) BindIncr[B] {
-	o := &bindIncr[A, B]{
+	o := WithinScope(scope, &bindIncr[A, B]{
 		n:     NewNode("bind"),
 		input: input,
 		fn:    fn,
-	}
+	})
 	o.scope = &bindScope{
-		bind: o,
+		input: input,
+		bind:  o,
 	}
 	Link(o, input)
-	return WithinScope(scope, o)
+	return o
 }
 
 // BindIncr is a node that implements Bind, which can dynamically swap out
@@ -136,7 +137,9 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 		}
 	} else if newIncr != nil {
 		bindChanged = true
-		b.linkBindChange(ctx)
+		if err := b.linkBindChange(ctx); err != nil {
+			return err
+		}
 		if err := b.linkNewBound(ctx, newIncr); err != nil {
 			return err
 		}
@@ -158,7 +161,10 @@ func (b *bindIncr[A, B]) Unobserve(ctx context.Context, observers ...IObserver) 
 
 func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
 	if b.bound != nil {
-		_ = b.n.graph.adjustHeightsHeap.ensureHeightRequirement(b, b.bound)
+		err = b.n.graph.adjustHeightsHeap.adjustHeights(b.n.graph.recomputeHeap, b, b.bound)
+		if err != nil {
+			return
+		}
 		for _, n := range b.scope.rhsNodes {
 			if typed, ok := n.(IBind); ok {
 				if err = typed.Link(ctx); err != nil {
@@ -170,18 +176,17 @@ func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
 	return
 }
 
-func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) {
-	b.bindChange = &bindChangeIncr[A, B]{
+func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) error {
+	b.bindChange = WithinScope(b.n.createdIn, &bindChangeIncr[A, B]{
 		n:   NewNode("bind-lhs-change"),
 		lhs: b.input,
 		rhs: b.bound,
-	}
+	})
 	if b.n.label != "" {
 		b.bindChange.n.SetLabel(fmt.Sprintf("%s-change", b.n.label))
 	}
-	b.bindChange.n.createdIn = b.n.createdIn
 	Link(b.bindChange, b.input)
-	b.n.graph.observeSingleNode(b.bindChange, b.n.Observers()...)
+	return b.n.graph.observeSingleNode(b.bindChange, b.n.Observers()...)
 }
 
 func (b *bindIncr[A, B]) unlinkBindChange(ctx context.Context) {
@@ -204,8 +209,9 @@ func (b *bindIncr[A, B]) linkNewBound(ctx context.Context, newIncr Incr[B]) (err
 	b.bound = newIncr
 	Link(b.bound, b.bindChange)
 	Link(b, b.bound)
-	b.n.graph.observeNodes(b.bound, b.n.Observers()...)
-	_ = b.n.graph.adjustHeightsHeap.ensureHeightRequirement(b, b.bound)
+	if err = b.n.graph.observeNodes(b.bound, b.n.Observers()...); err != nil {
+		return
+	}
 	for _, n := range b.scope.rhsNodes {
 		if typed, ok := n.(IBind); ok {
 			if err = typed.Link(ctx); err != nil {
@@ -230,7 +236,7 @@ func (b *bindIncr[A, B]) unlinkOldBound(ctx context.Context, observers ...IObser
 
 func (b *bindIncr[A, B]) removeNodesFromScope(ctx context.Context, scope *bindScope, observers ...IObserver) {
 	for _, n := range scope.rhsNodes {
-		n.Node().createdIn = nil
+		// n.Node().createdIn = nil
 		if typed, ok := n.(IUnobserve); ok {
 			typed.Unobserve(ctx, observers...)
 		}

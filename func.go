@@ -9,11 +9,12 @@ import (
 //
 // The result of the function after the first stabilization will
 // be re-used between stabilizations unless you mark the node stale
-// with the `SetStale` helper.
+// with the `SetStale` function on the `Graph` type.
 //
 // Because there is no tracking of input changes, this node
 // type is generally discouraged in favor of `Map` or `Bind`
-// incrementals but is included for "expert" use cases.
+// incrementals but is included for "expert" use cases, typically
+// as an input to other nodes.
 func Func[T any](scope Scope, fn func(context.Context) (T, error)) Incr[T] {
 	return WithinScope(scope, &funcIncr[T]{
 		n:  NewNode("func"),

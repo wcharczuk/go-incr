@@ -17,14 +17,14 @@ func Map2[A, B, C any](scope Scope, a Incr[A], b Incr[B], fn func(A, B) C) Incr[
 // to a given input incremental and returns a new incremental of
 // the output type of that function.
 func Map2Context[A, B, C any](scope Scope, a Incr[A], b Incr[B], fn func(context.Context, A, B) (C, error)) Incr[C] {
-	o := &map2Incr[A, B, C]{
+	o := WithinScope(scope, &map2Incr[A, B, C]{
 		n:  NewNode("map2"),
 		a:  a,
 		b:  b,
 		fn: fn,
-	}
+	})
 	Link(o, a, b)
-	return WithinScope(scope, o)
+	return o
 }
 
 var (

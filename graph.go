@@ -2,6 +2,7 @@ package incr
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -213,38 +214,62 @@ func (graph *Graph) isRootScope() bool { return true }
 
 func (graph *Graph) scopeGraph() *Graph { return graph }
 
+func (graph *Graph) scopeHeight() int { return -1 }
+
+func (graph *Graph) String() string { return fmt.Sprintf("{graph:%s}", graph.id.Short()) }
+
 //
 // Internal discovery & observe methods
 //
 
 // observeNodes traverses up from a given node, adding a given
 // list of observers as "observing" that node, and recursing through it's inputs or parents.
-func (graph *Graph) observeNodes(gn INode, observers ...IObserver) {
-	graph.observeSingleNode(gn, observers...)
-	for _, p := range gn.Node().parents {
-		graph.observeNodes(p, observers...)
+func (graph *Graph) observeNodes(gn INode, observers ...IObserver) error {
+	if err := graph.observeSingleNode(gn, observers...); err != nil {
+		return err
 	}
+	for _, p := range gn.Node().parents {
+		if err := graph.observeNodes(p, observers...); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func (graph *Graph) observeSingleNode(gn INode, observers ...IObserver) {
+func (graph *Graph) observeSingleNode(gn INode, observers ...IObserver) error {
 	gnn := gn.Node()
 
 	gnn.addObservers(observers...)
+
+	if err := graph.adjustHeightsHeap.setHeight(gn, gnn.createdIn.scopeHeight()+1); err != nil {
+		return err
+	}
+	for _, parent := range gnn.parents {
+		if parent.Node().height >= gnn.height {
+			if err := graph.adjustHeightsHeap.setHeight(gn, parent.Node().height+1); err != nil {
+				return err
+			}
+		}
+		if err := graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, gn, parent); err != nil {
+			return err
+		}
+	}
+
 	alreadyObservedByGraph := graph.maybeAddObservedNode(gn)
 	if alreadyObservedByGraph {
-		return
+		return nil
 	}
 	graph.numNodes++
 	gnn.graph = graph
-	for _, p := range gnn.parents {
-		_ = graph.adjustHeightsHeap.ensureHeightRequirement(gn, p)
-	}
+
 	gnn.detectCutoff(gn)
 	gnn.detectAlways(gn)
 	gnn.detectStabilize(gn)
+
 	if gnn.ShouldRecompute() {
 		graph.recomputeHeap.add(gn)
 	}
+	return nil
 }
 
 func (graph *Graph) maybeAddObservedNode(gn INode) (ok bool) {
@@ -296,7 +321,8 @@ func (graph *Graph) removeNodeFromGraph(gn INode) {
 	gnn.setAt = 0
 	gnn.boundAt = 0
 	gnn.recomputedAt = 0
-	gnn.createdIn = nil
+
+	// gnn.createdIn = nil
 	gnn.graph = nil
 	gnn.height = 0
 	gnn.heightInRecomputeHeap = 0
@@ -339,7 +365,7 @@ func (graph *Graph) canReachObserverRecursive(root, gn INode, oid Identifier) bo
 	return false
 }
 
-func (graph *Graph) addObserver(on IObserver) {
+func (graph *Graph) addObserver(on IObserver) error {
 	graph.observersMu.Lock()
 	defer graph.observersMu.Unlock()
 
@@ -350,12 +376,19 @@ func (graph *Graph) addObserver(on IObserver) {
 	}
 	onn.detectStabilize(on)
 
-	for _, p := range onn.parents {
-		_ = graph.adjustHeightsHeap.ensureHeightRequirement(on, p)
+	if err := graph.adjustHeightsHeap.setHeight(on, onn.createdIn.scopeHeight()+1); err != nil {
+		return err
 	}
-
-	// onn.height = graph.computePseudoHeight(on)
+	for _, parent := range onn.parents {
+		if parent.Node().height >= onn.height {
+			_ = graph.adjustHeightsHeap.setHeight(on, parent.Node().height+1)
+		}
+		if err := graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, on, parent); err != nil {
+			return err
+		}
+	}
 	graph.observers[onn.id] = on
+	return nil
 }
 
 func (graph *Graph) removeObserver(on IObserver) {
@@ -501,12 +534,4 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 func (graph *Graph) isNecessary(n INode) bool {
 	ng := n.Node().graph
 	return ng != nil && ng.id == graph.id
-}
-
-//
-// internal height management methods
-//
-
-func (graph *Graph) recomputeHeights() error {
-	return graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap)
 }

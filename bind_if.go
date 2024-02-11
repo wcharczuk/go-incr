@@ -7,5 +7,5 @@ import "context"
 func BindIf[A any](scope Scope, p Incr[bool], fn func(context.Context, Scope, bool) (Incr[A], error)) BindIncr[A] {
 	b := BindContext[bool, A](scope, p, fn).(*bindIncr[bool, A])
 	b.Node().SetKind("bind_if")
-	return WithinScope(scope, b)
+	return b
 }

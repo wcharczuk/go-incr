@@ -12,4 +12,13 @@ func Link(child INode, parents ...INode) {
 	for _, parent := range parents {
 		parent.Node().addChildren(child)
 	}
+
+	graph := graphFromScope(child)
+	for _, parent := range parents {
+		_ = graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, child, parent)
+	}
+}
+
+func graphFromScope(n INode) *Graph {
+	return n.Node().createdIn.scopeGraph()
 }

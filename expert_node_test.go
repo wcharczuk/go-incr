@@ -7,7 +7,8 @@ import (
 )
 
 func Test_ExpertNode_setters(t *testing.T) {
-	n := newMockBareNode()
+	g := New()
+	n := newMockBareNode(g)
 	en := ExpertNode(n)
 
 	id := NewIdentifier()
@@ -35,27 +36,32 @@ func Test_ExpertNode_setters(t *testing.T) {
 }
 
 func Test_ExpertNode_AddChildren(t *testing.T) {
-	n := newMockBareNode()
+	g := New()
+	n := newMockBareNode(g)
 	en := ExpertNode(n)
 
-	en.AddChildren(newMockBareNode(), newMockBareNode())
+	en.AddChildren(newMockBareNode(g), newMockBareNode(g))
 	testutil.Equal(t, 2, len(n.Node().Children()))
 }
 
 func Test_ExpertNode_AddParents(t *testing.T) {
-	n := newMockBareNode()
+	g := New()
+
+	n := newMockBareNode(g)
 	en := ExpertNode(n)
 
-	en.AddParents(newMockBareNode(), newMockBareNode())
+	en.AddParents(newMockBareNode(g), newMockBareNode(g))
 	testutil.Equal(t, 2, len(n.Node().Parents()))
 }
 
 func Test_ExpertNode_RemoveChild(t *testing.T) {
-	n := newMockBareNode()
+	g := New()
+
+	n := newMockBareNode(g)
 	en := ExpertNode(n)
 
-	mbn0 := newMockBareNode()
-	mbn1 := newMockBareNode()
+	mbn0 := newMockBareNode(g)
+	mbn1 := newMockBareNode(g)
 	en.AddChildren(mbn0, mbn1)
 	testutil.Equal(t, 2, len(n.Node().Children()))
 
@@ -64,11 +70,13 @@ func Test_ExpertNode_RemoveChild(t *testing.T) {
 }
 
 func Test_ExpertNode_RemoveParent(t *testing.T) {
-	n := newMockBareNode()
+	g := New()
+
+	n := newMockBareNode(g)
 	en := ExpertNode(n)
 
-	mbn0 := newMockBareNode()
-	mbn1 := newMockBareNode()
+	mbn0 := newMockBareNode(g)
+	mbn1 := newMockBareNode(g)
 	en.AddParents(mbn0, mbn1)
 	testutil.Equal(t, 2, len(n.Node().Parents()))
 
@@ -86,21 +94,23 @@ func Test_ExpertNode_Value(t *testing.T) {
 }
 
 func Test_ExperNode_ComputePseudoHeight(t *testing.T) {
-	a00 := newMockBareNode()
-	a01 := newMockBareNode()
-	a10 := newMockBareNode()
-	a20 := newMockBareNode()
-	a21 := newMockBareNode()
+	g := New()
+
+	a00 := newMockBareNode(g)
+	a01 := newMockBareNode(g)
+	a10 := newMockBareNode(g)
+	a20 := newMockBareNode(g)
+	a21 := newMockBareNode(g)
 
 	Link(a10, a00, a01)
 	Link(a20, a10)
 	Link(a21, a10)
 
-	b00 := newMockBareNode()
-	b01 := newMockBareNode()
-	b10 := newMockBareNode()
-	b20 := newMockBareNode()
-	b21 := newMockBareNode()
+	b00 := newMockBareNode(g)
+	b01 := newMockBareNode(g)
+	b10 := newMockBareNode(g)
+	b20 := newMockBareNode(g)
+	b21 := newMockBareNode(g)
 
 	Link(b10, b00, b01)
 	Link(b20, b10)
@@ -111,21 +121,23 @@ func Test_ExperNode_ComputePseudoHeight(t *testing.T) {
 }
 
 func Test_ExperNode_ComputePseudoHeight_bare(t *testing.T) {
-	a00 := newMockBareNode()
-	a01 := newMockBareNode()
-	a10 := newMockBareNode()
-	a20 := newMockBareNode()
-	a21 := newMockBareNode()
+	g := New()
+
+	a00 := newMockBareNode(g)
+	a01 := newMockBareNode(g)
+	a10 := newMockBareNode(g)
+	a20 := newMockBareNode(g)
+	a21 := newMockBareNode(g)
 
 	Link(a10, a00, a01)
 	Link(a20, a10)
 	Link(a21, a10)
 
-	b00 := newMockBareNode()
-	b01 := newMockBareNode()
-	b10 := newMockBareNode()
-	b20 := newMockBareNode()
-	b21 := newMockBareNode()
+	b00 := newMockBareNode(g)
+	b01 := newMockBareNode(g)
+	b10 := newMockBareNode(g)
+	b20 := newMockBareNode(g)
+	b21 := newMockBareNode(g)
 
 	Link(b10, b00, b01)
 	Link(b20, b10)

@@ -18,3 +18,8 @@ func hasKey[A INode](nodes []A, id Identifier) bool {
 	}
 	return false
 }
+
+func mapHasKey[K comparable, V any](m map[K]V, k K) (ok bool) {
+	_, ok = m[k]
+	return
+}

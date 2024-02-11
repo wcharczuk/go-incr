@@ -89,10 +89,10 @@ func identMany[T any](v ...T) (out T) {
 
 var _ Incr[any] = (*mockBareNode)(nil)
 
-func mockObserver() IObserver {
-	return &observeIncr[any]{
+func mockObserver(scope Scope) IObserver {
+	return WithinScope(scope, &observeIncr[any]{
 		n: NewNode("mock_observer"),
-	}
+	})
 }
 
 func newMockBareNodeWithHeight(height int) *mockBareNode {
@@ -103,10 +103,10 @@ func newMockBareNodeWithHeight(height int) *mockBareNode {
 	return mbn
 }
 
-func newMockBareNode() *mockBareNode {
-	return &mockBareNode{
+func newMockBareNode(scope Scope) *mockBareNode {
+	return WithinScope(scope, &mockBareNode{
 		n: NewNode("bare_node"),
-	}
+	})
 }
 
 type mockBareNode struct {
@@ -121,23 +121,23 @@ func (mn *mockBareNode) Value() any {
 	return nil
 }
 
-func newHeightIncr(height int) *heightIncr {
-	return &heightIncr{
+func newHeightIncr(scope Scope, height int) *heightIncr {
+	return WithinScope(scope, &heightIncr{
 		n: &Node{
 			id:     NewIdentifier(),
 			height: height,
 		},
-	}
+	})
 }
 
-func newHeightIncrLabel(height int, label string) *heightIncr {
-	return &heightIncr{
+func newHeightIncrLabel(scope Scope, height int, label string) *heightIncr {
+	return WithinScope(scope, &heightIncr{
 		n: &Node{
 			id:     NewIdentifier(),
 			height: height,
 			label:  label,
 		},
-	}
+	})
 }
 
 type heightIncr struct {
