@@ -19,7 +19,7 @@ func Bind2Context[A, B, C any](scope Scope, a Incr[A], b Incr[B], fn func(contex
 	bind := BindContext[Tuple2[A, B], C](scope, m, func(ctx context.Context, bs Scope, tv Tuple2[A, B]) (Incr[C], error) {
 		return fn(ctx, scope, tv.A, tv.B)
 	})
-	bind.Node().SetKind("bind3")
+	bind.Node().SetKind("bind2")
 	return bind
 }
 
