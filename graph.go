@@ -264,10 +264,8 @@ func (graph *Graph) unobserveNodes(ctx context.Context, gn INode, observers ...I
 func (graph *Graph) unobserveSingleNode(ctx context.Context, gn INode, observers ...IObserver) {
 	remainingObserverCount := graph.removeNodeObservers(gn, observers...)
 	if remainingObserverCount > 0 {
-		TracePrintf(ctx, "unobserving; still observed by %d observers, skipping removing from graph %v", remainingObserverCount, gn)
 		return
 	}
-	TracePrintf(ctx, "unobserving; unobserved, removing from graph %v", gn)
 	if typed, ok := gn.(IUnobserve); ok {
 		typed.Unobserve(ctx, observers...)
 	}
