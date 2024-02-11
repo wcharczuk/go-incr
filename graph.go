@@ -250,9 +250,10 @@ func (graph *Graph) observeSingleNode(gn INode, observers ...IObserver) error {
 				return err
 			}
 		}
-		if err := graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, gn, parent); err != nil {
-			return err
-		}
+		// Note(wc): when _would_ we need to do this?
+		// if err := graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, gn, parent); err != nil {
+		// 	return err
+		// }
 	}
 
 	alreadyObservedByGraph := graph.maybeAddObservedNode(gn)
@@ -322,6 +323,8 @@ func (graph *Graph) removeNodeFromGraph(gn INode) {
 	gnn.boundAt = 0
 	gnn.recomputedAt = 0
 
+	// NOTE (wc): we never _really_ can remove the createdIn reference because
+	// we don't track construction of nodes carefully.
 	// gnn.createdIn = nil
 	gnn.graph = nil
 	gnn.height = 0

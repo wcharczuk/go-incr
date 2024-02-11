@@ -236,7 +236,6 @@ func (b *bindIncr[A, B]) unlinkOldBound(ctx context.Context, observers ...IObser
 
 func (b *bindIncr[A, B]) removeNodesFromScope(ctx context.Context, scope *bindScope, observers ...IObserver) {
 	for _, n := range scope.rhsNodes {
-		// n.Node().createdIn = nil
 		if typed, ok := n.(IUnobserve); ok {
 			typed.Unobserve(ctx, observers...)
 		}
