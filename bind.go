@@ -189,22 +189,6 @@ func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) error {
 	return b.n.graph.observeSingleNode(b.bindChange, b.n.observers...)
 }
 
-func (b *bindIncr[A, B]) unlinkBindChange(ctx context.Context) {
-	if b.bindChange != nil {
-		if b.bound != nil {
-			Unlink(b.bound, b.bindChange)
-		}
-		Unlink(b.bindChange, b.input)
-
-		// NOTE (wc): we don't do a """typical""" unobserve here because we
-		// really don't care; if it's time to unlink our bind change, it's our
-		// bind change, there is no way to observe it directly, so we'll just
-		// shoot it in the face ourselves.
-		b.n.graph.removeNodeFromGraph(b.bindChange)
-		b.bindChange = nil
-	}
-}
-
 func (b *bindIncr[A, B]) linkNewBound(ctx context.Context, newIncr Incr[B]) (err error) {
 	b.bound = newIncr
 	Link(b.bound, b.bindChange)
@@ -223,24 +207,30 @@ func (b *bindIncr[A, B]) linkNewBound(ctx context.Context, newIncr Incr[B]) (err
 	return
 }
 
+func (b *bindIncr[A, B]) unlinkBindChange(ctx context.Context) {
+	if b.bindChange != nil {
+		if b.bound != nil {
+			Unlink(b.bound, b.bindChange)
+		}
+		Unlink(b.bindChange, b.input)
+
+		// NOTE (wc): we don't do a """typical""" unobserve here because we
+		// really don't care; if it's time to unlink our bind change, it's our
+		// bind change, there is no way to observe it directly, so we'll just
+		// shoot it in the face ourselves.
+		b.n.graph.removeNodeFromGraph(b.bindChange)
+		b.bindChange = nil
+	}
+}
+
 func (b *bindIncr[A, B]) unlinkOldBound(ctx context.Context, observers ...IObserver) {
 	if b.bound != nil {
 		Unlink(b.bound, b.bindChange)
 		Unlink(b, b.bound)
 		b.n.graph.unobserveNodes(ctx, b.bound, observers...)
-		b.removeNodesFromScope(ctx, b.scope, observers...)
 		b.bound = nil
 		TracePrintf(ctx, "%v unbound old rhs %v", b, b.bound)
 	}
-}
-
-func (b *bindIncr[A, B]) removeNodesFromScope(ctx context.Context, scope *bindScope, observers ...IObserver) {
-	for _, n := range scope.rhsNodes {
-		if typed, ok := n.(IUnobserve); ok {
-			typed.Unobserve(ctx, observers...)
-		}
-	}
-	scope.rhsNodes = nil
 }
 
 func (b *bindIncr[A, B]) String() string {
