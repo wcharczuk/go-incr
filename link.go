@@ -8,7 +8,7 @@ package incr
 // An error is returned if the provided inputs to the child node
 // would produce a cycle.
 func Link(child INode, parents ...INode) {
-	graph := graphFromScope(child)
+	graph := graphFromAnyScope(append(parents, child)...)
 	wasNecessary := graph.isNecessary(child)
 	child.Node().addParents(parents...)
 	for _, parent := range parents {

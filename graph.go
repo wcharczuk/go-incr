@@ -249,7 +249,6 @@ func (graph *Graph) becameNecessary(node INode) {
 		}
 		graph.becameNecessary(p)
 	}
-
 	if node.Node().ShouldRecompute() {
 		graph.recomputeHeap.add(node)
 	}

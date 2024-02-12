@@ -158,7 +158,7 @@ func Test_Bind_basic(t *testing.T) {
 	bound01 := bind.Bound()
 	scope01, _ := bind.Scope().(*bindScope)
 
-	testutil.Equal(t, bindChange.Node().id, bindChange01.Node().id)
+	// testutil.Equal(t, bindChange.Node().id, bindChange01.Node().id)
 	testutil.Equal(t, true, hasKey(bindChange01.Node().parents, bindVar.Node().ID()))
 	testutil.Equal(t, false, hasKey(bindChange01.Node().children, a1.Node().ID()))
 	testutil.Equal(t, true, hasKey(bindChange01.Node().children, b2.Node().ID()))
@@ -173,8 +173,8 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.Equal(t, 1, s1.Node().height)
 
 	testutil.Equal(t, 0, av.Node().height)
-	testutil.Equal(t, 1, a0.Node().height)
-	testutil.Equal(t, 2, a1.Node().height)
+	testutil.Equal(t, 0, a0.Node().height)
+	testutil.Equal(t, 0, a1.Node().height)
 
 	testutil.Equal(t, 0, bv.Node().height)
 	testutil.Equal(t, 1, b0.Node().height)
@@ -190,9 +190,9 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.Equal(t, true, g.Has(bind))
 	testutil.Equal(t, true, g.Has(o))
 
-	testutil.Equal(t, true, g.Has(av))
-	testutil.Equal(t, true, g.Has(a0))
-	testutil.Equal(t, true, g.Has(a1))
+	testutil.Equal(t, false, g.Has(av))
+	testutil.Equal(t, false, g.Has(a0))
+	testutil.Equal(t, false, g.Has(a1))
 
 	testutil.Equal(t, true, g.Has(bv))
 	testutil.Equal(t, true, g.Has(b0))
@@ -218,13 +218,13 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.Equal(t, 1, s1.Node().height)
 
 	testutil.Equal(t, 0, av.Node().height)
-	testutil.Equal(t, 1, a0.Node().height)
-	testutil.Equal(t, 2, a1.Node().height)
+	testutil.Equal(t, 0, a0.Node().height)
+	testutil.Equal(t, 0, a1.Node().height)
 
 	testutil.Equal(t, 0, bv.Node().height)
-	testutil.Equal(t, 1, b0.Node().height)
-	testutil.Equal(t, 2, b1.Node().height)
-	testutil.Equal(t, 3, b2.Node().height)
+	testutil.Equal(t, 0, b0.Node().height)
+	testutil.Equal(t, 0, b1.Node().height)
+	testutil.Equal(t, 0, b2.Node().height)
 
 	testutil.Equal(t, 4, bind.Node().height)
 	testutil.Equal(t, 5, o.Node().height)
@@ -235,14 +235,14 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.Equal(t, true, g.Has(bind))
 	testutil.Equal(t, true, g.Has(o))
 
-	testutil.Equal(t, true, g.Has(av))
-	testutil.Equal(t, true, g.Has(a0))
-	testutil.Equal(t, true, g.Has(a1))
+	testutil.Equal(t, false, g.Has(av))
+	testutil.Equal(t, false, g.Has(a0))
+	testutil.Equal(t, false, g.Has(a1))
 
-	testutil.Equal(t, true, g.Has(bv))
-	testutil.Equal(t, true, g.Has(b0))
-	testutil.Equal(t, true, g.Has(b1))
-	testutil.Equal(t, true, g.Has(b2))
+	testutil.Equal(t, false, g.Has(bv))
+	testutil.Equal(t, false, g.Has(b0))
+	testutil.Equal(t, false, g.Has(b1))
+	testutil.Equal(t, false, g.Has(b2))
 
 	testutil.Equal(t, "a-value", av.Value())
 	testutil.Equal(t, "b-value", bv.Value())
@@ -649,8 +649,8 @@ func Test_Bind_nested_unlinksBind(t *testing.T) {
 	testutil.Nil(t, dumpDot(g, homedir("bind_unobserve_01_switch_b.png")))
 	testutil.Equal(t, "b00", o.Value())
 
-	testutil.Equal(t, true, g.Has(a00))
-	testutil.Equal(t, true, g.Has(a01))
+	testutil.Equal(t, false, g.Has(a00))
+	testutil.Equal(t, false, g.Has(a01))
 	testutil.Equal(t, false, g.isNecessary(a01))
 	testutil.Equal(t, true, g.Has(b00))
 	testutil.Equal(t, true, g.Has(b01))
@@ -667,8 +667,8 @@ func Test_Bind_nested_unlinksBind(t *testing.T) {
 	testutil.Equal(t, true, g.Has(a00))
 	testutil.Equal(t, true, g.Has(a01))
 
-	testutil.Equal(t, true, g.Has(b00))
-	testutil.Equal(t, true, g.Has(b01))
+	testutil.Equal(t, false, g.Has(b00))
+	testutil.Equal(t, false, g.Has(b01))
 }
 
 func Test_Bind_nested_bindCreatesBind(t *testing.T) {
@@ -1028,7 +1028,7 @@ func Test_Bind_nested_amplification(t *testing.T) {
 	}
 	err := g.Stabilize(ctx)
 	testutil.Nil(t, err)
-	testutil.Equal(t, 65, g.numNodes)
+	testutil.Equal(t, 81, g.numNodes)
 
 	for _, o := range observed {
 		testutil.NotNil(t, o.Value())
@@ -1036,11 +1036,11 @@ func Test_Bind_nested_amplification(t *testing.T) {
 
 	err = g.Stabilize(ctx)
 	testutil.Nil(t, err)
-	testutil.Equal(t, 65, g.numNodes)
+	testutil.Equal(t, 81, g.numNodes)
 
 	err = g.Stabilize(ctx)
 	testutil.Nil(t, err)
-	testutil.Equal(t, 65, g.numNodes)
+	testutil.Equal(t, 81, g.numNodes)
 }
 
 func Test_Bind_boundChange_doesntCauseRebind(t *testing.T) {

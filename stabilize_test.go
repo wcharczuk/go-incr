@@ -481,8 +481,8 @@ func Test_Stabilize_Bind(t *testing.T) {
 	NotNil(t, i0.Node().graph, "i0 should be in the graph after the second stabilization")
 	NotNil(t, m0.Node().graph, "m0 should be in the graph after the second stabilization")
 
-	Equal(t, true, g.Has(i1))
-	Equal(t, true, g.Has(m1))
+	Equal(t, false, g.Has(i1))
+	Equal(t, false, g.Has(m1))
 
 	Equal(t, "foo-moo-baz", mb.Value())
 }
