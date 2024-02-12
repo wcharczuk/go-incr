@@ -2,8 +2,6 @@ package incr
 
 import (
 	"context"
-	"fmt"
-	"runtime"
 )
 
 // ParallelStabilize stabilizes graphs in parallel as entered
@@ -39,7 +37,7 @@ func (graph *Graph) parallelStabilize(ctx context.Context) (err error) {
 		return
 	}
 	workerPool := new(parallelBatch)
-	workerPool.SetLimit(runtime.NumCPU())
+	workerPool.SetLimit(-1) //runtime.NumCPU())
 
 	var immediateRecompute []INode
 	var minHeightBlock []INode
@@ -61,11 +59,6 @@ func (graph *Graph) parallelStabilize(ctx context.Context) (err error) {
 
 func (graph *Graph) parallelRecomputeNode(ctx context.Context, n INode) func() error {
 	return func() (err error) {
-		defer func() {
-			if r := recover(); r != nil {
-				err = fmt.Errorf("panic stabilizing %v: %+v", n, r)
-			}
-		}()
 		err = graph.recompute(ctx, n)
 		return
 	}
