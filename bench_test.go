@@ -232,7 +232,7 @@ func benchmarkDepth(width, depth int, b *testing.B) {
 }
 
 func benchmarkNestedBinds(depth int, b *testing.B) {
-	ctx := context.Background()
+	ctx := testContext()
 	graph := New(
 		GraphMaxRecomputeHeapHeight(1024),
 	)
