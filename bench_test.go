@@ -107,7 +107,7 @@ func Benchmark_Stabilize_connectedGraph_with_nestedBinds_128(b *testing.B) {
 	benchmarkConnectedGraphWithNestedBinds(128, b)
 }
 
-func benchmarkSize(size int, b *testing.B) {
+func makeBenchmarkGraph(size int) (*Graph, []Incr[string]) {
 	graph := New()
 	nodes := make([]Incr[string], size)
 	for x := 0; x < size; x++ {
@@ -124,7 +124,11 @@ func benchmarkSize(size int, b *testing.B) {
 	}
 
 	_ = Observe(graph, nodes[len(nodes)-1])
+	return graph, nodes
+}
 
+func benchmarkSize(size int, b *testing.B) {
+	graph, nodes := makeBenchmarkGraph(size)
 	// this is what we care about
 	ctx := context.Background()
 	b.ResetTimer()
@@ -152,22 +156,7 @@ func benchmarkSize(size int, b *testing.B) {
 }
 
 func benchmarkParallelSize(size int, b *testing.B) {
-	graph := New()
-	nodes := make([]Incr[string], size)
-	for x := 0; x < size; x++ {
-		nodes[x] = Var(graph, fmt.Sprintf("var_%d", x))
-	}
-
-	var cursor int
-	for x := size; x > 0; x >>= 1 {
-		for y := 0; y < x-1; y += 2 {
-			n := Map2(graph, nodes[cursor+y], nodes[cursor+y+1], concat)
-			nodes = append(nodes, n)
-		}
-		cursor += x
-	}
-
-	_ = Observe(graph, nodes[0])
+	graph, nodes := makeBenchmarkGraph(size)
 
 	// this is what we care about
 	ctx := context.Background()
