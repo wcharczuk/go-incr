@@ -5,5 +5,15 @@ package incr
 func Unlink(child, input INode) {
 	child.Node().removeParent(input.Node().id)
 	input.Node().removeChild(child.Node().id)
-	child.Node().createdIn.scopeGraph().checkIfUnnecessary(child)
+
+	graphFromAnyScope(child, input).checkIfUnnecessary(input)
+}
+
+func graphFromAnyScope(nodes ...INode) *Graph {
+	for _, n := range nodes {
+		if graph := graphFromScope(n); graph != nil {
+			return graph
+		}
+	}
+	return nil
 }

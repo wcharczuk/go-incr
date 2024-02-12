@@ -61,7 +61,6 @@ type BindIncr[A any] interface {
 	Incr[A]
 	IStabilize
 	IBind
-	IUnobserve
 	fmt.Stringer
 }
 
@@ -132,11 +131,18 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 		if b.bound.Node().id != newIncr.Node().id {
 			bindChanged = true
 			b.unlinkOldBound(ctx, b.n.observers...)
+			b.unlinkBindChange(ctx)
+			if err := b.linkBindChange(ctx); err != nil {
+				return err
+			}
 			if err := b.linkNewBound(ctx, newIncr); err != nil {
 				return err
 			}
 		} else {
 			bindChanged = b.bound.Node().changedAt > b.n.boundAt
+			if err := b.Link(ctx); err != nil {
+				return err
+			}
 			TracePrintf(ctx, "%v bound to same node after stabilization", b)
 		}
 	} else if newIncr != nil {
@@ -158,13 +164,13 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 	return nil
 }
 
-func (b *bindIncr[A, B]) Unobserve(ctx context.Context, observers ...IObserver) {
-	b.unlinkOldBound(ctx, observers...)
-	b.unlinkBindChange(ctx)
-}
-
 func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
+	if err = b.linkBindChange(ctx); err != nil {
+		return
+	}
 	if b.bound != nil {
+		Link(b.bound, b.bindChange)
+		Link(b, b.bound)
 		for _, n := range b.scope.rhsNodes {
 			if typed, ok := n.(IBind); ok {
 				if err = typed.Link(ctx); err != nil {
@@ -172,9 +178,12 @@ func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
 				}
 			}
 		}
-		err = b.n.graph.adjustHeightsHeap.adjustHeights(b.n.graph.recomputeHeap, b, b.bound)
-		if err != nil {
-			return
+		for _, n := range b.scope.rhsNodes {
+			if typed, ok := n.(IBind); ok {
+				if err = typed.Link(ctx); err != nil {
+					return
+				}
+			}
 		}
 	}
 	return
@@ -214,10 +223,6 @@ func (b *bindIncr[A, B]) unlinkBindChange(ctx context.Context) {
 			Unlink(b.bound, b.bindChange)
 		}
 		Unlink(b.bindChange, b.input)
-		// NOTE (wc): we don't do a """typical""" unobserve here because we
-		// really don't care; if it's time to unlink our bind change, it's our
-		// bind change, there is no way to observe it directly, so we'll just
-		// shoot it in the face ourselves.
 		if !b.n.graph.isNecessary(b.bindChange) {
 			b.bindChange = nil
 		}

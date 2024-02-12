@@ -33,13 +33,6 @@ type IBind interface {
 	Bound() INode
 	BindChange() INode
 	Scope() Scope
-	IUnobserve
-}
-
-// IUnobserve is a type that may need to implement
-// extra steps when it's unobserved.
-type IUnobserve interface {
-	Unobserve(context.Context, ...IObserver)
 }
 
 // ICutoff is a type that determines if changes should
