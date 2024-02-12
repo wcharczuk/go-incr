@@ -6,7 +6,9 @@ func Unlink(child, input INode) {
 	child.Node().removeParent(input.Node().id)
 	input.Node().removeChild(child.Node().id)
 
-	graphFromAnyScope(child, input).checkIfUnnecessary(input)
+	if graph := graphFromAnyScope(child, input); graph != nil {
+		graph.checkIfUnnecessary(input)
+	}
 }
 
 func graphFromAnyScope(nodes ...INode) *Graph {

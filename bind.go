@@ -165,19 +165,12 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 }
 
 func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
-	if err = b.linkBindChange(ctx); err != nil {
-		return
+	if b.bindChange != nil {
+		Link(b.bindChange, b.input)
 	}
 	if b.bound != nil {
 		Link(b.bound, b.bindChange)
 		Link(b, b.bound)
-		for _, n := range b.scope.rhsNodes {
-			if typed, ok := n.(IBind); ok {
-				if err = typed.Link(ctx); err != nil {
-					return
-				}
-			}
-		}
 		for _, n := range b.scope.rhsNodes {
 			if typed, ok := n.(IBind); ok {
 				if err = typed.Link(ctx); err != nil {

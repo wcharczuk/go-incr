@@ -1028,7 +1028,7 @@ func Test_Bind_nested_amplification(t *testing.T) {
 	}
 	err := g.Stabilize(ctx)
 	testutil.Nil(t, err)
-	testutil.Equal(t, 81, g.numNodes)
+	testutil.Equal(t, 65, g.numNodes)
 
 	for _, o := range observed {
 		testutil.NotNil(t, o.Value())
@@ -1036,11 +1036,11 @@ func Test_Bind_nested_amplification(t *testing.T) {
 
 	err = g.Stabilize(ctx)
 	testutil.Nil(t, err)
-	testutil.Equal(t, 81, g.numNodes)
+	testutil.Equal(t, 65, g.numNodes)
 
 	err = g.Stabilize(ctx)
 	testutil.Nil(t, err)
-	testutil.Equal(t, 81, g.numNodes)
+	testutil.Equal(t, 65, g.numNodes)
 }
 
 func Test_Bind_boundChange_doesntCauseRebind(t *testing.T) {
