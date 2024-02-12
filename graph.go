@@ -340,22 +340,20 @@ func (graph *Graph) canReachObserverRecursive(root, gn INode, oid Identifier) bo
 }
 
 func (graph *Graph) addObserver(on IObserver) {
-	graph.observersMu.Lock()
-	defer graph.observersMu.Unlock()
-
 	onn := on.Node()
 	onn.graph = graph
+
+	graph.observersMu.Lock()
 	if _, ok := graph.observers[onn.id]; !ok {
 		graph.numNodes++
 	}
-	onn.detectStabilize(on)
+	graph.observers[onn.id] = on
+	graph.observersMu.Unlock()
 
+	onn.detectStabilize(on)
 	for _, p := range onn.parents {
 		_ = graph.adjustHeightsHeap.ensureHeightRequirement(on, p)
 	}
-
-	// onn.height = graph.computePseudoHeight(on)
-	graph.observers[onn.id] = on
 }
 
 func (graph *Graph) removeObserver(on IObserver) {
