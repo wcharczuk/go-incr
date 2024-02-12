@@ -14,12 +14,9 @@ func Test_New(t *testing.T) {
 	m0 := Map2(g, r0, r1, func(v0, v1 string) string { return v0 + v1 })
 	_ = Observe(g, m0)
 
-	testutil.Equal(t, true, g.IsObserving(r0))
-	testutil.Equal(t, true, g.IsObserving(r1))
-	testutil.Equal(t, true, g.IsObserving(m0))
-
-	m1 := Map2(g, r0, r1, func(v0, v1 string) string { return v0 + v1 })
-	testutil.Equal(t, false, g.IsObserving(m1))
+	testutil.Equal(t, true, g.Has(r0))
+	testutil.Equal(t, true, g.Has(r1))
+	testutil.Equal(t, true, g.Has(m0))
 }
 
 func Test_New_options(t *testing.T) {
@@ -40,86 +37,6 @@ func Test_Graph_Label(t *testing.T) {
 	testutil.Equal(t, "", g.Label())
 	g.SetLabel("hello")
 	testutil.Equal(t, "hello", g.Label())
-}
-
-func Test_Graph_UnobserveNodes(t *testing.T) {
-	ctx := testContext()
-	g := New()
-
-	r0 := Return(g, "hello")
-	m0 := Map(g, r0, ident)
-	m1 := Map(g, m0, ident)
-	m2 := Map(g, m1, ident)
-
-	ar0 := Return(g, "hello")
-	am0 := Map(g, ar0, ident)
-	am1 := Map(g, am0, ident)
-	am2 := Map(g, am1, ident)
-
-	o1 := Observe(g, m1)
-	_ = Observe(g, am2)
-
-	testutil.Equal(t, true, g.IsObserving(r0))
-	testutil.Equal(t, true, g.IsObserving(m0))
-	testutil.Equal(t, true, g.IsObserving(m1))
-	testutil.Equal(t, false, g.IsObserving(m2), "using the Observe incremental we actually don't care about m2!")
-
-	testutil.Equal(t, true, g.IsObserving(ar0))
-	testutil.Equal(t, true, g.IsObserving(am0))
-	testutil.Equal(t, true, g.IsObserving(am1))
-	testutil.Equal(t, true, g.IsObserving(am2))
-
-	Unlink(o1, m1)
-	g.unobserveNodes(ctx, m1, o1)
-
-	testutil.Equal(t, false, g.IsObserving(r0))
-	testutil.Equal(t, false, g.IsObserving(m0))
-	testutil.Equal(t, false, g.IsObserving(m1))
-	testutil.Equal(t, false, g.IsObserving(m2))
-
-	testutil.Nil(t, r0.Node().graph)
-	testutil.Nil(t, m0.Node().graph)
-	testutil.Nil(t, m1.Node().graph)
-	testutil.Nil(t, m2.Node().graph)
-
-	testutil.Equal(t, true, g.IsObserving(ar0))
-	testutil.Equal(t, true, g.IsObserving(am0))
-	testutil.Equal(t, true, g.IsObserving(am1))
-	testutil.Equal(t, true, g.IsObserving(am2))
-}
-
-func Test_Graph_UnobserveNodes_notObserving(t *testing.T) {
-	ctx := testContext()
-	g := New()
-
-	r0 := Return(g, "hello")
-	m0 := Map(g, r0, ident)
-	m1 := Map(g, m0, ident)
-	m2 := Map(g, m1, ident)
-
-	ar0 := Return(g, "hello")
-	am0 := Map(g, ar0, ident)
-	am1 := Map(g, am0, ident)
-	am2 := Map(g, am1, ident)
-
-	o := Observe(g, m1)
-
-	testutil.Equal(t, true, g.IsObserving(r0))
-	testutil.Equal(t, true, g.IsObserving(m0))
-	testutil.Equal(t, true, g.IsObserving(m1))
-	testutil.Equal(t, false, g.IsObserving(m2), "we observed m1, which is the parent of m2!")
-
-	testutil.Equal(t, false, g.IsObserving(ar0))
-	testutil.Equal(t, false, g.IsObserving(am0))
-	testutil.Equal(t, false, g.IsObserving(am1))
-	testutil.Equal(t, false, g.IsObserving(am2))
-
-	g.unobserveNodes(ctx, am1, o)
-
-	testutil.Equal(t, true, g.IsObserving(r0))
-	testutil.Equal(t, true, g.IsObserving(m0))
-	testutil.Equal(t, true, g.IsObserving(m1))
-	testutil.Equal(t, false, g.IsObserving(m2))
 }
 
 func Test_Graph_IsStabilizing(t *testing.T) {
@@ -171,7 +88,7 @@ func Test_Graph_removeNodeFromGraph(t *testing.T) {
 	mn00 := newMockBareNodeWithHeight(2)
 	g.numNodes = 2
 
-	g.observed[mn00.n.id] = mn00
+	g.nodes[mn00.n.id] = mn00
 
 	g.handleAfterStabilization[mn00.n.id] = []func(context.Context){
 		func(_ context.Context) {},

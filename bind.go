@@ -101,7 +101,7 @@ func (b *bindIncr[A, B]) Scope() Scope {
 }
 
 func (b *bindIncr[A, B]) didInputChange() bool {
-	return b.input.Node().changedAt >= b.n.recomputedAt
+	return b.input.Node().changedAt >= b.n.changedAt
 }
 
 func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
@@ -112,6 +112,7 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 	// we do want to propagate changes to the bound node to the bind
 	// node's children however, so some trickery is involved.
 	if !b.didInputChange() {
+		TracePrintf(ctx, "%v input unchanged", b)
 		// NOTE (wc): ok so this is a tangle.
 		// we halt computation based on boundAt for nodes that
 		// set their bound at. So if our bound node triggered
@@ -134,6 +135,9 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 			if err := b.linkNewBound(ctx, newIncr); err != nil {
 				return err
 			}
+		} else {
+			bindChanged = b.bound.Node().changedAt > b.n.boundAt
+			TracePrintf(ctx, "%v bound to same node after stabilization", b)
 		}
 	} else if newIncr != nil {
 		bindChanged = true
@@ -161,16 +165,16 @@ func (b *bindIncr[A, B]) Unobserve(ctx context.Context, observers ...IObserver) 
 
 func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
 	if b.bound != nil {
-		err = b.n.graph.adjustHeightsHeap.adjustHeights(b.n.graph.recomputeHeap, b, b.bound)
-		if err != nil {
-			return
-		}
 		for _, n := range b.scope.rhsNodes {
 			if typed, ok := n.(IBind); ok {
 				if err = typed.Link(ctx); err != nil {
 					return
 				}
 			}
+		}
+		err = b.n.graph.adjustHeightsHeap.adjustHeights(b.n.graph.recomputeHeap, b, b.bound)
+		if err != nil {
+			return
 		}
 	}
 	return
@@ -186,16 +190,13 @@ func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) error {
 		b.bindChange.n.SetLabel(fmt.Sprintf("%s-change", b.n.label))
 	}
 	Link(b.bindChange, b.input)
-	return b.n.graph.observeSingleNode(b.bindChange, b.n.observers...)
+	return nil
 }
 
 func (b *bindIncr[A, B]) linkNewBound(ctx context.Context, newIncr Incr[B]) (err error) {
 	b.bound = newIncr
 	Link(b.bound, b.bindChange)
 	Link(b, b.bound)
-	if err = b.n.graph.observeNodes(b.bound, b.n.observers...); err != nil {
-		return
-	}
 	for _, n := range b.scope.rhsNodes {
 		if typed, ok := n.(IBind); ok {
 			if err = typed.Link(ctx); err != nil {
@@ -213,24 +214,22 @@ func (b *bindIncr[A, B]) unlinkBindChange(ctx context.Context) {
 			Unlink(b.bound, b.bindChange)
 		}
 		Unlink(b.bindChange, b.input)
-
 		// NOTE (wc): we don't do a """typical""" unobserve here because we
 		// really don't care; if it's time to unlink our bind change, it's our
 		// bind change, there is no way to observe it directly, so we'll just
 		// shoot it in the face ourselves.
-		b.n.graph.removeNodeFromGraph(b.bindChange)
-		b.bindChange = nil
+		if !b.n.graph.isNecessary(b.bindChange) {
+			b.bindChange = nil
+		}
 	}
 }
 
 func (b *bindIncr[A, B]) unlinkOldBound(ctx context.Context, observers ...IObserver) {
 	if b.bound != nil {
-		bound := b.bound
+		Unlink(b.bound, b.bindChange)
+		Unlink(b, b.bound)
+		TracePrintf(ctx, "%v unbound old rhs %v", b, b.bound)
 		b.bound = nil
-		Unlink(bound, b.bindChange)
-		Unlink(b, bound)
-		b.n.graph.unobserveNodes(ctx, bound, observers...)
-		TracePrintf(ctx, "%v unbound old rhs %v", b, bound)
 	}
 }
 

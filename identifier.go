@@ -21,6 +21,17 @@ func NewIdentifier() (output Identifier) {
 	return
 }
 
+// MustParseIdentifier is the reverse of `.String()` that will
+// panic if an error is returned by `ParseIdentifier`.
+func MustParseIdentifier(raw string) (output Identifier) {
+	var err error
+	output, err = ParseIdentifier(raw)
+	if err != nil {
+		panic(err)
+	}
+	return
+}
+
 // ParseIdentifier is the reverse of `.String()`.
 func ParseIdentifier(raw string) (output Identifier, err error) {
 	if raw == "" {

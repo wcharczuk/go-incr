@@ -1,7 +1,6 @@
 package incr
 
 import (
-	"context"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -63,27 +62,6 @@ func Test_ExpertGraph_RecomputeHeapIDs(t *testing.T) {
 	testutil.Equal(t, 2, len(recomputeHeapIDs))
 	testutil.Any(t, recomputeHeapIDs, func(id Identifier) bool { return id == n1.n.id })
 	testutil.Any(t, recomputeHeapIDs, func(id Identifier) bool { return id == n2.n.id })
-}
-
-func Test_ExpertGraph_Observe(t *testing.T) {
-	g := New()
-	eg := ExpertGraph(g)
-
-	n1 := newMockBareNode(g)
-	n2 := newMockBareNode(g)
-
-	o1 := mockObserver(g)
-	o2 := mockObserver(g)
-
-	_ = eg.ObserveNodes(n1, o1, o2)
-
-	testutil.Equal(t, 2, len(n1.n.observers))
-	testutil.Equal(t, 0, len(n2.n.observers))
-
-	eg.UnobserveNodes(context.TODO(), n1, o1, o2)
-
-	testutil.Equal(t, 0, len(n1.n.observers))
-	testutil.Equal(t, 0, len(n2.n.observers))
 }
 
 func Test_ExpertGraph_AddObserver(t *testing.T) {

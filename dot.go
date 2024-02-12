@@ -34,12 +34,12 @@ func Dot(wr io.Writer, g *Graph) (err error) {
 	}
 
 	writef(0, "digraph {")
-	nodes := make([]INode, 0, len(g.observed)+len(g.observers))
-	for _, n := range g.observed {
+	nodes := make([]INode, 0, len(g.nodes)+len(g.observers))
+	for _, n := range g.nodes {
 		nodes = append(nodes, n)
 	}
-	for _, n := range g.observers {
-		nodes = append(nodes, n)
+	for _, o := range g.observers {
+		nodes = append(nodes, o)
 	}
 
 	slices.SortStableFunc(nodes, nodeSorter)

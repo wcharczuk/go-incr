@@ -258,6 +258,9 @@ func main() {
 				observers[i] = incr.Observe(graph, o)
 			}
 			_ = graph.Stabilize(ctx)
+			for i := 0; i < max_t; i++ {
+				observers[i].Unobserve(ctx)
+			}
 
 			elapsed = time.Since(start)
 			fmt.Printf("Calculating months of runway for t= %d to %d took %s when prior_count(observed nodes) >%d\n", 0, max_t, elapsed, num)

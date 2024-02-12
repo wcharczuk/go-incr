@@ -20,7 +20,8 @@ func Observe[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
 	// So we just add it here explicitly and don't add it implicitly
 	// in the AddObserver function.
 	_ = g.addObserver(o)
-	_ = g.observeNodes(input, o)
+	input.Node().addObservers(o)
+	g.becameNecessary(input)
 	g.recomputeHeap.add(o)
 	return o
 }
@@ -74,24 +75,8 @@ func (o *observeIncr[A]) Stabilize(_ context.Context) error {
 func (o *observeIncr[A]) Unobserve(ctx context.Context) {
 	g := o.n.graph
 
-	for _, p := range o.n.parents {
-		Unlink(o, p)
-	}
-
-	// g.unobserveNodes(ctx, o.input, o)
-	for _, n := range g.observers {
-		n.Node().removeObserver(o.n.id)
-		if len(n.Node().observers) == 0 {
-			for _, handler := range n.Node().onUnobservedHandlers {
-				handler(o)
-			}
-			g.removeNodeFromGraph(n)
-		}
-	}
+	g.removeParents(o)
 	g.removeObserver(o)
-
-	o.n.children = nil
-	o.n.parents = nil
 
 	// zero out the observed value
 	var value A

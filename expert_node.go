@@ -61,7 +61,14 @@ type expertNode struct {
 func (en *expertNode) Graph() *Graph { return en.node.graph }
 
 func (en *expertNode) SetID(id Identifier) {
+	oldID := en.node.id
 	en.node.id = id
+	if graph := graphFromScope(en.incr); graph != nil {
+		if _, ok := graph.nodes[oldID]; ok {
+			delete(graph.nodes, oldID)
+			graph.nodes[id] = en.incr
+		}
+	}
 }
 
 func (en *expertNode) Height() int { return en.node.height }
