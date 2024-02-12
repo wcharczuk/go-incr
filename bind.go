@@ -155,7 +155,6 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 }
 
 func (b *bindIncr[A, B]) Unobserve(ctx context.Context, observers ...IObserver) {
-	fmt.Printf("unobserve %v\n", b)
 	b.unlinkOldBound(ctx, observers...)
 	b.unlinkBindChange(ctx)
 }
