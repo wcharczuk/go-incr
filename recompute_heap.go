@@ -8,9 +8,9 @@ import (
 )
 
 // newRecomputeHeap returns a new recompute heap with a given maximum height.
-func newRecomputeHeap(initialHeights int) *recomputeHeap {
+func newRecomputeHeap(maxHeight int) *recomputeHeap {
 	return &recomputeHeap{
-		heights: make([]map[Identifier]INode, initialHeights),
+		heights: make([]map[Identifier]INode, maxHeight),
 		lookup:  make(map[Identifier]INode),
 	}
 }
@@ -34,9 +34,9 @@ type recomputeHeap struct {
 	lookup map[Identifier]INode
 }
 
-// Clear completely resets the recompute heap, preserving
+// clear completely resets the recompute heap, preserving
 // its current capacity.
-func (rh *recomputeHeap) Clear() {
+func (rh *recomputeHeap) clear() {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
 	rh.heights = make([]map[Identifier]INode, len(rh.heights))
@@ -197,6 +197,9 @@ func (rh *recomputeHeap) nextMinHeightUnsafe() (next int) {
 // sanityCheck loops through each item in each height block
 // and checks that all the height values match.
 func (rh *recomputeHeap) sanityCheck() error {
+	if len(rh.lookup) > 0 && len(rh.heights[rh.minHeight]) == 0 {
+		return fmt.Errorf("recompute heap; sanity check; lookup has items but min height block is empty")
+	}
 	for heightIndex, height := range rh.heights {
 		if height == nil {
 			continue
@@ -222,7 +225,6 @@ func (rh *recomputeHeap) String() string {
 	fmt.Fprintf(output, "{\n")
 	for heightIndex, heightList := range rh.heights {
 		if heightList == nil {
-			// fmt.Fprintf(output, "\t%d: []\n", heightIndex)
 			continue
 		}
 		fmt.Fprintf(output, "\t%d: [", heightIndex)

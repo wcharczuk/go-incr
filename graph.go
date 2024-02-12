@@ -43,8 +43,8 @@ func New(opts ...GraphOption) *Graph {
 // GraphOption mutates GraphOptions.
 type GraphOption func(*GraphOptions)
 
-// GraphMaxRecomputeHeapHeight sets the graph max recompute height.
-func GraphMaxRecomputeHeapHeight(maxHeight int) func(*GraphOptions) {
+// OptGraphMaxHeight sets the graph max recompute height.
+func OptGraphMaxHeight(maxHeight int) func(*GraphOptions) {
 	return func(g *GraphOptions) {
 		g.MaxHeight = maxHeight
 	}

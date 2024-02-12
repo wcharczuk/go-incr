@@ -7,7 +7,7 @@ import (
 
 func newAdjustHeightsHeap(maxHeightAllowed int) *adjustHeightsHeap {
 	return &adjustHeightsHeap{
-		nodesByHeight: make([]map[Identifier]INode, maxHeightAllowed+32),
+		nodesByHeight: make([]map[Identifier]INode, maxHeightAllowed),
 		lookup:        make(set[Identifier]),
 	}
 }
@@ -28,7 +28,7 @@ func (ah *adjustHeightsHeap) len() (out int) {
 }
 
 func (ah *adjustHeightsHeap) maxHeightAllowed() int {
-	return len(ah.nodesByHeight)
+	return len(ah.nodesByHeight) - 1
 }
 
 func (ah *adjustHeightsHeap) remove(node INode) {

@@ -20,9 +20,10 @@ func Test_New(t *testing.T) {
 }
 
 func Test_New_options(t *testing.T) {
-	g := New(GraphMaxRecomputeHeapHeight(1024))
+	g := New(OptGraphMaxHeight(1024))
 	testutil.NotEqual(t, 1024, DefaultMaxHeight)
 	testutil.Equal(t, 1024, len(g.recomputeHeap.heights))
+	testutil.Equal(t, 1024, len(g.adjustHeightsHeap.nodesByHeight))
 }
 
 func Test_Graph_Metadata(t *testing.T) {
@@ -71,7 +72,7 @@ func Test_Graph_recompute_recomputesObservers(t *testing.T) {
 	g := New()
 	n := newMockBareNode(g)
 	o := Observe(g, n)
-	g.recomputeHeap.Clear()
+	g.recomputeHeap.clear()
 
 	testutil.Equal(t, false, g.recomputeHeap.has(n))
 	testutil.Equal(t, false, g.recomputeHeap.has(o))

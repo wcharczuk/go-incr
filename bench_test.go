@@ -197,7 +197,7 @@ func benchmarkParallelSize(size int, b *testing.B) {
 
 func benchmarkDepth(width, depth int, b *testing.B) {
 	graph := New(
-		GraphMaxRecomputeHeapHeight(1024),
+		OptGraphMaxHeight(1024),
 	)
 	vars := make([]VarIncr[string], width)
 	for x := 0; x < width; x++ {
@@ -245,7 +245,7 @@ func benchmarkDepth(width, depth int, b *testing.B) {
 func benchmarkNestedBinds(depth int, b *testing.B) {
 	ctx := context.Background()
 	graph := New(
-		GraphMaxRecomputeHeapHeight(1024),
+		OptGraphMaxHeight(1024),
 	)
 	fakeFormula := Var(graph, "fakeFormula")
 	g, o := makeNestedBindGraph(graph, depth, fakeFormula)
@@ -313,7 +313,7 @@ func makeNestedBindGraph(graph *Graph, depth int, fakeFormula VarIncr[string]) (
 func benchmarkConnectedGraphWithNestedBinds(depth int, b *testing.B) {
 	ctx := context.Background()
 	graph := New(
-		GraphMaxRecomputeHeapHeight(1024),
+		OptGraphMaxHeight(1024),
 	)
 	fakeFormula := Var(graph, "fakeFormula")
 	observed := make([]ObserveIncr[*int], depth)

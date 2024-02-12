@@ -1017,7 +1017,7 @@ func Test_Bind_unbindRegression(t *testing.T) {
 func Test_Bind_nested_amplification(t *testing.T) {
 	ctx := testContext()
 	g := New(
-		GraphMaxRecomputeHeapHeight(1024),
+		OptGraphMaxHeight(1024),
 	)
 	depth := 4
 	fakeFormula := Var(g, "fakeFormula")
