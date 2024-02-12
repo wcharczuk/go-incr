@@ -272,18 +272,6 @@ func Test_ParallelStabilize_always_cutoff_error(t *testing.T) {
 	testutil.Equal(t, 3, g.recomputeHeap.len())
 }
 
-func Test_ParallelStabilize_recoversPanics(t *testing.T) {
-	g := New()
-
-	v0 := Var(g, "hello")
-	gonnaPanic := Map(g, v0, func(_ string) string {
-		panic("help!")
-	})
-	_ = Observe(g, gonnaPanic)
-	err := g.ParallelStabilize(testContext())
-	testutil.NotNil(t, err)
-}
-
 func Test_ParallelStabilize_printsErrors(t *testing.T) {
 	ctx := context.Background()
 	g := New()

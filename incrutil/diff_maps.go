@@ -11,18 +11,16 @@ import (
 // for keys removed, and each stabilization pass returns just the subset
 // of the map that changed since the last pass according to the keys.
 func DiffMapByKeys[K comparable, V any](scope incr.Scope, i incr.Incr[map[K]V]) (add incr.Incr[map[K]V], rem incr.Incr[map[K]V]) {
-	add = &diffMapByKeysAddedIncr[K, V]{
+	add = incr.WithinScope(scope, &diffMapByKeysAddedIncr[K, V]{
 		n: incr.NewNode("diff_maps_by_keys_added"),
 		i: i,
-	}
+	})
 	incr.Link(add, i)
-	add = incr.WithinScope(scope, add)
-	rem = &diffMapByKeysRemovedIncr[K, V]{
+	rem = incr.WithinScope(scope, &diffMapByKeysRemovedIncr[K, V]{
 		n: incr.NewNode("diff_maps_by_keys_removed"),
 		i: i,
-	}
+	})
 	incr.Link(rem, i)
-	rem = incr.WithinScope(scope, rem)
 	return
 }
 
@@ -30,24 +28,24 @@ func DiffMapByKeys[K comparable, V any](scope incr.Scope, i incr.Incr[map[K]V]) 
 // incremental, and each stabilization pass returns just the subset
 // of the map that was added since the last pass according to the keys.
 func DiffMapByKeysAdded[K comparable, V any](scope incr.Scope, i incr.Incr[map[K]V]) incr.Incr[map[K]V] {
-	o := &diffMapByKeysAddedIncr[K, V]{
+	o := incr.WithinScope(scope, &diffMapByKeysAddedIncr[K, V]{
 		n: incr.NewNode("diff_maps_by_keys_added"),
 		i: i,
-	}
+	})
 	incr.Link(o, i)
-	return incr.WithinScope(scope, o)
+	return o
 }
 
 // DiffMapByKeysRemoved returns an incremental that takes an input map typed
 // incremental, and each stabilization pass returns just the subset
 // of the map that was removed since the last pass according to the keys.
 func DiffMapByKeysRemoved[K comparable, V any](scope incr.Scope, i incr.Incr[map[K]V]) incr.Incr[map[K]V] {
-	o := &diffMapByKeysRemovedIncr[K, V]{
+	o := incr.WithinScope(scope, &diffMapByKeysRemovedIncr[K, V]{
 		n: incr.NewNode("diff_maps_by_keys_removed"),
 		i: i,
-	}
+	})
 	incr.Link(o, i)
-	return incr.WithinScope(scope, o)
+	return o
 }
 
 var (
