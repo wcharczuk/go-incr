@@ -8,8 +8,9 @@ import (
 // Timer returns a special node type that fires if a given duration
 // has elapsed since it last stabilized.
 //
-// When it stabilizes, it stabilizes the input node, and assumes its
-// value in observation.
+// When it stabilizes, it assumes the value of the input node, and causes
+// any children (or nodes that take the timer as input) to recompute if this
+// is the first stabilization or if the timer has elapsed.
 func Timer[A any](scope Scope, input Incr[A], every time.Duration) TimerIncr[A] {
 	t := WithinScope(scope, &timerIncr[A]{
 		n:           NewNode("timer"),
