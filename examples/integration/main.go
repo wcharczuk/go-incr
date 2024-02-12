@@ -24,11 +24,6 @@ func testContext() context.Context {
 }
 
 func testCase(label string, action func()) {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Fprintf(os.Stderr, "panic recovered: %v\n", r)
-		}
-	}()
 	fmt.Println("---" + label)
 	action()
 }
