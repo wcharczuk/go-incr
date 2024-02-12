@@ -71,7 +71,7 @@ func Test_Graph_recompute_recomputesObservers(t *testing.T) {
 	g := New()
 	n := newMockBareNode(g)
 	o := Observe(g, n)
-	g.recomputeHeap.Clear()
+	g.recomputeHeap.clear()
 
 	testutil.Equal(t, false, g.recomputeHeap.has(n))
 	testutil.Equal(t, false, g.recomputeHeap.has(o))

@@ -40,6 +40,7 @@ type Node struct {
 	children      []INode
 	childLookupMu sync.Mutex
 	childLookup   set[Identifier]
+
 	// observers are observer nodes that are attached to this
 	// node or its children.
 	observers        []IObserver
@@ -82,6 +83,8 @@ type Node struct {
 	// cutoff is set during initialization and is a shortcut
 	// to the interface sniff for the node for the ICutoff interface.
 	cutoff func(context.Context) (bool, error)
+	// observer determines if we treat this as a special necessary state.
+	observer bool
 	// always determines if we always recompute this node.
 	always bool
 	// numRecomputes is the number of times we recomputed the node
@@ -196,37 +199,35 @@ func (n *Node) Observers() []IObserver {
 
 func (n *Node) addChildren(children ...INode) {
 	n.childLookupMu.Lock()
-	defer n.childLookupMu.Unlock()
-
 	for _, c := range children {
 		if !n.childLookup.has(c.Node().id) {
 			n.children = append(n.children, c)
 			n.childLookup.add(c.Node().id)
 		}
 	}
+	n.childLookupMu.Unlock()
 }
 
 func (n *Node) addParents(parents ...INode) {
 	n.parentLookupMu.Lock()
-	defer n.parentLookupMu.Unlock()
-
 	for _, p := range parents {
 		if !n.parentLookup.has(p.Node().id) {
 			n.parents = append(n.parents, p)
 			n.parentLookup.add(p.Node().id)
 		}
 	}
+	n.parentLookupMu.Unlock()
 }
 
 func (n *Node) addObservers(observers ...IObserver) {
 	n.observerLookupMu.Lock()
-	defer n.observerLookupMu.Unlock()
 	for _, o := range observers {
 		if !n.observerLookup.has(o.Node().id) {
 			n.observers = append(n.observers, o)
 			n.observerLookup.add(o.Node().id)
 		}
 	}
+	n.observerLookupMu.Unlock()
 }
 
 func (n *Node) hasChild(in INode) (ok bool) {
@@ -358,4 +359,11 @@ func (n *Node) maybeStabilize(ctx context.Context) (err error) {
 		}
 	}
 	return
+}
+
+func (n *Node) isNecessary() bool {
+	if n.observer {
+		return true
+	}
+	return len(n.children) > 0 || len(n.observers) > 0
 }

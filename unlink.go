@@ -2,12 +2,11 @@ package incr
 
 // Unlink removes the parent child association
 // between two nodes.
-func Unlink(child, input INode) {
-	child.Node().removeParent(input.Node().id)
-	input.Node().removeChild(child.Node().id)
-
-	if graph := graphFromAnyScope(child, input); graph != nil {
-		graph.checkIfUnnecessary(input)
+func Unlink(child, parent INode) {
+	child.Node().removeParent(parent.Node().id)
+	parent.Node().removeChild(child.Node().id)
+	if graph := graphFromAnyScope(child, parent); graph != nil {
+		graph.checkIfUnnecessary(parent)
 	}
 }
 

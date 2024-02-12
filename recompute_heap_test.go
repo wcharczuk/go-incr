@@ -448,7 +448,7 @@ func Test_recomputeHeap_clear(t *testing.T) {
 	Equal(t, 5, rh.minHeight)
 	Equal(t, 7, rh.maxHeight)
 
-	rh.Clear()
+	rh.clear()
 
 	Equal(t, 0, len(rh.lookup))
 	Equal(t, 0, len(rh.heights[5]))

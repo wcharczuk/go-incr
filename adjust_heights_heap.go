@@ -151,7 +151,7 @@ func (ah *adjustHeightsHeap) adjustHeights(rh *recomputeHeap, originalChild, ori
 			scope, scopeOK := typed.Scope().(*bindScope)
 			if scopeOK {
 				for _, nodeOnRight := range scope.rhsNodes {
-					if node.Node().graph.isNecessary(nodeOnRight) {
+					if nodeOnRight.Node().isNecessary() {
 						if err := ah.ensureHeightRequirementUnsafe(originalChild, originalParent, node, nodeOnRight); err != nil {
 							return err
 						}

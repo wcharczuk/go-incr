@@ -3,6 +3,7 @@ package incr
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 )
 
 // Bind lets you swap out an entire subgraph of a computation based
@@ -104,6 +105,10 @@ func (b *bindIncr[A, B]) didInputChange() bool {
 }
 
 func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
+	if b.n.graph == nil {
+		return fmt.Errorf("%v graph is unset", b)
+	}
+
 	// did input change?
 	//
 	// we only want to run the bind fn if the _input_ to this node changes.
@@ -139,6 +144,9 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 				return err
 			}
 		} else {
+			// let the computation continue in the event that
+			// our input changed, we returned the same (likely cached) node
+			// if the bound node and _it_ also had a change
 			bindChanged = b.bound.Node().changedAt > b.n.boundAt
 			if err := b.Link(ctx); err != nil {
 				return err
@@ -165,16 +173,23 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 }
 
 func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
+	if b.n.graph == nil {
+		err = fmt.Errorf("%v has unset graph", b)
+		debug.PrintStack()
+		return
+	}
 	if b.bindChange != nil {
 		Link(b.bindChange, b.input)
 	}
 	if b.bound != nil {
-		Link(b.bound, b.bindChange)
 		Link(b, b.bound)
+		Link(b.bound, b.bindChange)
 		for _, n := range b.scope.rhsNodes {
 			if typed, ok := n.(IBind); ok {
-				if err = typed.Link(ctx); err != nil {
-					return
+				if n.Node().isNecessary() {
+					if err = typed.Link(ctx); err != nil {
+						return
+					}
 				}
 			}
 		}
@@ -197,12 +212,14 @@ func (b *bindIncr[A, B]) linkBindChange(ctx context.Context) error {
 
 func (b *bindIncr[A, B]) linkNewBound(ctx context.Context, newIncr Incr[B]) (err error) {
 	b.bound = newIncr
-	Link(b.bound, b.bindChange)
 	Link(b, b.bound)
+	Link(b.bound, b.bindChange)
 	for _, n := range b.scope.rhsNodes {
 		if typed, ok := n.(IBind); ok {
-			if err = typed.Link(ctx); err != nil {
-				return
+			if n.Node().isNecessary() {
+				if err = typed.Link(ctx); err != nil {
+					return
+				}
 			}
 		}
 	}
@@ -216,9 +233,7 @@ func (b *bindIncr[A, B]) unlinkBindChange(ctx context.Context) {
 			Unlink(b.bound, b.bindChange)
 		}
 		Unlink(b.bindChange, b.input)
-		if !b.n.graph.isNecessary(b.bindChange) {
-			b.bindChange = nil
-		}
+		b.bindChange = nil
 	}
 }
 

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime/debug"
 	"time"
 
 	"github.com/wcharczuk/go-incr"
@@ -25,7 +26,20 @@ func testContext() context.Context {
 
 func testCase(label string, action func()) {
 	fmt.Println("---" + label)
-	action()
+	debug.SetTraceback("all")
+
+	done := make(chan struct{})
+	go func() {
+		defer func() { close(done) }()
+		action()
+	}()
+
+	select {
+	case <-done:
+		return
+	case <-time.After(15 * time.Second):
+		panic("timeout")
+	}
 }
 
 func skipTestCase(label string, action func()) {

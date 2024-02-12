@@ -222,26 +222,43 @@ func (graph *Graph) String() string { return fmt.Sprintf("{graph:%s}", graph.id.
 // Internal discovery & observe methods
 //
 
-func (graph *Graph) removeParents(child INode) {
-	for _, parent := range child.Node().parents {
-		graph.removeParent(child, parent)
+func (graph *Graph) removeNodeAndMaybeParents(n INode) {
+	graph.removeNodeFromGraph(n)
+	for _, parent := range n.Node().parents {
+		if !parent.Node().isNecessary() {
+			graph.removeNodeAndMaybeParents(parent)
+		}
 	}
 }
 
-func (graph *Graph) removeParent(child, parent INode) {
-	Unlink(child, parent)
-	graph.checkIfUnnecessary(parent)
+func (graph *Graph) checkIfUnnecessary(n INode) {
+	if !n.Node().isNecessary() {
+		graph.removeNodeAndMaybeParents(n)
+	}
 }
 
-func (graph *Graph) checkIfUnnecessary(n INode) {
-	if !graph.isNecessary(n) {
-		graph.removeNodeFromGraph(n)
-		graph.removeParents(n)
+func (graph *Graph) addChild(child, parent INode) {
+	graph.addChildWithoutAdjustingHeights(child, parent)
+	if parent.Node().height >= child.Node().height {
+		if child.Node().isNecessary() {
+			_ = graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, child, parent)
+		}
+	}
+	if child.Node().isNecessary() && child.Node().ShouldRecompute() {
+		graph.recomputeHeap.add(child)
+	}
+}
+
+func (graph *Graph) addChildWithoutAdjustingHeights(child, parent INode) {
+	wasNecessary := parent.Node().isNecessary()
+	parent.Node().addChildren(child)
+	if !wasNecessary {
+		graph.becameNecessary(parent)
 	}
 }
 
 func (graph *Graph) becameNecessary(node INode) {
-	graph.initializeNode(node)
+	graph.addNodeToGraph(node)
 	_ = graph.adjustHeightsHeap.setHeight(node, heightFromScope(node)+1)
 	for _, p := range node.Node().parents {
 		if p.Node().height >= node.Node().height {
@@ -254,18 +271,10 @@ func (graph *Graph) becameNecessary(node INode) {
 	}
 }
 
-func (graph *Graph) isNecessary(n INode) bool {
-	nn := n.Node()
-	if _, isObserver := n.(IObserver); isObserver {
-		return true
-	}
-	return len(nn.children) > 0 || len(nn.observers) > 0
-}
-
-func (graph *Graph) initializeNode(gn INode) {
+func (graph *Graph) addNodeToGraph(gn INode) {
 	gnn := gn.Node()
 	gnn.graph = graph
-	graphAlreadyHasNode := graph.maybeAddNodeToGraph(gn)
+	graphAlreadyHasNode := graph.upsertNode(gn)
 	if graphAlreadyHasNode {
 		return
 	}
@@ -275,9 +284,10 @@ func (graph *Graph) initializeNode(gn INode) {
 	gnn.detectStabilize(gn)
 }
 
-func (graph *Graph) maybeAddNodeToGraph(gn INode) (ok bool) {
+func (graph *Graph) upsertNode(gn INode) (ok bool) {
 	graph.nodesMu.Lock()
 	defer graph.nodesMu.Unlock()
+
 	if _, ok = graph.nodes[gn.Node().id]; ok {
 		return
 	}
@@ -308,7 +318,7 @@ func (graph *Graph) removeNodeFromGraph(gn INode) {
 	// NOTE (wc): we never _really_ can remove the createdIn reference because
 	// we don't track construction of nodes carefully.
 	// gnn.createdIn = nil
-	gnn.graph = nil
+	// gnn.graph = nil
 	gnn.height = 0
 	gnn.heightInRecomputeHeap = 0
 	gnn.heightInAdjustHeightsHeap = 0
@@ -316,6 +326,7 @@ func (graph *Graph) removeNodeFromGraph(gn INode) {
 
 func (graph *Graph) addObserver(on IObserver) error {
 	onn := on.Node()
+	onn.observer = true
 	onn.graph = graph
 
 	graph.observersMu.Lock()
@@ -325,10 +336,6 @@ func (graph *Graph) addObserver(on IObserver) error {
 	}
 	graph.observersMu.Unlock()
 	onn.detectStabilize(on)
-
-	if err := graph.adjustHeights(on); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -355,21 +362,6 @@ func (graph *Graph) removeObserver(on IObserver) {
 	onn.setAt = 0
 	onn.changedAt = 0
 	onn.recomputedAt = 0
-}
-
-func (graph *Graph) adjustHeights(node INode) error {
-	_ = graph.adjustHeightsHeap.setHeight(node, heightFromScope(node)+1)
-	for _, p := range node.Node().parents {
-		if p.Node().height >= node.Node().height {
-			_ = graph.adjustHeightsHeap.setHeight(node, p.Node().height+1)
-		}
-	}
-	for _, parent := range node.Node().parents {
-		if err := graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, node, parent); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 //
@@ -492,7 +484,7 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	// but more to prevent us from reading the children list twice.
 	for _, c := range nn.children {
 		shouldRecompute := c.Node().ShouldRecompute()
-		if graph.isNecessary(c) && shouldRecompute {
+		if c.Node().isNecessary() && shouldRecompute {
 			graph.recomputeHeap.add(c)
 		}
 	}

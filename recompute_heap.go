@@ -34,9 +34,9 @@ type recomputeHeap struct {
 	lookup map[Identifier]INode
 }
 
-// Clear completely resets the recompute heap, preserving
+// clear completely resets the recompute heap, preserving
 // its current capacity.
-func (rh *recomputeHeap) Clear() {
+func (rh *recomputeHeap) clear() {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
 	rh.heights = make([]map[Identifier]INode, len(rh.heights))
@@ -48,6 +48,7 @@ func (rh *recomputeHeap) Clear() {
 func (rh *recomputeHeap) len() int {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
+
 	return len(rh.lookup)
 }
 
@@ -61,6 +62,7 @@ func (rh *recomputeHeap) add(nodes ...INode) {
 func (rh *recomputeHeap) fix(ids ...Identifier) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
+
 	rh.fixUnsafe(ids...)
 }
 

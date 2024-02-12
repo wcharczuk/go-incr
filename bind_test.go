@@ -78,16 +78,13 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.Equal(t, true, g.Has(o))
 
 	testutil.Equal(t, true, g.Has(av))
-	testutil.Equal(t, true, g.isNecessary(av))
 	testutil.Equal(t, true, g.Has(a0))
-	testutil.Equal(t, true, g.isNecessary(a0))
-	testutil.Equal(t, true, g.Has(a1))
-	testutil.Equal(t, false, g.isNecessary(a1))
+	testutil.Equal(t, false, g.Has(a1))
 
 	testutil.Equal(t, true, g.Has(bv))
 	testutil.Equal(t, true, g.Has(b0))
 	testutil.Equal(t, true, g.Has(b1))
-	testutil.Equal(t, true, g.Has(b2))
+	testutil.Equal(t, false, g.Has(b2))
 
 	err = g.Stabilize(ctx)
 	testutil.Nil(t, err)
@@ -135,13 +132,11 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.Equal(t, true, g.Has(av))
 	testutil.Equal(t, true, g.Has(a0))
 	testutil.Equal(t, true, g.Has(a1))
-	testutil.Equal(t, true, g.isNecessary(a1))
 
 	testutil.Equal(t, true, g.Has(bv))
 	testutil.Equal(t, true, g.Has(b0))
 	testutil.Equal(t, true, g.Has(b1))
-	testutil.Equal(t, true, g.Has(b2))
-	testutil.Equal(t, false, g.isNecessary(b2))
+	testutil.Equal(t, false, g.Has(b2))
 
 	testutil.Equal(t, "a-value", av.Value())
 	testutil.Equal(t, "a-value", bind.Value())
@@ -173,7 +168,7 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.Equal(t, 1, s1.Node().height)
 
 	testutil.Equal(t, 0, av.Node().height)
-	testutil.Equal(t, 0, a0.Node().height)
+	testutil.Equal(t, 1, a0.Node().height)
 	testutil.Equal(t, 0, a1.Node().height)
 
 	testutil.Equal(t, 0, bv.Node().height)
@@ -190,8 +185,8 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.Equal(t, true, g.Has(bind))
 	testutil.Equal(t, true, g.Has(o))
 
-	testutil.Equal(t, false, g.Has(av))
-	testutil.Equal(t, false, g.Has(a0))
+	testutil.Equal(t, true, g.Has(av))
+	testutil.Equal(t, true, g.Has(a0))
 	testutil.Equal(t, false, g.Has(a1))
 
 	testutil.Equal(t, true, g.Has(bv))
@@ -218,12 +213,12 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.Equal(t, 1, s1.Node().height)
 
 	testutil.Equal(t, 0, av.Node().height)
-	testutil.Equal(t, 0, a0.Node().height)
+	testutil.Equal(t, 1, a0.Node().height)
 	testutil.Equal(t, 0, a1.Node().height)
 
 	testutil.Equal(t, 0, bv.Node().height)
-	testutil.Equal(t, 0, b0.Node().height)
-	testutil.Equal(t, 0, b1.Node().height)
+	testutil.Equal(t, 1, b0.Node().height)
+	testutil.Equal(t, 2, b1.Node().height)
 	testutil.Equal(t, 0, b2.Node().height)
 
 	testutil.Equal(t, 4, bind.Node().height)
@@ -235,13 +230,13 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.Equal(t, true, g.Has(bind))
 	testutil.Equal(t, true, g.Has(o))
 
-	testutil.Equal(t, false, g.Has(av))
-	testutil.Equal(t, false, g.Has(a0))
+	testutil.Equal(t, true, g.Has(av))
+	testutil.Equal(t, true, g.Has(a0))
 	testutil.Equal(t, false, g.Has(a1))
 
-	testutil.Equal(t, false, g.Has(bv))
-	testutil.Equal(t, false, g.Has(b0))
-	testutil.Equal(t, false, g.Has(b1))
+	testutil.Equal(t, true, g.Has(bv))
+	testutil.Equal(t, true, g.Has(b0))
+	testutil.Equal(t, true, g.Has(b1))
 	testutil.Equal(t, false, g.Has(b2))
 
 	testutil.Equal(t, "a-value", av.Value())
@@ -281,6 +276,7 @@ func Test_Bind_scopes(t *testing.T) {
 		t3.Node().SetLabel("t3")
 		t3id = t3.Node().ID()
 		r := Map2(bs, t1, t3, concat)
+		r.Node().SetLabel("t2-map")
 		rid = r.Node().ID()
 		return r
 	})
@@ -290,6 +286,9 @@ func Test_Bind_scopes(t *testing.T) {
 
 	err := g.Stabilize(ctx)
 	testutil.Nil(t, err)
+
+	testutil.Equal(t, true, t1.Node().createdIn.isRootScope())
+	testutil.Equal(t, true, g.Has(t1))
 	testutil.Equal(t, "t1-mappedt3-mapped", o.Value())
 	testutil.NotNil(t, t1.Node().createdIn)
 	testutil.Equal(t, true, t1.Node().createdIn.isRootScope())
@@ -638,10 +637,8 @@ func Test_Bind_nested_unlinksBind(t *testing.T) {
 
 	testutil.Equal(t, true, g.Has(a00))
 	testutil.Equal(t, true, g.Has(a01))
-	testutil.Equal(t, true, g.isNecessary(a01))
-	testutil.Equal(t, true, g.Has(b00))
-	testutil.Equal(t, true, g.Has(b01))
-	testutil.Equal(t, false, g.isNecessary(b01))
+	testutil.Equal(t, false, g.Has(b00))
+	testutil.Equal(t, false, g.Has(b01))
 
 	bindv.Set("b")
 	err = g.Stabilize(ctx)
@@ -649,12 +646,10 @@ func Test_Bind_nested_unlinksBind(t *testing.T) {
 	testutil.Nil(t, dumpDot(g, homedir("bind_unobserve_01_switch_b.png")))
 	testutil.Equal(t, "b00", o.Value())
 
-	testutil.Equal(t, false, g.Has(a00))
+	testutil.Equal(t, true, g.Has(a00))
 	testutil.Equal(t, false, g.Has(a01))
-	testutil.Equal(t, false, g.isNecessary(a01))
 	testutil.Equal(t, true, g.Has(b00))
 	testutil.Equal(t, true, g.Has(b01))
-	testutil.Equal(t, true, g.isNecessary(b01))
 
 	bindv.Set("a")
 
@@ -667,7 +662,7 @@ func Test_Bind_nested_unlinksBind(t *testing.T) {
 	testutil.Equal(t, true, g.Has(a00))
 	testutil.Equal(t, true, g.Has(a01))
 
-	testutil.Equal(t, false, g.Has(b00))
+	testutil.Equal(t, true, g.Has(b00))
 	testutil.Equal(t, false, g.Has(b01))
 }
 
