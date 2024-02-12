@@ -225,11 +225,12 @@ func (b *bindIncr[A, B]) unlinkBindChange(ctx context.Context) {
 
 func (b *bindIncr[A, B]) unlinkOldBound(ctx context.Context, observers ...IObserver) {
 	if b.bound != nil {
-		Unlink(b.bound, b.bindChange)
-		Unlink(b, b.bound)
-		b.n.graph.unobserveNodes(ctx, b.bound, observers...)
+		bound := b.bound
 		b.bound = nil
-		TracePrintf(ctx, "%v unbound old rhs %v", b, b.bound)
+		Unlink(bound, b.bindChange)
+		Unlink(b, bound)
+		b.n.graph.unobserveNodes(ctx, bound, observers...)
+		TracePrintf(ctx, "%v unbound old rhs %v", b, bound)
 	}
 }
 
