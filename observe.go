@@ -78,7 +78,16 @@ func (o *observeIncr[A]) Unobserve(ctx context.Context) {
 		Unlink(o, p)
 	}
 
-	g.unobserveNodes(ctx, o.input, o)
+	// g.unobserveNodes(ctx, o.input, o)
+	for _, n := range g.observers {
+		n.Node().removeObserver(o.n.id)
+		if len(n.Node().observers) == 0 {
+			for _, handler := range n.Node().onUnobservedHandlers {
+				handler(o)
+			}
+			g.removeNodeFromGraph(n)
+		}
+	}
 	g.removeObserver(o)
 
 	o.n.children = nil
