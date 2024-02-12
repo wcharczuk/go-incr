@@ -235,7 +235,7 @@ func (graph *Graph) removeParent(child, parent INode) {
 
 func (graph *Graph) checkIfUnnecessary(n INode) {
 	if !graph.isNecessary(n) {
-		graph.removeNodeFromGraph(n)
+		graph.removeNode(n)
 		graph.removeParents(n)
 	}
 }
@@ -257,19 +257,10 @@ func (graph *Graph) becameNecessary(node INode) (err error) {
 			return
 		}
 	}
-
 	if node.Node().ShouldRecompute() {
 		graph.recomputeHeap.add(node)
 	}
 	return
-}
-
-func (graph *Graph) isNecessary(n INode) bool {
-	nn := n.Node()
-	if nn.observer {
-		return true
-	}
-	return len(nn.children) > 0 || len(nn.observers) > 0
 }
 
 func (graph *Graph) addNodeOrObserver(gn INode) error {
@@ -309,10 +300,10 @@ func (graph *Graph) addObserver(on IObserver) error {
 	graph.observersMu.Unlock()
 	onn.detectStabilize(on)
 	onn.detectObserver(on)
-	if err := graph.adjustHeights(on); err != nil {
-		return err
-	}
-	return nil
+
+	// NOTE (wc): we have to kick off adjust heights here
+	// because we aren't a typical node as we don't have any chilren!
+	return graph.adjustHeights(on)
 }
 
 func (graph *Graph) removeObserver(on IObserver) {
@@ -340,7 +331,7 @@ func (graph *Graph) removeObserver(on IObserver) {
 	onn.recomputedAt = 0
 }
 
-func (graph *Graph) removeNodeFromGraph(gn INode) {
+func (graph *Graph) removeNode(gn INode) {
 	graph.recomputeHeap.remove(gn)
 	graph.adjustHeightsHeap.remove(gn)
 
@@ -382,6 +373,14 @@ func (graph *Graph) adjustHeights(node INode) error {
 		}
 	}
 	return nil
+}
+
+func (graph *Graph) isNecessary(n INode) bool {
+	nn := n.Node()
+	if nn.observer {
+		return true
+	}
+	return len(nn.children) > 0 || len(nn.observers) > 0
 }
 
 //

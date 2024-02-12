@@ -98,7 +98,7 @@ func Test_Graph_removeNodeFromGraph(t *testing.T) {
 	g.recomputeHeap.add(mn00)
 	g.adjustHeightsHeap.add(mn00)
 
-	g.removeNodeFromGraph(mn00)
+	g.removeNode(mn00)
 
 	testutil.Equal(t, 1, g.numNodes)
 	testutil.Equal(t, false, g.recomputeHeap.has(mn00))

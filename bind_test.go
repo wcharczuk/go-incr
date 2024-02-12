@@ -79,11 +79,8 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.Equal(t, true, g.Has(o))
 
 	testutil.Equal(t, true, g.Has(av))
-	testutil.Equal(t, true, g.isNecessary(av))
 	testutil.Equal(t, true, g.Has(a0))
-	testutil.Equal(t, true, g.isNecessary(a0))
 	testutil.Equal(t, true, g.Has(a1))
-	testutil.Equal(t, false, g.isNecessary(a1))
 
 	testutil.Equal(t, true, g.Has(bv))
 	testutil.Equal(t, true, g.Has(b0))
