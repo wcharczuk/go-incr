@@ -82,6 +82,8 @@ type Node struct {
 	// cutoff is set during initialization and is a shortcut
 	// to the interface sniff for the node for the ICutoff interface.
 	cutoff func(context.Context) (bool, error)
+	// observer determines if this node is an observer.
+	observer bool
 	// always determines if we always recompute this node.
 	always bool
 	// numRecomputes is the number of times we recomputed the node
@@ -293,6 +295,12 @@ func (n *Node) detectCutoff(gn INode) {
 // as as managed by this node reference), implements IAlways.
 func (n *Node) detectAlways(gn INode) {
 	_, n.always = gn.(IAlways)
+}
+
+// detectObserver detects if a INode (which should be the same
+// as as managed by this node reference), implements IObserver.
+func (n *Node) detectObserver(gn INode) {
+	_, n.observer = gn.(IObserver)
 }
 
 // detectStabilize detects if a INode (which should be the same

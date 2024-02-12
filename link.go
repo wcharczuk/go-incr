@@ -7,7 +7,7 @@ package incr
 //
 // An error is returned if the provided inputs to the child node
 // would produce a cycle.
-func Link(child INode, parents ...INode) {
+func Link(child INode, parents ...INode) error {
 	graph := graphFromScope(child)
 	wasNecessary := graph.isNecessary(child)
 	child.Node().addParents(parents...)
@@ -15,11 +15,16 @@ func Link(child INode, parents ...INode) {
 		parent.Node().addChildren(child)
 	}
 	if !wasNecessary {
-		graph.becameNecessary(child)
+		if err := graph.becameNecessary(child); err != nil {
+			return err
+		}
 	}
 	for _, parent := range parents {
-		_ = graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, child, parent)
+		if err := graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, child, parent); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func graphFromScope(n INode) *Graph {
