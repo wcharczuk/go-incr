@@ -30,7 +30,6 @@ func Observe[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
 // of incrementals starting a given input.
 type ObserveIncr[A any] interface {
 	Incr[A]
-
 	// Unobserve effectively removes a given node from the observed ref count for a graph.
 	//
 	// As well, it unlinks the observer from its parent nodes, and as a result

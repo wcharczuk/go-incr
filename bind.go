@@ -61,7 +61,6 @@ type BindIncr[A any] interface {
 	Incr[A]
 	IStabilize
 	IBind
-	IUnobserve
 	fmt.Stringer
 }
 
@@ -156,11 +155,6 @@ func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
 		b.n.boundAt = b.n.graph.stabilizationNum
 	}
 	return nil
-}
-
-func (b *bindIncr[A, B]) Unobserve(ctx context.Context, observers ...IObserver) {
-	b.unlinkOldBound(ctx, observers...)
-	b.unlinkBindChange(ctx)
 }
 
 func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
