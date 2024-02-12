@@ -155,75 +155,6 @@ func Test_Stabilize_updateHandlers(t *testing.T) {
 	Equal(t, 2, updates)
 }
 
-func Test_Stabilize_observedHandlers(t *testing.T) {
-	ctx := testContext()
-	g := New()
-
-	v0 := Var(g, "foo")
-	v1 := Var(g, "bar")
-	m0 := Map2(g, v0, v1, func(a, b string) string {
-		return a + " " + b
-	})
-
-	var observes int
-	m0.Node().OnObserved(func(IObserver) {
-		observes++
-	})
-
-	_ = Observe(g, m0)
-
-	err := g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, 1, observes)
-
-	v0.Set("not foo")
-	err = g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, 1, observes)
-
-	_ = Observe(g, m0)
-	Equal(t, 2, observes)
-}
-
-func Test_Stabilize_unobservedHandlers(t *testing.T) {
-	ctx := testContext()
-	g := New()
-
-	v0 := Var(g, "foo")
-	v1 := Var(g, "bar")
-	m0 := Map2(g, v0, v1, func(a, b string) string {
-		return a + " " + b
-	})
-
-	var observes, unobserves int
-	m0.Node().OnObserved(func(IObserver) {
-		observes++
-	})
-	m0.Node().OnUnobserved(func(IObserver) {
-		unobserves++
-	})
-
-	o0 := Observe(g, m0)
-
-	err := g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, 1, observes)
-	Equal(t, 0, unobserves)
-
-	v0.Set("not foo")
-	err = g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, 1, observes)
-
-	_ = Observe(g, m0)
-	Equal(t, 2, observes)
-	Equal(t, 0, unobserves)
-
-	o0.Unobserve(ctx)
-	Equal(t, 2, observes)
-	Equal(t, 1, unobserves)
-}
-
 func Test_Stabilize_unevenHeights(t *testing.T) {
 	ctx := testContext()
 	g := New()
@@ -524,18 +455,16 @@ func Test_Stabilize_Bind(t *testing.T) {
 
 	_ = Observe(g, mb)
 
-	Equal(t, true, g.IsObserving(sw))
+	Equal(t, true, g.Has(sw))
 
 	err := g.Stabilize(ctx)
 	Nil(t, err)
 
-	Equal(t, false, g.IsObserving(i0))
-	Equal(t, false, g.IsObserving(m0))
-	Nil(t, i0.Node().graph, "i0 should not be in the graph after the first stabilization")
-	Nil(t, m0.Node().graph, "m0 should not be in the graph after the first stabilization")
+	Equal(t, true, g.Has(i0))
+	Equal(t, true, g.Has(m0))
 
-	Equal(t, true, g.IsObserving(i1))
-	Equal(t, true, g.IsObserving(m1))
+	Equal(t, true, g.Has(i1))
+	Equal(t, true, g.Has(m1))
 	NotNil(t, i1.Node().graph, "i1 should be in the graph after the first stabilization")
 	NotNil(t, m1.Node().graph, "m1 should be in the graph after the first stabilization")
 
@@ -547,15 +476,13 @@ func Test_Stabilize_Bind(t *testing.T) {
 	err = g.Stabilize(ctx)
 	Nil(t, err)
 
-	Equal(t, true, g.IsObserving(i0))
-	Equal(t, true, g.IsObserving(m0))
+	Equal(t, true, g.Has(i0))
+	Equal(t, true, g.Has(m0))
 	NotNil(t, i0.Node().graph, "i0 should be in the graph after the second stabilization")
 	NotNil(t, m0.Node().graph, "m0 should be in the graph after the second stabilization")
 
-	Equal(t, false, g.IsObserving(i1))
-	Equal(t, false, g.IsObserving(m1))
-	Nil(t, i1.Node().graph, "i1 should not be in the graph after the second stabilization")
-	Nil(t, m1.Node().graph, "m1 should not be in the graph after the second stabilization")
+	Equal(t, true, g.Has(i1))
+	Equal(t, true, g.Has(m1))
 
 	Equal(t, "foo-moo-baz", mb.Value())
 }
@@ -590,7 +517,6 @@ func Test_Stabilize_BindIf(t *testing.T) {
 	err = g.Stabilize(ctx)
 	Nil(t, err)
 
-	Nil(t, i1.Node().graph, "i0 should be in the graph after the third stabilization")
 	NotNil(t, i0.Node().graph, "i1 should not be in the graph after the third stabilization")
 
 	Equal(t, "foo", b.Value())
@@ -708,7 +634,7 @@ func Test_Stabilize_Bind4(t *testing.T) {
 	Equal(t, "xaxbxcxd", o.Value())
 }
 
-func Test_Stabilize_cutoff(t *testing.T) {
+func Test_Stabilize_Cutoff(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
@@ -755,7 +681,7 @@ func Test_Stabilize_cutoff(t *testing.T) {
 	Equal(t, 13.26, output.Value())
 }
 
-func Test_Stabilize_cutoffContext(t *testing.T) {
+func Test_Stabilize_CutoffContext(t *testing.T) {
 	ctx := testContext()
 	g := New()
 	input := Var(g, 3.14)
@@ -803,7 +729,7 @@ func Test_Stabilize_cutoffContext(t *testing.T) {
 	Equal(t, 13.26, output.Value())
 }
 
-func Test_Stabilize_cutoffContext_error(t *testing.T) {
+func Test_Stabilize_CutoffContext_error(t *testing.T) {
 	ctx := testContext()
 	g := New()
 	input := Var(g, 3.14)
@@ -849,7 +775,7 @@ func Test_Stabilize_cutoffContext_error(t *testing.T) {
 	Equal(t, 0, output.Value())
 }
 
-func Test_Stabilize_cutoff2(t *testing.T) {
+func Test_Stabilize_Cutoff2(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
@@ -912,7 +838,7 @@ func Test_Stabilize_cutoff2(t *testing.T) {
 	Equal(t, 13.26, output.Value())
 }
 
-func Test_Stabilize_cutoff2Context_error(t *testing.T) {
+func Test_Stabilize_Cutoff2Context_error(t *testing.T) {
 	ctx := testContext()
 	g := New()
 	epsilon := Var(g, 0.1)
@@ -960,7 +886,7 @@ func Test_Stabilize_cutoff2Context_error(t *testing.T) {
 	Equal(t, 0, output.Value())
 }
 
-func Test_Stabilize_watch(t *testing.T) {
+func Test_Stabilize_Watch(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
@@ -1270,7 +1196,7 @@ func Test_Stabilize_MapNContext_error(t *testing.T) {
 	Equal(t, 0, mn.Value())
 }
 
-func Test_Stabilize_func(t *testing.T) {
+func Test_Stabilize_Func(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
@@ -1302,7 +1228,7 @@ func Test_Stabilize_func(t *testing.T) {
 	Equal(t, "not hello world!", m.Value())
 }
 
-func Test_Stabilize_foldMap(t *testing.T) {
+func Test_Stabilize_FoldMap(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
@@ -1324,7 +1250,7 @@ func Test_Stabilize_foldMap(t *testing.T) {
 	Equal(t, 21, mf.Value())
 }
 
-func Test_Stabilize_foldLeft(t *testing.T) {
+func Test_Stabilize_FoldLeft(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
@@ -1346,7 +1272,7 @@ func Test_Stabilize_foldLeft(t *testing.T) {
 	Equal(t, "123456", mf.Value())
 }
 
-func Test_Stabilize_foldRight(t *testing.T) {
+func Test_Stabilize_FoldRight(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
@@ -1373,7 +1299,7 @@ func Test_Stabilize_foldRight(t *testing.T) {
 	Equal(t, "654321654321", mf.Value())
 }
 
-func Test_Stabilize_freeze(t *testing.T) {
+func Test_Stabilize_Freeze(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
@@ -1395,7 +1321,7 @@ func Test_Stabilize_freeze(t *testing.T) {
 	Equal(t, "hello", fv.Value())
 }
 
-func Test_Stabilize_always_cutoff(t *testing.T) {
+func Test_Stabilize_Always_Cutoff(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
@@ -1430,7 +1356,7 @@ func Test_Stabilize_always_cutoff(t *testing.T) {
 	Equal(t, "test-2", o.Value())
 }
 
-func Test_Stabilize_always_cutoff_error(t *testing.T) {
+func Test_Stabilize_Always_Cutoff_error(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
@@ -1506,7 +1432,7 @@ func Test_Stabilize_handlers(t *testing.T) {
 	Equal(t, true, endWasBlueDye)
 }
 
-func Test_Stabilize_bindCombination(t *testing.T) {
+func Test_Stabilize_Bind_jsCombination(t *testing.T) {
 	ctx := testContext()
 	g := New()
 

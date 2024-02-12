@@ -20,7 +20,6 @@ func Test_Always(t *testing.T) {
 	m1.Node().OnUpdate(func(_ context.Context) {
 		updates++
 	})
-
 	o := Observe(g, m1)
 
 	ctx := testContext()

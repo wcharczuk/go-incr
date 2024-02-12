@@ -44,7 +44,6 @@ func noError(err error) {
 }
 
 func main() {
-
 	ctx := testContext()
 	graph := incr.New()
 	cache := make(map[string]incr.Incr[*int])
@@ -56,7 +55,6 @@ func main() {
 		key := fmt.Sprintf("f-%d", t)
 		if _, ok := cache[key]; ok {
 			return incr.WithinScope(bs, cache[key])
-			// return cache[key]
 		}
 		r := incr.Bind(graph, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
 			if t <= 0 {
@@ -151,7 +149,7 @@ func main() {
 		return o
 	}
 
-	testCase("month_of_runway = if burn > 0: cash_balance / burn else 0. Calculate months of runway then burn", func() {
+	skipTestCase("month_of_runway = if burn > 0: cash_balance / burn else 0. Calculate months of runway then burn", func() {
 		num := 24
 
 		fmt.Println("Calculating months of runway for t= 1 to 24")
@@ -183,7 +181,7 @@ func main() {
 		fmt.Printf(fmt.Sprintf("Calculating burn took %s \n", elapsed))
 	})
 
-	testCase("month_of_runway = if burn > 0: cash_balance / burn else 0. Calculate burn then months of runway", func() {
+	skipTestCase("month_of_runway = if burn > 0: cash_balance / burn else 0. Calculate burn then months of runway", func() {
 		num := 24
 		graph := incr.New()
 
@@ -212,6 +210,62 @@ func main() {
 		noError(err)
 		elapsed = time.Since(start)
 		fmt.Printf(fmt.Sprintf("Calculating months of runway took %s \n", elapsed))
+	})
+
+	testCase("node amplification yields slower and slower stabilization", func() {
+		// w := func(bs incr.Scope, t int) incr.Incr[*int] {
+		// 	key := fmt.Sprintf("w-%d", t)
+		// 	if _, ok := cache[key]; ok {
+		// 		return incr.WithinScope(bs, cache[key])
+		// 	}
+
+		// 	r := incr.Bind(bs, incr.Var(bs, "fakeformula"), func(bs incr.Scope, formula string) incr.Incr[*int] {
+		// 		out := 1
+		// 		return incr.Return(bs, &out)
+		// 	})
+		// 	r.Node().SetLabel(fmt.Sprintf("w(%d)", t))
+		// 	cache[key] = r
+		// 	return r
+		// }
+
+		graph := incr.New(incr.GraphMaxRecomputeHeapHeight(1024))
+		max_t := 50
+
+		// baseline
+		start := time.Now()
+
+		observers := make([]incr.IObserver, max_t)
+		for i := 0; i < max_t; i++ {
+			o := monthsOfRunway(graph, i)
+			observers[i] = incr.Observe(graph, o)
+		}
+		_ = graph.Stabilize(ctx)
+		elapsed := time.Since(start)
+		fmt.Printf(fmt.Sprintf("Baseline calculation of months of runway for t= %d to %d took %s\n", 0, max_t, elapsed))
+
+		maxMultiplier := 10
+		for k := 1; k <= maxMultiplier; k++ {
+
+			graph = incr.New(incr.GraphMaxRecomputeHeapHeight(1024))
+
+			observers = make([]incr.IObserver, max_t)
+
+			num := 5000 * k
+			start = time.Now()
+
+			for i := 0; i < max_t; i++ {
+				o := monthsOfRunway(graph, i)
+				observers[i] = incr.Observe(graph, o)
+			}
+			_ = graph.Stabilize(ctx)
+			for i := 0; i < max_t; i++ {
+				observers[i].Unobserve(ctx)
+			}
+
+			elapsed = time.Since(start)
+			fmt.Printf("Calculating months of runway for t= %d to %d took %s when prior_count(observed nodes) >%d\n", 0, max_t, elapsed, num)
+			fmt.Printf("Graph node count=%d, observer count=%d\n", incr.ExpertGraph(graph).NumNodes(), incr.ExpertGraph(graph).NumObservers())
+		}
 	})
 }
 

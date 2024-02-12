@@ -1,5 +1,7 @@
 package incr
 
+import "fmt"
+
 // WithinScope updates a node's createdIn scope to reflect a new
 // inner-most bind scope applied by a bind.
 //
@@ -26,21 +28,29 @@ func WithinScope[A INode](scope Scope, node A) A {
 type Scope interface {
 	isRootScope() bool
 	scopeGraph() *Graph
+	scopeHeight() int
+	fmt.Stringer
 }
 
 // BindScope is the scope that nodes are created in.
 //
 // Its either nil or the most recent bind.
 type bindScope struct {
+	input    INode
 	bind     INode
 	rhsNodes []INode
 }
 
 func (bs *bindScope) isRootScope() bool  { return false }
 func (bs *bindScope) scopeGraph() *Graph { return bs.bind.Node().graph }
+func (bs *bindScope) scopeHeight() int   { return bs.input.Node().height }
+
+func (bs *bindScope) String() string {
+	return fmt.Sprintf("{%v}", bs.bind)
+}
 
 func maybeRemoveScopeNode(scope Scope, node INode) {
-	if scope != nil && scope.isRootScope() {
+	if scope == nil || scope != nil && scope.isRootScope() {
 		return
 	}
 	if typed, ok := scope.(*bindScope); ok && typed != nil {

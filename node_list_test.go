@@ -7,9 +7,11 @@ import (
 )
 
 func Test_remove(t *testing.T) {
-	n0 := newMockBareNode()
-	n1 := newMockBareNode()
-	n2 := newMockBareNode()
+	g := New()
+
+	n0 := newMockBareNode(g)
+	n1 := newMockBareNode(g)
+	n2 := newMockBareNode(g)
 	nodes := []INode{
 		n0, n1, n2,
 	}

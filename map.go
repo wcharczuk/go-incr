@@ -17,13 +17,13 @@ func Map[A, B any](scope Scope, a Incr[A], fn func(A) B) Incr[B] {
 // a new incremental of the output type of that function but is context aware
 // and can also return an error, aborting stabilization.
 func MapContext[A, B any](scope Scope, a Incr[A], fn func(context.Context, A) (B, error)) Incr[B] {
-	m := &mapIncr[A, B]{
+	m := WithinScope(scope, &mapIncr[A, B]{
 		n:  NewNode("map"),
 		a:  a,
 		fn: fn,
-	}
+	})
 	Link(m, a)
-	return WithinScope(scope, m)
+	return m
 }
 
 var (

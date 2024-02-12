@@ -7,11 +7,13 @@ import (
 )
 
 func Test_recomputeHeap_add(t *testing.T) {
+	g := New()
+
 	rh := newRecomputeHeap(32)
 
-	n50 := newHeightIncr(5)
-	n60 := newHeightIncr(6)
-	n70 := newHeightIncr(7)
+	n50 := newHeightIncr(g, 5)
+	n60 := newHeightIncr(g, 6)
+	n70 := newHeightIncr(g, 7)
 
 	rh.add(n50)
 
@@ -57,22 +59,24 @@ func Test_recomputeHeap_add(t *testing.T) {
 }
 
 func Test_recomputeHeap_removeMinHeight(t *testing.T) {
+	g := New()
+
 	rh := newRecomputeHeap(10)
 
-	n00 := newHeightIncr(0)
-	n01 := newHeightIncr(0)
-	n02 := newHeightIncr(0)
+	n00 := newHeightIncr(g, 0)
+	n01 := newHeightIncr(g, 0)
+	n02 := newHeightIncr(g, 0)
 
-	n10 := newHeightIncr(1)
-	n11 := newHeightIncr(1)
-	n12 := newHeightIncr(1)
-	n13 := newHeightIncr(1)
+	n10 := newHeightIncr(g, 1)
+	n11 := newHeightIncr(g, 1)
+	n12 := newHeightIncr(g, 1)
+	n13 := newHeightIncr(g, 1)
 
-	n50 := newHeightIncr(5)
-	n51 := newHeightIncr(5)
-	n52 := newHeightIncr(5)
-	n53 := newHeightIncr(5)
-	n54 := newHeightIncr(5)
+	n50 := newHeightIncr(g, 5)
+	n51 := newHeightIncr(g, 5)
+	n52 := newHeightIncr(g, 5)
+	n53 := newHeightIncr(g, 5)
+	n54 := newHeightIncr(g, 5)
 
 	rh.add(n00)
 	rh.add(n01)
@@ -139,13 +143,14 @@ func Test_recomputeHeap_removeMinHeight(t *testing.T) {
 }
 
 func Test_recomputeHeap_remove(t *testing.T) {
+	g := New()
 	rh := newRecomputeHeap(10)
-	n10 := newHeightIncr(1)
-	n11 := newHeightIncr(1)
-	n20 := newHeightIncr(2)
-	n21 := newHeightIncr(2)
-	n22 := newHeightIncr(2)
-	n30 := newHeightIncr(3)
+	n10 := newHeightIncr(g, 1)
+	n11 := newHeightIncr(g, 1)
+	n20 := newHeightIncr(g, 2)
+	n21 := newHeightIncr(g, 2)
+	n22 := newHeightIncr(g, 2)
+	n30 := newHeightIncr(g, 3)
 
 	// this should just return
 	rh.remove(n10)
@@ -233,16 +238,17 @@ func Test_recomputeHeap_maybeAddNewHeights(t *testing.T) {
 }
 
 func Test_recomputeHeap_add_adjustsHeights(t *testing.T) {
+	g := New()
 	rh := newRecomputeHeap(8)
 	Equal(t, 8, len(rh.heights))
 
-	v0 := newHeightIncr(32)
+	v0 := newHeightIncr(g, 32)
 	rh.add(v0)
 	Equal(t, 33, len(rh.heights))
 	Equal(t, 32, rh.minHeight)
 	Equal(t, 32, rh.maxHeight)
 
-	v1 := newHeightIncr(64)
+	v1 := newHeightIncr(g, 64)
 	rh.add(v1)
 	Equal(t, 65, len(rh.heights))
 	Equal(t, 32, rh.minHeight)
@@ -250,38 +256,40 @@ func Test_recomputeHeap_add_adjustsHeights(t *testing.T) {
 }
 
 func Test_recomputeHeap_add_regression2(t *testing.T) {
+	g := New()
+
 	// another real world use case! also insane!
 	rh := newRecomputeHeap(256)
 
-	observer4945d288 := newHeightIncr(1)
+	observer4945d288 := newHeightIncr(g, 1)
 	rh.add(observer4945d288)
-	observer87df48be := newHeightIncr(1)
+	observer87df48be := newHeightIncr(g, 1)
 	rh.add(observer87df48be)
-	mapf2cb6e46 := newHeightIncr(0)
+	mapf2cb6e46 := newHeightIncr(g, 0)
 	rh.add(mapf2cb6e46)
-	map26e9bfb2a := newHeightIncr(0)
+	map26e9bfb2a := newHeightIncr(g, 0)
 	rh.add(map26e9bfb2a)
 	map26e9bfb2a.n.height = 2
 	rh.add(map26e9bfb2a)
-	map2dfe7c676 := newHeightIncr(1)
+	map2dfe7c676 := newHeightIncr(g, 1)
 	rh.add(map2dfe7c676)
-	map2aa9d55f9 := newHeightIncr(1)
+	map2aa9d55f9 := newHeightIncr(g, 1)
 	rh.add(map2aa9d55f9)
-	observerbaad6dd3 := newHeightIncr(1)
+	observerbaad6dd3 := newHeightIncr(g, 1)
 	rh.add(observerbaad6dd3)
-	map2aa3f9a14 := newHeightIncr(1)
+	map2aa3f9a14 := newHeightIncr(g, 1)
 	rh.add(map2aa3f9a14)
-	observer6e9e8864 := newHeightIncr(1)
+	observer6e9e8864 := newHeightIncr(g, 1)
 	rh.add(observer6e9e8864)
-	varb35bfa8a := newHeightIncr(1)
+	varb35bfa8a := newHeightIncr(g, 1)
 	rh.add(varb35bfa8a)
-	var54b93408 := newHeightIncr(1)
+	var54b93408 := newHeightIncr(g, 1)
 	rh.add(var54b93408)
-	alwaysc83986c6 := newHeightIncr(0)
+	alwaysc83986c6 := newHeightIncr(g, 0)
 	rh.add(alwaysc83986c6)
-	cutoff9d454a57 := newHeightIncr(0)
+	cutoff9d454a57 := newHeightIncr(g, 0)
 	rh.add(cutoff9d454a57)
-	varc0898518 := newHeightIncr(1)
+	varc0898518 := newHeightIncr(g, 1)
 	rh.add(varc0898518)
 	cutoff9d454a57.n.height = 4
 	rh.add(cutoff9d454a57)
@@ -313,12 +321,14 @@ func Test_recomputeHeap_add_regression2(t *testing.T) {
 }
 
 func Test_recomputeHeap_fix(t *testing.T) {
+	g := New()
+
 	rh := newRecomputeHeap(8)
-	v0 := newHeightIncr(2)
+	v0 := newHeightIncr(g, 2)
 	rh.add(v0)
-	v1 := newHeightIncr(3)
+	v1 := newHeightIncr(g, 3)
 	rh.add(v1)
-	v2 := newHeightIncr(4)
+	v2 := newHeightIncr(g, 4)
 	rh.add(v2)
 
 	Equal(t, 2, rh.minHeight)
@@ -420,11 +430,12 @@ func Test_recomputeHeap_sanityCheck_badItemHeight(t *testing.T) {
 }
 
 func Test_recomputeHeap_clear(t *testing.T) {
+	g := New()
 	rh := newRecomputeHeap(32)
 
-	n50 := newHeightIncr(5)
-	n60 := newHeightIncr(6)
-	n70 := newHeightIncr(7)
+	n50 := newHeightIncr(g, 5)
+	n60 := newHeightIncr(g, 6)
+	n70 := newHeightIncr(g, 7)
 
 	rh.add(n50)
 	rh.add(n60)

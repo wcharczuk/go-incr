@@ -5,4 +5,5 @@ package incr
 func Unlink(child, input INode) {
 	child.Node().removeParent(input.Node().id)
 	input.Node().removeChild(child.Node().id)
+	child.Node().createdIn.scopeGraph().checkIfUnnecessary(child)
 }

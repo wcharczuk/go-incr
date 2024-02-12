@@ -22,15 +22,13 @@ func Cutoff[A any](bs Scope, i Incr[A], fn CutoffFunc[A]) Incr[A] {
 // node if the difference between the previous and latest values are not
 // significant enough to warrant a full recomputation of the children of this node.
 func CutoffContext[A any](bs Scope, i Incr[A], fn CutoffContextFunc[A]) Incr[A] {
-	o := &cutoffIncr[A]{
+	o := WithinScope(bs, &cutoffIncr[A]{
 		n:  NewNode("cutoff"),
 		i:  i,
 		fn: fn,
-	}
-	// we short circuit setup of the node cutoff reference here.
-	// this can be discovered in initialization but saves a step.
+	})
 	Link(o, i)
-	return WithinScope(bs, o)
+	return o
 }
 
 // CutoffFunc is a function that implements cutoff checking.

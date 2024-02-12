@@ -2,6 +2,7 @@ package incr
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -29,7 +30,7 @@ func New(opts ...GraphOption) *Graph {
 		id:                       NewIdentifier(),
 		stabilizationNum:         1,
 		status:                   StatusNotStabilizing,
-		observed:                 make(map[Identifier]INode),
+		nodes:                    make(map[Identifier]INode),
 		observers:                make(map[Identifier]IObserver),
 		recomputeHeap:            newRecomputeHeap(options.MaxHeight),
 		adjustHeightsHeap:        newAdjustHeightsHeap(options.MaxHeight),
@@ -76,10 +77,10 @@ type Graph struct {
 	// label is a descriptive label for the graph
 	label string
 
-	observedMu sync.Mutex
+	nodesMu sync.Mutex
 	// observed are the nodes that the graph currently observes
 	// organized by node id.
-	observed map[Identifier]INode
+	nodes map[Identifier]INode
 
 	// observersMu interlocks acces to observers
 	observersMu sync.Mutex
@@ -171,10 +172,10 @@ func (graph *Graph) IsStabilizing() bool {
 }
 
 // IsObserving returns if a graph is observing a given node.
-func (graph *Graph) IsObserving(gn INode) (ok bool) {
-	graph.observedMu.Lock()
-	_, ok = graph.observed[gn.Node().id]
-	graph.observedMu.Unlock()
+func (graph *Graph) Has(gn INode) (ok bool) {
+	graph.nodesMu.Lock()
+	_, ok = graph.nodes[gn.Node().id]
+	graph.nodesMu.Unlock()
 	return
 }
 
@@ -213,77 +214,85 @@ func (graph *Graph) isRootScope() bool { return true }
 
 func (graph *Graph) scopeGraph() *Graph { return graph }
 
+func (graph *Graph) scopeHeight() int { return -1 }
+
+func (graph *Graph) String() string { return fmt.Sprintf("{graph:%s}", graph.id.Short()) }
+
 //
 // Internal discovery & observe methods
 //
 
-// observeNodes traverses up from a given node, adding a given
-// list of observers as "observing" that node, and recursing through it's inputs or parents.
-func (graph *Graph) observeNodes(gn INode, observers ...IObserver) {
-	graph.observeSingleNode(gn, observers...)
-	for _, p := range gn.Node().parents {
-		graph.observeNodes(p, observers...)
+func (graph *Graph) removeParents(child INode) {
+	for _, parent := range child.Node().parents {
+		graph.removeParent(child, parent)
 	}
 }
 
-func (graph *Graph) observeSingleNode(gn INode, observers ...IObserver) {
-	gnn := gn.Node()
+func (graph *Graph) removeParent(child, parent INode) {
+	Unlink(child, parent)
+	graph.checkIfUnnecessary(parent)
+}
 
-	gnn.addObservers(observers...)
-	alreadyObservedByGraph := graph.maybeAddObservedNode(gn)
-	if alreadyObservedByGraph {
+func (graph *Graph) checkIfUnnecessary(n INode) {
+	if !graph.isNecessary(n) {
+		graph.removeNodeFromGraph(n)
+		graph.removeParents(n)
+	}
+}
+
+func (graph *Graph) becameNecessary(node INode) {
+	graph.initializeNode(node)
+	_ = graph.adjustHeightsHeap.setHeight(node, heightFromScope(node)+1)
+	for _, p := range node.Node().parents {
+		if p.Node().height >= node.Node().height {
+			_ = graph.adjustHeightsHeap.setHeight(node, p.Node().height+1)
+		}
+		graph.becameNecessary(p)
+	}
+
+	if node.Node().ShouldRecompute() {
+		graph.recomputeHeap.add(node)
+	}
+}
+
+func (graph *Graph) isNecessary(n INode) bool {
+	nn := n.Node()
+	if _, isObserver := n.(IObserver); isObserver {
+		return true
+	}
+	return len(nn.children) > 0 || len(nn.observers) > 0
+}
+
+func (graph *Graph) initializeNode(gn INode) {
+	gnn := gn.Node()
+	gnn.graph = graph
+	graphAlreadyHasNode := graph.maybeAddNodeToGraph(gn)
+	if graphAlreadyHasNode {
 		return
 	}
 	graph.numNodes++
-	gnn.graph = graph
-	for _, p := range gnn.parents {
-		_ = graph.adjustHeightsHeap.ensureHeightRequirement(gn, p)
-	}
 	gnn.detectCutoff(gn)
 	gnn.detectAlways(gn)
 	gnn.detectStabilize(gn)
-	if gnn.ShouldRecompute() {
-		graph.recomputeHeap.add(gn)
-	}
 }
 
-func (graph *Graph) maybeAddObservedNode(gn INode) (ok bool) {
-	graph.observedMu.Lock()
-	defer graph.observedMu.Unlock()
-	if _, ok = graph.observed[gn.Node().id]; ok {
+func (graph *Graph) maybeAddNodeToGraph(gn INode) (ok bool) {
+	graph.nodesMu.Lock()
+	defer graph.nodesMu.Unlock()
+	if _, ok = graph.nodes[gn.Node().id]; ok {
 		return
 	}
-	graph.observed[gn.Node().id] = gn
+	graph.nodes[gn.Node().id] = gn
 	return
-}
-
-func (graph *Graph) unobserveNodes(ctx context.Context, gn INode, observers ...IObserver) {
-	graph.unobserveSingleNode(ctx, gn, observers...)
-	gnn := gn.Node()
-	parents := gnn.Parents()
-	for _, p := range parents {
-		graph.unobserveNodes(ctx, p, observers...)
-	}
-}
-
-func (graph *Graph) unobserveSingleNode(ctx context.Context, gn INode, observers ...IObserver) {
-	remainingObserverCount := graph.removeNodeObservers(gn, observers...)
-	if remainingObserverCount > 0 {
-		return
-	}
-	if typed, ok := gn.(IUnobserve); ok {
-		typed.Unobserve(ctx, observers...)
-	}
-	graph.removeNodeFromGraph(gn)
 }
 
 func (graph *Graph) removeNodeFromGraph(gn INode) {
 	graph.recomputeHeap.remove(gn)
 	graph.adjustHeightsHeap.remove(gn)
 
-	graph.observedMu.Lock()
-	delete(graph.observed, gn.Node().id)
-	graph.observedMu.Unlock()
+	graph.nodesMu.Lock()
+	delete(graph.nodes, gn.Node().id)
+	graph.nodesMu.Unlock()
 
 	graph.numNodes--
 
@@ -296,64 +305,32 @@ func (graph *Graph) removeNodeFromGraph(gn INode) {
 	gnn.setAt = 0
 	gnn.boundAt = 0
 	gnn.recomputedAt = 0
-	gnn.createdIn = nil
+
+	// NOTE (wc): we never _really_ can remove the createdIn reference because
+	// we don't track construction of nodes carefully.
+	// gnn.createdIn = nil
 	gnn.graph = nil
 	gnn.height = 0
 	gnn.heightInRecomputeHeap = 0
 	gnn.heightInAdjustHeightsHeap = 0
 }
 
-func (graph *Graph) removeNodeObservers(gn INode, observers ...IObserver) (remainingObserverCount int) {
-	gnn := gn.Node()
-	for _, on := range observers {
-		if graph.canReachObserver(gn, on.Node().id) {
-			continue
-		}
-		gnn.removeObserver(on.Node().id)
-		for _, handler := range gnn.onUnobservedHandlers {
-			handler(on)
-		}
-	}
-	remainingObserverCount = len(gnn.observers)
-	return
-}
-
-func (graph *Graph) canReachObserver(gn INode, oid Identifier) bool {
-	return graph.canReachObserverRecursive(gn, gn, oid)
-}
-
-func (graph *Graph) canReachObserverRecursive(root, gn INode, oid Identifier) bool {
-	for _, c := range gn.Node().children {
-		// if any of our children still have the observer in their observed lists
-		// return true immediately
-		if _, ok := c.Node().observerLookup[oid]; ok {
-			return true
-		}
-		if c.Node().id == oid {
-			return true
-		}
-		if graph.canReachObserverRecursive(root, c, oid) {
-			return true
-		}
-	}
-	return false
-}
-
-func (graph *Graph) addObserver(on IObserver) {
+func (graph *Graph) addObserver(on IObserver) error {
 	onn := on.Node()
 	onn.graph = graph
 
 	graph.observersMu.Lock()
 	if _, ok := graph.observers[onn.id]; !ok {
 		graph.numNodes++
+		graph.observers[onn.id] = on
 	}
-	graph.observers[onn.id] = on
 	graph.observersMu.Unlock()
-
 	onn.detectStabilize(on)
-	for _, p := range onn.parents {
-		_ = graph.adjustHeightsHeap.ensureHeightRequirement(on, p)
+
+	if err := graph.adjustHeights(on); err != nil {
+		return err
 	}
+	return nil
 }
 
 func (graph *Graph) removeObserver(on IObserver) {
@@ -369,6 +346,31 @@ func (graph *Graph) removeObserver(on IObserver) {
 	graph.observersMu.Lock()
 	delete(graph.observers, onn.id)
 	graph.observersMu.Unlock()
+
+	graph.recomputeHeap.remove(on)
+	graph.adjustHeightsHeap.remove(on)
+
+	onn.height = 0
+	onn.heightInRecomputeHeap = 0
+	onn.heightInAdjustHeightsHeap = 0
+	onn.setAt = 0
+	onn.changedAt = 0
+	onn.recomputedAt = 0
+}
+
+func (graph *Graph) adjustHeights(node INode) error {
+	_ = graph.adjustHeightsHeap.setHeight(node, heightFromScope(node)+1)
+	for _, p := range node.Node().parents {
+		if p.Node().height >= node.Node().height {
+			_ = graph.adjustHeightsHeap.setHeight(node, p.Node().height+1)
+		}
+	}
+	for _, parent := range node.Node().parents {
+		if err := graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, node, parent); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 //
@@ -448,6 +450,7 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	graph.numNodesRecomputed++
 	nn := n.Node()
 	nn.numRecomputes++
+
 	nn.recomputedAt = graph.stabilizationNum
 
 	var shouldCutoff bool
@@ -467,14 +470,15 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	graph.numNodesChanged++
 	nn.numChanges++
 
-	// we have to propagate the "changed" or "recomputed" status to children
-	nn.changedAt = graph.stabilizationNum
 	if err = nn.maybeStabilize(ctx); err != nil {
 		for _, eh := range nn.onErrorHandlers {
 			eh(ctx, err)
 		}
 		return
 	}
+
+	// we have to propagate the "changed" status to children
+	nn.changedAt = graph.stabilizationNum
 
 	if len(nn.onUpdateHandlers) > 0 {
 		graph.handleAfterStabilization[nn.id] = append(graph.handleAfterStabilization[nn.id], nn.onUpdateHandlers...)
@@ -494,17 +498,4 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 		}
 	}
 	return
-}
-
-func (graph *Graph) isNecessary(n INode) bool {
-	ng := n.Node().graph
-	return ng != nil && ng.id == graph.id
-}
-
-//
-// internal height management methods
-//
-
-func (graph *Graph) recomputeHeights() error {
-	return graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap)
 }

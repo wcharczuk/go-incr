@@ -8,12 +8,12 @@ import (
 // Freeze yields an incremental that takes the value of an
 // input incremental and doesn't change thereafter.
 func Freeze[A any](scope Scope, i Incr[A]) Incr[A] {
-	o := &freezeIncr[A]{
+	o := WithinScope(scope, &freezeIncr[A]{
 		n: NewNode("freeze"),
 		i: i,
-	}
+	})
 	Link(o, i)
-	return WithinScope(scope, o)
+	return o
 }
 
 var (

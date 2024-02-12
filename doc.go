@@ -1,8 +1,6 @@
 /*
-Incr implements an incremental computation graph.
+Incr is a library that enables building incremental computation graphs.
 
-This graph is useful for partially recomputing a small subset of a very large graph of computation nodes.
-
-It is largely based off Jane Street's `incremental` ocaml library, with some go specific changes.
+These graphs are useful for partially recomputing a small subset of a very large number of computations if only a subset of the inputs change.
 */
 package incr

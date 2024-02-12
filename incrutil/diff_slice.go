@@ -9,12 +9,12 @@ import (
 // DiffSliceByIndicesAdded diffs a slice between stabilizations, yielding an
 // incremental that is just the added elements per pass.
 func DiffSliceByIndicesAdded[T any](scope incr.Scope, i incr.Incr[[]T]) incr.Incr[[]T] {
-	o := &diffSliceByIndicesAddedIncr[T]{
+	o := incr.WithinScope(scope, &diffSliceByIndicesAddedIncr[T]{
 		n: incr.NewNode("diff_slice_by_indices_added"),
 		i: i,
-	}
+	})
 	incr.Link(o, i)
-	return incr.WithinScope(scope, o)
+	return o
 }
 
 type diffSliceByIndicesAddedIncr[T any] struct {

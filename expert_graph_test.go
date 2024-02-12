@@ -1,7 +1,6 @@
 package incr
 
 import (
-	"context"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -28,8 +27,8 @@ func Test_ExpertGraph_RecomputeHeapAdd(t *testing.T) {
 	g := New()
 	eg := ExpertGraph(g)
 
-	n1 := newMockBareNode()
-	n2 := newMockBareNode()
+	n1 := newMockBareNode(g)
+	n2 := newMockBareNode(g)
 
 	eg.RecomputeHeapAdd(n1, n2)
 	testutil.Equal(t, 2, g.recomputeHeap.len())
@@ -52,8 +51,8 @@ func Test_ExpertGraph_RecomputeHeapIDs(t *testing.T) {
 	g := New()
 	eg := ExpertGraph(g)
 
-	n1 := newMockBareNode()
-	n2 := newMockBareNode()
+	n1 := newMockBareNode(g)
+	n2 := newMockBareNode(g)
 	n2.n.height = 3
 
 	eg.RecomputeHeapAdd(n1, n2)
@@ -65,45 +64,19 @@ func Test_ExpertGraph_RecomputeHeapIDs(t *testing.T) {
 	testutil.Any(t, recomputeHeapIDs, func(id Identifier) bool { return id == n2.n.id })
 }
 
-func Test_ExpertGraph_Observe(t *testing.T) {
-	g := New()
-	eg := ExpertGraph(g)
-
-	n1 := newMockBareNode()
-	n2 := newMockBareNode()
-
-	o1 := mockObserver()
-	o2 := mockObserver()
-
-	eg.ObserveNodes(n1, o1, o2)
-
-	testutil.Equal(t, 2, len(n1.n.observers))
-	testutil.Equal(t, 0, len(n2.n.observers))
-
-	eg.UnobserveNodes(context.TODO(), n1, o1, o2)
-
-	testutil.Equal(t, 0, len(n1.n.observers))
-	testutil.Equal(t, 0, len(n2.n.observers))
-}
-
 func Test_ExpertGraph_AddObserver(t *testing.T) {
 	g := New()
 	eg := ExpertGraph(g)
-	o0 := mockObserver()
-	o1 := mockObserver()
+	o0 := mockObserver(g)
+	o1 := mockObserver(g)
 
-	eg.AddObserver(o1)
+	_ = eg.AddObserver(o1)
 
-	testutil.Equal(t, false, mapHas(g.observers, o0.Node().id))
-	testutil.Equal(t, true, mapHas(g.observers, o1.Node().id))
+	testutil.Equal(t, false, mapHasKey(g.observers, o0.Node().id))
+	testutil.Equal(t, true, mapHasKey(g.observers, o1.Node().id))
 
 	eg.RemoveObserver(o1)
 
-	testutil.Equal(t, false, mapHas(g.observers, o0.Node().id))
-	testutil.Equal(t, false, mapHas(g.observers, o1.Node().id))
-}
-
-func mapHas[K comparable, V any](m map[K]V, k K) (ok bool) {
-	_, ok = m[k]
-	return
+	testutil.Equal(t, false, mapHasKey(g.observers, o0.Node().id))
+	testutil.Equal(t, false, mapHasKey(g.observers, o1.Node().id))
 }
