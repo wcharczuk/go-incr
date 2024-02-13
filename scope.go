@@ -27,6 +27,8 @@ func WithinScope[A INode](scope Scope, node A) A {
 // If you're within a bind, you should pass the scope that is passed to your bind function.
 type Scope interface {
 	isRootScope() bool
+	isScopeValid() bool
+	isScopeNecessary() bool
 	scopeGraph() *Graph
 	scopeHeight() int
 	fmt.Stringer
@@ -36,14 +38,16 @@ type Scope interface {
 //
 // Its either nil or the most recent bind.
 type bindScope struct {
-	input    INode
+	lhs      INode
 	bind     INode
 	rhsNodes []INode
 }
 
-func (bs *bindScope) isRootScope() bool  { return false }
-func (bs *bindScope) scopeGraph() *Graph { return bs.bind.Node().graph }
-func (bs *bindScope) scopeHeight() int   { return bs.input.Node().height }
+func (bs *bindScope) isRootScope() bool      { return false }
+func (bs *bindScope) isScopeValid() bool     { return bs.bind.Node().valid }
+func (bs *bindScope) isScopeNecessary() bool { return bs.bind.Node().isNecessary() }
+func (bs *bindScope) scopeGraph() *Graph     { return bs.bind.Node().graph }
+func (bs *bindScope) scopeHeight() int       { return bs.lhs.Node().height }
 
 func (bs *bindScope) String() string {
 	return fmt.Sprintf("{%v}", bs.bind)

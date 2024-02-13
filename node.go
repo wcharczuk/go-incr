@@ -54,6 +54,10 @@ type Node struct {
 	// this node, e.g. how many other nodes have to update before
 	// this node has to update.
 	height int
+	// valid indicates if the scope that created the node is itself valid
+	valid bool
+	// forceNecessary forces the necessary state on the node
+	forceNecessary bool
 	// heightInRecomputeHeap is the height of a node in the recompute heap
 	heightInRecomputeHeap int
 	// heightInAdjustHeightsHeap is the height of a node in the adjust heights heap
@@ -83,11 +87,7 @@ type Node struct {
 	// cutoff is set during initialization and is a shortcut
 	// to the interface sniff for the node for the ICutoff interface.
 	cutoff func(context.Context) (bool, error)
-<<<<<<< HEAD
 	// observer determines if we treat this as a special necessary state.
-=======
-	// observer determines if this node is an observer.
->>>>>>> main
 	observer bool
 	// always determines if we always recompute this node.
 	always bool
@@ -102,22 +102,6 @@ type Node struct {
 	numComputePseudoHeights uint64
 	// numRecomputeHeights is incremented everytime we recompute a given node's height
 	numRecomputeHeights uint64
-}
-
-func nodeSorter(a, b INode) int {
-	if a.Node().height == b.Node().height {
-		aID := a.Node().ID().String()
-		bID := b.Node().ID().String()
-		if aID == bID {
-			return 0
-		} else if aID > bID {
-			return -1
-		}
-		return 1
-	} else if a.Node().height > b.Node().height {
-		return -1
-	}
-	return 1
 }
 
 //
@@ -373,6 +357,9 @@ func (n *Node) maybeStabilize(ctx context.Context) (err error) {
 
 func (n *Node) isNecessary() bool {
 	if n.observer {
+		return true
+	}
+	if n.forceNecessary {
 		return true
 	}
 	return len(n.children) > 0 || len(n.observers) > 0

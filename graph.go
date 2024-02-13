@@ -36,6 +36,7 @@ func New(opts ...GraphOption) *Graph {
 		adjustHeightsHeap:        newAdjustHeightsHeap(options.MaxHeight),
 		setDuringStabilization:   make(map[Identifier]INode),
 		handleAfterStabilization: make(map[Identifier][]func(context.Context)),
+		propagateInvalidity:      new(queue[INode]),
 	}
 	return g
 }
@@ -139,6 +140,8 @@ type Graph struct {
 
 	// onStabilizationEnd are optional hooks called when stabilization ends.
 	onStabilizationEnd []func(context.Context, time.Time, error)
+
+	propagateInvalidity *queue[INode]
 }
 
 // ID is the identifier for the graph.
@@ -210,7 +213,9 @@ func (graph *Graph) SetStale(gn INode) {
 // Scope interface methods
 //
 
-func (graph *Graph) isRootScope() bool { return true }
+func (graph *Graph) isRootScope() bool      { return true }
+func (graph *Graph) isScopeValid() bool     { return true }
+func (graph *Graph) isScopeNecessary() bool { return true }
 
 func (graph *Graph) scopeGraph() *Graph { return graph }
 
@@ -221,6 +226,28 @@ func (graph *Graph) String() string { return fmt.Sprintf("{graph:%s}", graph.id.
 //
 // Internal discovery & observe methods
 //
+
+func (graph *Graph) invalidateNode(ctx context.Context, node INode) {
+	if !node.Node().valid {
+		return
+	}
+
+	nn := node.Node()
+	nn.changedAt = graph.stabilizationNum
+	nn.recomputedAt = graph.stabilizationNum
+	if nn.isNecessary() {
+		graph.removeParents(node)
+		nn.height = heightFromScope(node) + 1
+	}
+	if typedBind, isBind := node.(IBind); isBind {
+		typedBind.Invalidate(ctx)
+	}
+	nn.valid = false
+	for _, child := range node.Node().children {
+		graph.propagateInvalidity.push(child)
+	}
+	graph.recomputeHeap.remove(node)
+}
 
 func (graph *Graph) removeParents(child INode) {
 	for _, parent := range child.Node().parents {
@@ -251,14 +278,37 @@ func (graph *Graph) addChild(child, parent INode) {
 			_ = graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, child, parent)
 		}
 	}
+	graph.doPropagateInvalidity()
 	if child.Node().isNecessary() && child.Node().ShouldRecompute() {
 		graph.recomputeHeap.add(child)
 	}
 }
 
+func (graph *Graph) changeParent(child, oldParent, newParent INode) {
+	if oldParent == nil {
+		graph.addChild(child, newParent)
+		return
+	}
+	if oldParent.Node().id == newParent.Node().id {
+		return
+	}
+	oldParent.Node().removeChild(child.Node().id)
+	oldParent.Node().forceNecessary = true
+	graph.addChild(child, newParent)
+	oldParent.Node().forceNecessary = false
+	graph.checkIfUnnecessary(oldParent)
+}
+
+func (graph *Graph) doPropagateInvalidity() {
+	// things ???
+}
+
 func (graph *Graph) addChildWithoutAdjustingHeights(child, parent INode) {
 	wasNecessary := parent.Node().isNecessary()
 	parent.Node().addChildren(child)
+	if !parent.Node().valid {
+		graph.propagateInvalidity.push(child)
+	}
 	if !wasNecessary {
 		graph.becameNecessary(parent)
 	}
@@ -280,6 +330,7 @@ func (graph *Graph) becameNecessary(node INode) (err error) {
 	if node.Node().ShouldRecompute() {
 		graph.recomputeHeap.add(node)
 	}
+	graph.doPropagateInvalidity()
 	return
 }
 
@@ -292,14 +343,14 @@ func (graph *Graph) addNodeOrObserver(gn INode) {
 	graph.addNode(gn)
 }
 
-func (graph *Graph) addNode(n INode) error {
+func (graph *Graph) addNode(n INode) {
 	graph.nodesMu.Lock()
 	defer graph.nodesMu.Unlock()
 
 	gnn := n.Node()
 	_, graphAlreadyHasNode := graph.nodes[gnn.id]
 	if graphAlreadyHasNode {
-		return nil
+		return
 	}
 	gnn.graph = graph
 	graph.numNodes++
@@ -374,46 +425,6 @@ func (graph *Graph) removeNode(gn INode) {
 	gnn.height = 0
 	gnn.heightInRecomputeHeap = 0
 	gnn.heightInAdjustHeightsHeap = 0
-}
-
-func (graph *Graph) addObserver(on IObserver) error {
-	onn := on.Node()
-	onn.observer = true
-	onn.graph = graph
-
-	graph.observersMu.Lock()
-	if _, ok := graph.observers[onn.id]; !ok {
-		graph.numNodes++
-		graph.observers[onn.id] = on
-	}
-	graph.observersMu.Unlock()
-	onn.detectStabilize(on)
-	return nil
-}
-
-func (graph *Graph) removeObserver(on IObserver) {
-	onn := on.Node()
-	onn.graph = nil
-	graph.numNodes--
-	graph.recomputeHeap.remove(on)
-
-	graph.handleAfterStabilizationMu.Lock()
-	delete(graph.handleAfterStabilization, on.Node().ID())
-	graph.handleAfterStabilizationMu.Unlock()
-
-	graph.observersMu.Lock()
-	delete(graph.observers, onn.id)
-	graph.observersMu.Unlock()
-
-	graph.recomputeHeap.remove(on)
-	graph.adjustHeightsHeap.remove(on)
-
-	onn.height = 0
-	onn.heightInRecomputeHeap = 0
-	onn.heightInAdjustHeightsHeap = 0
-	onn.setAt = 0
-	onn.changedAt = 0
-	onn.recomputedAt = 0
 }
 
 //

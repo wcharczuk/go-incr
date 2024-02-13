@@ -12,11 +12,7 @@ func Observe[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
 		n:     NewNode("observer"),
 		input: input,
 	})
-	Link(o, input)
-	input.Node().addObservers(o)
-	if err := g.becameNecessary(input); err != nil {
-		panic(err)
-	}
+	// graph.addParent(o, input)
 	g.recomputeHeap.add(o)
 	return o
 }

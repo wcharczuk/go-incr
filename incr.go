@@ -30,6 +30,7 @@ type IStabilize interface {
 // IBind implements bind steps for nested actions.
 type IBind interface {
 	Link(context.Context) error
+	Invalidate(context.Context)
 	Bound() INode
 	BindChange() INode
 	Scope() Scope

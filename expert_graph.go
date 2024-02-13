@@ -28,7 +28,7 @@ type IExpertGraph interface {
 	RecomputeHeapLen() int
 	RecomputeHeapIDs() []Identifier
 
-	AddObserver(IObserver) error
+	AddObserver(IObserver)
 	RemoveObserver(IObserver)
 }
 

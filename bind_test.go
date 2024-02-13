@@ -80,11 +80,7 @@ func Test_Bind_basic(t *testing.T) {
 
 	testutil.Equal(t, true, g.Has(av))
 	testutil.Equal(t, true, g.Has(a0))
-<<<<<<< HEAD
-	testutil.Equal(t, false, g.Has(a1))
-=======
 	testutil.Equal(t, true, g.Has(a1))
->>>>>>> main
 
 	testutil.Equal(t, true, g.Has(bv))
 	testutil.Equal(t, true, g.Has(b0))
