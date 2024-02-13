@@ -20,9 +20,10 @@ func Test_New(t *testing.T) {
 }
 
 func Test_New_options(t *testing.T) {
-	g := New(GraphMaxRecomputeHeapHeight(1024))
+	g := New(OptGraphMaxHeight(1024))
 	testutil.NotEqual(t, 1024, DefaultMaxHeight)
 	testutil.Equal(t, 1024, len(g.recomputeHeap.heights))
+	testutil.Equal(t, 1024, len(g.adjustHeightsHeap.nodesByHeight))
 }
 
 func Test_Graph_Metadata(t *testing.T) {
@@ -97,7 +98,7 @@ func Test_Graph_removeNodeFromGraph(t *testing.T) {
 	g.recomputeHeap.add(mn00)
 	g.adjustHeightsHeap.add(mn00)
 
-	g.removeNodeFromGraph(mn00)
+	g.removeNode(mn00)
 
 	testutil.Equal(t, 1, g.numNodes)
 	testutil.Equal(t, false, g.recomputeHeap.has(mn00))

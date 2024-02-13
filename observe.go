@@ -13,15 +13,10 @@ func Observe[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
 		input: input,
 	})
 	Link(o, input)
-	// NOTE(wc): we do this here because some """expert""" use cases for `ExpertGraph::AddObserver`
-	// require us to add the observer to the graph observer list but _not_
-	// add it to the recompute heap.
-	//
-	// So we just add it here explicitly and don't add it implicitly
-	// in the AddObserver function.
-	_ = g.addObserver(o)
 	input.Node().addObservers(o)
-	g.becameNecessary(input)
+	if err := g.becameNecessary(input); err != nil {
+		panic(err)
+	}
 	g.recomputeHeap.add(o)
 	return o
 }
@@ -30,7 +25,6 @@ func Observe[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
 // of incrementals starting a given input.
 type ObserveIncr[A any] interface {
 	Incr[A]
-
 	// Unobserve effectively removes a given node from the observed ref count for a graph.
 	//
 	// As well, it unlinks the observer from its parent nodes, and as a result

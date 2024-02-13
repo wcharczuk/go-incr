@@ -3,6 +3,7 @@ package incr
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -79,7 +80,11 @@ func Test_Bind_basic(t *testing.T) {
 
 	testutil.Equal(t, true, g.Has(av))
 	testutil.Equal(t, true, g.Has(a0))
+<<<<<<< HEAD
 	testutil.Equal(t, false, g.Has(a1))
+=======
+	testutil.Equal(t, true, g.Has(a1))
+>>>>>>> main
 
 	testutil.Equal(t, true, g.Has(bv))
 	testutil.Equal(t, true, g.Has(b0))
@@ -791,7 +796,21 @@ func Test_Bind_regression_parallel(t *testing.T) {
 }
 
 func makeRegressionGraph(ctx context.Context) (*Graph, ObserveIncr[*int]) {
+	cacheMu := sync.Mutex{}
 	cache := make(map[string]Incr[*int])
+
+	getCached := func(key string) (out Incr[*int], ok bool) {
+		cacheMu.Lock()
+		out, ok = cache[key]
+		cacheMu.Unlock()
+		return
+	}
+	setCached := func(key string, i Incr[*int]) {
+		cacheMu.Lock()
+		cache[key] = i
+		cacheMu.Unlock()
+	}
+
 	graph := New()
 
 	fakeFormula := Var(graph, "fakeformula")
@@ -799,12 +818,12 @@ func makeRegressionGraph(ctx context.Context) (*Graph, ObserveIncr[*int]) {
 	var f func(Scope, int) Incr[*int]
 	f = func(bs Scope, t int) Incr[*int] {
 		key := fmt.Sprintf("f-%d", t)
-		if cached, ok := cache[key]; ok {
+		if cached, ok := getCached(key); ok {
 			return WithinScope(bs, cached)
 		}
 		r := Bind(bs, fakeFormula, func(bs Scope, formula string) Incr[*int] {
 			key := fmt.Sprintf("map-f-%d", t)
-			if cached, ok := cache[key]; ok {
+			if cached, ok := getCached(key); ok {
 				return WithinScope(bs, cached)
 			}
 			if t == 0 {
@@ -818,17 +837,17 @@ func makeRegressionGraph(ctx context.Context) (*Graph, ObserveIncr[*int]) {
 				return &out
 			})
 			bindOutput.Node().SetLabel(fmt.Sprintf("map-f-%d", t))
-			cache[key] = bindOutput
+			setCached(key, bindOutput)
 			return bindOutput
 		})
 		r.Node().SetLabel(key)
-		cache[key] = r
+		setCached(key, r)
 		return r
 	}
 
 	g := func(bs Scope, t int) Incr[*int] {
 		key := fmt.Sprintf("g-%d", t)
-		if cached, ok := cache[key]; ok {
+		if cached, ok := getCached(key); ok {
 			return WithinScope(bs, cached)
 		}
 		r := Bind(bs, fakeFormula, func(bs Scope, formula string) Incr[*int] {
@@ -836,7 +855,7 @@ func makeRegressionGraph(ctx context.Context) (*Graph, ObserveIncr[*int]) {
 			return output
 		})
 		r.Node().SetLabel(key)
-		cache[key] = r
+		setCached(key, r)
 		return r
 	}
 
@@ -1012,7 +1031,7 @@ func Test_Bind_unbindRegression(t *testing.T) {
 func Test_Bind_nested_amplification(t *testing.T) {
 	ctx := testContext()
 	g := New(
-		GraphMaxRecomputeHeapHeight(1024),
+		OptGraphMaxHeight(1024),
 	)
 	depth := 4
 	fakeFormula := Var(g, "fakeFormula")

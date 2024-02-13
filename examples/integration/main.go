@@ -53,112 +53,113 @@ func noError(err error) {
 }
 
 func main() {
-	ctx := testContext()
-	graph := incr.New()
-	cache := make(map[string]incr.Incr[*int])
-
-	fakeFormula := incr.Var(graph, "fakeformula")
-	fakeFormula.Node().SetLabel("fakeformula")
-	var f func(incr.Scope, int) incr.Incr[*int]
-	f = func(bs incr.Scope, t int) incr.Incr[*int] {
-		key := fmt.Sprintf("f-%d", t)
-		if _, ok := cache[key]; ok {
-			return incr.WithinScope(bs, cache[key])
-		}
-		r := incr.Bind(graph, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
-			if t <= 0 {
-				out := 0
-				r := incr.Return(bs, &out)
-				r.Node().SetLabel("f-0")
-				return r
-			}
-			bindOutput := incr.Map(bs, f(bs, t-1), func(r *int) *int {
-				if r == nil {
-					return nil
-				}
-				out := *r + 1
-				return &out
-			})
-			bindOutput.Node().SetLabel(fmt.Sprintf("map-f-%d", t))
-			return bindOutput
-		})
-		r.Node().SetLabel(fmt.Sprintf("f(%d)", t))
-		cache[key] = r
-		return r
-	}
-
-	// burn(t) = f(t)
-	burn := func(bs incr.Scope, t int) incr.Incr[*int] {
-		return incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
-			return f(bs, t)
-		})
-	}
-
-	// The below is a "cached" version of burn that can help performance
-	// but really shouldn't be needed!
-	// burn := func(bs incr.Scope, t int) incr.Incr[*int] {
-	// 	key := fmt.Sprintf("burn-%d", t)
-	// 	if _, ok := cache[key]; ok {
-	// 		return incr.WithinBindScope(bs, cache[key])
-	// 	}
-	// 	o := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
-	// 		return f(bs, t)
-	// 	})
-	// 	o.Node().SetLabel(key)
-	// 	cache[key] = o
-	// 	return o
-	// }
-
-	// cashbalance = cashbalance(t-1) - burn(t)
-	var cashBalance func(bs incr.Scope, t int) incr.Incr[*int]
-	cashBalance = func(bs incr.Scope, t int) incr.Incr[*int] {
-		o := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
-			if t <= 0 {
-				out := 0
-				r := incr.Return(bs, &out)
-				return r
-			}
-			return incr.Map2(bs, cashBalance(bs, t-1), burn(bs, t), func(c *int, b *int) *int {
-				if c == nil || b == nil {
-					return nil
-				}
-				out := *c - *b
-				return &out
-			})
-		})
-		o.Node().SetLabel(fmt.Sprintf("cash_balance(%d)", t))
-		return o
-	}
-
-	// monthofrunway = if burn > 0 then cashbalance / burn else 0
-	monthsOfRunway := func(bs incr.Scope, t int) incr.Incr[*int] {
-		o := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
-			zero := 0
-			predicateIncr := incr.Map2(bs, burn(bs, t), incr.Return(bs, &zero), func(val *int, cmp *int) bool {
-				if val == nil || cmp == nil {
-					return false
-				}
-				return *val > *cmp
-			})
-			return incr.Bind(bs, predicateIncr, func(bs incr.Scope, predicate bool) incr.Incr[*int] {
-				var out int = 0
-				if predicate {
-					return incr.Map2(bs, cashBalance(bs, t), burn(bs, t), func(c *int, b *int) *int {
-						if c == nil || b == nil {
-							return nil
-						}
-						out = *c / *b
-						return &out
-					})
-				}
-				return incr.Return(bs, &out)
-			})
-		})
-		o.Node().SetLabel("months_of_runway")
-		return o
-	}
 
 	testCase("month_of_runway = if burn > 0: cash_balance / burn else 0. Calculate months of runway then burn", func() {
+		ctx := testContext()
+		graph := incr.New()
+		cache := make(map[string]incr.Incr[*int])
+
+		fakeFormula := incr.Var(graph, "fakeformula")
+		fakeFormula.Node().SetLabel("fakeformula")
+		var f func(incr.Scope, int) incr.Incr[*int]
+		f = func(bs incr.Scope, t int) incr.Incr[*int] {
+			key := fmt.Sprintf("f-%d", t)
+			if _, ok := cache[key]; ok {
+				return incr.WithinScope(bs, cache[key])
+			}
+			r := incr.Bind(graph, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
+				if t <= 0 {
+					out := 0
+					r := incr.Return(bs, &out)
+					r.Node().SetLabel("f-0")
+					return r
+				}
+				bindOutput := incr.Map(bs, f(bs, t-1), func(r *int) *int {
+					if r == nil {
+						return nil
+					}
+					out := *r + 1
+					return &out
+				})
+				bindOutput.Node().SetLabel(fmt.Sprintf("map-f-%d", t))
+				return bindOutput
+			})
+			r.Node().SetLabel(fmt.Sprintf("f(%d)", t))
+			cache[key] = r
+			return r
+		}
+
+		// burn(t) = f(t)
+		burn := func(bs incr.Scope, t int) incr.Incr[*int] {
+			return incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
+				return f(bs, t)
+			})
+		}
+
+		// The below is a "cached" version of burn that can help performance
+		// but really shouldn't be needed!
+		// burn := func(bs incr.Scope, t int) incr.Incr[*int] {
+		// 	key := fmt.Sprintf("burn-%d", t)
+		// 	if _, ok := cache[key]; ok {
+		// 		return incr.WithinBindScope(bs, cache[key])
+		// 	}
+		// 	o := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
+		// 		return f(bs, t)
+		// 	})
+		// 	o.Node().SetLabel(key)
+		// 	cache[key] = o
+		// 	return o
+		// }
+
+		// cashbalance = cashbalance(t-1) - burn(t)
+		var cashBalance func(bs incr.Scope, t int) incr.Incr[*int]
+		cashBalance = func(bs incr.Scope, t int) incr.Incr[*int] {
+			o := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
+				if t <= 0 {
+					out := 0
+					r := incr.Return(bs, &out)
+					return r
+				}
+				return incr.Map2(bs, cashBalance(bs, t-1), burn(bs, t), func(c *int, b *int) *int {
+					if c == nil || b == nil {
+						return nil
+					}
+					out := *c - *b
+					return &out
+				})
+			})
+			o.Node().SetLabel(fmt.Sprintf("cash_balance(%d)", t))
+			return o
+		}
+
+		// monthofrunway = if burn > 0 then cashbalance / burn else 0
+		monthsOfRunway := func(bs incr.Scope, t int) incr.Incr[*int] {
+			o := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
+				zero := 0
+				predicateIncr := incr.Map2(bs, burn(bs, t), incr.Return(bs, &zero), func(val *int, cmp *int) bool {
+					if val == nil || cmp == nil {
+						return false
+					}
+					return *val > *cmp
+				})
+				return incr.Bind(bs, predicateIncr, func(bs incr.Scope, predicate bool) incr.Incr[*int] {
+					var out int = 0
+					if predicate {
+						return incr.Map2(bs, cashBalance(bs, t), burn(bs, t), func(c *int, b *int) *int {
+							if c == nil || b == nil {
+								return nil
+							}
+							out = *c / *b
+							return &out
+						})
+					}
+					return incr.Return(bs, &out)
+				})
+			})
+
+			o.Node().SetLabel("months_of_runway")
+			return o
+		}
 		num := 24
 
 		fmt.Println("Calculating months of runway for t= 1 to 24")
@@ -191,8 +192,113 @@ func main() {
 	})
 
 	testCase("month_of_runway = if burn > 0: cash_balance / burn else 0. Calculate burn then months of runway", func() {
+		ctx := testContext()
+		graph := incr.New(
+			incr.OptGraphMaxHeight(1024),
+		)
+		cache := make(map[string]incr.Incr[*int])
+
+		fakeFormula := incr.Var(graph, "fakeformula")
+		fakeFormula.Node().SetLabel("fakeformula")
+		var f func(incr.Scope, int) incr.Incr[*int]
+		f = func(bs incr.Scope, t int) incr.Incr[*int] {
+			key := fmt.Sprintf("f-%d", t)
+			if _, ok := cache[key]; ok {
+				return incr.WithinScope(bs, cache[key])
+			}
+			r := incr.Bind(graph, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
+				if t <= 0 {
+					out := 0
+					r := incr.Return(bs, &out)
+					r.Node().SetLabel("f-0")
+					return r
+				}
+				bindOutput := incr.Map(bs, f(bs, t-1), func(r *int) *int {
+					if r == nil {
+						return nil
+					}
+					out := *r + 1
+					return &out
+				})
+				bindOutput.Node().SetLabel(fmt.Sprintf("map-f-%d", t))
+				return bindOutput
+			})
+			r.Node().SetLabel(fmt.Sprintf("f(%d)", t))
+			cache[key] = r
+			return r
+		}
+
+		// burn(t) = f(t)
+		burn := func(bs incr.Scope, t int) incr.Incr[*int] {
+			return incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
+				return f(bs, t)
+			})
+		}
+
+		// The below is a "cached" version of burn that can help performance
+		// but really shouldn't be needed!
+		// burn := func(bs incr.Scope, t int) incr.Incr[*int] {
+		// 	key := fmt.Sprintf("burn-%d", t)
+		// 	if _, ok := cache[key]; ok {
+		// 		return incr.WithinBindScope(bs, cache[key])
+		// 	}
+		// 	o := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
+		// 		return f(bs, t)
+		// 	})
+		// 	o.Node().SetLabel(key)
+		// 	cache[key] = o
+		// 	return o
+		// }
+
+		// cashbalance = cashbalance(t-1) - burn(t)
+		var cashBalance func(bs incr.Scope, t int) incr.Incr[*int]
+		cashBalance = func(bs incr.Scope, t int) incr.Incr[*int] {
+			o := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
+				if t <= 0 {
+					out := 0
+					r := incr.Return(bs, &out)
+					return r
+				}
+				return incr.Map2(bs, cashBalance(bs, t-1), burn(bs, t), func(c *int, b *int) *int {
+					if c == nil || b == nil {
+						return nil
+					}
+					out := *c - *b
+					return &out
+				})
+			})
+			o.Node().SetLabel(fmt.Sprintf("cash_balance(%d)", t))
+			return o
+		}
+
+		// monthofrunway = if burn > 0 then cashbalance / burn else 0
+		monthsOfRunway := func(bs incr.Scope, t int) incr.Incr[*int] {
+			o := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
+				zero := 0
+				predicateIncr := incr.Map2(bs, burn(bs, t), incr.Return(bs, &zero), func(val *int, cmp *int) bool {
+					if val == nil || cmp == nil {
+						return false
+					}
+					return *val > *cmp
+				})
+				return incr.Bind(bs, predicateIncr, func(bs incr.Scope, predicate bool) incr.Incr[*int] {
+					var out int = 0
+					if predicate {
+						return incr.Map2(bs, cashBalance(bs, t), burn(bs, t), func(c *int, b *int) *int {
+							if c == nil || b == nil {
+								return nil
+							}
+							out = *c / *b
+							return &out
+						})
+					}
+					return incr.Return(bs, &out)
+				})
+			})
+			o.Node().SetLabel("months_of_runway")
+			return o
+		}
 		num := 24
-		graph := incr.New()
 
 		fmt.Println("Calculating burn for t= 1 to 24")
 		start := time.Now()
@@ -222,6 +328,112 @@ func main() {
 	})
 
 	testCase("node amplification yields slower and slower stabilization", func() {
+		ctx := testContext()
+		graph := incr.New(
+			incr.OptGraphMaxHeight(1024),
+		)
+		cache := make(map[string]incr.Incr[*int])
+
+		fakeFormula := incr.Var(graph, "fakeformula")
+		fakeFormula.Node().SetLabel("fakeformula")
+		var f func(incr.Scope, int) incr.Incr[*int]
+		f = func(bs incr.Scope, t int) incr.Incr[*int] {
+			key := fmt.Sprintf("f-%d", t)
+			if _, ok := cache[key]; ok {
+				return incr.WithinScope(bs, cache[key])
+			}
+			r := incr.Bind(graph, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
+				if t <= 0 {
+					out := 0
+					r := incr.Return(bs, &out)
+					r.Node().SetLabel("f-0")
+					return r
+				}
+				bindOutput := incr.Map(bs, f(bs, t-1), func(r *int) *int {
+					if r == nil {
+						return nil
+					}
+					out := *r + 1
+					return &out
+				})
+				bindOutput.Node().SetLabel(fmt.Sprintf("map-f-%d", t))
+				return bindOutput
+			})
+			r.Node().SetLabel(fmt.Sprintf("f(%d)", t))
+			cache[key] = r
+			return r
+		}
+
+		// burn(t) = f(t)
+		burn := func(bs incr.Scope, t int) incr.Incr[*int] {
+			return incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
+				return f(bs, t)
+			})
+		}
+
+		// The below is a "cached" version of burn that can help performance
+		// but really shouldn't be needed!
+		// burn := func(bs incr.Scope, t int) incr.Incr[*int] {
+		// 	key := fmt.Sprintf("burn-%d", t)
+		// 	if _, ok := cache[key]; ok {
+		// 		return incr.WithinBindScope(bs, cache[key])
+		// 	}
+		// 	o := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
+		// 		return f(bs, t)
+		// 	})
+		// 	o.Node().SetLabel(key)
+		// 	cache[key] = o
+		// 	return o
+		// }
+
+		// cashbalance = cashbalance(t-1) - burn(t)
+		var cashBalance func(bs incr.Scope, t int) incr.Incr[*int]
+		cashBalance = func(bs incr.Scope, t int) incr.Incr[*int] {
+			o := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
+				if t <= 0 {
+					out := 0
+					r := incr.Return(bs, &out)
+					return r
+				}
+				return incr.Map2(bs, cashBalance(bs, t-1), burn(bs, t), func(c *int, b *int) *int {
+					if c == nil || b == nil {
+						return nil
+					}
+					out := *c - *b
+					return &out
+				})
+			})
+			o.Node().SetLabel(fmt.Sprintf("cash_balance(%d)", t))
+			return o
+		}
+
+		// monthofrunway = if burn > 0 then cashbalance / burn else 0
+		monthsOfRunway := func(bs incr.Scope, t int) incr.Incr[*int] {
+			o := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
+				zero := 0
+				predicateIncr := incr.Map2(bs, burn(bs, t), incr.Return(bs, &zero), func(val *int, cmp *int) bool {
+					if val == nil || cmp == nil {
+						return false
+					}
+					return *val > *cmp
+				})
+				return incr.Bind(bs, predicateIncr, func(bs incr.Scope, predicate bool) incr.Incr[*int] {
+					var out int = 0
+					if predicate {
+						return incr.Map2(bs, cashBalance(bs, t), burn(bs, t), func(c *int, b *int) *int {
+							if c == nil || b == nil {
+								return nil
+							}
+							out = *c / *b
+							return &out
+						})
+					}
+					return incr.Return(bs, &out)
+				})
+			})
+			o.Node().SetLabel("months_of_runway")
+			return o
+		}
 		w := func(bs incr.Scope, t int) incr.Incr[*int] {
 			key := fmt.Sprintf("w-%d", t)
 			if _, ok := cache[key]; ok {
@@ -237,7 +449,6 @@ func main() {
 			return r
 		}
 
-		graph := incr.New(incr.GraphMaxRecomputeHeapHeight(1024))
 		max_t := 50
 
 		// baseline
@@ -245,7 +456,7 @@ func main() {
 
 		for i := 0; i < max_t; i++ {
 			o := monthsOfRunway(graph, i)
-			incr.Observe(graph, o)
+			_ = incr.Observe(graph, o)
 		}
 		_ = graph.Stabilize(ctx)
 		elapsed := time.Since(start)
@@ -253,10 +464,11 @@ func main() {
 
 		maxMultiplier := 10
 		for k := 1; k <= maxMultiplier; k++ {
-			graph = incr.New(incr.GraphMaxRecomputeHeapHeight(1024))
-
+			graph := incr.New(
+				incr.OptGraphMaxHeight(1024),
+			)
 			num := 5000 * k
-			// beef up node count in graph
+
 			for i := 0; i < num; i++ {
 				o := w(graph, i)
 				incr.Observe(graph, o)
@@ -264,7 +476,7 @@ func main() {
 			start = time.Now()
 			for i := 0; i < max_t; i++ {
 				o := monthsOfRunway(graph, i)
-				incr.Observe(graph, o)
+				_ = incr.Observe(graph, o)
 			}
 			_ = graph.Stabilize(ctx)
 

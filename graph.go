@@ -43,8 +43,8 @@ func New(opts ...GraphOption) *Graph {
 // GraphOption mutates GraphOptions.
 type GraphOption func(*GraphOptions)
 
-// GraphMaxRecomputeHeapHeight sets the graph max recompute height.
-func GraphMaxRecomputeHeapHeight(maxHeight int) func(*GraphOptions) {
+// OptGraphMaxHeight sets the graph max recompute height.
+func OptGraphMaxHeight(maxHeight int) func(*GraphOptions) {
 	return func(g *GraphOptions) {
 		g.MaxHeight = maxHeight
 	}
@@ -222,19 +222,26 @@ func (graph *Graph) String() string { return fmt.Sprintf("{graph:%s}", graph.id.
 // Internal discovery & observe methods
 //
 
-func (graph *Graph) removeNodeAndMaybeParents(n INode) {
-	graph.removeNodeFromGraph(n)
-	for _, parent := range n.Node().parents {
-		if !parent.Node().isNecessary() {
-			graph.removeNodeAndMaybeParents(parent)
-		}
+func (graph *Graph) removeParents(child INode) {
+	for _, parent := range child.Node().parents {
+		graph.removeParent(child, parent)
 	}
 }
 
-func (graph *Graph) checkIfUnnecessary(n INode) {
-	if !n.Node().isNecessary() {
-		graph.removeNodeAndMaybeParents(n)
+func (graph *Graph) removeParent(child, parent INode) {
+	Unlink(child, parent)
+	graph.checkIfUnnecessary(parent)
+}
+
+func (graph *Graph) checkIfUnnecessary(parent INode) {
+	if !parent.Node().isNecessary() {
+		graph.becameUnnecessary(parent)
 	}
+}
+
+func (graph *Graph) becameUnnecessary(parent INode) {
+	graph.removeNode(parent)
+	graph.removeParents(parent)
 }
 
 func (graph *Graph) addChild(child, parent INode) {
@@ -257,45 +264,90 @@ func (graph *Graph) addChildWithoutAdjustingHeights(child, parent INode) {
 	}
 }
 
-func (graph *Graph) becameNecessary(node INode) {
-	graph.addNodeToGraph(node)
+func (graph *Graph) becameNecessary(node INode) (err error) {
+	graph.addNodeOrObserver(node)
 	_ = graph.adjustHeightsHeap.setHeight(node, heightFromScope(node)+1)
 	for _, p := range node.Node().parents {
 		if p.Node().height >= node.Node().height {
-			_ = graph.adjustHeightsHeap.setHeight(node, p.Node().height+1)
+			if err = graph.adjustHeightsHeap.setHeight(node, p.Node().height+1); err != nil {
+				return
+			}
 		}
-		graph.becameNecessary(p)
+		if err = graph.becameNecessary(p); err != nil {
+			return
+		}
 	}
 	if node.Node().ShouldRecompute() {
 		graph.recomputeHeap.add(node)
 	}
-}
-
-func (graph *Graph) addNodeToGraph(gn INode) {
-	gnn := gn.Node()
-	gnn.graph = graph
-	graphAlreadyHasNode := graph.upsertNode(gn)
-	if graphAlreadyHasNode {
-		return
-	}
-	graph.numNodes++
-	gnn.detectCutoff(gn)
-	gnn.detectAlways(gn)
-	gnn.detectStabilize(gn)
-}
-
-func (graph *Graph) upsertNode(gn INode) (ok bool) {
-	graph.nodesMu.Lock()
-	defer graph.nodesMu.Unlock()
-
-	if _, ok = graph.nodes[gn.Node().id]; ok {
-		return
-	}
-	graph.nodes[gn.Node().id] = gn
 	return
 }
 
-func (graph *Graph) removeNodeFromGraph(gn INode) {
+func (graph *Graph) addNodeOrObserver(gn INode) {
+	typedObserver, isObserver := gn.(IObserver)
+	if isObserver {
+		graph.addObserver(typedObserver)
+		return
+	}
+	graph.addNode(gn)
+}
+
+func (graph *Graph) addNode(n INode) error {
+	graph.nodesMu.Lock()
+	defer graph.nodesMu.Unlock()
+
+	gnn := n.Node()
+	_, graphAlreadyHasNode := graph.nodes[gnn.id]
+	if graphAlreadyHasNode {
+		return nil
+	}
+	gnn.graph = graph
+	graph.numNodes++
+	gnn.detectAlways(n)
+	gnn.detectCutoff(n)
+	gnn.detectStabilize(n)
+	graph.nodes[gnn.id] = n
+}
+
+func (graph *Graph) addObserver(on IObserver) {
+	onn := on.Node()
+	onn.graph = graph
+	graph.observersMu.Lock()
+	if _, ok := graph.observers[onn.id]; !ok {
+		graph.numNodes++
+		graph.observers[onn.id] = on
+	}
+	graph.observersMu.Unlock()
+	onn.detectStabilize(on)
+	onn.detectObserver(on)
+}
+
+func (graph *Graph) removeObserver(on IObserver) {
+	onn := on.Node()
+	onn.graph = nil
+	graph.numNodes--
+	graph.recomputeHeap.remove(on)
+
+	graph.handleAfterStabilizationMu.Lock()
+	delete(graph.handleAfterStabilization, on.Node().ID())
+	graph.handleAfterStabilizationMu.Unlock()
+
+	graph.observersMu.Lock()
+	delete(graph.observers, onn.id)
+	graph.observersMu.Unlock()
+
+	graph.recomputeHeap.remove(on)
+	graph.adjustHeightsHeap.remove(on)
+
+	onn.height = 0
+	onn.heightInRecomputeHeap = 0
+	onn.heightInAdjustHeightsHeap = 0
+	onn.setAt = 0
+	onn.changedAt = 0
+	onn.recomputedAt = 0
+}
+
+func (graph *Graph) removeNode(gn INode) {
 	graph.recomputeHeap.remove(gn)
 	graph.adjustHeightsHeap.remove(gn)
 

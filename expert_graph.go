@@ -85,8 +85,8 @@ func (eg *expertGraph) RecomputeHeapIDs() []Identifier {
 	return output
 }
 
-func (eg *expertGraph) AddObserver(on IObserver) error {
-	return eg.graph.addObserver(on)
+func (eg *expertGraph) AddObserver(on IObserver) {
+	eg.graph.addObserver(on)
 }
 
 func (eg *expertGraph) RemoveObserver(on IObserver) {
