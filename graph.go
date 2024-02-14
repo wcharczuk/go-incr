@@ -250,7 +250,7 @@ func (graph *Graph) invalidateNode(node INode) {
 }
 
 func (graph *Graph) removeParents(child INode) {
-	for _, parent := range child.Node().parents {
+	for _, parent := range child.Node().parentsFn() {
 		graph.removeParent(child, parent)
 	}
 }
@@ -317,9 +317,10 @@ func (graph *Graph) propagateInvalidity() {
 		if node.Node().valid {
 			if node.Node().shouldBeInvalidated() {
 				graph.invalidateNode(node)
+			} else {
+				graph.recomputeHeap.add(node)
 			}
 		}
-		graph.recomputeHeap.add(node)
 	}
 }
 

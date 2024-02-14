@@ -193,12 +193,11 @@ func (b *bindLeftChangeIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 	}
 	b.n.graph.changeParent(b.bind.main, oldRhs, b.bind.rhs)
 	if oldRhs != nil {
-		// invalidate_nodes_created_on_rhs
-		for _, n := range oldRightNodes {
-			b.n.graph.invalidateNode(n)
-		}
-	} else {
-		// rescope_nodes_created_on_rhs
+		// for _, n := range oldRightNodes {
+		// 	b.n.graph.invalidateNode(n)
+		// }
+		// else {
+		// // rescope_nodes_created_on_rhs
 		for _, n := range oldRightNodes {
 			n.Node().createdIn = b.bind
 			b.bind.addScopeNode(n)
