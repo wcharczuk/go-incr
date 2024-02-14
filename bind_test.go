@@ -733,9 +733,7 @@ func makeRegressionGraph(ctx context.Context) (*Graph, ObserveIncr[*int]) {
 		cache[key] = i
 		cacheMu.Unlock()
 	}
-
 	graph := New()
-
 	fakeFormula := Var(graph, "fakeformula")
 	fakeFormula.Node().SetLabel("fakeformula")
 	var f func(Scope, int) Incr[*int]
