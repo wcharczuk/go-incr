@@ -18,9 +18,10 @@ func Map[A, B any](scope Scope, a Incr[A], fn func(A) B) Incr[B] {
 // and can also return an error, aborting stabilization.
 func MapContext[A, B any](scope Scope, a Incr[A], fn func(context.Context, A) (B, error)) Incr[B] {
 	return WithinScope(scope, &mapIncr[A, B]{
-		n:  NewNode("map"),
-		a:  a,
-		fn: fn,
+		n:       NewNode("map"),
+		a:       a,
+		fn:      fn,
+		parents: []INode{a},
 	})
 }
 
@@ -32,14 +33,15 @@ var (
 )
 
 type mapIncr[A, B any] struct {
-	n   *Node
-	a   Incr[A]
-	fn  func(context.Context, A) (B, error)
-	val B
+	n       *Node
+	a       Incr[A]
+	fn      func(context.Context, A) (B, error)
+	val     B
+	parents []INode
 }
 
 func (mn *mapIncr[A, B]) Parents() []INode {
-	return []INode{mn.a}
+	return mn.parents
 }
 
 func (mn *mapIncr[A, B]) Node() *Node {

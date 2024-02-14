@@ -9,12 +9,12 @@ import (
 // as well as all of its parents.
 func Observe[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
 	o := WithinScope(g, &observeIncr[A]{
-		n:     NewNode("observer"),
-		input: input,
+		n:       NewNode("observer"),
+		input:   input,
+		parents: []INode{input},
 	})
 	g.addNodeOrObserver(o)
 	_ = g.addNewObserverToNode(o, input)
-
 	if input.Node().height >= o.Node().height {
 		_ = g.adjustHeightsHeap.adjustHeights(g.recomputeHeap, o, input)
 	}
@@ -48,13 +48,14 @@ var (
 )
 
 type observeIncr[A any] struct {
-	n     *Node
-	input Incr[A]
-	value A
+	n       *Node
+	input   Incr[A]
+	value   A
+	parents []INode
 }
 
 func (o *observeIncr[A]) Parents() []INode {
-	return []INode{o.input}
+	return o.parents
 }
 
 func (o *observeIncr[A]) Node() *Node { return o.n }
