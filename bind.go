@@ -191,8 +191,13 @@ func (b *bindLeftChangeIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 	if err != nil {
 		return
 	}
-	b.n.graph.changeParent(b.bind.main, oldRhs, b.bind.rhs)
+	if err = b.n.graph.changeParent(b.bind.main, oldRhs, b.bind.rhs); err != nil {
+		return err
+	}
 	if oldRhs != nil {
+		// there is a graph configuration option in js that allows
+		// for (2) different behaviors here. the commented out below
+		// is if the option is enabled.
 		// for _, n := range oldRightNodes {
 		// 	b.n.graph.invalidateNode(n)
 		// }

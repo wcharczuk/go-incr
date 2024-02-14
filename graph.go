@@ -217,7 +217,7 @@ func (graph *Graph) isTopScope() bool        { return true }
 func (graph *Graph) isScopeValid() bool      { return true }
 func (graph *Graph) isScopeNecessary() bool  { return true }
 func (graph *Graph) scopeGraph() *Graph      { return graph }
-func (graph *Graph) scopeHeight() int        { return -1 }
+func (graph *Graph) scopeHeight() int        { return heightUnset }
 func (graph *Graph) addScopeNode(_ INode)    {}
 func (graph *Graph) removeScopeNode(_ INode) {}
 
@@ -276,39 +276,42 @@ func (graph *Graph) becameUnnecessary(parent INode) {
 	graph.removeParents(parent)
 }
 
-func (graph *Graph) addChild(child, parent INode) {
+func (graph *Graph) addChild(child, parent INode) error {
 	graph.addChildWithoutAdjustingHeights(child, parent)
 	if parent.Node().height >= child.Node().height {
-		if child.Node().isNecessary() {
-			_ = graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, child, parent)
+		if err := graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, child, parent); err != nil {
+			return err
 		}
 	}
 	graph.propagateInvalidity()
 	if child.Node().isNecessary() && child.Node().isStale() {
 		graph.recomputeHeap.add(child)
 	}
+	return nil
 }
 
-func (graph *Graph) changeParent(child, oldParent, newParent INode) {
+func (graph *Graph) changeParent(child, oldParent, newParent INode) error {
 	if oldParent != nil && newParent != nil {
 		if oldParent.Node().id == newParent.Node().id {
-			return
+			return nil
 		}
 		oldParent.Node().removeChild(child.Node().id)
 		oldParent.Node().forceNecessary = true
-		graph.addChild(child, newParent)
+		if err := graph.addChild(child, newParent); err != nil {
+			return err
+		}
 		oldParent.Node().forceNecessary = false
 		graph.checkIfUnnecessary(oldParent)
-		return
+		return nil
 	}
 	if oldParent == nil {
-		graph.addChild(child, newParent)
-		return
+		return graph.addChild(child, newParent)
 	}
 
 	// newParent is nil
 	oldParent.Node().removeChild(child.Node().id)
 	graph.checkIfUnnecessary(oldParent)
+	return nil
 }
 
 func (graph *Graph) propagateInvalidity() {
@@ -342,8 +345,9 @@ func (graph *Graph) addChildWithoutAdjustingHeights(child, parent INode) {
 
 func (graph *Graph) becameNecessaryRecursive(node INode) (err error) {
 	graph.addNodeOrObserver(node)
-	_ = graph.adjustHeightsHeap.setHeight(node, node.Node().createdIn.scopeHeight()+1)
-
+	if err = graph.adjustHeightsHeap.setHeight(node, node.Node().createdIn.scopeHeight()+1); err != nil {
+		return
+	}
 	if parents := node.Node().parentsFn; parents != nil {
 		for _, parent := range parents() {
 			graph.addChildWithoutAdjustingHeights(node, parent)

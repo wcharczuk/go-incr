@@ -62,7 +62,6 @@ func (rh *recomputeHeap) add(nodes ...INode) {
 func (rh *recomputeHeap) fix(ids ...Identifier) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
-
 	rh.fixUnsafe(ids...)
 }
 
@@ -85,9 +84,7 @@ func (rh *recomputeHeap) removeMin() (node INode, ok bool) {
 func (rh *recomputeHeap) removeMinUnsafe() (node INode, ok bool) {
 	if rh.heights[rh.minHeight] != nil && len(rh.heights[rh.minHeight]) > 0 {
 		node, ok = popMap(rh.heights[rh.minHeight])
-		if ok {
-			delete(rh.lookup, node.Node().id)
-		}
+		node.Node().heightInRecomputeHeap = heightUnset
 		if len(rh.heights[rh.minHeight]) == 0 {
 			rh.minHeight = rh.nextMinHeightUnsafe()
 		}
@@ -104,11 +101,13 @@ func (rh *recomputeHeap) removeMinHeight() (nodes []INode) {
 	if rh.heights[rh.minHeight] != nil && len(rh.heights[rh.minHeight]) > 0 {
 		nodes = make([]INode, 0, len(rh.heights[rh.minHeight]))
 		for id, n := range rh.heights[rh.minHeight] {
+			n.Node().heightInRecomputeHeap = heightUnset
 			nodes = append(nodes, n)
 			delete(rh.lookup, id)
 		}
 		clear(rh.heights[rh.minHeight])
 		rh.minHeight = rh.nextMinHeightUnsafe()
+
 	}
 	return
 }
@@ -136,6 +135,8 @@ func (rh *recomputeHeap) fixUnsafe(ids ...Identifier) {
 	for _, id := range ids {
 		if item, ok := rh.lookup[id]; ok {
 			delete(rh.heights[item.Node().heightInRecomputeHeap], id)
+			delete(rh.lookup, id)
+			item.Node().heightInRecomputeHeap = heightUnset
 			rh.addNodeUnsafe(item)
 		}
 	}
@@ -143,42 +144,37 @@ func (rh *recomputeHeap) fixUnsafe(ids ...Identifier) {
 
 func (rh *recomputeHeap) addUnsafe(nodes ...INode) {
 	for _, s := range nodes {
-
-		sn := s.Node()
-		// this needs to be here for `SetStale` to work correctly, specifically
-		// we may need to add nodes to the recompute heap multiple times before
-		// we ultimately call stabilize, and the heights may change during that time.
-		if current, ok := rh.lookup[sn.id]; ok {
-			rh.removeItemUnsafe(current)
-		}
 		rh.addNodeUnsafe(s)
 	}
 }
 
 func (rh *recomputeHeap) addNodeUnsafe(s INode) {
 	sn := s.Node()
-	rh.maybeUpdateMinMaxHeights(sn.height)
-	rh.maybeAddNewHeights(sn.height)
-	if rh.heights[sn.height] == nil {
-		rh.heights[sn.height] = make(map[Identifier]INode)
+	height := sn.height
+	s.Node().heightInRecomputeHeap = height
+	rh.maybeUpdateMinMaxHeights(height)
+	rh.maybeAddNewHeights(height)
+	if rh.heights[height] == nil {
+		rh.heights[height] = make(map[Identifier]INode)
 	}
-	s.Node().heightInRecomputeHeap = s.Node().height
-	rh.heights[sn.height][sn.id] = s
+	rh.heights[height][sn.id] = s
 	rh.lookup[sn.id] = s
 }
 
 func (rh *recomputeHeap) removeItemUnsafe(item INode) {
 	id := item.Node().id
+	height := item.Node().heightInRecomputeHeap
 	delete(rh.lookup, id)
-	delete(rh.heights[item.Node().heightInRecomputeHeap], id)
+	delete(rh.heights[height], id)
 
 	// handle the edge case where removing a node removes the _last_ node
 	// in the current minimum height list, causing us to need to move
 	// the minimum height up one value.
-	isLastAtHeight := rh.heights[item.Node().heightInRecomputeHeap] == nil || len(rh.heights[item.Node().heightInRecomputeHeap]) == 0
-	if item.Node().heightInRecomputeHeap == rh.minHeight && isLastAtHeight {
+	isLastAtHeight := rh.heights[height] == nil || len(rh.heights[height]) == 0
+	if height == rh.minHeight && isLastAtHeight {
 		rh.minHeight = rh.nextMinHeightUnsafe()
 	}
+	item.Node().heightInRecomputeHeap = heightUnset
 }
 
 func (rh *recomputeHeap) maybeUpdateMinMaxHeights(newHeight int) {

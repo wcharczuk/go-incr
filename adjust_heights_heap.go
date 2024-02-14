@@ -56,7 +56,8 @@ func (ah *adjustHeightsHeap) removeUnsafe(node INode) {
 const heightUnset = -1
 
 func (ah *adjustHeightsHeap) add(node INode) {
-	if node.Node().heightInAdjustHeightsHeap == heightUnset {
+	if node.Node().heightInAdjustHeightsHeap != heightUnset {
+		fmt.Printf("skipping adding node to adjust heights heap: %v %d\n", node, node.Node().heightInAdjustHeightsHeap)
 		return
 	}
 	height := node.Node().height
@@ -94,18 +95,17 @@ func (ah *adjustHeightsHeap) setHeight(node INode, height int) error {
 	if height > ah.maxHeightSeen {
 		ah.maxHeightSeen = height
 	}
-	if height < ah.heightLowerBound {
-		ah.heightLowerBound = height
-	}
 	node.Node().height = height
 	return nil
 }
 
 func (ah *adjustHeightsHeap) ensureHeightRequirement(originalChild, originalParent, child, parent INode) error {
 	if originalParent.Node().id == child.Node().id {
-		return fmt.Errorf("cycle detected at %v", child)
+		return fmt.Errorf("cycle detected at %v to %v", originalChild, originalParent)
 	}
 	if parent.Node().height >= child.Node().height {
+		// we set `child.height` after adding `child` to the heap, so that `child` goes
+		// in the heap with its pre-adjusted height.
 		ah.add(child)
 		if err := ah.setHeight(child, parent.Node().height+1); err != nil {
 			return err
@@ -122,17 +122,20 @@ func (ah *adjustHeightsHeap) adjustHeights(rh *recomputeHeap, originalChild, ori
 		return err
 	}
 	for len(ah.lookup) > 0 {
-		node, _ := ah.removeMin()
-		rh.fix(node.Node().id)
-		for _, child := range node.Node().children {
-			if err := ah.ensureHeightRequirement(originalChild, originalParent, child, node); err != nil {
+		parent, _ := ah.removeMin()
+		// if the node is in the recompute heap
+		if parent.Node().heightInRecomputeHeap >= 0 {
+			rh.fix(parent.Node().id)
+		}
+		for _, child := range parent.Node().children {
+			if err := ah.ensureHeightRequirement(originalChild, originalParent, child, parent); err != nil {
 				return err
 			}
 		}
-		if typed, typedOK := node.(IBindChange); typedOK {
+		if typed, typedOK := parent.(IBindChange); typedOK {
 			for _, nodeOnRight := range typed.RightScopeNodes() {
 				if nodeOnRight.Node().isNecessary() {
-					if err := ah.ensureHeightRequirement(originalChild, originalParent, nodeOnRight, node); err != nil {
+					if err := ah.ensureHeightRequirement(originalChild, originalParent, nodeOnRight, parent); err != nil {
 						return err
 					}
 				}
