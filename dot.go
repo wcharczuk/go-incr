@@ -65,6 +65,12 @@ func Dot(wr io.Writer, g *Graph) (err error) {
 				writef(1, "%s -> %s;", nodeLabel, childLabel)
 			}
 		}
+		for _, o := range n.Node().children {
+			childLabel, ok := nodeLabels[o.Node().id]
+			if ok {
+				writef(1, "%s -> %s;", nodeLabel, childLabel)
+			}
+		}
 	}
 	writef(0, "}")
 	return

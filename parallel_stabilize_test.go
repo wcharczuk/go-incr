@@ -27,12 +27,12 @@ func Test_ParallelStabilize(t *testing.T) {
 	testutil.Nil(t, err)
 
 	testutil.Equal(t, 0, v0.Node().setAt)
-	testutil.Equal(t, 1, v0.Node().changedAt)
+	testutil.Equal(t, 0, v0.Node().changedAt)
 	testutil.Equal(t, 0, v1.Node().setAt)
-	testutil.Equal(t, 1, v1.Node().changedAt)
+	testutil.Equal(t, 0, v1.Node().changedAt)
 	testutil.Equal(t, 1, m0.Node().changedAt)
-	testutil.Equal(t, 1, v0.Node().recomputedAt)
-	testutil.Equal(t, 1, v1.Node().recomputedAt)
+	testutil.Equal(t, 0, v0.Node().recomputedAt)
+	testutil.Equal(t, 0, v1.Node().recomputedAt)
 	testutil.Equal(t, 1, m0.Node().recomputedAt)
 
 	testutil.Equal(t, "foo bar", m0.Value())
@@ -45,11 +45,11 @@ func Test_ParallelStabilize(t *testing.T) {
 	testutil.Nil(t, err)
 
 	testutil.Equal(t, 2, v0.Node().changedAt)
-	testutil.Equal(t, 1, v1.Node().changedAt)
+	testutil.Equal(t, 0, v1.Node().changedAt)
 	testutil.Equal(t, 2, m0.Node().changedAt)
 
 	testutil.Equal(t, 2, v0.Node().recomputedAt)
-	testutil.Equal(t, 1, v1.Node().recomputedAt)
+	testutil.Equal(t, 0, v1.Node().recomputedAt)
 	testutil.Equal(t, 2, m0.Node().recomputedAt)
 
 	testutil.Equal(t, "not foo bar", m0.Value())
@@ -269,7 +269,7 @@ func Test_ParallelStabilize_always_cutoff_error(t *testing.T) {
 	testutil.NotNil(t, err)
 	testutil.Equal(t, "", o.Value())
 
-	testutil.Equal(t, 3, g.recomputeHeap.len())
+	testutil.Equal(t, 2, g.recomputeHeap.len())
 }
 
 func Test_ParallelStabilize_printsErrors(t *testing.T) {

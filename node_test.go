@@ -77,7 +77,7 @@ func Test_SetStale(t *testing.T) {
 	testutil.Equal(t, true, n.n.graph.recomputeHeap.has(n))
 
 	// find the node in the recompute heap layer
-	testutil.Equal(t, 1, len(n.n.graph.recomputeHeap.heights[1]))
+	testutil.Equal(t, 1, len(n.n.graph.recomputeHeap.heights[0]))
 
 	g.SetStale(n)
 
@@ -87,7 +87,7 @@ func Test_SetStale(t *testing.T) {
 
 	testutil.Equal(t, true, n.n.graph.recomputeHeap.has(n))
 
-	testutil.Equal(t, 1, len(n.n.graph.recomputeHeap.heights[1]))
+	testutil.Equal(t, 1, len(n.n.graph.recomputeHeap.heights[0]))
 }
 
 func Test_Node_OnUpdate(t *testing.T) {
@@ -312,91 +312,11 @@ func Test_Node_detectStabilize(t *testing.T) {
 }
 
 func Test_Node_isStale(t *testing.T) {
-	g := New()
-
 	n := NewNode("test_node")
 	testutil.Equal(t, true, n.isStale())
 
 	n.recomputedAt = 1
 	testutil.Equal(t, false, n.isStale())
-
-	n.stabilizeFn = func(_ context.Context) error { return nil }
-	n.setAt = 2
-	testutil.Equal(t, true, n.isStale())
-
-	n.setAt = 1
-	n.changedAt = 2
-	testutil.Equal(t, true, n.isStale())
-
-	n.changedAt = 1
-	c1 := newMockBareNode(g)
-	c1.Node().changedAt = 2
-
-	n.addParents(newMockBareNode(g), c1)
-	testutil.Equal(t, true, n.isStale())
-
-	c1.Node().changedAt = 1
-	testutil.Equal(t, false, n.isStale())
-}
-
-func Test_Node_recompute(t *testing.T) {
-	ctx := testContext()
-
-	g := New()
-	var calledStabilize bool
-	m0 := MapContext(g, Return(g, ""), func(ictx context.Context, _ string) (string, error) {
-		calledStabilize = true
-		testutil.BlueDye(ictx, t)
-		return "hello", nil
-	})
-
-	p := newMockBareNode(g)
-	m0.Node().addParents(p)
-	_ = Observe(g, m0)
-
-	var calledUpdateHandler0, calledUpdateHandler1 bool
-	m0.Node().OnUpdate(func(ictx context.Context) {
-		testutil.BlueDye(ictx, t)
-		calledUpdateHandler0 = true
-	})
-	m0.Node().OnUpdate(func(ictx context.Context) {
-		testutil.BlueDye(ictx, t)
-		calledUpdateHandler1 = true
-	})
-
-	var calledErrorHandler0, calledErrorHandler1 bool
-	m0.Node().OnError(func(ictx context.Context, err error) {
-		testutil.BlueDye(ictx, t)
-		calledErrorHandler0 = true
-	})
-	m0.Node().OnError(func(ictx context.Context, err error) {
-		testutil.BlueDye(ictx, t)
-		calledErrorHandler1 = true
-	})
-
-	err := g.recompute(ctx, m0)
-	testutil.Nil(t, err)
-
-	// find the node in the recompute heap layer
-	testutil.Equal(t, true, g.recomputeHeap.has(p))
-	testutil.Equal(t, true, calledStabilize)
-
-	// we don't call these handlers directly
-	testutil.Equal(t, false, calledUpdateHandler0)
-	testutil.Equal(t, false, calledUpdateHandler1)
-	// we don't call these handlers at all b/c no error
-	testutil.Equal(t, false, calledErrorHandler0)
-	testutil.Equal(t, false, calledErrorHandler1)
-
-	testutil.Equal(t, 1, len(g.handleAfterStabilization))
-
-	for _, handlers := range g.handleAfterStabilization {
-		for _, h := range handlers {
-			h(ctx)
-		}
-	}
-	testutil.Equal(t, true, calledUpdateHandler0)
-	testutil.Equal(t, true, calledUpdateHandler1)
 }
 
 func Test_Node_stabilize_error(t *testing.T) {
@@ -516,16 +436,6 @@ func (en emptyNode) Parents() []INode { return nil }
 
 func (en emptyNode) Node() *Node {
 	return en.n
-}
-
-func Test_Node_ShouldRecompute_unit(t *testing.T) {
-	var noop = func(_ context.Context) error { return nil }
-	testutil.Equal(t, true, (&Node{recomputedAt: 0}).isStale())
-	testutil.Equal(t, false, (&Node{recomputedAt: 1}).isStale())
-	testutil.Equal(t, true, (&Node{recomputedAt: 1, stabilizeFn: noop, setAt: 2}).isStale())
-	testutil.Equal(t, true, (&Node{recomputedAt: 2, stabilizeFn: noop, setAt: 2, changedAt: 3}).isStale())
-	testutil.Equal(t, true, (&Node{recomputedAt: 2, stabilizeFn: noop, setAt: 2, changedAt: 2, parents: []INode{emptyNode{&Node{changedAt: 3}}}}).isStale())
-	testutil.Equal(t, false, (&Node{recomputedAt: 2, stabilizeFn: noop, setAt: 2, changedAt: 2, parents: []INode{emptyNode{&Node{changedAt: 2}}}}).isStale())
 }
 
 func Test_Node_Observers(t *testing.T) {

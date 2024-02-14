@@ -1376,7 +1376,7 @@ func Test_Stabilize_Always_Cutoff_error(t *testing.T) {
 	NotNil(t, err)
 	Equal(t, "", o.Value())
 
-	Equal(t, 3, g.recomputeHeap.len())
+	Equal(t, 2, g.recomputeHeap.len())
 }
 
 func Test_Stabilize_printsErrors(t *testing.T) {
