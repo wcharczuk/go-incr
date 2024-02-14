@@ -73,23 +73,13 @@ func (ah *adjustHeightsHeap) addUnsafe(node INode) {
 	ah.nodesByHeight[height][node.Node().id] = node
 }
 
-func pop[K comparable, V any](m map[K]V) (v V, ok bool) {
-	var k K
-	for k, v = range m {
-		ok = true
-		break
-	}
-	delete(m, k)
-	return
-}
-
 func (ah *adjustHeightsHeap) removeMinUnsafe() (node INode, ok bool) {
 	if len(ah.lookup) == 0 {
 		return
 	}
 	for x := ah.heightLowerBound; x <= ah.maxHeightSeen; x++ {
 		if ah.nodesByHeight[x] != nil && len(ah.nodesByHeight[x]) > 0 {
-			node, _ = pop(ah.nodesByHeight[x])
+			node, _ = popMap(ah.nodesByHeight[x])
 			ok = true
 			ah.heightLowerBound = x
 			delete(ah.lookup, node.Node().id)

@@ -73,6 +73,28 @@ func (rh *recomputeHeap) has(s INode) (ok bool) {
 	return
 }
 
+// removeMin removes the minimum height node.
+func (rh *recomputeHeap) removeMin() (node INode, ok bool) {
+	rh.mu.Lock()
+	defer rh.mu.Unlock()
+	node, ok = rh.removeMinUnsafe()
+	return
+}
+
+// removeMin removes the minimum height node.
+func (rh *recomputeHeap) removeMinUnsafe() (node INode, ok bool) {
+	if rh.heights[rh.minHeight] != nil && len(rh.heights[rh.minHeight]) > 0 {
+		node, ok = popMap(rh.heights[rh.minHeight])
+		if ok {
+			delete(rh.lookup, node.Node().id)
+		}
+		if len(rh.heights[rh.minHeight]) == 0 {
+			rh.minHeight = rh.nextMinHeightUnsafe()
+		}
+	}
+	return
+}
+
 // removeMinHeight removes the minimum height nodes from
 // the recompute heap all at once.
 func (rh *recomputeHeap) removeMinHeight() (nodes []INode) {

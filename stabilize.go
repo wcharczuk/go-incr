@@ -19,16 +19,14 @@ func (graph *Graph) Stabilize(ctx context.Context) (err error) {
 	}()
 
 	var immediateRecompute []INode
-	var next []INode
+	var next INode
 	for len(graph.recomputeHeap.lookup) > 0 {
-		next = graph.recomputeHeap.removeMinHeight()
-		for _, n := range next {
-			if err = graph.recompute(ctx, n); err != nil {
-				break
-			}
-			if n.Node().always {
-				immediateRecompute = append(immediateRecompute, n)
-			}
+		next, _ = graph.recomputeHeap.removeMinUnsafe()
+		if err = graph.recompute(ctx, next); err != nil {
+			break
+		}
+		if next.Node().always {
+			immediateRecompute = append(immediateRecompute, next)
 		}
 		if err != nil {
 			break
