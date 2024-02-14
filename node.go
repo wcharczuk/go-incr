@@ -9,12 +9,15 @@ import (
 // NewNode returns a new node.
 func NewNode(kind string) *Node {
 	return &Node{
-		id:             NewIdentifier(),
-		kind:           kind,
-		valid:          true, // start out valid!
-		parentLookup:   make(set[Identifier]),
-		childLookup:    make(set[Identifier]),
-		observerLookup: make(set[Identifier]),
+		id:                        NewIdentifier(),
+		kind:                      kind,
+		valid:                     true, // start out valid!
+		height:                    heightUnset,
+		heightInRecomputeHeap:     heightUnset,
+		heightInAdjustHeightsHeap: heightUnset,
+		parentLookup:              make(set[Identifier]),
+		childLookup:               make(set[Identifier]),
+		observerLookup:            make(set[Identifier]),
 	}
 }
 

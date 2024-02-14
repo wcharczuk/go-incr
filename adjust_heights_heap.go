@@ -53,15 +53,12 @@ func (ah *adjustHeightsHeap) removeUnsafe(node INode) {
 	}
 }
 
-func (ah *adjustHeightsHeap) add(node INode) {
-	ah.mu.Lock()
-	defer ah.mu.Unlock()
-	ah.removeUnsafe(node)
-	ah.addUnsafe(node)
-}
+const heightUnset = -1
 
-func (ah *adjustHeightsHeap) addUnsafe(node INode) {
-	ah.lookup.add(node.Node().id)
+func (ah *adjustHeightsHeap) add(node INode) {
+	if node.Node().heightInAdjustHeightsHeap == heightUnset {
+		return
+	}
 	height := node.Node().height
 	node.Node().heightInAdjustHeightsHeap = height
 	if ah.nodesByHeight[height] == nil {
@@ -71,17 +68,18 @@ func (ah *adjustHeightsHeap) addUnsafe(node INode) {
 		ah.maxHeightSeen = height
 	}
 	ah.nodesByHeight[height][node.Node().id] = node
+	ah.lookup.add(node.Node().id)
 }
 
-func (ah *adjustHeightsHeap) removeMinUnsafe() (node INode, ok bool) {
+func (ah *adjustHeightsHeap) removeMin() (node INode, ok bool) {
 	if len(ah.lookup) == 0 {
 		return
 	}
 	for x := ah.heightLowerBound; x <= ah.maxHeightSeen; x++ {
 		if ah.nodesByHeight[x] != nil && len(ah.nodesByHeight[x]) > 0 {
-			node, _ = popMap(ah.nodesByHeight[x])
-			ok = true
+			node, ok = popMap(ah.nodesByHeight[x])
 			ah.heightLowerBound = x
+			node.Node().heightInAdjustHeightsHeap = heightUnset
 			delete(ah.lookup, node.Node().id)
 			return
 		}
@@ -104,21 +102,14 @@ func (ah *adjustHeightsHeap) setHeight(node INode, height int) error {
 }
 
 func (ah *adjustHeightsHeap) ensureHeightRequirement(originalChild, originalParent, child, parent INode) error {
-	ah.mu.Lock()
-	defer ah.mu.Unlock()
-	return ah.ensureHeightRequirementUnsafe(originalChild, originalParent, child, parent)
-}
-
-func (ah *adjustHeightsHeap) ensureHeightRequirementUnsafe(originalChild, originalParent, child, parent INode) error {
 	if originalParent.Node().id == child.Node().id {
 		return fmt.Errorf("cycle detected at %v", child)
 	}
 	if parent.Node().height >= child.Node().height {
+		ah.add(child)
 		if err := ah.setHeight(child, parent.Node().height+1); err != nil {
 			return err
 		}
-		ah.removeUnsafe(child)
-		ah.addUnsafe(child)
 	}
 	return nil
 }
@@ -126,21 +117,22 @@ func (ah *adjustHeightsHeap) ensureHeightRequirementUnsafe(originalChild, origin
 func (ah *adjustHeightsHeap) adjustHeights(rh *recomputeHeap, originalChild, originalParent INode) error {
 	ah.mu.Lock()
 	defer ah.mu.Unlock()
-	if err := ah.ensureHeightRequirementUnsafe(originalChild, originalParent, originalChild, originalParent); err != nil {
+
+	if err := ah.ensureHeightRequirement(originalChild, originalParent, originalChild, originalParent); err != nil {
 		return err
 	}
 	for len(ah.lookup) > 0 {
-		node, _ := ah.removeMinUnsafe()
+		node, _ := ah.removeMin()
 		rh.fix(node.Node().id)
 		for _, child := range node.Node().children {
-			if err := ah.ensureHeightRequirementUnsafe(originalChild, originalParent, child, node); err != nil {
+			if err := ah.ensureHeightRequirement(originalChild, originalParent, child, node); err != nil {
 				return err
 			}
 		}
 		if typed, typedOK := node.(IBindChange); typedOK {
 			for _, nodeOnRight := range typed.RightScopeNodes() {
 				if nodeOnRight.Node().isNecessary() {
-					if err := ah.ensureHeightRequirementUnsafe(originalChild, originalParent, node, nodeOnRight); err != nil {
+					if err := ah.ensureHeightRequirement(originalChild, originalParent, nodeOnRight, node); err != nil {
 						return err
 					}
 				}

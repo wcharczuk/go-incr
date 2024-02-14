@@ -64,8 +64,8 @@ func main() {
 		var f func(incr.Scope, int) incr.Incr[*int]
 		f = func(bs incr.Scope, t int) incr.Incr[*int] {
 			key := fmt.Sprintf("f-%d", t)
-			if _, ok := cache[key]; ok {
-				return incr.WithinScope(bs, cache[key])
+			if cached, ok := cache[key]; ok {
+				return cached // incr.WithinScope(bs, cache[key])
 			}
 			r := incr.Bind(graph, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
 				if t <= 0 {
@@ -174,7 +174,7 @@ func main() {
 		noError(err)
 		_ = dumpDot(graph, homedir("integration_00_00.png"))
 		elapsed := time.Since(start)
-		fmt.Printf(fmt.Sprintf("Calculating months of runway took %s \n", elapsed))
+		fmt.Printf("Calculating months of runway took %s \n", elapsed)
 
 		fmt.Println("Calculating burn for t= 1 to 24")
 		start = time.Now()
@@ -188,7 +188,7 @@ func main() {
 		noError(err)
 		_ = dumpDot(graph, homedir("integration_00_01.png"))
 		elapsed = time.Since(start)
-		fmt.Printf(fmt.Sprintf("Calculating burn took %s \n", elapsed))
+		fmt.Printf("Calculating burn took %s \n", elapsed)
 	})
 
 	testCase("month_of_runway = if burn > 0: cash_balance / burn else 0. Calculate burn then months of runway", func() {
@@ -203,8 +203,8 @@ func main() {
 		var f func(incr.Scope, int) incr.Incr[*int]
 		f = func(bs incr.Scope, t int) incr.Incr[*int] {
 			key := fmt.Sprintf("f-%d", t)
-			if _, ok := cache[key]; ok {
-				return incr.WithinScope(bs, cache[key])
+			if cached, ok := cache[key]; ok {
+				return cached // incr.WithinScope(bs, cache[key])
 			}
 			r := incr.Bind(graph, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
 				if t <= 0 {
@@ -311,7 +311,7 @@ func main() {
 		noError(err)
 		_ = dumpDot(graph, homedir("integration_01_00.png"))
 		elapsed := time.Since(start)
-		fmt.Printf(fmt.Sprintf("Calculating burn took %s \n", elapsed))
+		fmt.Printf("Calculating burn took %s \n", elapsed)
 
 		fmt.Println("Calculating months of runway for t= 1 to 24")
 		start = time.Now()
@@ -324,7 +324,7 @@ func main() {
 		_ = dumpDot(graph, homedir("integration_01_01.png"))
 		noError(err)
 		elapsed = time.Since(start)
-		fmt.Printf(fmt.Sprintf("Calculating months of runway took %s \n", elapsed))
+		fmt.Printf("Calculating months of runway took %s \n", elapsed)
 	})
 
 	testCase("node amplification yields slower and slower stabilization", func() {
@@ -339,8 +339,8 @@ func main() {
 		var f func(incr.Scope, int) incr.Incr[*int]
 		f = func(bs incr.Scope, t int) incr.Incr[*int] {
 			key := fmt.Sprintf("f-%d", t)
-			if _, ok := cache[key]; ok {
-				return incr.WithinScope(bs, cache[key])
+			if cached, ok := cache[key]; ok {
+				return cached // incr.WithinScope(bs, cache[key])
 			}
 			r := incr.Bind(graph, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
 				if t <= 0 {
@@ -460,7 +460,7 @@ func main() {
 		}
 		_ = graph.Stabilize(ctx)
 		elapsed := time.Since(start)
-		fmt.Printf(fmt.Sprintf("Baseline calculation of months of runway for t= %d to %d took %s\n", 0, max_t, elapsed))
+		fmt.Printf("Baseline calculation of months of runway for t= %d to %d took %s\n", 0, max_t, elapsed)
 
 		maxMultiplier := 10
 		for k := 1; k <= maxMultiplier; k++ {

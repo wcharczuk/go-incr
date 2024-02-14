@@ -443,9 +443,9 @@ func (graph *Graph) zeroNode(n INode) {
 	// TODO (wc): why can't i zero these out?
 	// nn.createdIn = nil
 	// nn.graph = nil
-	nn.height = 0
-	nn.heightInRecomputeHeap = 0
-	nn.heightInAdjustHeightsHeap = 0
+	nn.height = heightUnset
+	nn.heightInRecomputeHeap = heightUnset
+	nn.heightInAdjustHeightsHeap = heightUnset
 }
 
 func (graph *Graph) addNewObserverToNode(on IObserver, n INode) error {
