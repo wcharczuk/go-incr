@@ -18,17 +18,12 @@ func Cutoff2[A, B any](bs Scope, epsilon Incr[A], input Incr[B], fn Cutoff2Func[
 // node if the difference between the previous and latest values are not
 // significant enough to warrant a full recomputation of the children of this node.
 func Cutoff2Context[A, B any](bs Scope, epsilon Incr[A], input Incr[B], fn Cutoff2ContextFunc[A, B]) Cutoff2Incr[A, B] {
-	o := WithinScope(bs, &cutoff2Incr[A, B]{
+	return WithinScope(bs, &cutoff2Incr[A, B]{
 		n:  NewNode("cutoff2"),
 		fn: fn,
 		e:  epsilon,
 		i:  input,
 	})
-	// we short circuit setup of the node cutoff reference here.
-	// this can be discovered in initialization but saves a step.
-	Link(o, input)
-	Link(o, epsilon)
-	return o
 }
 
 // CutoffIncr is an incremental node that implements the ICutoff interface.
@@ -61,6 +56,10 @@ type cutoff2Incr[A, B any] struct {
 	i     Incr[B]
 	value B
 	fn    Cutoff2ContextFunc[A, B]
+}
+
+func (c *cutoff2Incr[A, B]) Parents() []INode {
+	return []INode{c.e, c.i}
 }
 
 func (c *cutoff2Incr[A, B]) Value() B {

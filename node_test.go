@@ -23,8 +23,8 @@ func Test_NewNode(t *testing.T) {
 	testutil.Equal(t, 0, n.recomputedAt)
 	testutil.Nil(t, n.onUpdateHandlers)
 	testutil.Nil(t, n.onErrorHandlers)
-	testutil.Nil(t, n.stabilize)
-	testutil.Nil(t, n.cutoff)
+	testutil.Nil(t, n.stabilizeFn)
+	testutil.Nil(t, n.cutoffFn)
 	testutil.Equal(t, 0, n.numRecomputes)
 	testutil.Nil(t, n.metadata)
 }
@@ -50,38 +50,6 @@ func Test_Node_Metadata(t *testing.T) {
 	testutil.Equal(t, nil, n.Metadata())
 	n.SetMetadata("foo")
 	testutil.Equal(t, "foo", n.Metadata())
-}
-
-func Test_Link(t *testing.T) {
-	g := New()
-
-	c := newMockBareNode(g)
-	p0 := newMockBareNode(g)
-	p1 := newMockBareNode(g)
-	p2 := newMockBareNode(g)
-
-	// set up P with (3) inputs
-	Link(c, p0, p1, p2)
-
-	// no nodes depend on p, p is not an input to any nodes
-	testutil.Equal(t, 3, len(c.n.parents))
-	testutil.Equal(t, 0, len(c.n.children))
-
-	testutil.Equal(t, true, hasKey(c.n.parents, p0.n.id))
-	testutil.Equal(t, true, hasKey(c.n.parents, p1.n.id))
-	testutil.Equal(t, true, hasKey(c.n.parents, p2.n.id))
-
-	testutil.Equal(t, 1, len(p0.n.children))
-	testutil.Equal(t, true, hasKey(p0.n.children, c.n.id))
-	testutil.Equal(t, 0, len(p0.n.parents))
-
-	testutil.Equal(t, 1, len(p1.n.children))
-	testutil.Equal(t, true, hasKey(p1.n.children, c.n.id))
-	testutil.Equal(t, 0, len(p1.n.parents))
-
-	testutil.Equal(t, 1, len(p2.n.children))
-	testutil.Equal(t, true, hasKey(p2.n.children, c.n.id))
-	testutil.Equal(t, 0, len(p2.n.parents))
 }
 
 func Test_Node_String(t *testing.T) {
@@ -270,7 +238,7 @@ func Test_Node_maybeStabilize(t *testing.T) {
 	testutil.Nil(t, err)
 
 	var calledStabilize bool
-	n.stabilize = func(ictx context.Context) error {
+	n.stabilizeFn = func(ictx context.Context) error {
 		calledStabilize = true
 		testutil.BlueDye(ictx, t)
 		return nil
@@ -285,7 +253,7 @@ func Test_Node_maybeStabilize_error(t *testing.T) {
 	ctx := testContext()
 	n := NewNode("test_node")
 
-	n.stabilize = func(ictx context.Context) error {
+	n.stabilizeFn = func(ictx context.Context) error {
 		testutil.BlueDye(ictx, t)
 		return fmt.Errorf("just a test")
 	}
@@ -305,7 +273,7 @@ func Test_Node_maybeCutoff(t *testing.T) {
 	testutil.Nil(t, err)
 	testutil.Equal(t, false, shouldCutoff)
 
-	n.cutoff = func(ictx context.Context) (bool, error) {
+	n.cutoffFn = func(ictx context.Context) (bool, error) {
 		testutil.BlueDye(ictx, t)
 		return true, nil
 	}
@@ -314,7 +282,7 @@ func Test_Node_maybeCutoff(t *testing.T) {
 	testutil.Nil(t, err)
 	testutil.Equal(t, true, shouldCutoff)
 
-	n.cutoff = func(ictx context.Context) (bool, error) {
+	n.cutoffFn = func(ictx context.Context) (bool, error) {
 		testutil.BlueDye(ictx, t)
 		return true, fmt.Errorf("this is just a test")
 	}
@@ -326,49 +294,49 @@ func Test_Node_maybeCutoff(t *testing.T) {
 func Test_Node_detectCutoff(t *testing.T) {
 	yes := NewNode("test_node")
 	yes.detectCutoff(new(cutoffIncr[string]))
-	testutil.NotNil(t, yes.cutoff)
+	testutil.NotNil(t, yes.cutoffFn)
 
 	no := NewNode("test_node")
 	no.detectCutoff(new(mockBareNode))
-	testutil.Nil(t, no.cutoff)
+	testutil.Nil(t, no.cutoffFn)
 }
 
 func Test_Node_detectStabilize(t *testing.T) {
 	yes := NewNode("test_node")
 	yes.detectStabilize(new(mapIncr[string, string]))
-	testutil.NotNil(t, yes.stabilize)
+	testutil.NotNil(t, yes.stabilizeFn)
 
 	no := NewNode("test_node")
 	no.detectStabilize(new(mockBareNode))
-	testutil.Nil(t, no.stabilize)
+	testutil.Nil(t, no.stabilizeFn)
 }
 
-func Test_Node_shouldRecompute(t *testing.T) {
+func Test_Node_isStale(t *testing.T) {
 	g := New()
 
 	n := NewNode("test_node")
-	testutil.Equal(t, true, n.ShouldRecompute())
+	testutil.Equal(t, true, n.isStale())
 
 	n.recomputedAt = 1
-	testutil.Equal(t, false, n.ShouldRecompute())
+	testutil.Equal(t, false, n.isStale())
 
-	n.stabilize = func(_ context.Context) error { return nil }
+	n.stabilizeFn = func(_ context.Context) error { return nil }
 	n.setAt = 2
-	testutil.Equal(t, true, n.ShouldRecompute())
+	testutil.Equal(t, true, n.isStale())
 
 	n.setAt = 1
 	n.changedAt = 2
-	testutil.Equal(t, true, n.ShouldRecompute())
+	testutil.Equal(t, true, n.isStale())
 
 	n.changedAt = 1
 	c1 := newMockBareNode(g)
 	c1.Node().changedAt = 2
 
 	n.addParents(newMockBareNode(g), c1)
-	testutil.Equal(t, true, n.ShouldRecompute())
+	testutil.Equal(t, true, n.isStale())
 
 	c1.Node().changedAt = 1
-	testutil.Equal(t, false, n.ShouldRecompute())
+	testutil.Equal(t, false, n.isStale())
 }
 
 func Test_Node_recompute(t *testing.T) {
@@ -544,19 +512,20 @@ type emptyNode struct {
 	n *Node
 }
 
+func (en emptyNode) Parents() []INode { return nil }
+
 func (en emptyNode) Node() *Node {
 	return en.n
 }
 
 func Test_Node_ShouldRecompute_unit(t *testing.T) {
 	var noop = func(_ context.Context) error { return nil }
-	testutil.Equal(t, true, (&Node{recomputedAt: 0}).ShouldRecompute())
-	testutil.Equal(t, false, (&Node{recomputedAt: 1}).ShouldRecompute())
-	testutil.Equal(t, true, (&Node{recomputedAt: 1, stabilize: noop, setAt: 2}).ShouldRecompute())
-	testutil.Equal(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 3}).ShouldRecompute())
-	testutil.Equal(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 3}).ShouldRecompute())
-	testutil.Equal(t, true, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 2, parents: []INode{emptyNode{&Node{changedAt: 3}}}}).ShouldRecompute())
-	testutil.Equal(t, false, (&Node{recomputedAt: 2, stabilize: noop, setAt: 2, boundAt: 2, changedAt: 2, parents: []INode{emptyNode{&Node{changedAt: 2}}}}).ShouldRecompute())
+	testutil.Equal(t, true, (&Node{recomputedAt: 0}).isStale())
+	testutil.Equal(t, false, (&Node{recomputedAt: 1}).isStale())
+	testutil.Equal(t, true, (&Node{recomputedAt: 1, stabilizeFn: noop, setAt: 2}).isStale())
+	testutil.Equal(t, true, (&Node{recomputedAt: 2, stabilizeFn: noop, setAt: 2, changedAt: 3}).isStale())
+	testutil.Equal(t, true, (&Node{recomputedAt: 2, stabilizeFn: noop, setAt: 2, changedAt: 2, parents: []INode{emptyNode{&Node{changedAt: 3}}}}).isStale())
+	testutil.Equal(t, false, (&Node{recomputedAt: 2, stabilizeFn: noop, setAt: 2, changedAt: 2, parents: []INode{emptyNode{&Node{changedAt: 2}}}}).isStale())
 }
 
 func Test_Node_Observers(t *testing.T) {

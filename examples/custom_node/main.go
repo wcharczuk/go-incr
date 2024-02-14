@@ -8,18 +8,20 @@ import (
 )
 
 func Custom[T any](scope incr.Scope, a incr.Incr[T]) incr.Incr[T] {
-	o := &customIncr[T]{
+	return incr.WithinScope(scope, &customIncr[T]{
 		n: incr.NewNode("custom"),
 		a: a,
-	}
-	incr.Link(o, a)
-	return incr.WithinScope(scope, o)
+	})
 }
 
 type customIncr[T any] struct {
 	n     *incr.Node
 	a     incr.Incr[T]
 	value T
+}
+
+func (c *customIncr[T]) Parents() []incr.INode {
+	return []incr.INode{c.a}
 }
 
 func (c *customIncr[T]) Value() T         { return c.value }

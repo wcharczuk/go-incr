@@ -113,6 +113,8 @@ type mockBareNode struct {
 	n *Node
 }
 
+func (mn *mockBareNode) Parents() []INode { return nil }
+
 func (mn *mockBareNode) Node() *Node {
 	return mn.n
 }
@@ -144,6 +146,8 @@ type heightIncr struct {
 	Incr[struct{}]
 	n *Node
 }
+
+func (hi *heightIncr) Parents() []INode { return nil }
 
 func (hi heightIncr) Node() *Node {
 	return hi.n

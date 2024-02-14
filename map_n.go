@@ -16,15 +16,11 @@ func MapN[A, B any](scope Scope, fn MapNFunc[A, B], inputs ...Incr[A]) MapNIncr[
 // MapNContext applies a function to given list of input incrementals and returns
 // a new incremental of the output type of that function.
 func MapNContext[A, B any](scope Scope, fn MapNContextFunc[A, B], inputs ...Incr[A]) MapNIncr[A, B] {
-	o := WithinScope(scope, &mapNIncr[A, B]{
+	return WithinScope(scope, &mapNIncr[A, B]{
 		n:      NewNode("map_n"),
 		inputs: inputs,
 		fn:     fn,
 	})
-	for _, i := range inputs {
-		Link(o, i)
-	}
-	return o
 }
 
 // MapNFunc is the function that the MapN incremental applies.
@@ -54,9 +50,16 @@ type mapNIncr[A, B any] struct {
 	val    B
 }
 
+func (mi *mapNIncr[A, B]) Parents() []INode {
+	output := make([]INode, len(mi.inputs))
+	for i := 0; i < len(mi.inputs); i++ {
+		output[i] = mi.inputs[i]
+	}
+	return output
+}
+
 func (mn *mapNIncr[A, B]) AddInput(i Incr[A]) {
 	mn.inputs = append(mn.inputs, i)
-	Link(mn, i)
 }
 
 func (mn *mapNIncr[A, B]) Node() *Node { return mn.n }

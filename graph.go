@@ -36,7 +36,7 @@ func New(opts ...GraphOption) *Graph {
 		adjustHeightsHeap:        newAdjustHeightsHeap(options.MaxHeight),
 		setDuringStabilization:   make(map[Identifier]INode),
 		handleAfterStabilization: make(map[Identifier][]func(context.Context)),
-		propagateInvalidity:      new(queue[INode]),
+		propagateInvalidityQueue: new(queue[INode]),
 	}
 	return g
 }
@@ -141,7 +141,7 @@ type Graph struct {
 	// onStabilizationEnd are optional hooks called when stabilization ends.
 	onStabilizationEnd []func(context.Context, time.Time, error)
 
-	propagateInvalidity *queue[INode]
+	propagateInvalidityQueue *queue[INode]
 }
 
 // ID is the identifier for the graph.
@@ -213,13 +213,13 @@ func (graph *Graph) SetStale(gn INode) {
 // Scope interface methods
 //
 
-func (graph *Graph) isRootScope() bool      { return true }
-func (graph *Graph) isScopeValid() bool     { return true }
-func (graph *Graph) isScopeNecessary() bool { return true }
-
-func (graph *Graph) scopeGraph() *Graph { return graph }
-
-func (graph *Graph) scopeHeight() int { return -1 }
+func (graph *Graph) isTopScope() bool        { return true }
+func (graph *Graph) isScopeValid() bool      { return true }
+func (graph *Graph) isScopeNecessary() bool  { return true }
+func (graph *Graph) scopeGraph() *Graph      { return graph }
+func (graph *Graph) scopeHeight() int        { return -1 }
+func (graph *Graph) addScopeNode(_ INode)    {}
+func (graph *Graph) removeScopeNode(_ INode) {}
 
 func (graph *Graph) String() string { return fmt.Sprintf("{graph:%s}", graph.id.Short()) }
 
@@ -227,7 +227,7 @@ func (graph *Graph) String() string { return fmt.Sprintf("{graph:%s}", graph.id.
 // Internal discovery & observe methods
 //
 
-func (graph *Graph) invalidateNode(ctx context.Context, node INode) {
+func (graph *Graph) invalidateNode(node INode) {
 	if !node.Node().valid {
 		return
 	}
@@ -237,14 +237,14 @@ func (graph *Graph) invalidateNode(ctx context.Context, node INode) {
 	nn.recomputedAt = graph.stabilizationNum
 	if nn.isNecessary() {
 		graph.removeParents(node)
-		nn.height = heightFromScope(node) + 1
+		nn.height = node.Node().createdIn.scopeHeight() + 1
 	}
-	if typedBind, isBind := node.(IBind); isBind {
-		typedBind.Invalidate(ctx)
+	if typedBind, isBind := node.(IBindMain); isBind {
+		typedBind.Invalidate()
 	}
 	nn.valid = false
 	for _, child := range node.Node().children {
-		graph.propagateInvalidity.push(child)
+		graph.propagateInvalidityQueue.push(child)
 	}
 	graph.recomputeHeap.remove(node)
 }
@@ -255,8 +255,13 @@ func (graph *Graph) removeParents(child INode) {
 	}
 }
 
+func (graph *Graph) unlink(child, parent INode) {
+	child.Node().removeParent(parent.Node().id)
+	parent.Node().removeChild(child.Node().id)
+}
+
 func (graph *Graph) removeParent(child, parent INode) {
-	Unlink(child, parent)
+	graph.unlink(child, parent)
 	graph.checkIfUnnecessary(parent)
 }
 
@@ -278,60 +283,91 @@ func (graph *Graph) addChild(child, parent INode) {
 			_ = graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, child, parent)
 		}
 	}
-	graph.doPropagateInvalidity()
-	if child.Node().isNecessary() && child.Node().ShouldRecompute() {
+	graph.propagateInvalidity()
+	if child.Node().isNecessary() && child.Node().isStale() {
 		graph.recomputeHeap.add(child)
 	}
 }
 
 func (graph *Graph) changeParent(child, oldParent, newParent INode) {
+	if oldParent != nil && newParent != nil {
+		if oldParent.Node().id == newParent.Node().id {
+			return
+		}
+		oldParent.Node().removeChild(child.Node().id)
+		oldParent.Node().forceNecessary = true
+		graph.addChild(child, newParent)
+		oldParent.Node().forceNecessary = false
+		graph.checkIfUnnecessary(oldParent)
+		return
+	}
 	if oldParent == nil {
 		graph.addChild(child, newParent)
 		return
 	}
-	if oldParent.Node().id == newParent.Node().id {
-		return
-	}
+
+	// newParent is nil
 	oldParent.Node().removeChild(child.Node().id)
-	oldParent.Node().forceNecessary = true
-	graph.addChild(child, newParent)
-	oldParent.Node().forceNecessary = false
 	graph.checkIfUnnecessary(oldParent)
 }
 
-func (graph *Graph) doPropagateInvalidity() {
-	// things ???
+func (graph *Graph) propagateInvalidity() {
+	for graph.propagateInvalidityQueue.len() > 0 {
+		node, _ := graph.propagateInvalidityQueue.pop()
+		if node.Node().valid {
+			if node.Node().shouldBeInvalidated() {
+				graph.invalidateNode(node)
+			}
+		}
+		graph.recomputeHeap.add(node)
+	}
 }
 
 func (graph *Graph) addChildWithoutAdjustingHeights(child, parent INode) {
 	wasNecessary := parent.Node().isNecessary()
+
+	// start_link {
 	parent.Node().addChildren(child)
+	child.Node().addParents(parent)
+	// } end_link
+
 	if !parent.Node().valid {
-		graph.propagateInvalidity.push(child)
+		graph.propagateInvalidityQueue.push(child)
 	}
 	if !wasNecessary {
-		graph.becameNecessary(parent)
+		_ = graph.becameNecessaryRecursive(parent)
 	}
 }
 
-func (graph *Graph) becameNecessary(node INode) (err error) {
+func (graph *Graph) becameNecessaryRecursive(node INode) (err error) {
 	graph.addNodeOrObserver(node)
-	_ = graph.adjustHeightsHeap.setHeight(node, heightFromScope(node)+1)
-	for _, p := range node.Node().parents {
-		if p.Node().height >= node.Node().height {
-			if err = graph.adjustHeightsHeap.setHeight(node, p.Node().height+1); err != nil {
+	_ = graph.adjustHeightsHeap.setHeight(node, node.Node().createdIn.scopeHeight()+1)
+
+	if parents := node.Node().parentsFn; parents != nil {
+		for _, parent := range parents() {
+			graph.addChildWithoutAdjustingHeights(node, parent)
+			if parent.Node().height >= node.Node().height {
+				if err = graph.adjustHeightsHeap.setHeight(node, parent.Node().height+1); err != nil {
+					return
+				}
+			}
+			if err = graph.becameNecessaryRecursive(parent); err != nil {
 				return
 			}
 		}
-		if err = graph.becameNecessary(p); err != nil {
-			return
-		}
 	}
-	if node.Node().ShouldRecompute() {
+	if node.Node().isStale() {
 		graph.recomputeHeap.add(node)
 	}
-	graph.doPropagateInvalidity()
 	return
+}
+
+func (graph *Graph) becameNecessary(node INode) error {
+	if err := graph.becameNecessaryRecursive(node); err != nil {
+		return err
+	}
+	graph.propagateInvalidity()
+	return nil
 }
 
 func (graph *Graph) addNodeOrObserver(gn INode) {
@@ -354,77 +390,70 @@ func (graph *Graph) addNode(n INode) {
 	}
 	gnn.graph = graph
 	graph.numNodes++
-	gnn.detectAlways(n)
-	gnn.detectCutoff(n)
-	gnn.detectStabilize(n)
+	gnn.initializeFrom(n)
 	graph.nodes[gnn.id] = n
 }
 
 func (graph *Graph) addObserver(on IObserver) {
-	onn := on.Node()
-	onn.graph = graph
 	graph.observersMu.Lock()
-	if _, ok := graph.observers[onn.id]; !ok {
-		graph.numNodes++
-		graph.observers[onn.id] = on
+	defer graph.observersMu.Unlock()
+
+	onn := on.Node()
+	_, graphAlreadyHasObserver := graph.observers[onn.id]
+	if graphAlreadyHasObserver {
+		return
 	}
-	graph.observersMu.Unlock()
-	onn.detectStabilize(on)
-	onn.detectObserver(on)
+	onn.graph = graph
+	graph.numNodes++
+	onn.initializeFrom(on)
+	graph.observers[onn.id] = on
 }
 
 func (graph *Graph) removeObserver(on IObserver) {
-	onn := on.Node()
-	onn.graph = nil
-	graph.numNodes--
-	graph.recomputeHeap.remove(on)
-
-	graph.handleAfterStabilizationMu.Lock()
-	delete(graph.handleAfterStabilization, on.Node().ID())
-	graph.handleAfterStabilizationMu.Unlock()
-
 	graph.observersMu.Lock()
-	delete(graph.observers, onn.id)
+	delete(graph.observers, on.Node().id)
 	graph.observersMu.Unlock()
-
-	graph.recomputeHeap.remove(on)
-	graph.adjustHeightsHeap.remove(on)
-
-	onn.height = 0
-	onn.heightInRecomputeHeap = 0
-	onn.heightInAdjustHeightsHeap = 0
-	onn.setAt = 0
-	onn.changedAt = 0
-	onn.recomputedAt = 0
+	graph.zeroNode(on)
 }
 
 func (graph *Graph) removeNode(gn INode) {
-	graph.recomputeHeap.remove(gn)
-	graph.adjustHeightsHeap.remove(gn)
-
 	graph.nodesMu.Lock()
 	delete(graph.nodes, gn.Node().id)
 	graph.nodesMu.Unlock()
+	graph.zeroNode(gn)
+}
+
+func (graph *Graph) zeroNode(n INode) {
+	graph.recomputeHeap.remove(n)
+	graph.adjustHeightsHeap.remove(n)
 
 	graph.numNodes--
 
-	gnn := gn.Node()
+	nn := n.Node()
 
 	graph.handleAfterStabilizationMu.Lock()
-	delete(graph.handleAfterStabilization, gnn.ID())
+	delete(graph.handleAfterStabilization, nn.ID())
 	graph.handleAfterStabilizationMu.Unlock()
 
-	gnn.setAt = 0
-	gnn.boundAt = 0
-	gnn.recomputedAt = 0
+	nn.setAt = 0
+	nn.changedAt = 0
+	nn.recomputedAt = 0
 
-	// NOTE (wc): we never _really_ can remove the createdIn reference because
-	// we don't track construction of nodes carefully.
-	// gnn.createdIn = nil
-	// gnn.graph = nil
-	gnn.height = 0
-	gnn.heightInRecomputeHeap = 0
-	gnn.heightInAdjustHeightsHeap = 0
+	// TODO (wc): why can't i zero these out?
+	// nn.createdIn = nil
+	// nn.graph = nil
+	nn.height = 0
+	nn.heightInRecomputeHeap = 0
+	nn.heightInAdjustHeightsHeap = 0
+}
+
+func (graph *Graph) addNewObserverToNode(on IObserver, n INode) error {
+	wasNecsesary := n.Node().isNecessary()
+	n.Node().addObservers(on)
+	if !wasNecsesary {
+		return graph.becameNecessary(n)
+	}
+	return nil
 }
 
 //
@@ -504,7 +533,6 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	graph.numNodesRecomputed++
 	nn := n.Node()
 	nn.numRecomputes++
-
 	nn.recomputedAt = graph.stabilizationNum
 
 	var shouldCutoff bool
@@ -531,24 +559,19 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 		return
 	}
 
-	// we have to propagate the "changed" status to children
 	nn.changedAt = graph.stabilizationNum
-
 	if len(nn.onUpdateHandlers) > 0 {
 		graph.handleAfterStabilization[nn.id] = append(graph.handleAfterStabilization[nn.id], nn.onUpdateHandlers...)
 	}
 
-	// iterate over each child node of this node, or nodes that take
-	// this node as an input, and if the node is "necessary" and
-	// dirty add it to the recompute heap.
-	//
-	// we use the `each` from here to hold the lock while we process
-	// the list, preventing a race condition around missed nodes,
-	// but more to prevent us from reading the children list twice.
 	for _, c := range nn.children {
-		shouldRecompute := c.Node().ShouldRecompute()
-		if c.Node().isNecessary() && shouldRecompute {
+		if c.Node().isNecessary() && c.Node().isStale() {
 			graph.recomputeHeap.add(c)
+		}
+	}
+	for _, o := range nn.observers {
+		if o.Node().isNecessary() && o.Node().isStale() {
+			graph.recomputeHeap.add(o)
 		}
 	}
 	return

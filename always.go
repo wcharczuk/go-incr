@@ -3,12 +3,10 @@ package incr
 // Always returns an incremental that is always stale and will be
 // marked for recomputation.
 func Always[A any](scope Scope, input Incr[A]) Incr[A] {
-	a := WithinScope(scope, &alwaysIncr[A]{
+	return WithinScope(scope, &alwaysIncr[A]{
 		n:     NewNode("always"),
 		input: input,
 	})
-	Link(a, input)
-	return a
 }
 
 // AlwaysIncr is a type that implements the always stale incremental.
@@ -20,6 +18,10 @@ type AlwaysIncr[A any] interface {
 type alwaysIncr[A any] struct {
 	n     *Node
 	input Incr[A]
+}
+
+func (a *alwaysIncr[A]) Parents() []INode {
+	return []INode{a.input}
 }
 
 func (a *alwaysIncr[A]) Always() {}

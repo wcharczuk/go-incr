@@ -15,12 +15,10 @@ func DiffMapByKeys[K comparable, V any](scope incr.Scope, i incr.Incr[map[K]V]) 
 		n: incr.NewNode("diff_maps_by_keys_added"),
 		i: i,
 	})
-	incr.Link(add, i)
 	rem = incr.WithinScope(scope, &diffMapByKeysRemovedIncr[K, V]{
 		n: incr.NewNode("diff_maps_by_keys_removed"),
 		i: i,
 	})
-	incr.Link(rem, i)
 	return
 }
 
@@ -28,24 +26,20 @@ func DiffMapByKeys[K comparable, V any](scope incr.Scope, i incr.Incr[map[K]V]) 
 // incremental, and each stabilization pass returns just the subset
 // of the map that was added since the last pass according to the keys.
 func DiffMapByKeysAdded[K comparable, V any](scope incr.Scope, i incr.Incr[map[K]V]) incr.Incr[map[K]V] {
-	o := incr.WithinScope(scope, &diffMapByKeysAddedIncr[K, V]{
+	return incr.WithinScope(scope, &diffMapByKeysAddedIncr[K, V]{
 		n: incr.NewNode("diff_maps_by_keys_added"),
 		i: i,
 	})
-	incr.Link(o, i)
-	return o
 }
 
 // DiffMapByKeysRemoved returns an incremental that takes an input map typed
 // incremental, and each stabilization pass returns just the subset
 // of the map that was removed since the last pass according to the keys.
 func DiffMapByKeysRemoved[K comparable, V any](scope incr.Scope, i incr.Incr[map[K]V]) incr.Incr[map[K]V] {
-	o := incr.WithinScope(scope, &diffMapByKeysRemovedIncr[K, V]{
+	return incr.WithinScope(scope, &diffMapByKeysRemovedIncr[K, V]{
 		n: incr.NewNode("diff_maps_by_keys_removed"),
 		i: i,
 	})
-	incr.Link(o, i)
-	return o
 }
 
 var (
@@ -60,6 +54,10 @@ type diffMapByKeysAddedIncr[K comparable, V any] struct {
 	i    incr.Incr[map[K]V]
 	last map[K]V
 	val  map[K]V
+}
+
+func (mfn *diffMapByKeysAddedIncr[K, V]) Parents() []incr.INode {
+	return []incr.INode{mfn.i}
 }
 
 func (mfn *diffMapByKeysAddedIncr[K, V]) String() string {
@@ -88,6 +86,10 @@ type diffMapByKeysRemovedIncr[K comparable, V any] struct {
 	i    incr.Incr[map[K]V]
 	last map[K]V
 	val  map[K]V
+}
+
+func (mfn *diffMapByKeysRemovedIncr[K, V]) Parents() []incr.INode {
+	return []incr.INode{mfn.i}
 }
 
 func (mfn *diffMapByKeysRemovedIncr[K, V]) String() string {

@@ -27,16 +27,16 @@ func Test_Stabilize(t *testing.T) {
 	err := g.Stabilize(ctx)
 	Nil(t, err)
 
-	Equal(t, 0, v0.Node().setAt)
-	Equal(t, 1, v0.Node().changedAt)
-	Equal(t, 0, v1.Node().setAt)
-	Equal(t, 1, v1.Node().changedAt)
-	Equal(t, 1, m0.Node().changedAt)
-	Equal(t, 1, v0.Node().recomputedAt)
-	Equal(t, 1, v1.Node().recomputedAt)
-	Equal(t, 1, m0.Node().recomputedAt)
-
 	Equal(t, "foo bar", m0.Value())
+
+	Equal(t, 0, v0.Node().setAt)
+	Equal(t, 0, v0.Node().changedAt, "vars only are recomputed after the first set")
+	Equal(t, 0, v1.Node().setAt)
+	Equal(t, 0, v1.Node().changedAt)
+	Equal(t, 1, m0.Node().changedAt)
+	Equal(t, 0, v0.Node().recomputedAt)
+	Equal(t, 0, v1.Node().recomputedAt)
+	Equal(t, 1, m0.Node().recomputedAt)
 
 	v0.Set("not foo")
 	Equal(t, 2, v0.Node().setAt)
@@ -46,11 +46,11 @@ func Test_Stabilize(t *testing.T) {
 	Nil(t, err)
 
 	Equal(t, 2, v0.Node().changedAt)
-	Equal(t, 1, v1.Node().changedAt)
+	Equal(t, 0, v1.Node().changedAt)
 	Equal(t, 2, m0.Node().changedAt)
 
 	Equal(t, 2, v0.Node().recomputedAt)
-	Equal(t, 1, v1.Node().recomputedAt)
+	Equal(t, 0, v1.Node().recomputedAt)
 	Equal(t, 2, m0.Node().recomputedAt)
 
 	Equal(t, "not foo bar", m0.Value())
@@ -204,8 +204,8 @@ func Test_Stabilize_chain(t *testing.T) {
 	Equal(t, strings.Repeat(".", 101), o.Value())
 
 	Equal(t, 102, g.numNodes, "should include the observer!")
-	Equal(t, 102, g.numNodesChanged)
-	Equal(t, 102, g.numNodesRecomputed)
+	Equal(t, 101, g.numNodesChanged)
+	Equal(t, 101, g.numNodesRecomputed)
 }
 
 func Test_Stabilize_setDuringStabilization(t *testing.T) {
@@ -460,7 +460,7 @@ func Test_Stabilize_Bind(t *testing.T) {
 	err := g.Stabilize(ctx)
 	Nil(t, err)
 
-	Equal(t, true, g.Has(i0))
+	Equal(t, false, g.Has(i0))
 	Equal(t, false, g.Has(m0))
 
 	Equal(t, true, g.Has(i1))
@@ -481,7 +481,7 @@ func Test_Stabilize_Bind(t *testing.T) {
 	NotNil(t, i0.Node().graph, "i0 should be in the graph after the second stabilization")
 	NotNil(t, m0.Node().graph, "m0 should be in the graph after the second stabilization")
 
-	Equal(t, true, g.Has(i1))
+	Equal(t, false, g.Has(i1))
 	Equal(t, false, g.Has(m1))
 
 	Equal(t, "foo-moo-baz", mb.Value())

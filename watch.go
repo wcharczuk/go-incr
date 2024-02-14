@@ -8,12 +8,10 @@ import (
 // Watch returns a new watch incremental that tracks
 // values for a given incremental each time it stabilizes.
 func Watch[A any](scope Scope, i Incr[A]) WatchIncr[A] {
-	o := WithinScope(scope, &watchIncr[A]{
+	return WithinScope(scope, &watchIncr[A]{
 		n:    NewNode("watch"),
 		incr: i,
 	})
-	Link(o, i)
-	return o
 }
 
 // WatchIncr is a type that implements the watch interface.
@@ -35,6 +33,10 @@ type watchIncr[A any] struct {
 	incr   Incr[A]
 	value  A
 	values []A
+}
+
+func (w *watchIncr[A]) Parents() []INode {
+	return []INode{w.incr}
 }
 
 // Value implements Incr[A].

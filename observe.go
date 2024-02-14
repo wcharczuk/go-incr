@@ -12,8 +12,12 @@ func Observe[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
 		n:     NewNode("observer"),
 		input: input,
 	})
-	// graph.addParent(o, input)
-	g.recomputeHeap.add(o)
+	g.addNodeOrObserver(o)
+	_ = g.addNewObserverToNode(o, input)
+
+	if input.Node().height >= o.Node().height {
+		_ = g.adjustHeightsHeap.adjustHeights(g.recomputeHeap, o, input)
+	}
 	return o
 }
 
@@ -49,6 +53,10 @@ type observeIncr[A any] struct {
 	value A
 }
 
+func (o *observeIncr[A]) Parents() []INode {
+	return []INode{o.input}
+}
+
 func (o *observeIncr[A]) Node() *Node { return o.n }
 
 func (o *observeIncr[A]) Stabilize(_ context.Context) error {
@@ -66,7 +74,7 @@ func (o *observeIncr[A]) Unobserve(ctx context.Context) {
 	g := o.n.graph
 
 	o.input.Node().removeObserver(o.n.id)
-	Unlink(o, o.input)
+	// Unlink(o, o.input)
 	g.removeObserver(o)
 
 	// zero out the observed value

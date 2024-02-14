@@ -35,6 +35,8 @@ type funcIncr[T any] struct {
 	val T
 }
 
+func (f *funcIncr[T]) Parents() []INode { return nil }
+
 func (f *funcIncr[T]) Node() *Node { return f.n }
 func (f *funcIncr[T]) Value() T    { return f.val }
 func (f *funcIncr[T]) Stabilize(ctx context.Context) error {

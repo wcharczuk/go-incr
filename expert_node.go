@@ -27,8 +27,6 @@ type IExpertNode interface {
 	SetSetAt(uint64)
 	RecomputedAt() uint64
 	SetRecomputedAt(uint64)
-	BoundAt() uint64
-	SetBoundAt(uint64)
 	Always() bool
 	SetAlways(bool)
 
@@ -61,14 +59,7 @@ type expertNode struct {
 func (en *expertNode) Graph() *Graph { return en.node.graph }
 
 func (en *expertNode) SetID(id Identifier) {
-	oldID := en.node.id
 	en.node.id = id
-	if graph := graphFromScope(en.incr); graph != nil {
-		if _, ok := graph.nodes[oldID]; ok {
-			delete(graph.nodes, oldID)
-			graph.nodes[id] = en.incr
-		}
-	}
 }
 
 func (en *expertNode) Height() int { return en.node.height }
@@ -93,12 +84,6 @@ func (en *expertNode) RecomputedAt() uint64 { return en.node.recomputedAt }
 
 func (en *expertNode) SetRecomputedAt(recomputedAt uint64) {
 	en.node.recomputedAt = recomputedAt
-}
-
-func (en *expertNode) BoundAt() uint64 { return en.node.boundAt }
-
-func (en *expertNode) SetBoundAt(boundAt uint64) {
-	en.node.boundAt = boundAt
 }
 
 func (en *expertNode) Always() bool { return en.node.always }

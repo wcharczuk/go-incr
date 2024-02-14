@@ -11,6 +11,7 @@ func NewNode(kind string) *Node {
 	return &Node{
 		id:             NewIdentifier(),
 		kind:           kind,
+		valid:          true, // start out valid!
 		parentLookup:   make(set[Identifier]),
 		childLookup:    make(set[Identifier]),
 		observerLookup: make(set[Identifier]),
@@ -69,10 +70,6 @@ type Node struct {
 	// for var nodes so that we can track their "changed" state separately
 	// from their set state
 	setAt uint64
-	// boundAt connotes when the node was bound last, specifically
-	// for bind nodes so that we can track their changed state separately
-	// from their bound state
-	boundAt uint64
 	// recomputedAt connotes when the node was last stabilized
 	recomputedAt uint64
 	// onUpdateHandlers are functions that are called when the node updates.
@@ -81,12 +78,21 @@ type Node struct {
 	// onErrorHandlers are functions that are called when the node updates.
 	// they are added with `OnUpdate(...)`.
 	onErrorHandlers []func(context.Context, error)
-	// stabilize is set during initialization and is a shortcut
+	// stabilizeFn is set during initialization and is a shortcut
 	// to the interface sniff for the node for the IStabilize interface.
-	stabilize func(context.Context) error
-	// cutoff is set during initialization and is a shortcut
+	stabilizeFn func(context.Context) error
+	// shouldBeInvalidated is set during initialization and is a shortcut
+	// to the interface sniff for the node for the IStabilize interface.
+	shouldBeInvalidatedFn func() bool
+	// stale is set during initialization and is a shortcut
+	// to the interface sniff for the node for the IStabilize interface.
+	staleFn func() bool
+	// cutoffFn is set during initialization and is a shortcut
 	// to the interface sniff for the node for the ICutoff interface.
-	cutoff func(context.Context) (bool, error)
+	cutoffFn func(context.Context) (bool, error)
+	// eachParentFn is a function that nodes can implement to
+	// yield their inputs very quickly.
+	parentsFn func() []INode
 	// observer determines if we treat this as a special necessary state.
 	observer bool
 	// always determines if we always recompute this node.
@@ -185,6 +191,17 @@ func (n *Node) Observers() []IObserver {
 // Internal Helpers
 //
 
+// initializeFrom detects delegates on the node type.
+func (n *Node) initializeFrom(in INode) {
+	n.detectAlways(in)
+	n.detectCutoff(in)
+	n.detectObserver(in)
+	n.detectParents(in)
+	n.detectStale(in)
+	n.detectShouldBeInvalidated(in)
+	n.detectStabilize(in)
+}
+
 func (n *Node) addChildren(children ...INode) {
 	n.childLookupMu.Lock()
 	for _, c := range children {
@@ -263,96 +280,106 @@ func (n *Node) removeObserver(id Identifier) {
 // maybeCutoff calls the cutoff delegate if it's set, otherwise
 // just returns false (effectively _not_ cutting off the computation).
 func (n *Node) maybeCutoff(ctx context.Context) (bool, error) {
-	if n.cutoff != nil {
-		return n.cutoff(ctx)
+	if n.cutoffFn != nil {
+		return n.cutoffFn(ctx)
 	}
 	return false, nil
 }
 
-// detectCutoff detects if a INode (which should be the same
-// as as managed by this node reference), implements ICutoff
-// and grabs a reference to the Cutoff delegate function.
 func (n *Node) detectCutoff(gn INode) {
 	if typed, ok := gn.(ICutoff); ok {
-		n.cutoff = typed.Cutoff
+		n.cutoffFn = typed.Cutoff
 	}
 }
 
-// detectAlways detects if a INode (which should be the same
-// as as managed by this node reference), implements IAlways.
+func (n *Node) detectParents(gn INode) {
+	if typed, ok := gn.(IParents); ok {
+		n.parentsFn = typed.Parents
+	}
+}
+
 func (n *Node) detectAlways(gn INode) {
 	_, n.always = gn.(IAlways)
 }
 
-// detectObserver detects if a INode (which should be the same
-// as as managed by this node reference), implements IObserver.
 func (n *Node) detectObserver(gn INode) {
 	_, n.observer = gn.(IObserver)
 }
 
-// detectStabilize detects if a INode (which should be the same
-// as as managed by this node reference), implements IStabilize
-// and grabs a reference to the Stabilize delegate function.
 func (n *Node) detectStabilize(gn INode) {
 	if typed, ok := gn.(IStabilize); ok {
-		n.stabilize = typed.Stabilize
+		n.stabilizeFn = typed.Stabilize
 	}
 }
 
-// ShouldRecompute returns whether or not a given node needs to be recomputed.
-func (n *Node) ShouldRecompute() bool {
-	// we should always recompute on the first stabilization
-	if n.recomputedAt == 0 {
-		return true
+func (n *Node) detectStale(gn INode) {
+	if typed, ok := gn.(IStale); ok {
+		n.staleFn = typed.Stale
 	}
-	if n.always {
-		return true
-	}
+}
 
-	// if a node can't stabilize, return false
-	if n.stabilize == nil {
+func (n *Node) detectShouldBeInvalidated(gn INode) {
+	if typed, ok := gn.(IShouldBeInvalidated); ok {
+		n.shouldBeInvalidatedFn = typed.ShouldBeInvalidated
+	}
+}
+
+func (n *Node) maybeStabilize(ctx context.Context) (err error) {
+	if n.stabilizeFn != nil {
+		if err = n.stabilizeFn(ctx); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (n *Node) shouldBeInvalidated() bool {
+	if !n.valid {
 		return false
 	}
-
-	// if the node was marked stale explicitly
-	// either because it is a var or was
-	// called as a parameter to `graph.SetStale`
-	if n.setAt > n.recomputedAt {
-		return true
-	}
-	// if the node had a bind change recently
-	if n.boundAt > n.recomputedAt {
-		return true
-	}
-	if n.changedAt > n.recomputedAt {
-		return true
+	if n.shouldBeInvalidatedFn != nil {
+		return n.shouldBeInvalidatedFn()
 	}
 	for _, p := range n.parents {
-		// NOTE (wc): we treat nodes that set "boundAt", i.e. bind nodes
-		// specially. they really only need to propagate their changes
-		// to children if the node they're bound to changes, or if
-		// the node they're bound to's value changes.
-		if p.Node().boundAt > 0 {
-			if p.Node().boundAt > n.recomputedAt {
-				return true
-			}
-			// don't consider changed at for bind nodes at all!
-			continue
-		}
-		if p.Node().changedAt > n.recomputedAt {
+		if !p.Node().valid {
 			return true
 		}
 	}
 	return false
 }
 
-func (n *Node) maybeStabilize(ctx context.Context) (err error) {
-	if n.stabilize != nil {
-		if err = n.stabilize(ctx); err != nil {
-			return
+func (n *Node) isStaleInRespectToParent() (stale bool) {
+	if parents := n.parentsFn; parents != nil {
+		for _, p := range parents() {
+			if p.Node().changedAt > n.recomputedAt {
+				stale = true
+				return
+			}
 		}
 	}
 	return
+}
+
+func (n *Node) hasInvalidParent() (hasInvalid bool) {
+	if parents := n.parentsFn; parents != nil {
+		for _, p := range parents() {
+			if !p.Node().valid {
+				hasInvalid = true
+				return
+			}
+		}
+	}
+	return
+}
+
+func (n *Node) isStale() bool {
+	if !n.valid {
+		return false
+	}
+	if n.staleFn != nil {
+		return n.staleFn()
+	}
+	return n.recomputedAt == 0 || n.isStaleInRespectToParent()
 }
 
 func (n *Node) isNecessary() bool {

@@ -8,12 +8,10 @@ import (
 // Freeze yields an incremental that takes the value of an
 // input incremental and doesn't change thereafter.
 func Freeze[A any](scope Scope, i Incr[A]) Incr[A] {
-	o := WithinScope(scope, &freezeIncr[A]{
+	return WithinScope(scope, &freezeIncr[A]{
 		n: NewNode("freeze"),
 		i: i,
 	})
-	Link(o, i)
-	return o
 }
 
 var (
@@ -28,6 +26,10 @@ type freezeIncr[A any] struct {
 	i        Incr[A]
 	freezeAt uint64
 	v        A
+}
+
+func (f *freezeIncr[T]) Parents() []INode {
+	return []INode{f.i}
 }
 
 func (f *freezeIncr[T]) Node() *Node { return f.n }

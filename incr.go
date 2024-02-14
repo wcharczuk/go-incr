@@ -19,7 +19,14 @@ type Incr[T any] interface {
 
 // INode is a node in the incremental graph.
 type INode interface {
+	IParents
 	Node() *Node
+}
+
+// IParents is a type that can supply parent
+// information directly versus inferring from links.
+type IParents interface {
+	Parents() []INode
 }
 
 // IStabilize is a type that can be stabilized.
@@ -27,13 +34,15 @@ type IStabilize interface {
 	Stabilize(context.Context) error
 }
 
-// IBind implements bind steps for nested actions.
-type IBind interface {
-	Link(context.Context) error
-	Invalidate(context.Context)
-	Bound() INode
-	BindChange() INode
-	Scope() Scope
+// IShouldBeInvalidateds a type that determines if a
+// node should be invalidated or not.
+type IShouldBeInvalidated interface {
+	ShouldBeInvalidated() bool
+}
+
+// IStale is a type that determines if it's stale or not.
+type IStale interface {
+	Stale() bool
 }
 
 // ICutoff is a type that determines if changes should

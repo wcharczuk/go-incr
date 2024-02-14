@@ -39,17 +39,22 @@ func Bind[A, B any](scope Scope, input Incr[A], fn func(Scope, A) Incr[B]) BindI
 // If an error returned, the bind is aborted, the error listener(s) will fire for the node, and the
 // computation will stop.
 func BindContext[A, B any](scope Scope, input Incr[A], fn func(context.Context, Scope, A) (Incr[B], error)) BindIncr[B] {
-	o := WithinScope(scope, &bindIncr[A, B]{
-		n:     NewNode("bind"),
-		input: input,
+	bind := &bind[A, B]{
+		graph: scope.scopeGraph(),
+		lhs:   input,
 		fn:    fn,
-	})
-	o.scope = &bindScope{
-		input: input,
-		bind:  o,
 	}
-	Link(o, input)
-	return o
+	bindLeftChange := WithinScope(scope, &bindLeftChangeIncr[A, B]{
+		n:    NewNode("bind-lhs-change"),
+		bind: bind,
+	})
+	bind.lhsChange = bindLeftChange
+	bindMain := WithinScope(scope, &bindMainIncr[A, B]{
+		n:    NewNode("bind"),
+		bind: bind,
+	})
+	bind.main = bindMain
+	return bindMain
 }
 
 // BindIncr is a node that implements Bind, which can dynamically swap out
@@ -60,99 +65,149 @@ func BindContext[A, B any](scope Scope, input Incr[A], fn func(context.Context, 
 type BindIncr[A any] interface {
 	Incr[A]
 	IStabilize
-	IBind
+	IShouldBeInvalidated
+	IBindMain
 	fmt.Stringer
 }
 
-var (
-	_ BindIncr[bool] = (*bindIncr[string, bool])(nil)
-	_ fmt.Stringer   = (*bindIncr[string, bool])(nil)
-)
-
-type bindIncr[A, B any] struct {
-	n          *Node
-	input      Incr[A]
-	fn         func(context.Context, Scope, A) (Incr[B], error)
-	rhsScope   *bindScope
-	bindChange *bindChangeIncr[A, B]
-	bound      Incr[B]
+type IBindMain interface {
+	Invalidate()
 }
 
-func (b *bindIncr[A, B]) Node() *Node { return b.n }
-
-func (b *bindIncr[A, B]) Value() (output B) {
-	if b.bound != nil {
-		output = b.bound.Value()
-	}
-	return
-}
-
-func (b *bindIncr[A, B]) Bound() INode {
-	return b.bound
-}
-
-func (b *bindIncr[A, B]) BindChange() INode {
-	return b.bindChange
-}
-
-func (b *bindIncr[A, B]) Scope() Scope {
-	return b.scope
-}
-
-func (b *bindIncr[A, B]) didInputChange() bool {
-	return b.input.Node().changedAt >= b.n.changedAt
-}
-
-func (b *bindIncr[A, B]) Stabilize(ctx context.Context) error {
-
-}
-
-func (b *bindIncr[A, B]) Link(ctx context.Context) (err error) {
-
-}
-
-func (b *bindIncr[A, B]) Invalidate(ctx context.Context) {
-	for _, n := range b.scope.rhsNodes {
-		b.n.graph.invalidateNode(ctx, n)
-	}
-}
-
-func (b *bindIncr[A, B]) String() string {
-	return b.n.String()
+type IBindChange interface {
+	// TODO: more stuff here?
+	RightScopeNodes() []INode
 }
 
 var (
-	_ Incr[bool]   = (*bindChangeIncr[string, bool])(nil)
-	_ INode        = (*bindChangeIncr[string, bool])(nil)
-	_ fmt.Stringer = (*bindChangeIncr[string, bool])(nil)
+	_ BindIncr[bool]       = (*bindMainIncr[string, bool])(nil)
+	_ Scope                = (*bind[string, bool])(nil)
+	_ INode                = (*bindLeftChangeIncr[string, bool])(nil)
+	_ IShouldBeInvalidated = (*bindLeftChangeIncr[string, bool])(nil)
+	_ IBindChange          = (*bindLeftChangeIncr[string, bool])(nil)
 )
 
-type bindChangeIncr[A, B any] struct {
+// bind is a root struct that holds shared
+// information for both the main and the lhs-change.
+type bind[A, B any] struct {
+	graph     *Graph
+	lhs       Incr[A]
+	rhs       Incr[B]
+	rhsNodes  []INode
+	fn        func(context.Context, Scope, A) (Incr[B], error)
+	main      *bindMainIncr[A, B]
+	lhsChange *bindLeftChangeIncr[A, B]
+}
+
+func (b *bind[A, B]) isTopScope() bool       { return false }
+func (b *bind[A, B]) isScopeValid() bool     { return b.main.Node().valid }
+func (b *bind[A, B]) isScopeNecessary() bool { return b.main.Node().isNecessary() }
+func (b *bind[A, B]) scopeGraph() *Graph     { return b.graph }
+func (b *bind[A, B]) scopeHeight() int       { return b.lhs.Node().height }
+
+func (b *bind[A, B]) addScopeNode(n INode) {
+	b.rhsNodes = append(b.rhsNodes, n)
+}
+
+func (b *bind[A, B]) removeScopeNode(n INode) {
+	b.rhsNodes = remove(b.rhsNodes, n.Node().id)
+}
+
+func (b *bind[A, B]) String() string {
+	return fmt.Sprintf("{%v}", b.main)
+}
+
+type bindMainIncr[A, B any] struct {
 	n     *Node
-	lhs   Incr[A]
-	rhs   Incr[B]
-	scope *bindScope
+	bind  *bind[A, B]
+	value B
 }
 
-func (b *bindChangeIncr[A, B]) Node() *Node { return b.n }
+func (b *bindMainIncr[A, B]) Parents() (out []INode) {
+	if b.bind.rhs != nil {
+		return []INode{b.bind.lhsChange, b.bind.rhs}
+	}
+	return []INode{b.bind.lhsChange}
+}
 
-func (b *bindChangeIncr[A, B]) Stabilize(ctx context.Context) error {
+func (b *bindMainIncr[A, B]) IsStale() bool {
+	return b.n.recomputedAt == 0 || b.n.isStaleInRespectToParent()
+}
+
+func (b *bindMainIncr[A, B]) ShouldBeInvalidated() bool {
+	return !b.bind.lhsChange.Node().valid
+}
+
+func (b *bindMainIncr[A, B]) Node() *Node { return b.n }
+
+func (b *bindMainIncr[A, B]) Value() (output B) {
+	return b.value
+}
+
+func (b *bindMainIncr[A, B]) Stabilize(ctx context.Context) error {
+	if b.bind.rhs != nil {
+		b.value = b.bind.rhs.Value()
+	} else {
+		var zero B
+		b.value = zero
+	}
 	return nil
 }
 
-func (b *bindChangeIncr[A, B]) Invalidate(ctx context.Context) {
-	for _, n := range b.scope.rhsNodes {
-		b.n.graph.invalidateNode(ctx, n)
+func (b *bindMainIncr[A, B]) Invalidate() {
+	for _, n := range b.bind.rhsNodes {
+		b.n.graph.invalidateNode(n)
 	}
 }
 
-func (b *bindChangeIncr[A, B]) Value() (output B) {
-	if b.rhs != nil {
-		output = b.rhs.Value()
-	}
-	return
+func (b *bindMainIncr[A, B]) String() string {
+	return b.n.String()
 }
 
-func (b *bindChangeIncr[A, B]) String() string {
+type bindLeftChangeIncr[A, B any] struct {
+	n    *Node
+	bind *bind[A, B]
+}
+
+func (b *bindLeftChangeIncr[A, B]) Parents() []INode {
+	return []INode{b.bind.lhs}
+}
+
+func (b *bindLeftChangeIncr[A, B]) Node() *Node { return b.n }
+
+func (b *bindLeftChangeIncr[A, B]) ShouldBeInvalidated() bool {
+	return !b.bind.lhs.Node().valid
+}
+
+func (b *bindLeftChangeIncr[A, B]) RightScopeNodes() []INode {
+	return b.bind.rhsNodes
+}
+
+func (b *bindLeftChangeIncr[A, B]) Stabilize(ctx context.Context) (err error) {
+	oldRightNodes := b.bind.rhsNodes
+	oldRhs := b.bind.rhs
+	b.bind.rhsNodes = nil
+	b.bind.rhs, err = b.bind.fn(ctx, b.bind, b.bind.lhs.Value())
+	if err != nil {
+		return
+	}
+	b.n.graph.changeParent(b.bind.main, oldRhs, b.bind.rhs)
+	if oldRhs != nil {
+		// invalidate_nodes_created_on_rhs
+		for _, n := range oldRightNodes {
+			b.n.graph.invalidateNode(n)
+		}
+	} else {
+		// rescope_nodes_created_on_rhs
+		for _, n := range oldRightNodes {
+			n.Node().createdIn = b.bind
+			b.bind.addScopeNode(n)
+		}
+	}
+	b.n.graph.propagateInvalidity()
+	return nil
+}
+
+func (b *bindLeftChangeIncr[A, B]) String() string {
 	return b.n.String()
 }

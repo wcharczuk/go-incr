@@ -12,14 +12,12 @@ import (
 // any children (or nodes that take the timer as input) to recompute if this
 // is the first stabilization or if the timer has elapsed.
 func Timer[A any](scope Scope, input Incr[A], every time.Duration) TimerIncr[A] {
-	t := WithinScope(scope, &timerIncr[A]{
+	return WithinScope(scope, &timerIncr[A]{
 		n:           NewNode("timer"),
 		clockSource: func(_ context.Context) time.Time { return time.Now().UTC() },
 		every:       every,
 		input:       input,
 	})
-	Link(t, input)
-	return t
 }
 
 // TimerIncr is the exported methods of a Timer.
@@ -40,6 +38,10 @@ type timerIncr[A any] struct {
 	every       time.Duration
 	input       Incr[A]
 	value       A
+}
+
+func (ti *timerIncr[A]) Parents() []INode {
+	return []INode{ti.input}
 }
 
 func (ti *timerIncr[A]) Node() *Node { return ti.n }

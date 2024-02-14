@@ -147,14 +147,11 @@ func (ah *adjustHeightsHeap) adjustHeights(rh *recomputeHeap, originalChild, ori
 				return err
 			}
 		}
-		if typed, typedOK := node.(IBind); typedOK {
-			scope, scopeOK := typed.Scope().(*bindScope)
-			if scopeOK {
-				for _, nodeOnRight := range scope.rhsNodes {
-					if nodeOnRight.Node().isNecessary() {
-						if err := ah.ensureHeightRequirementUnsafe(originalChild, originalParent, node, nodeOnRight); err != nil {
-							return err
-						}
+		if typed, typedOK := node.(IBindChange); typedOK {
+			for _, nodeOnRight := range typed.RightScopeNodes() {
+				if nodeOnRight.Node().isNecessary() {
+					if err := ah.ensureHeightRequirementUnsafe(originalChild, originalParent, node, nodeOnRight); err != nil {
+						return err
 					}
 				}
 			}

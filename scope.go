@@ -16,7 +16,7 @@ import "fmt"
 // will be associated with its scope unless they were created _outside_
 // that scope and are simply referenced by nodes created by the bind.
 func WithinScope[A INode](scope Scope, node A) A {
-	updateNodeScope(scope, node)
+	maybeAddScopeNode(scope, node)
 	return node
 }
 
@@ -26,50 +26,29 @@ func WithinScope[A INode](scope Scope, node A) A {
 //
 // If you're within a bind, you should pass the scope that is passed to your bind function.
 type Scope interface {
-	isRootScope() bool
+	isTopScope() bool
 	isScopeValid() bool
 	isScopeNecessary() bool
 	scopeGraph() *Graph
 	scopeHeight() int
+	addScopeNode(INode)
+	removeScopeNode(INode)
 	fmt.Stringer
 }
 
-// BindScope is the scope that nodes are created in.
-//
-// Its either nil or the most recent bind.
-type bindScope struct {
-	lhs      INode
-	bind     INode
-	rhsNodes []INode
-}
-
-func (bs *bindScope) isRootScope() bool      { return false }
-func (bs *bindScope) isScopeValid() bool     { return bs.bind.Node().valid }
-func (bs *bindScope) isScopeNecessary() bool { return bs.bind.Node().isNecessary() }
-func (bs *bindScope) scopeGraph() *Graph     { return bs.bind.Node().graph }
-func (bs *bindScope) scopeHeight() int       { return bs.lhs.Node().height }
-
-func (bs *bindScope) String() string {
-	return fmt.Sprintf("{%v}", bs.bind)
-}
-
 func maybeRemoveScopeNode(scope Scope, node INode) {
-	if scope == nil || scope != nil && scope.isRootScope() {
+	if scope == nil || scope != nil && scope.isTopScope() {
 		return
 	}
-	if typed, ok := scope.(*bindScope); ok && typed != nil {
-		typed.rhsNodes = remove(typed.rhsNodes, node.Node().id)
-	}
+	scope.removeScopeNode(node)
 }
 
 func maybeAddScopeNode(scope Scope, node INode) {
 	node.Node().createdIn = scope
-	if scope != nil && scope.isRootScope() {
+	if scope != nil && scope.isTopScope() {
 		return
 	}
-	if typed, ok := scope.(*bindScope); ok && typed != nil {
-		typed.rhsNodes = append(typed.rhsNodes, node)
-	}
+	scope.addScopeNode(node)
 }
 
 func updateNodeScope(scope Scope, node INode) {

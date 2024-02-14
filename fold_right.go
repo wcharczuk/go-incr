@@ -5,14 +5,12 @@ import "context"
 // FoldRight folds an array from N to 0 carrying the previous value
 // to the next interation, yielding a single value.
 func FoldRight[T, O any](scope Scope, i Incr[[]T], v0 O, fn func(T, O) O) Incr[O] {
-	o := WithinScope(scope, &foldRightIncr[T, O]{
+	return WithinScope(scope, &foldRightIncr[T, O]{
 		n:   NewNode("fold_right"),
 		i:   i,
 		fn:  fn,
 		val: v0,
 	})
-	Link(o, i)
-	return o
 }
 
 type foldRightIncr[T, O any] struct {
@@ -22,15 +20,19 @@ type foldRightIncr[T, O any] struct {
 	val O
 }
 
-func (fli *foldRightIncr[T, O]) String() string { return fli.n.String() }
+func (fri *foldRightIncr[T, O]) Parents() []INode {
+	return []INode{fri.i}
+}
 
-func (fli *foldRightIncr[T, O]) Node() *Node { return fli.n }
+func (fri *foldRightIncr[T, O]) String() string { return fri.n.String() }
 
-func (fli *foldRightIncr[T, O]) Value() O { return fli.val }
+func (fri *foldRightIncr[T, O]) Node() *Node { return fri.n }
 
-func (fli *foldRightIncr[T, O]) Stabilize(_ context.Context) error {
-	new := fli.i.Value()
-	fli.val = foldRight(new, fli.val, fli.fn)
+func (fri *foldRightIncr[T, O]) Value() O { return fri.val }
+
+func (fri *foldRightIncr[T, O]) Stabilize(_ context.Context) error {
+	new := fri.i.Value()
+	fri.val = foldRight(new, fri.val, fri.fn)
 	return nil
 }
 

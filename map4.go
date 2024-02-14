@@ -17,7 +17,7 @@ func Map4[A, B, C, D, E any](scope Scope, a Incr[A], b Incr[B], c Incr[C], d Inc
 // an error, to given input incrementals and returns a
 // new incremental of the output type of that function.
 func Map4Context[A, B, C, D, E any](scope Scope, a Incr[A], b Incr[B], c Incr[C], d Incr[D], fn func(context.Context, A, B, C, D) (E, error)) Incr[E] {
-	o := WithinScope(scope, &map4Incr[A, B, C, D, E]{
+	return WithinScope(scope, &map4Incr[A, B, C, D, E]{
 		n:  NewNode("map4"),
 		a:  a,
 		b:  b,
@@ -25,8 +25,6 @@ func Map4Context[A, B, C, D, E any](scope Scope, a Incr[A], b Incr[B], c Incr[C]
 		d:  d,
 		fn: fn,
 	})
-	Link(o, a, b, c, d)
-	return o
 }
 
 var (
@@ -44,6 +42,10 @@ type map4Incr[A, B, C, D, E any] struct {
 	d   Incr[D]
 	fn  func(context.Context, A, B, C, D) (E, error)
 	val E
+}
+
+func (mn *map4Incr[A, B, C, D, E]) Parents() []INode {
+	return []INode{mn.a, mn.b, mn.c, mn.d}
 }
 
 func (mn *map4Incr[A, B, C, D, E]) Node() *Node { return mn.n }

@@ -19,14 +19,12 @@ func FoldMap[K comparable, V any, O any](
 	v0 O,
 	fn func(K, V, O) O,
 ) Incr[O] {
-	o := WithinScope(scope, &foldMapIncr[K, V, O]{
+	return WithinScope(scope, &foldMapIncr[K, V, O]{
 		n:   NewNode("fold_map"),
 		i:   i,
 		fn:  fn,
 		val: v0,
 	})
-	Link(o, i)
-	return o
 }
 
 var (
@@ -41,6 +39,10 @@ type foldMapIncr[K comparable, V any, O any] struct {
 	i   Incr[map[K]V]
 	fn  func(K, V, O) O
 	val O
+}
+
+func (fmi *foldMapIncr[K, V, O]) Parents() []INode {
+	return []INode{fmi.i}
 }
 
 func (fmi *foldMapIncr[K, V, O]) String() string { return fmi.n.String() }

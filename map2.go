@@ -17,14 +17,12 @@ func Map2[A, B, C any](scope Scope, a Incr[A], b Incr[B], fn func(A, B) C) Incr[
 // to a given input incremental and returns a new incremental of
 // the output type of that function.
 func Map2Context[A, B, C any](scope Scope, a Incr[A], b Incr[B], fn func(context.Context, A, B) (C, error)) Incr[C] {
-	o := WithinScope(scope, &map2Incr[A, B, C]{
+	return WithinScope(scope, &map2Incr[A, B, C]{
 		n:  NewNode("map2"),
 		a:  a,
 		b:  b,
 		fn: fn,
 	})
-	Link(o, a, b)
-	return o
 }
 
 var (
@@ -40,6 +38,10 @@ type map2Incr[A, B, C any] struct {
 	b   Incr[B]
 	fn  func(context.Context, A, B) (C, error)
 	val C
+}
+
+func (m2n *map2Incr[A, B, C]) Parents() []INode {
+	return []INode{m2n.a, m2n.b}
 }
 
 func (m2n *map2Incr[A, B, C]) Node() *Node { return m2n.n }
