@@ -234,7 +234,7 @@ func benchmarkDepth(width, depth int, b *testing.B) {
 func benchmarkNestedBinds(depth int, b *testing.B) {
 	ctx := testContext()
 	graph := New(
-		OptGraphMaxHeight(1024),
+		OptGraphMaxHeight(2048),
 	)
 	fakeFormula := Var(graph, "fakeFormula")
 	g, o := makeNestedBindGraph(graph, depth, fakeFormula)
