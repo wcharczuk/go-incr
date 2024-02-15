@@ -36,6 +36,8 @@ func (graph *Graph) Stabilize(ctx context.Context) (err error) {
 			break
 		}
 	}
-	graph.recomputeHeap.add(immediateRecompute...)
+	if len(immediateRecompute) > 0 {
+		graph.recomputeHeap.add(immediateRecompute...)
+	}
 	return
 }

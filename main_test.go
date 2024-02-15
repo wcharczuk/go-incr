@@ -167,11 +167,11 @@ func allHeightInRecomputeHeap(values []INode, height int) bool {
 	return true
 }
 
-func newList(items ...INode) map[Identifier]INode {
-	l := make(map[Identifier]INode, len(items))
+func newList(items ...INode) *list[Identifier, INode] {
+	l := new(list[Identifier, INode])
 	for _, i := range items {
 		i.Node().heightInRecomputeHeap = i.Node().height
-		l[i.Node().id] = i
+		l.push(i.Node().id, i)
 	}
 	return l
 }

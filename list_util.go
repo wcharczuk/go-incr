@@ -23,13 +23,3 @@ func mapHasKey[K comparable, V any](m map[K]V, k K) (ok bool) {
 	_, ok = m[k]
 	return
 }
-
-func popMap[K comparable, V any](m map[K]V) (v V, ok bool) {
-	var k K
-	for k, v = range m {
-		ok = true
-		break
-	}
-	delete(m, k)
-	return
-}

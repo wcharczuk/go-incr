@@ -53,7 +53,9 @@ func (graph *Graph) parallelStabilize(ctx context.Context) (err error) {
 			break
 		}
 	}
-	graph.recomputeHeap.add(immediateRecompute...)
+	if len(immediateRecompute) > 0 {
+		graph.recomputeHeap.add(immediateRecompute...)
+	}
 	return
 }
 

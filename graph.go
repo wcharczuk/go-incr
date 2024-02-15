@@ -572,12 +572,12 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	}
 
 	for _, c := range nn.children {
-		if c.Node().isNecessary() && c.Node().isStale() {
+		if c.Node().isNecessary() && c.Node().isStale() && c.Node().heightInRecomputeHeap == heightUnset {
 			graph.recomputeHeap.add(c)
 		}
 	}
 	for _, o := range nn.observers {
-		if o.Node().isNecessary() && o.Node().isStale() {
+		if o.Node().isNecessary() && o.Node().isStale() && o.Node().heightInRecomputeHeap == heightUnset {
 			graph.recomputeHeap.add(o)
 		}
 	}

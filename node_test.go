@@ -79,7 +79,7 @@ func Test_SetStale(t *testing.T) {
 	testutil.Equal(t, true, n.n.graph.recomputeHeap.has(n))
 
 	// find the node in the recompute heap layer
-	testutil.Equal(t, 1, len(n.n.graph.recomputeHeap.heights[0]))
+	testutil.Equal(t, 1, n.n.graph.recomputeHeap.heights[0].len())
 
 	g.SetStale(n)
 
@@ -89,7 +89,7 @@ func Test_SetStale(t *testing.T) {
 
 	testutil.Equal(t, true, n.n.graph.recomputeHeap.has(n))
 
-	testutil.Equal(t, 1, len(n.n.graph.recomputeHeap.heights[0]))
+	testutil.Equal(t, 1, n.n.graph.recomputeHeap.heights[0].len())
 }
 
 func Test_Node_OnUpdate(t *testing.T) {

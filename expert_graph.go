@@ -74,13 +74,8 @@ func (eg *expertGraph) RecomputeHeapLen() int {
 
 func (eg *expertGraph) RecomputeHeapIDs() []Identifier {
 	output := make([]Identifier, 0, len(eg.graph.recomputeHeap.lookup))
-	for _, height := range eg.graph.recomputeHeap.heights {
-		if height == nil {
-			continue
-		}
-		for id := range height {
-			output = append(output, id)
-		}
+	for id := range eg.graph.recomputeHeap.lookup {
+		output = append(output, id)
 	}
 	return output
 }
