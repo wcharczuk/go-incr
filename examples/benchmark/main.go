@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	SIZE   = 32
+	SIZE   = 8
 	ROUNDS = 3
 )
 
@@ -27,6 +27,7 @@ func main() {
 	vars := make([]incr.VarIncr[string], 0, SIZE)
 	for x := 0; x < SIZE; x++ {
 		v := incr.Var(graph, fmt.Sprintf("var_%d", x))
+		v.Node().SetLabel(fmt.Sprintf("var-%d", x))
 		vars = append(vars, v)
 		nodes[x] = v
 	}
@@ -35,6 +36,7 @@ func main() {
 	for x := SIZE; x > 0; x >>= 1 {
 		for y := 0; y < x-1; y += 2 {
 			n := incr.Map2(graph, nodes[cursor+y], nodes[cursor+y+1], concat)
+			n.Node().SetLabel(fmt.Sprintf("map-%d", cursor))
 			nodes = append(nodes, n)
 		}
 		cursor += x
@@ -43,7 +45,7 @@ func main() {
 	if os.Getenv("DEBUG") != "" {
 		ctx = incr.WithTracing(ctx)
 	}
-	_ = incr.MustObserve(graph, nodes[0])
+	_ = incr.MustObserve(graph, nodes[len(nodes)-1])
 
 	var err error
 	for n := 0; n < ROUNDS; n++ {
