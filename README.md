@@ -17,28 +17,53 @@ The inspiration for `go-incr` is Jane Street's [incremental](https://github.com/
 
 The value of this library above the Jane Street implementation is _parallelism_. You can parallel parts of your graph at once!
 
-# Usage
+# Basics
 
-Given an example computation:
+A computation in `go-incr` can be thought of as being composed with a few "meta" node types.
+
+- "Input" types that act as entry-points for data that we'll need in our computation (think, raw cell values in Excel)
+- "Mutator" types that take other nodes as inputs, and transform their values into new values (think, formulas in Excel)
+- "Observe" type that indicates which values we care about, and ultimately want to display or return.
+
+"Input" types for `go-incr` are `Var` and `Return` typically.
+
+"Mutator" types for `go-incr` are nodes like `Map` and `Bind`.
+
+The observer node is special in that there is only (1) type of observer, and it has a very specific role and cannot be passed as an input to other nodes. 
+
+# Sample Usage
+
+Given an example formula (in this case, the "Compound Interest" formula):
+
+`a = p * (1 + r/n) * n * t`
+
+We might represent this as the following `go-incr` nodes:
 
 ```go
 g := incr.New()
-v0 := incr.Var(g, "foo")
-v1 := incr.Var(g, "bar")
 
-output := incr.Map2(g, v0, v1, func(a, b string) string { return a + " and " + b })
+p := incr.Var(g, 1000.0) // the princple amount
+r := incr.Var(g, 0.08) // the interest rate
+n := incr.Var(g, 12.0) // the number of times per year the interest compounds
+t := incr.Var(g, 30.0) // the number of years the interest is compounded for
+
+a := incr.Map4(g, p, r, n, t, func(pv, rv, nv, tv float64) float64 {
+  return pv * (1+(rv/nv)) * nv * tv
+})
 ```
 
 In order to realize the values, we need to observe nodes in a graph, and then call `Stabilize` on the graph:
 
 ```go
-o := incr.MustObserve(g, output)
+ao := incr.MustObserve(g, a)
 if err := g.Stabilize(context.Background()); err != nil {
   // ... handle error if it comes up
 }
 ```
 
-`Stabilize` then does the full recomputation, with the "observer" `o` marking the graph up from the `output` map as observed.
+`Stabilize` then does the full recomputation, with the "observer" `ao` marking the graph up from the `a` map as observed.
+
+That's it! Now, we only have really (1) computation here (the `a` node), but we can build up from there and implement more computations that _take_ this computation, or share the output of this computation.
 
 # API compatability guidelines
 
