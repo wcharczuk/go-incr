@@ -292,3 +292,66 @@ func Test_ParallelStabilize_printsErrors(t *testing.T) {
 	testutil.NotEqual(t, 0, len(errBuf.String()))
 	testutil.Equal(t, true, strings.Contains(errBuf.String(), "this is only a test"))
 }
+
+func Test_ParallelStabilize_preRequisite_heightsAreParallel(t *testing.T) {
+	g := New()
+
+	v0 := Var(g, "0")
+	v1 := Var(g, "1")
+	v2 := Var(g, "2")
+	v3 := Var(g, "3")
+	v4 := Var(g, "4")
+	v5 := Var(g, "5")
+	v6 := Var(g, "6")
+	v7 := Var(g, "7")
+
+	m00 := Map2(g, v0, v1, concat)
+	m01 := Map2(g, v2, v3, concat)
+	m02 := Map2(g, v4, v5, concat)
+	m03 := Map2(g, v6, v7, concat)
+
+	m10 := Map2(g, m00, m01, concat)
+	m11 := Map2(g, m02, m03, concat)
+
+	m20 := Map2(g, m10, m11, concat)
+
+	o, err := Observe(g, m20)
+	testutil.NoError(t, err)
+
+	testutil.Equal(t, 0, v0.Node().height)
+	testutil.Equal(t, heightUnset, v0.Node().heightInRecomputeHeap)
+	testutil.Equal(t, 0, v1.Node().height)
+	testutil.Equal(t, heightUnset, v1.Node().heightInRecomputeHeap)
+	testutil.Equal(t, 0, v2.Node().height)
+	testutil.Equal(t, heightUnset, v2.Node().heightInRecomputeHeap)
+	testutil.Equal(t, 0, v3.Node().height)
+	testutil.Equal(t, heightUnset, v3.Node().heightInRecomputeHeap)
+	testutil.Equal(t, 0, v4.Node().height)
+	testutil.Equal(t, heightUnset, v4.Node().heightInRecomputeHeap)
+	testutil.Equal(t, 0, v5.Node().height)
+	testutil.Equal(t, heightUnset, v5.Node().heightInRecomputeHeap)
+	testutil.Equal(t, 0, v6.Node().height)
+	testutil.Equal(t, heightUnset, v6.Node().heightInRecomputeHeap)
+	testutil.Equal(t, 0, v7.Node().height)
+	testutil.Equal(t, heightUnset, v7.Node().heightInRecomputeHeap)
+
+	testutil.Equal(t, 1, m00.Node().height)
+	testutil.Equal(t, 1, m00.Node().heightInRecomputeHeap)
+	testutil.Equal(t, 1, m01.Node().height)
+	testutil.Equal(t, 1, m01.Node().heightInRecomputeHeap)
+	testutil.Equal(t, 1, m02.Node().height)
+	testutil.Equal(t, 1, m02.Node().heightInRecomputeHeap)
+	testutil.Equal(t, 1, m03.Node().height)
+	testutil.Equal(t, 1, m03.Node().heightInRecomputeHeap)
+
+	testutil.Equal(t, 2, m10.Node().height)
+	testutil.Equal(t, 2, m10.Node().heightInRecomputeHeap)
+	testutil.Equal(t, 2, m11.Node().height)
+	testutil.Equal(t, 2, m11.Node().heightInRecomputeHeap)
+
+	testutil.Equal(t, 3, m20.Node().height)
+	testutil.Equal(t, 3, m20.Node().heightInRecomputeHeap)
+
+	_ = g.ParallelStabilize(testContext())
+	testutil.NotEqual(t, "", o.Value())
+}

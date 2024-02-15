@@ -3,6 +3,7 @@ package incr
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -37,7 +38,9 @@ func New(opts ...GraphOption) *Graph {
 		setDuringStabilization:   make(map[Identifier]INode),
 		handleAfterStabilization: make(map[Identifier][]func(context.Context)),
 		propagateInvalidityQueue: new(queue[INode]),
+		workerPool:               new(parallelBatch),
 	}
+	g.workerPool.SetLimit(runtime.NumCPU())
 	return g
 }
 
@@ -142,6 +145,8 @@ type Graph struct {
 	onStabilizationEnd []func(context.Context, time.Time, error)
 
 	propagateInvalidityQueue *queue[INode]
+
+	workerPool *parallelBatch
 }
 
 // ID is the identifier for the graph.
