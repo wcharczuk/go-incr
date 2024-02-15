@@ -283,7 +283,9 @@ func (graph *Graph) edgeIsStale(child, parent INode) bool {
 }
 
 func (graph *Graph) addChild(child, parent INode) error {
-	graph.addChildWithoutAdjustingHeights(child, parent)
+	if err := graph.addChildWithoutAdjustingHeights(child, parent); err != nil {
+		return err
+	}
 	if parent.Node().height >= child.Node().height {
 		if err := graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, child, parent); err != nil {
 			return err
@@ -334,20 +336,19 @@ func (graph *Graph) propagateInvalidity() {
 	}
 }
 
-func (graph *Graph) addChildWithoutAdjustingHeights(child, parent INode) {
+func (graph *Graph) addChildWithoutAdjustingHeights(child, parent INode) error {
 	wasNecessary := parent.Node().isNecessary()
-
-	// start_link {
 	parent.Node().addChildren(child)
 	child.Node().addParents(parent)
-	// } end_link
-
 	if !parent.Node().valid {
 		graph.propagateInvalidityQueue.push(child)
 	}
 	if !wasNecessary {
-		_ = graph.becameNecessaryRecursive(parent)
+		if err := graph.becameNecessaryRecursive(parent); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (graph *Graph) becameNecessaryRecursive(node INode) (err error) {
@@ -357,7 +358,9 @@ func (graph *Graph) becameNecessaryRecursive(node INode) (err error) {
 	}
 	if parents := node.Node().parentsFn; parents != nil {
 		for _, parent := range parents() {
-			graph.addChildWithoutAdjustingHeights(node, parent)
+			if err = graph.addChildWithoutAdjustingHeights(node, parent); err != nil {
+				return err
+			}
 			if parent.Node().height >= node.Node().height {
 				if err = graph.adjustHeightsHeap.setHeight(node, parent.Node().height+1); err != nil {
 					return
@@ -460,12 +463,21 @@ func (graph *Graph) zeroNode(n INode) {
 	nn.heightInAdjustHeightsHeap = heightUnset
 }
 
-func (graph *Graph) addNewObserverToNode(on IObserver, n INode) error {
-	wasNecsesary := n.Node().isNecessary()
-	n.Node().addObservers(on)
-	if !wasNecsesary {
-		return graph.becameNecessary(n)
+func (graph *Graph) addChildObserver(o IObserver, input INode) error {
+	wasNecsesary := input.Node().isNecessary()
+	input.Node().addObservers(o)
+	if !input.Node().valid {
+		graph.propagateInvalidityQueue.push(input)
 	}
+	if !wasNecsesary {
+		if err := graph.becameNecessary(input); err != nil {
+			return err
+		}
+	}
+	// if err := graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, o, input); err != nil {
+	// 	return err
+	// }
+	graph.propagateInvalidity()
 	return nil
 }
 
@@ -582,9 +594,14 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 			graph.recomputeHeap.add(c)
 		}
 	}
+
+	// recompute observers immediately because logically they're
+	// children of this node but will not have any children themselves.
 	for _, o := range nn.observers {
-		if o.Node().isNecessary() && o.Node().isStale() && o.Node().heightInRecomputeHeap == heightUnset {
-			graph.recomputeHeap.add(o)
+		if o.Node().isNecessary() && o.Node().isStale() {
+			if err = graph.recompute(ctx, o); err != nil {
+				return err
+			}
 		}
 	}
 	return

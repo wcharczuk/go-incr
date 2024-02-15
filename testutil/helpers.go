@@ -8,9 +8,18 @@ import (
 	"testing"
 )
 
-// NoError is a test helper to verify that two arguments are equal.
+// Error is a test helper to verify that an error is set.
+func Error(t *testing.T, err error, message ...any) {
+	t.Helper()
+	if isNil(err) {
+		fatalf(t, "expected error to not be <nil>", nil, message)
+	}
+}
+
+// NoError is a test helper to verify that an error is nil.
 //
-// You can use it to build up other assertions, such as for length or not-nil.
+// It is useful for assertions because it will display more details
+// about the error than a simple `Nil` check.
 func NoError(t *testing.T, err error, message ...any) {
 	t.Helper()
 	if !isNil(err) {

@@ -30,7 +30,7 @@ func Test_Always(t *testing.T) {
 	testutil.Equal(t, 1, m0.Node().height)
 	testutil.Equal(t, 2, a.Node().height)
 	testutil.Equal(t, 3, m1.Node().height)
-	testutil.Equal(t, 4, o.Node().height)
+	testutil.Equal(t, -1, o.Node().height)
 
 	ctx := testContext()
 	_ = g.Stabilize(ctx)

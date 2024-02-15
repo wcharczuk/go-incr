@@ -6,18 +6,20 @@ import (
 	"github.com/wcharczuk/go-incr/testutil"
 )
 
-func Test_MustObserve(t *testing.T) {
+func Test_Observe(t *testing.T) {
 	g := New()
 	v := Var(g, "foo")
 	m0 := Map(g, v, ident)
-	o := MustObserve(g, m0)
+	o, err := Observe(g, m0)
+	testutil.NoError(t, err)
 
 	testutil.Equal(t, 0, v.Node().height)
 	testutil.Equal(t, 1, m0.Node().height)
-	testutil.Equal(t, 2, o.Node().height)
+	testutil.Equal(t, -1, o.Node().height)
 
 	ctx := testContext()
-	_ = g.Stabilize(ctx)
+	err = g.Stabilize(ctx)
+	testutil.NoError(t, err)
 
 	testutil.Equal(t, "foo", o.Value())
 }

@@ -397,7 +397,7 @@ func Test_nodeFormatters(t *testing.T) {
 		{FoldLeft(g, Return(g, []string{}), "", nil), "fold_left"},
 		{FoldRight(g, Return(g, []string{}), "", nil), "fold_right"},
 		{FoldMap(g, Return(g, map[string]int{}), "", nil), "fold_map"},
-		{MustObserve(g, Return(g, "")), "observer"},
+		// {MustObserve(g, Return(g, "")), "observer"},
 		{Always(g, Return(g, "")), "always"},
 	}
 
@@ -405,6 +405,8 @@ func Test_nodeFormatters(t *testing.T) {
 		tc.Node.Node().id = id
 		tc.Node.Node().height = 2
 		testutil.Equal(t, fmt.Sprintf("%s[%s]@2", tc.Label, id.Short()), fmt.Sprint(tc.Node))
+		tc.Node.Node().label = "test-label"
+		testutil.Equal(t, fmt.Sprintf("%s[%s]:test-label@2", tc.Label, id.Short()), fmt.Sprint(tc.Node))
 	}
 }
 

@@ -25,17 +25,9 @@ func Observe[A any](g *Graph, input Incr[A]) (ObserveIncr[A], error) {
 		input:   input,
 		parents: []INode{input},
 	})
-	g.addNodeOrObserver(o)
-	if err := g.addNewObserverToNode(o, input); err != nil {
+	g.addObserver(o)
+	if err := g.addChildObserver(o, input); err != nil {
 		return nil, err
-	}
-	if input.Node().height >= o.Node().height {
-		if err := g.adjustHeightsHeap.setHeight(o, input.Node().height+1); err != nil {
-			return nil, err
-		}
-		if err := g.adjustHeightsHeap.adjustHeights(g.recomputeHeap, o, input); err != nil {
-			return nil, err
-		}
 	}
 	return o, nil
 }
@@ -94,7 +86,6 @@ func (o *observeIncr[A]) Unobserve(ctx context.Context) {
 	g := o.n.graph
 
 	o.input.Node().removeObserver(o.n.id)
-	// Unlink(o, o.input)
 	g.removeObserver(o)
 
 	// zero out the observed value
@@ -108,5 +99,8 @@ func (o *observeIncr[A]) Value() (output A) {
 }
 
 func (o *observeIncr[A]) String() string {
-	return o.n.String()
+	if o.n.label != "" {
+		return fmt.Sprintf("%s[%s]:%s", o.n.kind, o.n.id.Short(), o.n.label)
+	}
+	return fmt.Sprintf("%s[%s]", o.n.kind, o.n.id.Short())
 }
