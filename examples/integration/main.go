@@ -166,7 +166,7 @@ func main() {
 		start := time.Now()
 		for i := 0; i < num; i++ {
 			o := monthsOfRunway(graph, i)
-			obs := incr.Observe(graph, o)
+			obs := incr.MustObserve(graph, o)
 			obs.Node().SetLabel(fmt.Sprintf("observer(%d)", i))
 		}
 
@@ -180,7 +180,7 @@ func main() {
 		start = time.Now()
 		for i := 0; i < num; i++ {
 			o := burn(graph, i)
-			obs := incr.Observe(graph, o)
+			obs := incr.MustObserve(graph, o)
 			obs.Node().SetLabel(fmt.Sprintf("observer(%d)", i))
 		}
 
@@ -304,7 +304,7 @@ func main() {
 		start := time.Now()
 		for i := 0; i < num; i++ {
 			o := burn(graph, i)
-			incr.Observe(graph, o)
+			incr.MustObserve(graph, o)
 		}
 
 		err := graph.Stabilize(ctx)
@@ -317,7 +317,7 @@ func main() {
 		start = time.Now()
 		for i := 0; i < num; i++ {
 			o := monthsOfRunway(graph, i)
-			incr.Observe(graph, o)
+			incr.MustObserve(graph, o)
 		}
 
 		err = graph.Stabilize(ctx)
@@ -456,7 +456,7 @@ func main() {
 
 		for i := 0; i < max_t; i++ {
 			o := monthsOfRunway(graph, i)
-			_ = incr.Observe(graph, o)
+			_ = incr.MustObserve(graph, o)
 		}
 		_ = graph.Stabilize(ctx)
 		elapsed := time.Since(start)
@@ -471,12 +471,12 @@ func main() {
 
 			for i := 0; i < num; i++ {
 				o := w(graph, i)
-				incr.Observe(graph, o)
+				incr.MustObserve(graph, o)
 			}
 			start = time.Now()
 			for i := 0; i < max_t; i++ {
 				o := monthsOfRunway(graph, i)
-				_ = incr.Observe(graph, o)
+				_ = incr.MustObserve(graph, o)
 			}
 			_ = graph.Stabilize(ctx)
 

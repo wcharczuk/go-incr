@@ -19,7 +19,7 @@ func (q *queue[A]) cap() int {
 	return len(q.array)
 }
 
-func (q *queue[A]) Clear() {
+func (q *queue[A]) clear() {
 	clear(q.array)
 	q.head = 0
 	q.tail = 0

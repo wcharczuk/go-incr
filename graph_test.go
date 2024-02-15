@@ -12,7 +12,7 @@ func Test_New(t *testing.T) {
 	r0 := Return(g, "hello")
 	r1 := Return(g, "world!")
 	m0 := Map2(g, r0, r1, func(v0, v1 string) string { return v0 + v1 })
-	_ = Observe(g, m0)
+	_ = MustObserve(g, m0)
 
 	testutil.Equal(t, true, g.Has(r0))
 	testutil.Equal(t, true, g.Has(r1))
@@ -53,7 +53,7 @@ func Test_Graph_addObserver_rediscover(t *testing.T) {
 	g := New()
 
 	v := Var(g, "hello")
-	o := Observe(g, v)
+	o := MustObserve(g, v)
 	_, ok := g.observers[o.Node().ID()]
 	testutil.Equal(t, true, ok)
 	testutil.Equal(t, 2, g.numNodes)
@@ -71,7 +71,7 @@ func Test_Graph_addObserver_rediscover(t *testing.T) {
 func Test_Graph_recompute_recomputesObservers(t *testing.T) {
 	g := New()
 	n := newMockBareNode(g)
-	o := Observe(g, n)
+	o := MustObserve(g, n)
 	g.recomputeHeap.clear()
 
 	testutil.Equal(t, false, g.recomputeHeap.has(n))

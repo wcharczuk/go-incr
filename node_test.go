@@ -69,7 +69,7 @@ func Test_Node_String(t *testing.T) {
 func Test_SetStale(t *testing.T) {
 	g := New()
 	n := newMockBareNode(g)
-	_ = Observe(g, n)
+	_ = MustObserve(g, n)
 	g.SetStale(n)
 
 	testutil.Equal(t, 0, n.n.changedAt)
@@ -334,7 +334,7 @@ func Test_Node_stabilize_error(t *testing.T) {
 
 	p := newMockBareNode(g)
 	m0.Node().addParents(p)
-	_ = Observe(g, m0)
+	_ = MustObserve(g, m0)
 
 	var calledUpdateHandler0, calledUpdateHandler1 bool
 	m0.Node().OnUpdate(func(ictx context.Context) {
@@ -397,7 +397,7 @@ func Test_nodeFormatters(t *testing.T) {
 		{FoldLeft(g, Return(g, []string{}), "", nil), "fold_left"},
 		{FoldRight(g, Return(g, []string{}), "", nil), "fold_right"},
 		{FoldMap(g, Return(g, map[string]int{}), "", nil), "fold_map"},
-		{Observe(g, Return(g, "")), "observer"},
+		{MustObserve(g, Return(g, "")), "observer"},
 		{Always(g, Return(g, "")), "always"},
 	}
 
@@ -503,9 +503,9 @@ func Test_Node_onUpdate_regression(t *testing.T) {
 	})
 	scaledVolume.Node().SetLabel("scaledVolume")
 
-	areaObs := Observe(g, area)
+	areaObs := MustObserve(g, area)
 	areaObs.Node().SetLabel("areaObs")
-	scaledVolumeObs := Observe(g, scaledVolume)
+	scaledVolumeObs := MustObserve(g, scaledVolume)
 	scaledVolumeObs.Node().SetLabel("scaledVolumeObs")
 
 	err := g.Stabilize(ctx)

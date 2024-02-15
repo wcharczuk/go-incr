@@ -5,21 +5,39 @@ import (
 	"fmt"
 )
 
+// MustObserve observes a node, specifically including it for computation
+// as well as all of its parents.
+//
+// If this detects a cycle or any other issue a panic will be raised.
+func MustObserve[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
+	o, err := Observe[A](g, input)
+	if err != nil {
+		panic(err)
+	}
+	return o
+}
+
 // Observe observes a node, specifically including it for computation
 // as well as all of its parents.
-func Observe[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
+func Observe[A any](g *Graph, input Incr[A]) (ObserveIncr[A], error) {
 	o := WithinScope(g, &observeIncr[A]{
 		n:       NewNode("observer"),
 		input:   input,
 		parents: []INode{input},
 	})
 	g.addNodeOrObserver(o)
-	_ = g.addNewObserverToNode(o, input)
-	if input.Node().height >= o.Node().height {
-		_ = g.adjustHeightsHeap.setHeight(o, input.Node().height+1)
-		_ = g.adjustHeightsHeap.adjustHeights(g.recomputeHeap, o, input)
+	if err := g.addNewObserverToNode(o, input); err != nil {
+		return nil, err
 	}
-	return o
+	if input.Node().height >= o.Node().height {
+		if err := g.adjustHeightsHeap.setHeight(o, input.Node().height+1); err != nil {
+			return nil, err
+		}
+		if err := g.adjustHeightsHeap.adjustHeights(g.recomputeHeap, o, input); err != nil {
+			return nil, err
+		}
+	}
+	return o, nil
 }
 
 // ObserveIncr is an incremental that observes a graph
@@ -31,7 +49,7 @@ type ObserveIncr[A any] interface {
 	// As well, it unlinks the observer from its parent nodes, and as a result
 	// you should _not_ re-use the node.
 	//
-	// To observe parts of a graph again, use the `Observe(...)` helper.
+	// To observe parts of a graph again, use the `MustObserve(...)` helper.
 	Unobserve(context.Context)
 }
 
@@ -71,7 +89,7 @@ func (o *observeIncr[A]) Stabilize(_ context.Context) error {
 // As well, it unlinks the observer from its parent nodes, and as a result
 // you should _not_ re-use the node.
 //
-// To observe parts of a graph again, use the `Observe(...)` helper.
+// To observe parts of a graph again, use the `MustObserve(...)` helper.
 func (o *observeIncr[A]) Unobserve(ctx context.Context) {
 	g := o.n.graph
 

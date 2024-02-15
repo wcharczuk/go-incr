@@ -30,7 +30,7 @@ output := incr.Map2(g, v0, v1, func(a, b string) string { return a + " and " + b
 In order to realize the values, we need to observe nodes in a graph, and then call `Stabilize` on the graph:
 
 ```go
-o := incr.Observe(g, output)
+o := incr.MustObserve(g, output)
 if err := g.Stabilize(context.Background()); err != nil {
   // ... handle error if it comes up
 }

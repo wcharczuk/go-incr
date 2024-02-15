@@ -21,7 +21,7 @@ func Test_ParallelStabilize(t *testing.T) {
 		return a + " " + b
 	})
 
-	_ = Observe(g, m0)
+	_ = MustObserve(g, m0)
 
 	err := g.ParallelStabilize(ctx)
 	testutil.Nil(t, err)
@@ -98,7 +98,7 @@ func Test_ParallelStabilize_jsDocs(t *testing.T) {
 		},
 	)
 
-	_ = Observe(g, output)
+	_ = MustObserve(g, output)
 
 	err := g.ParallelStabilize(ctx)
 	testutil.Nil(t, err)
@@ -126,7 +126,7 @@ func Test_ParallelStabilize_error(t *testing.T) {
 		return "", fmt.Errorf("this is only a test")
 	})
 
-	_ = Observe(g, m0)
+	_ = MustObserve(g, m0)
 
 	err := g.ParallelStabilize(ctx)
 	testutil.NotNil(t, err)
@@ -194,7 +194,7 @@ func Test_ParallelStabilize_Always(t *testing.T) {
 		updates++
 	})
 
-	o := Observe(g, m1)
+	o := MustObserve(g, m1)
 
 	_ = g.ParallelStabilize(ctx)
 
@@ -228,7 +228,7 @@ func Test_ParallelStabilize_always_cutoff(t *testing.T) {
 	readFile := Map2(g, filename, statfileCutoff, func(p string, mt int) string {
 		return fmt.Sprintf("%s-%d", p, mt)
 	})
-	o := Observe(g, readFile)
+	o := MustObserve(g, readFile)
 
 	err := g.ParallelStabilize(ctx)
 	testutil.Nil(t, err)
@@ -263,7 +263,7 @@ func Test_ParallelStabilize_always_cutoff_error(t *testing.T) {
 	readFile := Map2(g, filename, statfileCutoff, func(p string, mt int) string {
 		return fmt.Sprintf("%s-%d", p, mt)
 	})
-	o := Observe(g, readFile)
+	o := MustObserve(g, readFile)
 
 	err := g.ParallelStabilize(ctx)
 	testutil.NotNil(t, err)
@@ -284,7 +284,7 @@ func Test_ParallelStabilize_printsErrors(t *testing.T) {
 	gonnaPanic := MapContext(g, v0, func(_ context.Context, _ string) (string, error) {
 		return "", fmt.Errorf("this is only a test")
 	})
-	_ = Observe(g, gonnaPanic)
+	_ = MustObserve(g, gonnaPanic)
 
 	err := g.ParallelStabilize(ctx)
 	testutil.NotNil(t, err)

@@ -42,7 +42,7 @@ func main() {
 	c := Custom(graph, incr.Return(graph, "hello"))
 	fmt.Println("before:", c.Value())
 
-	_ = incr.Observe(graph, c)
+	_ = incr.MustObserve(graph, c)
 
 	_ = graph.Stabilize(ctx)
 	fmt.Println("after:", c.Value())

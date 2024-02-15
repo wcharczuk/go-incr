@@ -123,7 +123,7 @@ func makeBenchmarkGraph(size int) (*Graph, []Incr[string]) {
 		cursor += x
 	}
 
-	_ = Observe(graph, nodes[len(nodes)-1])
+	_ = MustObserve(graph, nodes[len(nodes)-1])
 	return graph, nodes
 }
 
@@ -209,7 +209,7 @@ func benchmarkDepth(width, depth int, b *testing.B) {
 
 	observers := make([]ObserveIncr[string], width)
 	for x := 0; x < width; x++ {
-		observers[x] = Observe(graph, nodes[(width*(depth-1))+x])
+		observers[x] = MustObserve(graph, nodes[(width*(depth-1))+x])
 	}
 
 	// this is what we care about
@@ -296,7 +296,7 @@ func makeNestedBindGraph(graph *Graph, depth int, fakeFormula VarIncr[string]) (
 		return r
 	}
 	o := m(graph, depth)
-	return graph, Observe(graph, o)
+	return graph, MustObserve(graph, o)
 }
 
 func benchmarkConnectedGraphWithNestedBinds(depth int, b *testing.B) {
@@ -353,5 +353,5 @@ func makeSimpleNestedBindGraph(graph *Graph, depth int, fakeFormula VarIncr[stri
 		return r
 	}
 	o := f(graph, depth)
-	return Observe(graph, o)
+	return MustObserve(graph, o)
 }

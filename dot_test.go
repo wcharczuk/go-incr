@@ -27,7 +27,7 @@ func Test_Dot(t *testing.T) {
 	ExpertNode(v1).SetID(MustParseIdentifier("a985936bed8c48b99801a5bd7f8a4e21"))
 	m0 := Map2(g, v0, v1, concat)
 	ExpertNode(m0).SetID(MustParseIdentifier("fc45f4a7b5c7456f852f2298563b29ae"))
-	o := Observe(g, m0)
+	o := MustObserve(g, m0)
 	ExpertNode(o).SetID(MustParseIdentifier("507dd07419724979bb34f2ca033257be"))
 
 	buf := new(bytes.Buffer)
@@ -52,10 +52,10 @@ func Test_Dot_writeError(t *testing.T) {
 	ExpertNode(v1).SetID(MustParseIdentifier("a985936bed8c48b99801a5bd7f8a4e21"))
 	m0 := Map2(g, v0, v1, concat)
 	ExpertNode(m0).SetID(MustParseIdentifier("fc45f4a7b5c7456f852f2298563b29ae"))
-	o := Observe(g, m0)
+	o := MustObserve(g, m0)
 	ExpertNode(o).SetID(MustParseIdentifier("507dd07419724979bb34f2ca033257be"))
 
-	_ = Observe(g, m0)
+	_ = MustObserve(g, m0)
 
 	buf := errorWriter{fmt.Errorf("this is just a test")}
 	err := Dot(buf, g)
@@ -82,7 +82,7 @@ func Test_Dot_setAt(t *testing.T) {
 	v1.Node().setAt = 1
 	m0 := Map2(g, v0, v1, concat)
 	ExpertNode(m0).SetID(MustParseIdentifier("fc45f4a7b5c7456f852f2298563b29ae"))
-	o := Observe(g, m0)
+	o := MustObserve(g, m0)
 	ExpertNode(o).SetID(MustParseIdentifier("507dd07419724979bb34f2ca033257be"))
 
 	buf := new(bytes.Buffer)
@@ -111,7 +111,7 @@ func Test_Dot_changedAt(t *testing.T) {
 	m0 := Map2(g, v0, v1, concat)
 	ExpertNode(m0).SetID(MustParseIdentifier("fc45f4a7b5c7456f852f2298563b29ae"))
 	m0.Node().changedAt = 1
-	o := Observe(g, m0)
+	o := MustObserve(g, m0)
 	ExpertNode(o).SetID(MustParseIdentifier("507dd07419724979bb34f2ca033257be"))
 
 	buf := new(bytes.Buffer)

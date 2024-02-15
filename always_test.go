@@ -24,7 +24,7 @@ func Test_Always(t *testing.T) {
 	m1.Node().OnUpdate(func(_ context.Context) {
 		updates++
 	})
-	o := Observe(g, m1)
+	o := MustObserve(g, m1)
 
 	testutil.Equal(t, 0, v.Node().height)
 	testutil.Equal(t, 1, m0.Node().height)

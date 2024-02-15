@@ -53,7 +53,7 @@ func Test_Bind_basic(t *testing.T) {
 
 	o := Map2(g, bind, s1, concat)
 	o.Node().SetLabel("o")
-	_ = Observe(g, o)
+	_ = MustObserve(g, o)
 
 	var err error
 	testutil.Equal(t, 0, bindVar.Node().height)
@@ -236,7 +236,7 @@ func Test_Bind_scopes(t *testing.T) {
 	})
 	t2.Node().SetLabel("t2")
 
-	o := Observe(g, t2)
+	o := MustObserve(g, t2)
 
 	err := g.Stabilize(ctx)
 	testutil.Nil(t, err)
@@ -290,7 +290,7 @@ func Test_Bind_necessary(t *testing.T) {
 	b1.Node().SetLabel("b1")
 	m2 := Map2(g, b0, b1, concat)
 	m2.Node().SetLabel("join")
-	o := Observe(g, m2)
+	o := MustObserve(g, m2)
 
 	err := g.Stabilize(ctx)
 	testutil.Nil(t, err)
@@ -342,7 +342,7 @@ func Test_Bind_unbindConflict(t *testing.T) {
 	b1.Node().SetLabel("b1")
 	m2 := Map2(g, b0, b1, concat)
 	m2.Node().SetLabel("join")
-	o := Observe(g, m2)
+	o := MustObserve(g, m2)
 
 	err := g.Stabilize(testContext())
 	testutil.Nil(t, err)
@@ -411,7 +411,7 @@ func Test_Bind_rebind(t *testing.T) {
 		childRecomputes++
 	})
 
-	_ = Observe(g, o)
+	_ = MustObserve(g, o)
 
 	var err error
 	err = g.Stabilize(ctx)
@@ -446,7 +446,7 @@ func Test_Bind_error(t *testing.T) {
 	bind.Node().SetLabel("bind")
 	o := Map(g, bind, ident)
 
-	_ = Observe(g, o)
+	_ = MustObserve(g, o)
 	err := g.Stabilize(ctx)
 	testutil.NotNil(t, err)
 	testutil.Equal(t, "this is just a test", err.Error())
@@ -474,7 +474,7 @@ func Test_Bind_nested(t *testing.T) {
 	})
 	final.Node().SetLabel("final")
 
-	o := Observe(g, final)
+	o := MustObserve(g, final)
 
 	err := g.Stabilize(ctx)
 	testutil.Nil(t, err)
@@ -556,7 +556,7 @@ func Test_Bind_nested_unlinksBind(t *testing.T) {
 	})
 	bind.Node().SetLabel("b")
 
-	o := Observe(g, bind)
+	o := MustObserve(g, bind)
 
 	err := g.Stabilize(ctx)
 	testutil.Nil(t, err)
@@ -627,7 +627,7 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 		return a + "->" + b
 	})
 
-	o := Observe(g, final)
+	o := MustObserve(g, final)
 
 	err := g.Stabilize(ctx)
 	testutil.Nil(t, err)
@@ -687,7 +687,7 @@ func Test_Bind_nested_bindHeightsChange(t *testing.T) {
 
 	m2 := Map2(g, driver01, driver02, concat)
 	m2.Node().SetLabel("m2")
-	o := Observe(g, m2)
+	o := MustObserve(g, m2)
 	o.Node().SetLabel("observem2")
 
 	err := g.Stabilize(ctx)
@@ -806,7 +806,7 @@ func makeRegressionGraph(ctx context.Context) (*Graph, ObserveIncr[*int]) {
 		return &out
 	})
 	o.Node().SetLabel("map3-final")
-	return graph, Observe(graph, o)
+	return graph, MustObserve(graph, o)
 }
 
 func Test_Bind_regression2(t *testing.T) {
@@ -863,7 +863,7 @@ func Test_Bind_regression2(t *testing.T) {
 	t.Run("b(t) = f(t) * f(t+2) where f(t) = f(t-1) + 1", func(t *testing.T) {
 		o := b(graph, 5)
 
-		_ = Observe(graph, o)
+		_ = MustObserve(graph, o)
 		ctx := testContext()
 		err := graph.Stabilize(ctx)
 
@@ -921,7 +921,7 @@ func Test_Bind_unbindRegression(t *testing.T) {
 
 	t.Run("m(0) = 0; if 3 <= t < 9, m(t) = m(t-1) + 1 else m(t) = m(t-1) - passes", func(t *testing.T) {
 		o := m(graph, 9)
-		_ = Observe(graph, o)
+		_ = MustObserve(graph, o)
 		ctx := testContext()
 		err := graph.Stabilize(ctx)
 		testutil.Nil(t, err)
@@ -992,7 +992,7 @@ func Test_Bind_boundChange_doesntCauseRebind(t *testing.T) {
 		m1Updates++
 	})
 
-	o := Observe(g, m1)
+	o := MustObserve(g, m1)
 
 	err := g.Stabilize(ctx)
 	testutil.NoError(t, err)

@@ -55,7 +55,7 @@ func (dg DependencyGraph[Result]) Create(ctx context.Context) (*incr.Graph, map[
 		}
 	}
 	for _, n := range leaves {
-		_ = incr.Observe[Result](graph, n)
+		_ = incr.MustObserve[Result](graph, n)
 	}
 	return graph, packageIncrementals, nil
 }

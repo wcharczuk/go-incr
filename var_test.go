@@ -22,7 +22,7 @@ func Test_Var_Stabilize_zero(t *testing.T) {
 	g := New()
 	v := Var(g, "foo")
 
-	_ = Observe(g, v)
+	_ = MustObserve(g, v)
 
 	_ = g.Stabilize(context.TODO())
 	testutil.Equal(t, "foo", v.Value())
@@ -31,7 +31,7 @@ func Test_Var_Stabilize_zero(t *testing.T) {
 func Test_Var_Set_duringStabilization(t *testing.T) {
 	g := New()
 	v := Var(g, "foo")
-	_ = Observe(g, v)
+	_ = MustObserve(g, v)
 	g.status = StatusStabilizing
 
 	v.Set("not-foo")

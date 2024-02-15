@@ -27,7 +27,7 @@ func Test_Stabilize_diffMapByKeysAdded(t *testing.T) {
 		return accum + val
 	})
 
-	_ = incr.Observe(g, mf)
+	_ = incr.MustObserve(g, mf)
 
 	_ = g.Stabilize(ctx)
 	testutil.Equal(t, 21, mf.Value())
@@ -67,7 +67,7 @@ func Test_Stabilize_diffMapByKeysRemoved(t *testing.T) {
 		return accum + val
 	})
 
-	_ = incr.Observe(g, mf)
+	_ = incr.MustObserve(g, mf)
 
 	_ = g.Stabilize(ctx)
 	testutil.Equal(t, 0, mf.Value())
@@ -103,8 +103,8 @@ func Test_Stabilize_diffMapByKeys(t *testing.T) {
 		return accum + val
 	})
 
-	_ = incr.Observe(g, mfa)
-	_ = incr.Observe(g, mfr)
+	_ = incr.MustObserve(g, mfa)
+	_ = incr.MustObserve(g, mfr)
 
 	_ = g.Stabilize(ctx)
 	_ = g.Stabilize(ctx)
@@ -141,7 +141,7 @@ func Test_Stabilize_diffSlice(t *testing.T) {
 		return accum + fmt.Sprint(val)
 	})
 
-	_ = incr.Observe(g, mf)
+	_ = incr.MustObserve(g, mf)
 
 	_ = g.Stabilize(ctx)
 	testutil.Equal(t, "123456", mf.Value())

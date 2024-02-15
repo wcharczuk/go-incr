@@ -14,7 +14,7 @@ func main() {
 	v1 := incr.Var(g, "bar")
 	output := incr.Map2(g, v0, v1, func(a, b string) string { return a + " and " + b })
 
-	observer := incr.Observe(g, output)
+	observer := incr.MustObserve(g, output)
 
 	if err := g.Stabilize(context.Background()); err != nil {
 		fmt.Fprintf(os.Stderr, "%+v\n", err)

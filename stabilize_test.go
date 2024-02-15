@@ -22,7 +22,7 @@ func Test_Stabilize(t *testing.T) {
 		return a + " " + b
 	})
 
-	_ = Observe(g, m0)
+	_ = MustObserve(g, m0)
 
 	err := g.Stabilize(ctx)
 	Nil(t, err)
@@ -64,7 +64,7 @@ func Test_Stabilize_error(t *testing.T) {
 		return "", fmt.Errorf("this is just a test")
 	})
 
-	_ = Observe(g, m0)
+	_ = MustObserve(g, m0)
 
 	err := g.Stabilize(ctx)
 	NotNil(t, err)
@@ -84,7 +84,7 @@ func Test_Stabilize_errorHandler(t *testing.T) {
 		gotError = err
 	})
 
-	_ = Observe(g, m0)
+	_ = MustObserve(g, m0)
 
 	err := g.Stabilize(ctx)
 	NotNil(t, err)
@@ -105,7 +105,7 @@ func Test_Stabilize_alreadyStabilizing(t *testing.T) {
 		return "ok!", nil
 	})
 
-	_ = Observe(g, m0)
+	_ = MustObserve(g, m0)
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
@@ -143,7 +143,7 @@ func Test_Stabilize_updateHandlers(t *testing.T) {
 		updates++
 	})
 
-	_ = Observe(g, m0)
+	_ = MustObserve(g, m0)
 
 	err := g.Stabilize(ctx)
 	Nil(t, err)
@@ -169,7 +169,7 @@ func Test_Stabilize_unevenHeights(t *testing.T) {
 		return a + " != " + b
 	})
 
-	_ = Observe(g, m1)
+	_ = MustObserve(g, m1)
 
 	err := g.Stabilize(ctx)
 	Nil(t, err)
@@ -197,7 +197,7 @@ func Test_Stabilize_chain(t *testing.T) {
 		previous = m
 	}
 
-	o := Observe(g, maps[len(maps)-1])
+	o := MustObserve(g, maps[len(maps)-1])
 
 	err := g.Stabilize(ctx)
 	Nil(t, err)
@@ -221,7 +221,7 @@ func Test_Stabilize_setDuringStabilization(t *testing.T) {
 		return v
 	})
 
-	_ = Observe(g, m0)
+	_ = MustObserve(g, m0)
 
 	done := make(chan struct{})
 	go func() {
@@ -259,7 +259,7 @@ func Test_Stabilize_onUpdate(t *testing.T) {
 		didCallUpdateHandler1 = true
 	})
 
-	_ = Observe(g, m0)
+	_ = MustObserve(g, m0)
 
 	err := g.Stabilize(ctx)
 	Nil(t, err)
@@ -293,7 +293,7 @@ func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
 		return v0 + "+" + v1 + "->z"
 	})
 
-	_ = Observe(g, z)
+	_ = MustObserve(g, z)
 
 	err := g.Stabilize(ctx)
 	Nil(t, err)
@@ -318,7 +318,7 @@ func Test_Stabilize_doubleVarSet_singleUpdate(t *testing.T) {
 		return v0 + " " + v1
 	})
 
-	_ = Observe(g, m)
+	_ = MustObserve(g, m)
 
 	_ = g.Stabilize(ctx)
 	Equal(t, "a b", m.Value())
@@ -358,7 +358,7 @@ func Test_Stabilize_verifyPartial(t *testing.T) {
 	sw := Var(g, true)
 	mi := MapIf(g, co0, co1, sw)
 
-	_ = Observe(g, mi)
+	_ = MustObserve(g, mi)
 
 	err := g.Stabilize(ctx)
 	Nil(t, err)
@@ -404,7 +404,7 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 		},
 	)
 
-	_ = Observe(g, output)
+	_ = MustObserve(g, output)
 
 	err := g.Stabilize(
 		ctx,
@@ -453,7 +453,7 @@ func Test_Stabilize_Bind(t *testing.T) {
 	})
 	mb.Node().SetLabel("mb")
 
-	_ = Observe(g, mb)
+	_ = MustObserve(g, mb)
 
 	Equal(t, true, g.Has(sw))
 
@@ -503,7 +503,7 @@ func Test_Stabilize_BindIf(t *testing.T) {
 		return i1, nil
 	})
 
-	_ = Observe(g, b)
+	_ = MustObserve(g, b)
 
 	err := g.Stabilize(ctx)
 	Nil(t, err)
@@ -535,7 +535,7 @@ func Test_Stabilize_Bind2(t *testing.T) {
 
 	Equal(t, "bind2", b2.Node().Kind())
 
-	o := Observe(g, b2)
+	o := MustObserve(g, b2)
 	err := g.Stabilize(ctx)
 	NoError(t, err)
 	Equal(t, "ab", o.Value())
@@ -566,7 +566,7 @@ func Test_Stabilize_Bind3(t *testing.T) {
 	})
 	Equal(t, "bind3", b3.Node().Kind())
 
-	o := Observe(g, b3)
+	o := MustObserve(g, b3)
 	err := g.Stabilize(ctx)
 	NoError(t, err)
 	Equal(t, "abc", o.Value())
@@ -604,7 +604,7 @@ func Test_Stabilize_Bind4(t *testing.T) {
 	})
 	Equal(t, "bind4", b4.Node().Kind())
 
-	o := Observe(g, b4)
+	o := MustObserve(g, b4)
 	err := g.Stabilize(ctx)
 	NoError(t, err)
 	Equal(t, "abcd", o.Value())
@@ -651,7 +651,7 @@ func Test_Stabilize_Cutoff(t *testing.T) {
 		add[float64],
 	)
 
-	_ = Observe(g, output)
+	_ = MustObserve(g, output)
 
 	_ = g.Stabilize(
 		ctx,
@@ -699,7 +699,7 @@ func Test_Stabilize_CutoffContext(t *testing.T) {
 		add[float64],
 	)
 
-	_ = Observe(g, output)
+	_ = MustObserve(g, output)
 
 	_ = g.Stabilize(
 		ctx,
@@ -756,7 +756,7 @@ func Test_Stabilize_CutoffContext_error(t *testing.T) {
 		add[float64],
 	)
 
-	_ = Observe(g, output)
+	_ = MustObserve(g, output)
 
 	err := g.Stabilize(
 		ctx,
@@ -794,7 +794,7 @@ func Test_Stabilize_Cutoff2(t *testing.T) {
 		add[float64],
 	)
 
-	_ = Observe(g, output)
+	_ = MustObserve(g, output)
 
 	_ = g.Stabilize(
 		ctx,
@@ -867,7 +867,7 @@ func Test_Stabilize_Cutoff2Context_error(t *testing.T) {
 		add[float64],
 	)
 
-	_ = Observe(g, output)
+	_ = MustObserve(g, output)
 
 	err := g.Stabilize(
 		ctx,
@@ -895,7 +895,7 @@ func Test_Stabilize_Watch(t *testing.T) {
 	m0 := Map2(g, v0, v1, add)
 	w0 := Watch(g, m0)
 
-	_ = Observe(g, w0)
+	_ = MustObserve(g, w0)
 
 	_ = g.Stabilize(ctx)
 
@@ -921,7 +921,7 @@ func Test_Stabilize_Map(t *testing.T) {
 		return a + 10
 	})
 
-	_ = Observe(g, m)
+	_ = MustObserve(g, m)
 
 	_ = g.Stabilize(ctx)
 	Equal(t, 11, m.Value())
@@ -937,7 +937,7 @@ func Test_Stabilize_MapContext(t *testing.T) {
 		return a + 10, nil
 	})
 
-	_ = Observe(g, m)
+	_ = MustObserve(g, m)
 
 	_ = g.Stabilize(ctx)
 	Equal(t, 11, m.Value())
@@ -953,7 +953,7 @@ func Test_Stabilize_Map2(t *testing.T) {
 		return a + b
 	})
 
-	_ = Observe(g, m2)
+	_ = MustObserve(g, m2)
 
 	_ = g.Stabilize(ctx)
 	Equal(t, 3, m2.Value())
@@ -970,7 +970,7 @@ func Test_Stabilize_Map2Context(t *testing.T) {
 		return a + b, nil
 	})
 
-	_ = Observe(g, m2)
+	_ = MustObserve(g, m2)
 
 	_ = g.Stabilize(ctx)
 	Equal(t, 3, m2.Value())
@@ -987,7 +987,7 @@ func Test_Stabilize_Map2Context_error(t *testing.T) {
 		return a + b, fmt.Errorf("this is just a test")
 	})
 
-	_ = Observe(g, m2)
+	_ = MustObserve(g, m2)
 
 	err := g.Stabilize(ctx)
 	NotNil(t, err)
@@ -1005,7 +1005,7 @@ func Test_Stabilize_Map3(t *testing.T) {
 		return a + b + c
 	})
 
-	_ = Observe(g, m3)
+	_ = MustObserve(g, m3)
 
 	_ = g.Stabilize(ctx)
 	Equal(t, 6, m3.Value())
@@ -1023,7 +1023,7 @@ func Test_Stabilize_Map4(t *testing.T) {
 		return a + b + c + d
 	})
 
-	_ = Observe(g, m3)
+	_ = MustObserve(g, m3)
 
 	_ = g.Stabilize(ctx)
 	Equal(t, 10, m3.Value())
@@ -1041,7 +1041,7 @@ func Test_Stabilize_Map3Context(t *testing.T) {
 		return a + b + c, nil
 	})
 
-	_ = Observe(g, m3)
+	_ = MustObserve(g, m3)
 
 	_ = g.Stabilize(ctx)
 	Equal(t, 6, m3.Value())
@@ -1059,7 +1059,7 @@ func Test_Stabilize_Map3Context_error(t *testing.T) {
 		return a + b + c, fmt.Errorf("this is just a test")
 	})
 
-	_ = Observe(g, m3)
+	_ = MustObserve(g, m3)
 
 	err := g.Stabilize(ctx)
 	NotNil(t, err)
@@ -1075,7 +1075,7 @@ func Test_Stabilize_MapIf(t *testing.T) {
 	v0 := Var(g, false)
 	mi0 := MapIf(g, c0, c1, v0)
 
-	_ = Observe(g, mi0)
+	_ = MustObserve(g, mi0)
 
 	_ = g.Stabilize(ctx)
 	Equal(t, 2, mi0.Value())
@@ -1109,7 +1109,7 @@ func Test_Stabilize_MapN(t *testing.T) {
 	c2 := Return(g, 3)
 	mn := MapN(g, sum, c0, c1, c2)
 
-	_ = Observe(g, mn)
+	_ = MustObserve(g, mn)
 
 	_ = g.Stabilize(ctx)
 	Equal(t, 6, mn.Value())
@@ -1138,7 +1138,7 @@ func Test_Stabilize_MapN_AddInput(t *testing.T) {
 	mn.AddInput(c1)
 	mn.AddInput(c2)
 
-	_ = Observe(g, mn)
+	_ = MustObserve(g, mn)
 
 	_ = g.Stabilize(ctx)
 	Equal(t, 6, mn.Value())
@@ -1165,7 +1165,7 @@ func Test_Stabilize_MapNContext(t *testing.T) {
 	c2 := Return(g, 3)
 	mn := MapNContext(g, sum, c0, c1, c2)
 
-	_ = Observe(g, mn)
+	_ = MustObserve(g, mn)
 
 	_ = g.Stabilize(ctx)
 	Equal(t, 6, mn.Value())
@@ -1189,7 +1189,7 @@ func Test_Stabilize_MapNContext_error(t *testing.T) {
 	c2 := Return(g, 3)
 	mn := MapNContext(g, sum, c0, c1, c2)
 
-	_ = Observe(g, mn)
+	_ = MustObserve(g, mn)
 
 	err := g.Stabilize(ctx)
 	NotNil(t, err)
@@ -1210,7 +1210,7 @@ func Test_Stabilize_Func(t *testing.T) {
 		return v + " world!", nil
 	})
 
-	_ = Observe(g, m)
+	_ = MustObserve(g, m)
 
 	_ = g.Stabilize(ctx)
 	Equal(t, "hello world!", m.Value())
@@ -1244,7 +1244,7 @@ func Test_Stabilize_FoldMap(t *testing.T) {
 		return accum + val
 	})
 
-	_ = Observe(g, mf)
+	_ = MustObserve(g, mf)
 
 	_ = g.Stabilize(ctx)
 	Equal(t, 21, mf.Value())
@@ -1266,7 +1266,7 @@ func Test_Stabilize_FoldLeft(t *testing.T) {
 		return accum + fmt.Sprint(val)
 	})
 
-	_ = Observe(g, mf)
+	_ = MustObserve(g, mf)
 
 	_ = g.Stabilize(ctx)
 	Equal(t, "123456", mf.Value())
@@ -1288,7 +1288,7 @@ func Test_Stabilize_FoldRight(t *testing.T) {
 		return accum + fmt.Sprint(val)
 	})
 
-	_ = Observe(g, mf)
+	_ = MustObserve(g, mf)
 
 	_ = g.Stabilize(ctx)
 	Equal(t, "654321", mf.Value())
@@ -1306,7 +1306,7 @@ func Test_Stabilize_Freeze(t *testing.T) {
 	v0 := Var(g, "hello")
 	fv := Freeze(g, v0)
 
-	_ = Observe(g, fv)
+	_ = MustObserve(g, fv)
 
 	err := g.Stabilize(ctx)
 	Nil(t, err)
@@ -1335,7 +1335,7 @@ func Test_Stabilize_Always_Cutoff(t *testing.T) {
 	readFile := Map2(g, filename, statfileCutoff, func(p string, mt int) string {
 		return fmt.Sprintf("%s-%d", p, mt)
 	})
-	o := Observe(g, readFile)
+	o := MustObserve(g, readFile)
 
 	err := g.Stabilize(ctx)
 	Nil(t, err)
@@ -1370,7 +1370,7 @@ func Test_Stabilize_Always_Cutoff_error(t *testing.T) {
 	readFile := Map2(g, filename, statfileCutoff, func(p string, mt int) string {
 		return fmt.Sprintf("%s-%d", p, mt)
 	})
-	o := Observe(g, readFile)
+	o := MustObserve(g, readFile)
 
 	err := g.Stabilize(ctx)
 	NotNil(t, err)
@@ -1391,7 +1391,7 @@ func Test_Stabilize_printsErrors(t *testing.T) {
 	gonnaPanic := MapContext(g, v0, func(_ context.Context, _ string) (string, error) {
 		return "", fmt.Errorf("this is only a test")
 	})
-	_ = Observe(g, gonnaPanic)
+	_ = MustObserve(g, gonnaPanic)
 
 	err := g.Stabilize(ctx)
 	NotNil(t, err)
@@ -1415,7 +1415,7 @@ func Test_Stabilize_handlers(t *testing.T) {
 	var startWasBlueDye bool
 	var endWasBlueDye bool
 
-	_ = Observe(g, m0)
+	_ = MustObserve(g, m0)
 	g.OnStabilizationStart(func(ictx context.Context) {
 		startWasBlueDye = HasBlueDye(ctx)
 		didCallStabilizationStart = true
@@ -1441,7 +1441,7 @@ func Test_Stabilize_Bind_jsCombination(t *testing.T) {
 	v3 := Var(g, 3)
 	v4 := Var(g, 4)
 
-	o := Observe(g, Bind4(g, v1, v2, v3, v4, func(bs Scope, x1, x2, x3, x4 int) Incr[int] {
+	o := MustObserve(g, Bind4(g, v1, v2, v3, v4, func(bs Scope, x1, x2, x3, x4 int) Incr[int] {
 		return Bind3(bs, v2, v3, v3, func(bs Scope, y2, y3, y4 int) Incr[int] {
 			return Bind2(bs, v4, v4, func(bs Scope, z3, z4 int) Incr[int] {
 				return Bind(bs, v4, func(bs Scope, w4 int) Incr[int] {
