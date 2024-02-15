@@ -221,10 +221,10 @@ func Test_recomputeHeap_nextMinHeightUnsafe_noItems(t *testing.T) {
 	Equal(t, 0, next)
 }
 
-func Test_recomputeHeap_maybeAddNewHeights(t *testing.T) {
+func Test_recomputeHeap_maybeAddNewHeightsUnsafe(t *testing.T) {
 	rh := newRecomputeHeap(8)
 	Equal(t, 8, len(rh.heights))
-	rh.maybeAddNewHeights(9) // we use (1) indexing!
+	rh.maybeAddNewHeightsUnsafe(9) // we use (1) indexing!
 	Equal(t, 10, len(rh.heights))
 }
 

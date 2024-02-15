@@ -82,24 +82,6 @@ func (rh *recomputeHeap) removeMin() (node INode, ok bool) {
 	return
 }
 
-// removeMin removes the minimum height node.
-func (rh *recomputeHeap) removeMinUnsafe() (node INode, ok bool) {
-	for x := rh.minHeight; x <= rh.maxHeight; x++ {
-		if rh.heights[x] != nil && rh.heights[x].len() > 0 {
-			_, node, ok = rh.heights[x].pop()
-			node.Node().heightInRecomputeHeap = heightUnset
-			rh.numItems--
-			if rh.heights[x].len() > 0 {
-				rh.minHeight = x
-			} else {
-				rh.minHeight = rh.nextMinHeightUnsafe()
-			}
-			return
-		}
-	}
-	return
-}
-
 // removeMinHeight removes the minimum height nodes from
 // the recompute heap all at once.
 func (rh *recomputeHeap) removeMinHeight() (nodes []INode) {
@@ -129,6 +111,24 @@ func (rh *recomputeHeap) remove(node INode) (ok bool) {
 // utils
 //
 
+// removeMinUnsafe removes the minimum height node.
+func (rh *recomputeHeap) removeMinUnsafe() (node INode, ok bool) {
+	for x := rh.minHeight; x <= rh.maxHeight; x++ {
+		if rh.heights[x] != nil && rh.heights[x].len() > 0 {
+			_, node, ok = rh.heights[x].pop()
+			node.Node().heightInRecomputeHeap = heightUnset
+			rh.numItems--
+			if rh.heights[x].len() > 0 {
+				rh.minHeight = x
+			} else {
+				rh.minHeight = rh.nextMinHeightUnsafe()
+			}
+			return
+		}
+	}
+	return
+}
+
 func (rh *recomputeHeap) fixUnsafe(node INode) {
 	rh.heights[node.Node().heightInRecomputeHeap].remove(node.Node().id)
 	rh.numItems--
@@ -146,7 +146,7 @@ func (rh *recomputeHeap) addNodeUnsafe(s INode) {
 	height := sn.height
 	s.Node().heightInRecomputeHeap = height
 	rh.maybeUpdateMinMaxHeights(height)
-	rh.maybeAddNewHeights(height)
+	rh.maybeAddNewHeightsUnsafe(height)
 	if rh.heights[height] == nil {
 		rh.heights[height] = new(list[Identifier, INode])
 	}
@@ -180,7 +180,7 @@ func (rh *recomputeHeap) maybeUpdateMinMaxHeights(newHeight int) {
 	}
 }
 
-func (rh *recomputeHeap) maybeAddNewHeights(newHeight int) {
+func (rh *recomputeHeap) maybeAddNewHeightsUnsafe(newHeight int) {
 	if len(rh.heights) <= newHeight {
 		required := (newHeight - len(rh.heights)) + 1
 		for x := 0; x < required; x++ {
