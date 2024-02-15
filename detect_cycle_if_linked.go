@@ -11,9 +11,9 @@ import "fmt"
 func DetectCycleIfLinked(child, parent INode) error {
 	getParents := func(n INode) []INode {
 		if n.Node().ID() == child.Node().ID() {
-			return append(n.Node().Parents(), parent)
+			return append(n.Parents(), parent)
 		}
-		return n.Node().Parents()
+		return n.Parents()
 	}
 	if detectCycleFast(child.Node().ID(), parent /*startAt*/, getParents) {
 		return fmt.Errorf("adding %v as child of %v would cause a cycle", child, parent)
