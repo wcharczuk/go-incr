@@ -85,8 +85,10 @@ func (o *observeIncr[A]) Stabilize(_ context.Context) error {
 func (o *observeIncr[A]) Unobserve(ctx context.Context) {
 	g := o.n.graph
 
-	o.input.Node().removeObserver(o.n.id)
 	g.removeObserver(o)
+
+	o.input.Node().removeObserver(o.n.id)
+	g.checkIfUnnecessary(o.input)
 
 	// zero out the observed value
 	var value A
