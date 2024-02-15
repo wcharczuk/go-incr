@@ -74,7 +74,7 @@ func (vn *varIncr[T]) Set(v T) {
 	}
 
 	vn.value = v
-	if graph != nil {
+	if graph != nil && vn.n.isNecessary() {
 		graph.SetStale(vn)
 	}
 }
