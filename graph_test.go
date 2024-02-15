@@ -59,8 +59,6 @@ func Test_Graph_addObserver_rediscover(t *testing.T) {
 	testutil.Equal(t, 2, g.numNodes)
 	testutil.Equal(t, 1, o.Node().height)
 	testutil.Equal(t, false, g.recomputeHeap.has(o))
-	g.recomputeHeap.remove(o)
-	testutil.Equal(t, false, g.recomputeHeap.has(o))
 
 	g.addObserver(o)
 	testutil.Equal(t, 2, g.numNodes)

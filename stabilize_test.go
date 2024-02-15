@@ -241,7 +241,7 @@ func Test_Stabilize_setDuringStabilization(t *testing.T) {
 	// we're now _done_ stabilizing
 	Equal(t, "not-foo", v0.Value())
 	Equal(t, g.stabilizationNum, v0.Node().setAt)
-	Equal(t, 1, len(g.recomputeHeap.lookup))
+	Equal(t, 1, g.recomputeHeap.numItems)
 }
 
 func Test_Stabilize_onUpdate(t *testing.T) {

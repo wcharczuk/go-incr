@@ -139,7 +139,7 @@ func (l *list[K, V]) consume(fn func(K, V)) {
 }
 
 func (l *list[K, V]) has(k K) (ok bool) {
-	if l.items == nil {
+	if l == nil || l.items == nil {
 		return
 	}
 	_, ok = l.items[k]

@@ -125,7 +125,7 @@ func (ah *adjustHeightsHeap) adjustHeights(rh *recomputeHeap, originalChild, ori
 		parent, _ := ah.removeMin()
 		// if the node is in the recompute heap
 		if parent.Node().heightInRecomputeHeap >= 0 {
-			rh.fix(parent.Node().id)
+			rh.fix(parent)
 		}
 		for _, child := range parent.Node().children {
 			if err := ah.ensureHeightRequirement(originalChild, originalParent, child, parent); err != nil {

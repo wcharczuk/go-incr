@@ -2,7 +2,6 @@ package incr
 
 import (
 	"context"
-	"fmt"
 )
 
 // Stabilize kicks off the full stabilization pass given initial nodes
@@ -21,11 +20,8 @@ func (graph *Graph) Stabilize(ctx context.Context) (err error) {
 
 	var immediateRecompute []INode
 	var next INode
-	for len(graph.recomputeHeap.lookup) > 0 {
+	for graph.recomputeHeap.numItems > 0 {
 		next, _ = graph.recomputeHeap.removeMinUnsafe()
-		if next == nil {
-			panic(fmt.Errorf("next is nil with heap %v", graph.recomputeHeap))
-		}
 		if err = graph.recompute(ctx, next); err != nil {
 			break
 		}

@@ -206,7 +206,9 @@ func (graph *Graph) OnStabilizationEnd(handler func(context.Context, time.Time, 
 func (graph *Graph) SetStale(gn INode) {
 	n := gn.Node()
 	n.setAt = graph.stabilizationNum
-	graph.recomputeHeap.add(gn)
+	if gn.Node().heightInRecomputeHeap == heightUnset {
+		graph.recomputeHeap.add(gn)
+	}
 }
 
 //
@@ -325,7 +327,7 @@ func (graph *Graph) propagateInvalidity() {
 		if node.Node().valid {
 			if node.Node().shouldBeInvalidated() {
 				graph.invalidateNode(node)
-			} else {
+			} else if node.Node().heightInRecomputeHeap == heightUnset {
 				graph.recomputeHeap.add(node)
 			}
 		}
@@ -363,7 +365,7 @@ func (graph *Graph) becameNecessaryRecursive(node INode) (err error) {
 			}
 		}
 	}
-	if node.Node().isStale() {
+	if node.Node().isStale() && node.Node().heightInRecomputeHeap == heightUnset {
 		graph.recomputeHeap.add(node)
 	}
 	return
@@ -431,8 +433,12 @@ func (graph *Graph) removeNode(gn INode) {
 }
 
 func (graph *Graph) zeroNode(n INode) {
-	graph.recomputeHeap.remove(n)
-	graph.adjustHeightsHeap.remove(n)
+	if n.Node().heightInRecomputeHeap != heightUnset {
+		graph.recomputeHeap.remove(n)
+	}
+	if n.Node().heightInAdjustHeightsHeap != heightUnset {
+		graph.adjustHeightsHeap.remove(n)
+	}
 
 	graph.numNodes--
 
