@@ -9,17 +9,3 @@ func remove[A INode](nodes []A, id Identifier) []A {
 	}
 	return output
 }
-
-func hasKey[A INode](nodes []A, id Identifier) bool {
-	for _, n := range nodes {
-		if n.Node().id == id {
-			return true
-		}
-	}
-	return false
-}
-
-func mapHasKey[K comparable, V any](m map[K]V, k K) (ok bool) {
-	_, ok = m[k]
-	return
-}
