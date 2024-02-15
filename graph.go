@@ -400,7 +400,6 @@ func (graph *Graph) addNode(n INode) {
 	if graphAlreadyHasNode {
 		return
 	}
-	gnn.graph = graph
 	graph.numNodes++
 	gnn.initializeFrom(n)
 	graph.nodes[gnn.id] = n
@@ -415,7 +414,6 @@ func (graph *Graph) addObserver(on IObserver) {
 	if graphAlreadyHasObserver {
 		return
 	}
-	onn.graph = graph
 	graph.numNodes++
 	onn.initializeFrom(on)
 	graph.observers[onn.id] = on

@@ -62,19 +62,20 @@ func (vn *varIncr[T]) ShouldBeInvalidated() bool {
 }
 
 func (vn *varIncr[T]) Set(v T) {
-	if vn.n.graph != nil && atomic.LoadInt32(&vn.n.graph.status) == StatusStabilizing {
+	graph := graphFromScope(vn)
+	if graph != nil && atomic.LoadInt32(&graph.status) == StatusStabilizing {
 		vn.setDuringStabilizationValue = v
 		vn.setDuringStabilization = true
 
-		vn.n.graph.setDuringStabilizationMu.Lock()
-		vn.n.graph.setDuringStabilization[vn.Node().id] = vn
-		vn.n.graph.setDuringStabilizationMu.Unlock()
+		graph.setDuringStabilizationMu.Lock()
+		graph.setDuringStabilization[vn.Node().id] = vn
+		graph.setDuringStabilizationMu.Unlock()
 		return
 	}
 
 	vn.value = v
-	if vn.n.graph != nil {
-		vn.n.graph.SetStale(vn)
+	if graph != nil {
+		graph.SetStale(vn)
 	}
 }
 

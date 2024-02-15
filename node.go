@@ -25,8 +25,6 @@ type Node struct {
 	kind string
 	// metadata is any additional metadata a user wants to attach to a node.
 	metadata any
-	// graph is the graph this node is attached to currently.
-	graph *Graph
 	// label is a descriptive string for the
 	// node, and is set with `SetLabel`
 	label string

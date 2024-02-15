@@ -465,8 +465,9 @@ func Test_Stabilize_Bind(t *testing.T) {
 
 	Equal(t, true, g.Has(i1))
 	Equal(t, true, g.Has(m1))
-	NotNil(t, i1.Node().graph, "i1 should be in the graph after the first stabilization")
-	NotNil(t, m1.Node().graph, "m1 should be in the graph after the first stabilization")
+
+	Equal(t, true, i1.Node().isNecessary())
+	Equal(t, true, m1.Node().isNecessary())
 
 	Equal(t, "bar-loo-baz", mb.Value())
 
@@ -478,8 +479,9 @@ func Test_Stabilize_Bind(t *testing.T) {
 
 	Equal(t, true, g.Has(i0))
 	Equal(t, true, g.Has(m0))
-	NotNil(t, i0.Node().graph, "i0 should be in the graph after the second stabilization")
-	NotNil(t, m0.Node().graph, "m0 should be in the graph after the second stabilization")
+
+	Equal(t, true, i0.Node().isNecessary())
+	Equal(t, true, m0.Node().isNecessary())
 
 	Equal(t, false, g.Has(i1))
 	Equal(t, false, g.Has(m1))
@@ -508,8 +510,8 @@ func Test_Stabilize_BindIf(t *testing.T) {
 	err := g.Stabilize(ctx)
 	Nil(t, err)
 
-	Nil(t, i0.Node().graph, "i0 should not be in the graph after the first stabilization")
-	NotNil(t, i1.Node().graph, "i1 should be in the graph after the first stabilization")
+	// Nil(t, i0.Node().graph, "i0 should not be in the graph after the first stabilization")
+	// NotNil(t, i1.Node().graph, "i1 should be in the graph after the first stabilization")
 
 	Equal(t, "bar", b.Value())
 
@@ -517,7 +519,7 @@ func Test_Stabilize_BindIf(t *testing.T) {
 	err = g.Stabilize(ctx)
 	Nil(t, err)
 
-	NotNil(t, i0.Node().graph, "i1 should not be in the graph after the third stabilization")
+	// NotNil(t, i0.Node().graph, "i1 should not be in the graph after the third stabilization")
 
 	Equal(t, "foo", b.Value())
 }

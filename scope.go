@@ -36,6 +36,13 @@ type Scope interface {
 	fmt.Stringer
 }
 
+func graphFromScope(node INode) *Graph {
+	if node == nil {
+		return nil
+	}
+	return node.Node().createdIn.scopeGraph()
+}
+
 func maybeRemoveScopeNode(scope Scope, node INode) {
 	if scope == nil || scope != nil && scope.isTopScope() {
 		return

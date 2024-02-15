@@ -156,7 +156,7 @@ func (b *bindMainIncr[A, B]) Stabilize(ctx context.Context) error {
 
 func (b *bindMainIncr[A, B]) Invalidate() {
 	for _, n := range b.bind.rhsNodes {
-		b.n.graph.invalidateNode(n)
+		graphFromScope(b).invalidateNode(n)
 	}
 }
 
@@ -199,7 +199,7 @@ func (b *bindLeftChangeIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 		b.bind.main.parents = []INode{b}
 	}
 
-	if err = b.n.graph.changeParent(b.bind.main, oldRhs, b.bind.rhs); err != nil {
+	if err = graphFromScope(b).changeParent(b.bind.main, oldRhs, b.bind.rhs); err != nil {
 		return err
 	}
 	if oldRhs != nil {
@@ -216,7 +216,7 @@ func (b *bindLeftChangeIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 			b.bind.addScopeNode(n)
 		}
 	}
-	b.n.graph.propagateInvalidity()
+	graphFromScope(b).propagateInvalidity()
 	return nil
 }
 

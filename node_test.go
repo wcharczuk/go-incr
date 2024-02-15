@@ -12,7 +12,6 @@ import (
 func Test_NewNode(t *testing.T) {
 	n := NewNode("test_node")
 	testutil.NotNil(t, n.id)
-	testutil.Nil(t, n.graph)
 	testutil.Equal(t, "test_node", n.kind)
 	testutil.Equal(t, 0, len(n.parents))
 	testutil.Equal(t, 0, len(n.children))
@@ -76,10 +75,10 @@ func Test_SetStale(t *testing.T) {
 	testutil.Equal(t, 0, n.n.recomputedAt)
 	testutil.Equal(t, 1, n.n.setAt)
 
-	testutil.Equal(t, true, n.n.graph.recomputeHeap.has(n))
+	testutil.Equal(t, true, graphFromScope(n).recomputeHeap.has(n))
 
 	// find the node in the recompute heap layer
-	testutil.Equal(t, 1, n.n.graph.recomputeHeap.heights[0].len())
+	testutil.Equal(t, 1, graphFromScope(n).recomputeHeap.heights[0].len())
 
 	g.SetStale(n)
 
@@ -87,9 +86,9 @@ func Test_SetStale(t *testing.T) {
 	testutil.Equal(t, 0, n.n.recomputedAt)
 	testutil.Equal(t, 1, n.n.setAt)
 
-	testutil.Equal(t, true, n.n.graph.recomputeHeap.has(n))
+	testutil.Equal(t, true, graphFromScope(n).recomputeHeap.has(n))
 
-	testutil.Equal(t, 1, n.n.graph.recomputeHeap.heights[0].len())
+	testutil.Equal(t, 1, graphFromScope(n).recomputeHeap.heights[0].len())
 }
 
 func Test_Node_OnUpdate(t *testing.T) {

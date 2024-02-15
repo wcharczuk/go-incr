@@ -107,7 +107,6 @@ func Test_Graph_removeNodeFromGraph(t *testing.T) {
 	testutil.Equal(t, 0, mn00.n.setAt)
 	testutil.Equal(t, 0, mn00.n.recomputedAt)
 	testutil.Nil(t, mn00.n.createdIn)
-	testutil.Nil(t, mn00.n.graph)
 	testutil.Equal(t, heightUnset, mn00.n.height)
 	testutil.Equal(t, heightUnset, mn00.n.heightInRecomputeHeap)
 	testutil.Equal(t, heightUnset, mn00.n.heightInAdjustHeightsHeap)
