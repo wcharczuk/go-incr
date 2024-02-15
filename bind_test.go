@@ -1010,3 +1010,31 @@ func Test_Bind_boundChange_doesntCauseRebind(t *testing.T) {
 	testutil.Equal(t, 2, m1Updates)
 	testutil.Equal(t, "not-foo", o.Value())
 }
+
+func Test_Bind_nestedScopeHasGraph(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	bv := Var(g, "a")
+	var ibv00, ibv01 VarIncr[string]
+	b := Bind(g, bv, func(bindScope Scope, bvv string) Incr[string] {
+		ibv00 = Var(bindScope, bvv)
+		return Bind(bindScope, ibv00, func(bindScope Scope, ibvv string) Incr[string] {
+			ibv01 = Var(bindScope, ibvv)
+			return Map2(bindScope, ibv00, ibv01, concat)
+		})
+	})
+	ob := MustObserve(g, b)
+	_ = g.Stabilize(ctx)
+	testutil.Equal(t, "aa", ob.Value())
+
+	testutil.NotNil(t, graphFromScope(ibv00))
+	testutil.NotNil(t, graphFromScope(ibv01))
+
+	testutil.Equal(t, false, ibv00.Node().createdIn.isTopScope())
+	testutil.Equal(t, false, ibv01.Node().createdIn.isTopScope())
+
+	ibv00CreatedInID := ibv00.Node().createdIn.(*bind[string, string]).main.n.id
+	ibv01CreatedInID := ibv01.Node().createdIn.(*bind[string, string]).main.n.id
+	testutil.NotEqual(t, ibv00CreatedInID, ibv01CreatedInID)
+}
