@@ -57,7 +57,6 @@ const heightUnset = -1
 
 func (ah *adjustHeightsHeap) add(node INode) {
 	if node.Node().heightInAdjustHeightsHeap != heightUnset {
-		fmt.Printf("skipping adding node to adjust heights heap: %v %d\n", node, node.Node().heightInAdjustHeightsHeap)
 		return
 	}
 	height := node.Node().height
@@ -76,7 +75,7 @@ func (ah *adjustHeightsHeap) removeMin() (node INode, ok bool) {
 	if len(ah.lookup) == 0 {
 		return
 	}
-	for x := ah.heightLowerBound; x <= ah.maxHeightSeen; x++ {
+	for x := 0; x <= ah.maxHeightSeen; x++ {
 		if ah.nodesByHeight[x] != nil && len(ah.nodesByHeight[x]) > 0 {
 			node, ok = popMap(ah.nodesByHeight[x])
 			ah.heightLowerBound = x

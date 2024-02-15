@@ -10,9 +10,13 @@ import (
 func Test_Always(t *testing.T) {
 	g := New()
 	v := Var(g, "foo")
+	v.Node().SetLabel("v")
 	m0 := Map(g, v, ident)
+	m0.Node().SetLabel("m0")
 	a := Always(g, m0)
+	a.Node().SetLabel("a")
 	m1 := Map(g, a, ident)
+	m1.Node().SetLabel("m1")
 
 	a.(AlwaysIncr[string]).Always() // does nothing
 
@@ -21,6 +25,12 @@ func Test_Always(t *testing.T) {
 		updates++
 	})
 	o := Observe(g, m1)
+
+	testutil.Equal(t, 0, v.Node().height)
+	testutil.Equal(t, 1, m0.Node().height)
+	testutil.Equal(t, 2, a.Node().height)
+	testutil.Equal(t, 3, m1.Node().height)
+	testutil.Equal(t, 4, o.Node().height)
 
 	ctx := testContext()
 	_ = g.Stabilize(ctx)

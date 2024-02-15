@@ -45,13 +45,15 @@ func BindContext[A, B any](scope Scope, input Incr[A], fn func(context.Context, 
 		fn:    fn,
 	}
 	bindLeftChange := WithinScope(scope, &bindLeftChangeIncr[A, B]{
-		n:    NewNode("bind-lhs-change"),
-		bind: bind,
+		n:       NewNode("bind-lhs-change"),
+		bind:    bind,
+		parents: []INode{input},
 	})
 	bind.lhsChange = bindLeftChange
 	bindMain := WithinScope(scope, &bindMainIncr[A, B]{
-		n:    NewNode("bind"),
-		bind: bind,
+		n:       NewNode("bind"),
+		bind:    bind,
+		parents: []INode{bindLeftChange},
 	})
 	bind.main = bindMain
 	return bindMain
@@ -118,16 +120,14 @@ func (b *bind[A, B]) String() string {
 }
 
 type bindMainIncr[A, B any] struct {
-	n     *Node
-	bind  *bind[A, B]
-	value B
+	n       *Node
+	bind    *bind[A, B]
+	value   B
+	parents []INode
 }
 
 func (b *bindMainIncr[A, B]) Parents() (out []INode) {
-	if b.bind.rhs != nil {
-		return []INode{b.bind.lhsChange, b.bind.rhs}
-	}
-	return []INode{b.bind.lhsChange}
+	return b.parents
 }
 
 func (b *bindMainIncr[A, B]) IsStale() bool {
@@ -165,12 +165,13 @@ func (b *bindMainIncr[A, B]) String() string {
 }
 
 type bindLeftChangeIncr[A, B any] struct {
-	n    *Node
-	bind *bind[A, B]
+	n       *Node
+	bind    *bind[A, B]
+	parents []INode
 }
 
 func (b *bindLeftChangeIncr[A, B]) Parents() []INode {
-	return []INode{b.bind.lhs}
+	return b.parents
 }
 
 func (b *bindLeftChangeIncr[A, B]) Node() *Node { return b.n }
@@ -191,6 +192,13 @@ func (b *bindLeftChangeIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 	if err != nil {
 		return
 	}
+
+	if b.bind.rhs != nil {
+		b.bind.main.parents = []INode{b, b.bind.rhs}
+	} else {
+		b.bind.main.parents = []INode{b}
+	}
+
 	if err = b.n.graph.changeParent(b.bind.main, oldRhs, b.bind.rhs); err != nil {
 		return err
 	}

@@ -16,6 +16,7 @@ func Observe[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
 	g.addNodeOrObserver(o)
 	_ = g.addNewObserverToNode(o, input)
 	if input.Node().height >= o.Node().height {
+		_ = g.adjustHeightsHeap.setHeight(o, input.Node().height+1)
 		_ = g.adjustHeightsHeap.adjustHeights(g.recomputeHeap, o, input)
 	}
 	return o

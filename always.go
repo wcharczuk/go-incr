@@ -4,8 +4,9 @@ package incr
 // marked for recomputation.
 func Always[A any](scope Scope, input Incr[A]) Incr[A] {
 	return WithinScope(scope, &alwaysIncr[A]{
-		n:     NewNode("always"),
-		input: input,
+		n:       NewNode("always"),
+		input:   input,
+		parents: []INode{input},
 	})
 }
 
@@ -16,12 +17,17 @@ type AlwaysIncr[A any] interface {
 }
 
 type alwaysIncr[A any] struct {
-	n     *Node
-	input Incr[A]
+	n       *Node
+	input   Incr[A]
+	parents []INode
 }
 
 func (a *alwaysIncr[A]) Parents() []INode {
-	return []INode{a.input}
+	return a.parents
+}
+
+func (a *alwaysIncr[A]) Stale() bool {
+	return true
 }
 
 func (a *alwaysIncr[A]) Always() {}

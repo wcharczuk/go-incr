@@ -104,9 +104,11 @@ func newMockBareNodeWithHeight(height int) *mockBareNode {
 }
 
 func newMockBareNode(scope Scope) *mockBareNode {
-	return WithinScope(scope, &mockBareNode{
+	o := WithinScope(scope, &mockBareNode{
 		n: NewNode("bare_node"),
 	})
+	o.Node().height = 0
+	return o
 }
 
 type mockBareNode struct {
@@ -147,15 +149,18 @@ type heightIncr struct {
 	n *Node
 }
 
+func (hi *heightIncr) String() string { return hi.n.String() }
+
 func (hi *heightIncr) Parents() []INode { return nil }
 
 func (hi heightIncr) Node() *Node {
 	return hi.n
 }
 
-func allHeight(values []INode, height int) bool {
+func allHeightInRecomputeHeap(values []INode, height int) bool {
 	for _, v := range values {
-		if v.Node().height != height {
+		fmt.Printf("%d vs. %d\n", v.Node().heightInRecomputeHeap, height)
+		if v.Node().heightInRecomputeHeap != height {
 			return false
 		}
 	}

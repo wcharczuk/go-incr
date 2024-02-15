@@ -276,6 +276,10 @@ func (graph *Graph) becameUnnecessary(parent INode) {
 	graph.removeParents(parent)
 }
 
+func (graph *Graph) edgeIsStale(child, parent INode) bool {
+	return parent.Node().changedAt > child.Node().recomputedAt
+}
+
 func (graph *Graph) addChild(child, parent INode) error {
 	graph.addChildWithoutAdjustingHeights(child, parent)
 	if parent.Node().height >= child.Node().height {
@@ -284,7 +288,8 @@ func (graph *Graph) addChild(child, parent INode) error {
 		}
 	}
 	graph.propagateInvalidity()
-	if child.Node().isNecessary() && child.Node().isStale() {
+	if child.Node().heightInRecomputeHeap == heightUnset &&
+		(child.Node().recomputedAt == 0 || graph.edgeIsStale(child, parent)) {
 		graph.recomputeHeap.add(child)
 	}
 	return nil
@@ -355,9 +360,6 @@ func (graph *Graph) becameNecessaryRecursive(node INode) (err error) {
 				if err = graph.adjustHeightsHeap.setHeight(node, parent.Node().height+1); err != nil {
 					return
 				}
-			}
-			if err = graph.becameNecessaryRecursive(parent); err != nil {
-				return
 			}
 		}
 	}

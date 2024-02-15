@@ -341,6 +341,9 @@ func makeSimpleNestedBindGraph(graph *Graph, depth int, fakeFormula VarIncr[stri
 				return r
 			}
 			return Map(bs, f(bs, t-1), func(r *int) *int {
+				if r == nil {
+					return nil
+				}
 				out := *r
 				return &out
 			})
