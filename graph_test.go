@@ -94,7 +94,7 @@ func Test_Graph_removeNodeFromGraph(t *testing.T) {
 		func(_ context.Context) {},
 	}
 	g.recomputeHeap.add(mn00)
-	g.adjustHeightsHeap.add(mn00)
+	g.adjustHeightsHeap.addUnsafe(mn00)
 
 	g.removeNode(mn00)
 
