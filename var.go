@@ -63,7 +63,7 @@ func (vn *varIncr[T]) ShouldBeInvalidated() bool {
 
 func (vn *varIncr[T]) Set(v T) {
 	graph := graphFromScope(vn)
-	if graph != nil && atomic.LoadInt32(&graph.status) == StatusStabilizing {
+	if atomic.LoadInt32(&graph.status) == StatusStabilizing {
 		vn.setDuringStabilizationValue = v
 		vn.setDuringStabilization = true
 
@@ -72,9 +72,8 @@ func (vn *varIncr[T]) Set(v T) {
 		graph.setDuringStabilizationMu.Unlock()
 		return
 	}
-
 	vn.value = v
-	if graph != nil && vn.n.isNecessary() {
+	if vn.n.isNecessary() {
 		graph.SetStale(vn)
 	}
 }
