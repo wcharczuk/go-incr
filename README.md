@@ -29,13 +29,13 @@ A computation in `go-incr` can be thought of as being composed with a few "meta"
 
 "Mutator" types for `go-incr` are nodes like `Map` and `Bind`.
 
-The observer node is special in that there is only (1) type of observer, and it has a very specific role and cannot be passed as an input to other nodes. 
+The observer node is special in that there is only (1) type of observer, and it has a very specific role and cannot be passed as an input to other nodes.
 
 # Sample Usage
 
 Given an example formula (in this case, the "Compound Interest" formula):
 
-`a = p * (1 + r/n) * n * t`
+`a = p * ((1 + r/n) ^ (n * t))`
 
 We might represent this as the following `go-incr` nodes:
 
@@ -48,7 +48,7 @@ n := incr.Var(g, 12.0) // the number of times per year the interest compounds
 t := incr.Var(g, 30.0) // the number of years the interest is compounded for
 
 a := incr.Map4(g, p, r, n, t, func(pv, rv, nv, tv float64) float64 {
-  return pv * (1+(rv/nv)) * nv * tv
+  return pv * math.Pow((1+(rv/nv)), nv*tv)
 })
 ```
 
