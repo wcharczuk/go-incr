@@ -82,11 +82,9 @@ The effect of `Bind` is that "children" of a `Bind` node may have their heights 
 
 `Bind` nodes may also return `Bind` nodes themselves, creating fun and interesting implications for how an inner right-hand-side incremental needs to be propagated through multiple layers of binds, and reflect both its and the original bind children's true height through recomputations. To do this, we adopt the trick from the main ocaml library of creating two new pieces of state; a `bind-lhs-change` node that links the original bind input, and the right-hand-side (or output) incremental of the bind, making sure that the rhs respects the height of the transitive dependency of the bind's input. We also maintain a "scope", or a list of all the nodes that were created in respect to the rhs, and when the outer bind stabilizes, we also propagate changes to inner binds, regardless of where they are in the rhs graph. If this sounds complicated, it is!
 
-An example of one such case:
+# A word on `Scopes`
 
-![Bind Regression](https://github.com/wcharczuk/go-incr/blob/main/_assets/bind_regression.png)
-
-Because `Bind` nodes rely on scopes to operate correctly, the bind function you must provide takes a `Scope` argument. This scope argument should be passed to node constructors within the bind function. This lets us track which nodes were created in the bind scope, helping us maintain height invariants and link nodes correctly.
+Because `Bind` nodes rely on scopes to operate correctly, and specifically know which nodes it was responsible for creating, the function you must provide to the `Bind` node constructor is passed `Scope` argument. This scope argument should be passed to node constructors within the bind function.
 
 An example of a use case for bind might be:
 
@@ -99,7 +97,7 @@ t2 := incr.Bind(g, t2v, func(scope incr.Scope, t2vv string) Incr[string] {
 })
 ```
 
-Here `t1` is _not_ created within a bind scope, but the map that adds `" Ipsum"` to the value _is_ created within a bind scope. This is done transparently by passing the context through the `Map` constructor within the bind.
+Here `t1` is _not_ created within a bind scope (it's created in the top level scope by passing in the `Graph` reference), but the map that adds `" Ipsum"` to the value _is_ created within a bind scope. This is done transparently by passing the scope through the `Map` constructor within the bind.
 
 # Progress
 

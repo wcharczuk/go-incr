@@ -47,11 +47,12 @@ func Dot(wr io.Writer, g *Graph) (err error) {
 	nodeLabels := make(map[Identifier]string)
 	for index, n := range nodes {
 		nodeLabel := fmt.Sprintf("n%d", index+1)
-		label := fmt.Sprintf(`label="%v" shape="rect"`, n)
+		nodeInternalLabel := fmt.Sprintf("%s\nlabel:%s\nheight: %d\nvalue: %v\n", n.Node().id.Short(), n.Node().label, n.Node().height, ExpertNode(n).Value())
+		label := fmt.Sprintf(`label = "%s" shape = "box3d"`, escapeForDot(nodeInternalLabel))
 		color := ` fillcolor = "white" style="filled" fontcolor="black"`
-		if n.Node().setAt > 0 {
+		if n.Node().setAt >= (g.stabilizationNum - 1) {
 			color = ` fillcolor = "red" style="filled" fontcolor="white"`
-		} else if n.Node().changedAt > 0 {
+		} else if n.Node().changedAt >= (g.stabilizationNum - 1) {
 			color = ` fillcolor = "pink" style="filled" fontcolor="black"`
 		}
 		writef(1, "node [%s%s]; %s", label, color, nodeLabel)
@@ -74,4 +75,15 @@ func Dot(wr io.Writer, g *Graph) (err error) {
 	}
 	writef(0, "}")
 	return
+}
+
+// escapeForDot escapes double quotes and backslashes, and replaces Graphviz's
+// "center" character (\n) with a left-justified character.
+// See https://graphviz.org/docs/attr-types/escString/ for more info.
+func escapeForDot(str string) string {
+	return strings.ReplaceAll(
+		strings.ReplaceAll(
+			strings.ReplaceAll(str, `\`, `\\`),
+			`"`, `\"`),
+		`\l`, `\n`)
 }
