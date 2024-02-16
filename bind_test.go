@@ -1089,3 +1089,56 @@ func Test_Bind_rebindCachedScope(t *testing.T) {
 	testutil.NotNil(t, binnerar.Node().createdIn)
 	binnerar.Set("throaway")
 }
+
+func Test_Bind_observedInner(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	bva := Var(g, "a")
+	ba := Bind(g, bva, func(bindScope Scope, which string) Incr[string] {
+		if which == "a" {
+			return Return(bindScope, "bva-a-value")
+		}
+		return Return(bindScope, "bva-b-value")
+	})
+	oba := MustObserve(g, ba)
+
+	bvb := Var(g, "a")
+	bb := Bind(g, bvb, func(bindScope Scope, which string) Incr[string] {
+		if which == "a" {
+			return Return(bindScope, "bvb-a-value")
+		}
+		return Return(bindScope, "bvb-b-value")
+	})
+	obb := MustObserve(g, bb)
+
+	bvo := Var(g, "a")
+	bo := Bind(g, bvo, func(bindScope Scope, which string) Incr[string] {
+		if which == "a" {
+			return ba
+		}
+		return bb
+	})
+
+	obo := MustObserve(g, bo)
+
+	_ = g.Stabilize(ctx)
+
+	testutil.Equal(t, "bva-a-value", oba.Value())
+	testutil.Equal(t, "bvb-a-value", obb.Value())
+	testutil.Equal(t, "bva-a-value", obo.Value())
+
+	bvo.Set("b")
+
+	_ = g.Stabilize(ctx)
+	testutil.Equal(t, "bva-a-value", oba.Value())
+	testutil.Equal(t, "bvb-a-value", obb.Value())
+	testutil.Equal(t, "bvb-a-value", obo.Value())
+
+	bvb.Set("b")
+
+	_ = g.Stabilize(ctx)
+	testutil.Equal(t, "bva-a-value", oba.Value())
+	testutil.Equal(t, "bvb-b-value", obb.Value())
+	testutil.Equal(t, "bvb-b-value", obo.Value())
+}
