@@ -809,7 +809,7 @@ func makeRegressionGraph(ctx context.Context) (*Graph, ObserveIncr[*int]) {
 	return graph, MustObserve(graph, o)
 }
 
-func Test_Bind_regression2(t *testing.T) {
+func Test_Bind_regression_neseted(t *testing.T) {
 	graph := New()
 	fakeFormula := Var(graph, "fakeFormula")
 	cache := make(map[string]Incr[*int])
@@ -860,17 +860,15 @@ func Test_Bind_regression2(t *testing.T) {
 		return r
 	}
 
-	t.Run("b(t) = f(t) * f(t+2) where f(t) = f(t-1) + 1", func(t *testing.T) {
-		o := b(graph, 5)
+	o := b(graph, 5)
 
-		_ = MustObserve(graph, o)
-		ctx := testContext()
-		err := graph.Stabilize(ctx)
+	_ = MustObserve(graph, o)
+	ctx := testContext()
+	err := graph.Stabilize(ctx)
 
-		testutil.Nil(t, err)
-		testutil.NotNil(t, o.Value())
-		testutil.Equal(t, 35, *o.Value())
-	})
+	testutil.Nil(t, err)
+	testutil.NotNil(t, o.Value())
+	testutil.Equal(t, 35, *o.Value())
 }
 
 func Test_Bind_unbindRegression(t *testing.T) {
