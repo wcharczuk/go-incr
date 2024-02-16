@@ -1142,3 +1142,62 @@ func Test_Bind_observedInner(t *testing.T) {
 	testutil.Equal(t, "bvb-b-value", obb.Value())
 	testutil.Equal(t, "bvb-b-value", obo.Value())
 }
+
+func Test_Bind_observedInner_cached(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	baa := Var(g, "ba-a-value")
+	bab := Var(g, "ba-b-value")
+
+	bva := Var(g, "a")
+	ba := Bind(g, bva, func(bindScope Scope, which string) Incr[string] {
+		if which == "a" {
+			return baa
+		}
+		return bab
+	})
+	oba := MustObserve(g, ba)
+
+	bba := Var(g, "bb-a-value")
+	bbb := Var(g, "bb-b-value")
+
+	bvb := Var(g, "a")
+	bb := Bind(g, bvb, func(bindScope Scope, which string) Incr[string] {
+		if which == "a" {
+			return bba
+		}
+		return bbb
+	})
+	obb := MustObserve(g, bb)
+
+	bvo := Var(g, "a")
+	bo := Bind(g, bvo, func(bindScope Scope, which string) Incr[string] {
+		if which == "a" {
+			return ba
+		}
+		return bb
+	})
+
+	obo := MustObserve(g, bo)
+
+	_ = g.Stabilize(ctx)
+
+	testutil.Equal(t, "ba-a-value", oba.Value())
+	testutil.Equal(t, "bb-a-value", obb.Value())
+	testutil.Equal(t, "ba-a-value", obo.Value())
+
+	bvo.Set("b")
+
+	_ = g.Stabilize(ctx)
+	testutil.Equal(t, "ba-a-value", oba.Value())
+	testutil.Equal(t, "bb-a-value", obb.Value())
+	testutil.Equal(t, "bb-a-value", obo.Value())
+
+	bvb.Set("b")
+
+	_ = g.Stabilize(ctx)
+	testutil.Equal(t, "ba-a-value", oba.Value())
+	testutil.Equal(t, "bb-b-value", obb.Value())
+	testutil.Equal(t, "bb-b-value", obo.Value())
+}
