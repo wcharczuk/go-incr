@@ -53,7 +53,6 @@ type IObserver interface {
 
 var (
 	_ Incr[any]    = (*observeIncr[any])(nil)
-	_ IStabilize   = (*observeIncr[any])(nil)
 	_ INode        = (*observeIncr[any])(nil)
 	_ fmt.Stringer = (*observeIncr[any])(nil)
 )
@@ -70,11 +69,6 @@ func (o *observeIncr[A]) Parents() []INode {
 }
 
 func (o *observeIncr[A]) Node() *Node { return o.n }
-
-func (o *observeIncr[A]) Stabilize(_ context.Context) error {
-	o.value = o.input.Value()
-	return nil
-}
 
 // Unobserve effectively removes a given node from the observed ref count for a graph.
 //
@@ -93,7 +87,10 @@ func (o *observeIncr[A]) Unobserve(ctx context.Context) {
 }
 
 func (o *observeIncr[A]) Value() (output A) {
-	return o.value
+	if o.input == nil {
+		return
+	}
+	return o.input.Value()
 }
 
 func (o *observeIncr[A]) String() string {

@@ -480,9 +480,11 @@ func (graph *Graph) addChildObserver(o IObserver, input INode) error {
 			return err
 		}
 	}
-	// if err := graph.adjustHeightsHeap.adjustHeights(graph.recomputeHeap, o, input); err != nil {
-	// 	return err
-	// }
+
+	graph.handleAfterStabilizationMu.Lock()
+	graph.handleAfterStabilization[o.Node().id] = o.Node().onUpdateHandlers
+	graph.handleAfterStabilizationMu.Unlock()
+
 	graph.propagateInvalidity()
 	return nil
 }
@@ -592,7 +594,7 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 
 	nn.changedAt = graph.stabilizationNum
 	if len(nn.onUpdateHandlers) > 0 {
-		graph.handleAfterStabilization[nn.id] = append(graph.handleAfterStabilization[nn.id], nn.onUpdateHandlers...)
+		graph.handleAfterStabilization[nn.id] = nn.onUpdateHandlers
 	}
 
 	for _, c := range nn.children {
@@ -604,10 +606,8 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	// recompute observers immediately because logically they're
 	// children of this node but will not have any children themselves.
 	for _, o := range nn.observers {
-		if o.Node().isNecessary() && o.Node().isStale() {
-			if err = graph.recompute(ctx, o); err != nil {
-				return err
-			}
+		if len(o.Node().onUpdateHandlers) > 0 {
+			graph.handleAfterStabilization[nn.id] = o.Node().onUpdateHandlers
 		}
 	}
 	return

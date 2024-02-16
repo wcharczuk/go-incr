@@ -205,8 +205,8 @@ func Test_Stabilize_chain(t *testing.T) {
 	Equal(t, strings.Repeat(".", 101), o.Value())
 
 	Equal(t, 102, g.numNodes, "should include the observer!")
-	Equal(t, 101, g.numNodesChanged)
-	Equal(t, 101, g.numNodesRecomputed)
+	Equal(t, 100, g.numNodesChanged, "should _not_ include the observer!")
+	Equal(t, 100, g.numNodesRecomputed, "should _not_ include the observer!")
 }
 
 func Test_Stabilize_setDuringStabilization(t *testing.T) {
