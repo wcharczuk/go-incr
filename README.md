@@ -11,11 +11,11 @@ It is useful in situations where you want to efficiently compute the outputs of 
 
 Think Excel spreadsheets and formulas, but in code.
 
-# Inspiration & Value
+# Inspiration & differences from the original
 
 The inspiration for `go-incr` is Jane Street's [incremental](https://github.com/janestreet/incremental) library.
 
-The value of this library above the Jane Street implementation is _parallelism_. You can parallel parts of your graph at once!
+The key difference from this library versus the Jane Street implementation is _parallelism_. You can stabilize multiple nodes at once using `ParallelStabilize`. This is especially useful if you have nodes that make network calls or do other non-cpu bound work. 
 
 # Basics
 
