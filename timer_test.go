@@ -14,9 +14,15 @@ func Test_Timer(t *testing.T) {
 	g := New()
 
 	timer := Timer(g, Return(g, 0), 500*time.Millisecond)
+	timer.Node().SetLabel("timer-a")
 	timer.(*timerIncr[int]).clockSource = func(_ context.Context) time.Time {
 		return clock
 	}
+
+	testutil.Matches(t, `timer\[(.*)\]:timer-a@-1`, timer.(*timerIncr[int]).String())
+
+	// nop
+	timer.(*timerIncr[int]).Always()
 
 	var counterTimed int
 	timed := Map(g, timer, func(base int) int {

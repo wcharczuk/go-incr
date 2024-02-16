@@ -46,3 +46,10 @@ func Test_Var_Set_duringStabilization(t *testing.T) {
 	testutil.Equal(t, "", v.(*varIncr[string]).setDuringStabilizationValue)
 	testutil.Equal(t, "not-foo", v.(*varIncr[string]).value)
 }
+
+func Test_Var_ShouldBeInvalidated(t *testing.T) {
+	g := New()
+	v := Var(g, "foo")
+
+	testutil.Equal(t, false, v.ShouldBeInvalidated())
+}
