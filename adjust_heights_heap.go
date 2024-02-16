@@ -90,7 +90,7 @@ func (ah *adjustHeightsHeap) removeMinUnsafe() (node INode, ok bool) {
 	if ah.numNodes == 0 {
 		return
 	}
-	for x := ah.heightLowerBound; x <= ah.maxHeightSeen; x++ {
+	for x := 0; x <= ah.maxHeightSeen; x++ {
 		if ah.nodesByHeight[x] != nil && ah.nodesByHeight[x].len() > 0 {
 			_, node, ok = ah.nodesByHeight[x].pop()
 			ah.heightLowerBound = x
