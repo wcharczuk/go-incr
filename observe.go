@@ -83,7 +83,7 @@ func (o *observeIncr[A]) Stabilize(_ context.Context) error {
 //
 // To observe parts of a graph again, use the `MustObserve(...)` helper.
 func (o *observeIncr[A]) Unobserve(ctx context.Context) {
-	g := graphFromScope(o)
+	g := graphFromCreatedIn(o)
 	g.removeObserver(o)
 	o.input.Node().removeObserver(o.n.id)
 	g.checkIfUnnecessary(o.input)

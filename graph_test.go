@@ -111,3 +111,38 @@ func Test_Graph_removeNodeFromGraph(t *testing.T) {
 	testutil.Equal(t, heightUnset, mn00.n.heightInRecomputeHeap)
 	testutil.Equal(t, heightUnset, mn00.n.heightInAdjustHeightsHeap)
 }
+
+func Test_Graph_zeroNode(t *testing.T) {
+	g := New()
+
+	r := Return(g, "hello")
+	_ = MustObserve(g, r)
+
+	testutil.Equal(t, 0, r.Node().height)
+	testutil.Equal(t, 0, r.Node().heightInRecomputeHeap)
+	testutil.Equal(t, heightUnset, r.Node().heightInAdjustHeightsHeap)
+	testutil.Equal(t, true, r.Node().valid)
+	testutil.NotNil(t, r.Node().createdIn)
+	testutil.NotEmpty(t, r.Node().observers)
+
+	testutil.Equal(t, 2, g.numNodes)
+
+	r.Node().setAt = 3
+	r.Node().changedAt = 4
+	r.Node().recomputedAt = 5
+
+	g.zeroNode(r)
+
+	testutil.Equal(t, heightUnset, r.Node().height)
+	testutil.Equal(t, heightUnset, r.Node().heightInRecomputeHeap)
+	testutil.Equal(t, heightUnset, r.Node().heightInAdjustHeightsHeap)
+	testutil.Equal(t, true, r.Node().valid)
+	testutil.NotNil(t, r.Node().createdIn)
+	testutil.Equal(t, 0, r.Node().setAt)
+	testutil.Equal(t, 0, r.Node().changedAt)
+	testutil.Equal(t, 0, r.Node().recomputedAt)
+	testutil.Empty(t, r.Node().observers)
+
+	testutil.Equal(t, 1, g.numNodes)
+
+}

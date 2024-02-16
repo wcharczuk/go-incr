@@ -253,7 +253,9 @@ func (graph *Graph) invalidateNode(node INode) {
 	for _, child := range node.Node().children {
 		graph.propagateInvalidityQueue.push(child)
 	}
-	graph.recomputeHeap.remove(node)
+	if node.Node().heightInRecomputeHeap != heightUnset {
+		graph.recomputeHeap.remove(node)
+	}
 }
 
 func (graph *Graph) removeParents(child INode) {
@@ -341,10 +343,14 @@ func (graph *Graph) propagateInvalidity() {
 	}
 }
 
-func (graph *Graph) addChildWithoutAdjustingHeights(child, parent INode) error {
-	wasNecessary := parent.Node().isNecessary()
+func (graph *Graph) link(child, parent INode) {
 	parent.Node().addChildren(child)
 	child.Node().addParents(parent)
+}
+
+func (graph *Graph) addChildWithoutAdjustingHeights(child, parent INode) error {
+	wasNecessary := parent.Node().isNecessary()
+	graph.link(child, parent)
 	if !parent.Node().valid {
 		graph.propagateInvalidityQueue.push(child)
 	}
@@ -458,9 +464,15 @@ func (graph *Graph) zeroNode(n INode) {
 	nn.changedAt = 0
 	nn.recomputedAt = 0
 
+	// mirror how we initialized the node
+	nn.valid = true
+
+	nn.parents = nil
+	nn.children = nil
+	nn.observers = nil
+
 	// TODO (wc): why can't i zero these out?
 	// nn.createdIn = nil
-	// nn.graph = nil
 	nn.height = heightUnset
 	nn.heightInRecomputeHeap = heightUnset
 	nn.heightInAdjustHeightsHeap = heightUnset

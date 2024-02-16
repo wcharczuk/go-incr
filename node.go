@@ -93,11 +93,6 @@ type Node struct {
 	numChanges uint64
 	// createdIn is the "scope" the node was created in
 	createdIn Scope
-	// numComputePseudoHeights is the number of times we call "computePseudoheight"
-	// on this particular node
-	numComputePseudoHeights uint64
-	// numRecomputeHeights is incremented everytime we recompute a given node's height
-	numRecomputeHeights uint64
 }
 
 //

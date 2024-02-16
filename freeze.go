@@ -42,7 +42,7 @@ func (f *freezeIncr[A]) Stabilize(_ context.Context) error {
 	if f.freezeAt > 0 {
 		return nil
 	}
-	f.freezeAt = graphFromScope(f).stabilizationNum
+	f.freezeAt = graphFromCreatedIn(f).stabilizationNum
 	f.v = f.i.Value()
 	return nil
 }

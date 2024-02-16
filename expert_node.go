@@ -56,7 +56,7 @@ type expertNode struct {
 	node *Node
 }
 
-func (en *expertNode) Graph() *Graph { return graphFromScope(en.incr) }
+func (en *expertNode) Graph() *Graph { return graphFromCreatedIn(en.incr) }
 
 func (en *expertNode) SetID(id Identifier) {
 	en.node.id = id

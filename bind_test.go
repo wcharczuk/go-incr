@@ -1028,8 +1028,8 @@ func Test_Bind_nestedScopeHasGraph(t *testing.T) {
 	_ = g.Stabilize(ctx)
 	testutil.Equal(t, "aa", ob.Value())
 
-	testutil.NotNil(t, graphFromScope(ibv00))
-	testutil.NotNil(t, graphFromScope(ibv01))
+	testutil.NotNil(t, graphFromCreatedIn(ibv00))
+	testutil.NotNil(t, graphFromCreatedIn(ibv01))
 
 	testutil.Equal(t, false, ibv00.Node().createdIn.isTopScope())
 	testutil.Equal(t, false, ibv01.Node().createdIn.isTopScope())
@@ -1037,4 +1037,57 @@ func Test_Bind_nestedScopeHasGraph(t *testing.T) {
 	ibv00CreatedInID := ibv00.Node().createdIn.(*bind[string, string]).main.n.id
 	ibv01CreatedInID := ibv01.Node().createdIn.(*bind[string, string]).main.n.id
 	testutil.NotEqual(t, ibv00CreatedInID, ibv01CreatedInID)
+}
+
+func Test_Bind_rebindCachedScope(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	var binnerar, binnerbr VarIncr[string]
+	var binnera, binnerb Incr[string]
+	bouterv := Var(g, "a")
+	bouter := Bind(g, bouterv, func(bindScope Scope, which string) Incr[string] {
+		if which == "a" {
+			if binnera != nil {
+				return binnera
+			}
+			binnera = Bind(bindScope, Return(g, ""), func(bindScope Scope, _ string) Incr[string] {
+				if binnerar != nil {
+					return binnerar
+				}
+				binnerar = Var(bindScope, "b-inner-a-r")
+				return binnerar
+			})
+			return binnera
+		}
+		if binnerb != nil {
+			return binnerb
+		}
+		binnerb = Bind(bindScope, Return(g, ""), func(bindScope Scope, _ string) Incr[string] {
+			if binnerbr != nil {
+				return binnerbr
+			}
+			binnerbr = Var(bindScope, "b-inner-b-r")
+			return binnerbr
+		})
+		return binnerb
+	})
+
+	ob := MustObserve(g, bouter)
+	_ = g.Stabilize(ctx)
+	testutil.Equal(t, "b-inner-a-r", ob.Value())
+
+	_ = g.Stabilize(ctx)
+	testutil.Equal(t, "b-inner-a-r", ob.Value())
+
+	bouterv.Set("b")
+
+	_ = g.Stabilize(ctx)
+	testutil.Equal(t, "b-inner-b-r", ob.Value())
+
+	_ = g.Stabilize(ctx)
+	testutil.Equal(t, "b-inner-b-r", ob.Value())
+
+	testutil.NotNil(t, binnerar.Node().createdIn)
+	binnerar.Set("throaway")
 }

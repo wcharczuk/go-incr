@@ -85,3 +85,42 @@ func Test_Observe_unobserve_multi(t *testing.T) {
 	testutil.Equal(t, -1, o0.Node().height)
 	testutil.Equal(t, -1, o1.Node().height)
 }
+
+func Test_Observe_unobserve_var(t *testing.T) {
+	g := New()
+	v := Var(g, "foo")
+	m0 := Map(g, v, ident)
+	o, err := Observe(g, m0)
+	testutil.NoError(t, err)
+
+	testutil.Equal(t, 0, v.Node().height)
+	testutil.Equal(t, 1, m0.Node().height)
+	testutil.Equal(t, -1, o.Node().height)
+
+	ctx := testContext()
+	err = g.Stabilize(ctx)
+	testutil.NoError(t, err)
+
+	testutil.Equal(t, "foo", o.Value())
+
+	o.Unobserve(ctx)
+
+	err = g.Stabilize(ctx)
+	testutil.NoError(t, err)
+	testutil.Equal(t, "", o.Value())
+
+	testutil.NotNil(t, v.Node().createdIn)
+	testutil.Equal(t, -1, v.Node().height)
+	testutil.Equal(t, -1, m0.Node().height)
+	testutil.Equal(t, -1, o.Node().height)
+
+	o2, err := Observe(g, m0)
+	testutil.NoError(t, err)
+
+	testutil.Equal(t, 0, v.Node().height)
+	testutil.Equal(t, 1, m0.Node().height)
+	testutil.Equal(t, -1, o.Node().height)
+	err = g.Stabilize(ctx)
+	testutil.NoError(t, err)
+	testutil.Equal(t, "foo", o2.Value())
+}

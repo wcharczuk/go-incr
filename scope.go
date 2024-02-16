@@ -36,7 +36,7 @@ type Scope interface {
 	fmt.Stringer
 }
 
-func graphFromScope(node INode) *Graph {
+func graphFromCreatedIn(node INode) *Graph {
 	if node == nil {
 		return nil
 	}
