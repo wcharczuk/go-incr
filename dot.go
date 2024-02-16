@@ -47,7 +47,7 @@ func Dot(wr io.Writer, g *Graph) (err error) {
 	nodeLabels := make(map[Identifier]string)
 	for index, n := range nodes {
 		nodeLabel := fmt.Sprintf("n%d", index+1)
-		nodeInternalLabel := fmt.Sprintf("%s\nlabel:%s\nheight: %d\nvalue: %v\n", n.Node().id.Short(), n.Node().label, n.Node().height, ExpertNode(n).Value())
+		nodeInternalLabel := fmt.Sprintf("%s:%s\nlabel:%s\nheight: %d\nvalue: %v\n", n.Node().kind, n.Node().id.Short(), n.Node().label, n.Node().height, ExpertNode(n).Value())
 		label := fmt.Sprintf(`label = "%s" shape = "box3d"`, escapeForDot(nodeInternalLabel))
 		color := ` fillcolor = "white" style="filled" fontcolor="black"`
 		if n.Node().setAt >= (g.stabilizationNum - 1) {
