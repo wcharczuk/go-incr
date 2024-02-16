@@ -67,9 +67,12 @@ func Test_Var_Set_duringStabilization_realistic(t *testing.T) {
 	}()
 	<-invoked
 	v.Set("during-stab")
+	testutil.Equal(t, true, v.(*varIncr[string]).setDuringStabilization)
+	testutil.Equal(t, "during-stab", v.(*varIncr[string]).setDuringStabilizationValue)
 	close(proceed)
 	<-stabilizationDone
 	testutil.Equal(t, "foo-done!", o.Value())
+	testutil.Equal(t, "during-stab", v.Value())
 
 	proceed = make(chan struct{})
 	invoked = make(chan struct{})
