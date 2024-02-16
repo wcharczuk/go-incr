@@ -363,7 +363,7 @@ func (graph *Graph) addChildWithoutAdjustingHeights(child, parent INode) error {
 }
 
 func (graph *Graph) becameNecessaryRecursive(node INode) (err error) {
-	graph.addNodeOrObserver(node)
+	graph.addNode(node)
 	if err = graph.adjustHeightsHeap.setHeight(node, node.Node().createdIn.scopeHeight()+1); err != nil {
 		return
 	}
@@ -391,15 +391,6 @@ func (graph *Graph) becameNecessary(node INode) error {
 	}
 	graph.propagateInvalidity()
 	return nil
-}
-
-func (graph *Graph) addNodeOrObserver(gn INode) {
-	typedObserver, isObserver := gn.(IObserver)
-	if isObserver {
-		graph.addObserver(typedObserver)
-		return
-	}
-	graph.addNode(gn)
 }
 
 func (graph *Graph) addNode(n INode) {

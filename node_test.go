@@ -230,6 +230,51 @@ func Test_Node_removeParent(t *testing.T) {
 	testutil.Equal(t, true, hasKey(n.n.parents, c2.n.id))
 }
 
+func Test_Node_addObserver(t *testing.T) {
+	g := New()
+
+	n := newMockBareNode(g)
+	o0 := mockObserver(g)
+	o1 := mockObserver(g)
+
+	testutil.Equal(t, 0, len(n.n.observers))
+
+	n.Node().addObservers(o0, o1)
+
+	testutil.Equal(t, 2, len(n.n.observers))
+	testutil.Equal(t, 2, len(n.n.Observers()))
+
+	testutil.Equal(t, true, hasKey(n.n.observers, o0.Node().id))
+	testutil.Equal(t, true, hasKey(n.n.observers, o1.Node().id))
+
+	testutil.Equal(t, true, hasKey(n.n.Observers(), o0.Node().id))
+	testutil.Equal(t, true, hasKey(n.n.Observers(), o1.Node().id))
+}
+
+func Test_Node_removeObservers(t *testing.T) {
+	g := New()
+
+	n := newMockBareNode(g)
+	o0 := mockObserver(g)
+	o1 := mockObserver(g)
+
+	testutil.Equal(t, 0, len(n.n.observers))
+
+	n.Node().addObservers(o0, o1)
+
+	testutil.Equal(t, 2, len(n.n.observers))
+	testutil.Equal(t, 2, len(n.n.Observers()))
+
+	n.Node().removeObserver(o1.Node().id)
+
+	testutil.Equal(t, 1, len(n.n.observers))
+	testutil.Equal(t, 1, len(n.n.Observers()))
+
+	testutil.Equal(t, true, hasKey(n.n.observers, o0.Node().id))
+	testutil.Equal(t, false, hasKey(n.n.observers, o1.Node().id))
+
+}
+
 func Test_Node_maybeStabilize(t *testing.T) {
 	ctx := testContext()
 	n := NewNode("test_node")
@@ -316,8 +361,47 @@ func Test_Node_isStale(t *testing.T) {
 	n := NewNode("test_node")
 	testutil.Equal(t, true, n.isStale())
 
+	n.valid = false
+	testutil.Equal(t, false, n.isStale())
+
+	n.valid = true
+	n.staleFn = func() bool { return true }
+	testutil.Equal(t, true, n.isStale())
+
+	n.valid = true
+	n.staleFn = nil
 	n.recomputedAt = 1
 	testutil.Equal(t, false, n.isStale())
+}
+
+func Test_Node_isNecessary(t *testing.T) {
+	g := New()
+	n := NewNode("test_node")
+	testutil.Equal(t, false, n.isNecessary())
+
+	n.observer = true
+	testutil.Equal(t, true, n.isNecessary())
+
+	n.observer = false
+	n.forceNecessary = true
+	testutil.Equal(t, true, n.isNecessary())
+
+	n.observer = false
+	n.forceNecessary = false
+	n.children = []INode{newMockBareNode(g)}
+	testutil.Equal(t, true, n.isNecessary())
+
+	n.observer = false
+	n.forceNecessary = false
+	n.children = nil
+	n.observers = []IObserver{mockObserver(g)}
+	testutil.Equal(t, true, n.isNecessary())
+
+	n.observer = false
+	n.forceNecessary = false
+	n.children = nil
+	n.observers = nil
+	testutil.Equal(t, false, n.isNecessary())
 }
 
 func Test_Node_stabilize_error(t *testing.T) {
@@ -539,4 +623,51 @@ func Test_Node_onUpdate_regression(t *testing.T) {
 
 	testutil.Equal(t, 15, areaObs.Value())
 	testutil.Equal(t, 60, scaledVolumeObs.Value())
+}
+
+func Test_Node_shouldBeInvalidated(t *testing.T) {
+	n := NewNode("bogus")
+	n.valid = false
+	testutil.Equal(t, false, n.shouldBeInvalidated())
+}
+
+func Test_Node_shouldBeInvalidated_fn(t *testing.T) {
+	n := NewNode("bogus")
+	n.valid = true
+	n.shouldBeInvalidatedFn = func() bool {
+		return true
+	}
+	testutil.Equal(t, true, n.shouldBeInvalidated())
+	n.shouldBeInvalidatedFn = func() bool {
+		return false
+	}
+	testutil.Equal(t, false, n.shouldBeInvalidated())
+}
+
+func Test_Node_shouldBeInvalidated_parent(t *testing.T) {
+	g := New()
+	n := NewNode("bogus")
+	n.valid = true
+	n.shouldBeInvalidatedFn = nil
+	okParent := newMockBareNode(g)
+	okParent.Node().valid = true
+	notOkParent := newMockBareNode(g)
+	notOkParent.Node().valid = false
+	n.parents = []INode{
+		okParent, notOkParent,
+	}
+	testutil.Equal(t, true, n.shouldBeInvalidated())
+}
+
+func Test_Node_shouldBeInvalidated_fallThrough(t *testing.T) {
+	g := New()
+	n := NewNode("bogus")
+	n.valid = true
+	n.shouldBeInvalidatedFn = nil
+	okParent := newMockBareNode(g)
+	okParent.Node().valid = true
+	n.parents = []INode{
+		okParent,
+	}
+	testutil.Equal(t, false, n.shouldBeInvalidated())
 }

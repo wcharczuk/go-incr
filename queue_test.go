@@ -262,7 +262,7 @@ func Test_queue_clear(t *testing.T) {
 	testutil.Equal(t, 0, okValue(buffer.peekBack()))
 }
 
-func Test_queue_Trim(t *testing.T) {
+func Test_queue_trim(t *testing.T) {
 	buffer := new(queue[int])
 
 	for x := 0; x < 7; x++ {
@@ -282,4 +282,28 @@ func Test_queue_Trim(t *testing.T) {
 	testutil.Equal(t, 0, value)
 
 	testutil.Equal(t, 3, buffer.len())
+}
+
+func Test_queue_values(t *testing.T) {
+	q := new(queue[int])
+
+	testutil.Equal(t, 0, len(q.values()))
+
+	q.push(1)
+	q.push(2)
+	q.push(3)
+
+	values := q.values()
+	testutil.Equal(t, []int{1, 2, 3}, values)
+
+	_, _ = q.pop()
+	_, _ = q.pop()
+	_, _ = q.pop()
+
+	q.push(1)
+	q.push(2)
+	q.push(3)
+
+	values = q.values()
+	testutil.Equal(t, []int{1, 2, 3}, values)
 }

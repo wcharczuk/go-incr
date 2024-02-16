@@ -206,15 +206,15 @@ func (b *bindLeftChangeIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 		// there is a graph configuration option in js that allows
 		// for (2) different behaviors here. the commented out below
 		// is if the option is enabled.
-		// for _, n := range oldRightNodes {
-		// 	graphFromScope(b).invalidateNode(n)
-		// }
+		for _, n := range oldRightNodes {
+			graphFromCreatedIn(b).invalidateNode(n)
+		}
 		// else {
 		// // rescope_nodes_created_on_rhs
-		for _, n := range oldRightNodes {
-			n.Node().createdIn = b.bind
-			b.bind.addScopeNode(n)
-		}
+		// for _, n := range oldRightNodes {
+		// 	n.Node().createdIn = b.bind
+		// 	b.bind.addScopeNode(n)
+		// }
 	}
 	graphFromCreatedIn(b).propagateInvalidity()
 	return nil

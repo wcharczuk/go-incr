@@ -1,6 +1,7 @@
 package incr
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -22,6 +23,41 @@ func Test_Observe(t *testing.T) {
 	testutil.NoError(t, err)
 
 	testutil.Equal(t, "foo", o.Value())
+
+	testutil.Matches(t, `observer\[(.*)\]`, fmt.Sprint(o))
+	o.Node().SetLabel("foo")
+	testutil.Matches(t, `observer\[(.*)\]:foo`, fmt.Sprint(o))
+}
+
+func Test_Observe_error(t *testing.T) {
+	g := New(OptGraphMaxHeight(4))
+	v := Var(g, "foo")
+	m0 := Map(g, v, ident)
+	m1 := Map(g, m0, ident)
+	m2 := Map(g, m1, ident)
+	m3 := Map(g, m2, ident)
+	o, err := Observe(g, m3)
+	testutil.Nil(t, o)
+	testutil.Error(t, err)
+}
+
+func Test_MustObserve_panic(t *testing.T) {
+	g := New(OptGraphMaxHeight(4))
+	v := Var(g, "foo")
+	m0 := Map(g, v, ident)
+	m1 := Map(g, m0, ident)
+	m2 := Map(g, m1, ident)
+	m3 := Map(g, m2, ident)
+
+	var recovered any
+	func() {
+		defer func() {
+			recovered = recover()
+		}()
+		_ = MustObserve(g, m3)
+
+	}()
+	testutil.NotNil(t, recovered)
 }
 
 func Test_Observe_unobserve(t *testing.T) {

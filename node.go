@@ -282,6 +282,7 @@ func (n *Node) shouldBeInvalidated() bool {
 	if n.shouldBeInvalidatedFn != nil {
 		return n.shouldBeInvalidatedFn()
 	}
+	// s/has_invalid_child/has_invalid_parent/g
 	for _, p := range n.parents {
 		if !p.Node().valid {
 			return true
@@ -295,18 +296,6 @@ func (n *Node) isStaleInRespectToParent() (stale bool) {
 		for _, p := range parents() {
 			if p.Node().changedAt > n.recomputedAt {
 				stale = true
-				return
-			}
-		}
-	}
-	return
-}
-
-func (n *Node) hasInvalidParent() (hasInvalid bool) {
-	if parents := n.parentsFn; parents != nil {
-		for _, p := range parents() {
-			if !p.Node().valid {
-				hasInvalid = true
 				return
 			}
 		}

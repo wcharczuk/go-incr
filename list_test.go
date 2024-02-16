@@ -468,3 +468,34 @@ func Test_list_PopAll(t *testing.T) {
 	testutil.Nil(t, rhl.head)
 	testutil.Nil(t, rhl.tail)
 }
+
+func Test_list_each(t *testing.T) {
+	g := New()
+	n0 := newHeightIncr(g, 0)
+	n1 := newHeightIncr(g, 0)
+	n2 := newHeightIncr(g, 0)
+
+	rhl := new(list[Identifier, INode])
+	rhl.push(idWithNode(n0))
+	rhl.push(idWithNode(n1))
+	rhl.push(idWithNode(n2))
+
+	var seen []INode
+	var seenIDs []Identifier
+
+	rhl.each(func(k Identifier, v INode) {
+		seenIDs = append(seenIDs, k)
+		seen = append(seen, v)
+	})
+
+	testutil.Equal(t, 3, len(seen))
+	testutil.Equal(t, 3, len(seenIDs))
+
+	testutil.Equal(t, n0.Node().id, seen[0].Node().id)
+	testutil.Equal(t, n1.Node().id, seen[1].Node().id)
+	testutil.Equal(t, n2.Node().id, seen[2].Node().id)
+
+	testutil.Equal(t, n0.Node().id, seenIDs[0])
+	testutil.Equal(t, n1.Node().id, seenIDs[1])
+	testutil.Equal(t, n2.Node().id, seenIDs[2])
+}
