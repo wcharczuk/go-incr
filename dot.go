@@ -47,7 +47,19 @@ func Dot(wr io.Writer, g *Graph) (err error) {
 	nodeLabels := make(map[Identifier]string)
 	for index, n := range nodes {
 		nodeLabel := fmt.Sprintf("n%d", index+1)
-		nodeInternalLabel := fmt.Sprintf("%s:%s\nlabel:%s\nheight: %d\nvalue: %v\n", n.Node().kind, n.Node().id.Short(), n.Node().label, n.Node().height, ExpertNode(n).Value())
+
+		var nodeInternalLabelParts []string
+		nodeInternalLabelParts = append(nodeInternalLabelParts, fmt.Sprintf("%s:%s", n.Node().kind, n.Node().id.Short()))
+		if n.Node().label != "" {
+			nodeInternalLabelParts = append(nodeInternalLabelParts, fmt.Sprintf("label: %s", n.Node().label))
+		}
+		if n.Node().height != heightUnset {
+			nodeInternalLabelParts = append(nodeInternalLabelParts, fmt.Sprintf("height: %d", n.Node().height))
+		}
+		if value := ExpertNode(n).Value(); value != nil {
+			nodeInternalLabelParts = append(nodeInternalLabelParts, fmt.Sprintf("value: %v", value))
+		}
+		nodeInternalLabel := strings.Join(nodeInternalLabelParts, "\n")
 		label := fmt.Sprintf(`label = "%s" shape = "box3d"`, escapeForDot(nodeInternalLabel))
 		color := ` fillcolor = "white" style="filled" fontcolor="black"`
 		if n.Node().setAt >= (g.stabilizationNum - 1) {
