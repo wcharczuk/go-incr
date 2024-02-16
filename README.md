@@ -3,7 +3,7 @@ go-incr
 
 [![Continuous Integration](https://github.com/wcharczuk/go-incr/actions/workflows/ci.yml/badge.svg)](https://github.com/wcharczuk/go-incr/actions/workflows/ci.yml)
 
-![Graph](https://github.com/wcharczuk/go-incr/blob/main/_assets/basic_graph.png)
+![Graph](https://github.com/wcharczuk/go-incr/blob/main/_assets/basic.png)
 
 `go-incr` is an incremental computation library designed for partial computation of large graphs of operations.
 
