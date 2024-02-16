@@ -8,8 +8,8 @@ import "fmt"
 // It is a low-level utility function that should be used
 // in special cases; the vast majority of direct use cases
 // for the incremental library cannot create graph cycles.
-func DetectCycleIfLinked(child, parent INode) error {
-	getParents := func(n INode) []INode {
+func DetectCycleIfLinked(child, parent IIncr) error {
+	getParents := func(n IIncr) []INode {
 		if n.Node().ID() == child.Node().ID() {
 			return append(n.Parents(), parent)
 		}
@@ -21,12 +21,12 @@ func DetectCycleIfLinked(child, parent INode) error {
 	return nil
 }
 
-func detectCycleFast(childID Identifier, startAt INode, getParents func(INode) []INode) bool {
+func detectCycleFast(childID Identifier, startAt IIncr, getParents func(IIncr) []INode) bool {
 	if startAt.Node().ID() == childID {
 		return true
 	}
 	for _, p := range getParents(startAt) {
-		if detectCycleFast(childID, p, getParents) {
+		if detectCycleFast(childID, p.(IIncr), getParents) {
 			return true
 		}
 	}

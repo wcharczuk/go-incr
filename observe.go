@@ -21,9 +21,8 @@ func MustObserve[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
 // as well as all of its parents.
 func Observe[A any](g *Graph, input Incr[A]) (ObserveIncr[A], error) {
 	o := WithinScope(g, &observeIncr[A]{
-		n:       NewNode("observer"),
-		input:   input,
-		parents: []INode{input},
+		n:     NewNode("observer"),
+		input: input,
 	})
 	g.addObserver(o)
 	if err := g.addChildObserver(o, input); err != nil {
@@ -35,7 +34,9 @@ func Observe[A any](g *Graph, input Incr[A]) (ObserveIncr[A], error) {
 // ObserveIncr is an incremental that observes a graph
 // of incrementals starting a given input.
 type ObserveIncr[A any] interface {
-	Incr[A]
+	INode
+	// Value returns the observed node value.
+	Value() A
 	// Unobserve effectively removes a given node from the observed ref count for a graph.
 	//
 	// As well, it unlinks the observer from its parent nodes, and as a result
@@ -52,20 +53,15 @@ type IObserver interface {
 }
 
 var (
-	_ Incr[any]    = (*observeIncr[any])(nil)
-	_ INode        = (*observeIncr[any])(nil)
-	_ fmt.Stringer = (*observeIncr[any])(nil)
+	_ ObserveIncr[any] = (*observeIncr[any])(nil)
+	_ INode            = (*observeIncr[any])(nil)
+	_ fmt.Stringer     = (*observeIncr[any])(nil)
 )
 
 type observeIncr[A any] struct {
-	n       *Node
-	input   Incr[A]
-	value   A
-	parents []INode
-}
-
-func (o *observeIncr[A]) Parents() []INode {
-	return o.parents
+	n     *Node
+	input Incr[A]
+	value A
 }
 
 func (o *observeIncr[A]) Node() *Node { return o.n }

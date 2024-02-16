@@ -14,6 +14,9 @@ func Test_Observe(t *testing.T) {
 	o, err := Observe(g, m0)
 	testutil.NoError(t, err)
 
+	_, isIncr := o.(Incr[string])
+	testutil.Equal(t, false, isIncr)
+
 	testutil.Equal(t, 0, v.Node().height)
 	testutil.Equal(t, 1, m0.Node().height)
 	testutil.Equal(t, -1, o.Node().height)
