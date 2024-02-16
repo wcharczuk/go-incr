@@ -84,7 +84,7 @@ func Test_Graph_recompute_recomputesObservers(t *testing.T) {
 func Test_Graph_removeNodeFromGraph(t *testing.T) {
 	g := New()
 
-	mn00 := newMockBareNodeWithHeight(2)
+	mn00 := newMockBareNodeWithHeight(g, 2)
 	g.numNodes = 2
 
 	g.nodes[mn00.n.id] = mn00
@@ -106,7 +106,7 @@ func Test_Graph_removeNodeFromGraph(t *testing.T) {
 
 	testutil.Equal(t, 0, mn00.n.setAt)
 	testutil.Equal(t, 0, mn00.n.recomputedAt)
-	testutil.Nil(t, mn00.n.createdIn)
+	testutil.NotNil(t, mn00.n.createdIn)
 	testutil.Equal(t, heightUnset, mn00.n.height)
 	testutil.Equal(t, heightUnset, mn00.n.heightInRecomputeHeap)
 	testutil.Equal(t, heightUnset, mn00.n.heightInAdjustHeightsHeap)

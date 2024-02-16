@@ -294,14 +294,15 @@ func Test_recomputeHeap_fix(t *testing.T) {
 }
 
 func Test_recomputeHeap_sanityCheck_badItemHeight(t *testing.T) {
+	g := New()
 	rh := newRecomputeHeap(8)
 
-	n_1_00 := newMockBareNodeWithHeight(1)
-	n_2_00 := newMockBareNodeWithHeight(2)
-	n_2_01 := newMockBareNodeWithHeight(2)
-	n_3_00 := newMockBareNodeWithHeight(3)
-	n_3_01 := newMockBareNodeWithHeight(3)
-	n_3_02 := newMockBareNodeWithHeight(3)
+	n_1_00 := newMockBareNodeWithHeight(g, 1)
+	n_2_00 := newMockBareNodeWithHeight(g, 2)
+	n_2_01 := newMockBareNodeWithHeight(g, 2)
+	n_3_00 := newMockBareNodeWithHeight(g, 3)
+	n_3_01 := newMockBareNodeWithHeight(g, 3)
+	n_3_02 := newMockBareNodeWithHeight(g, 3)
 
 	height2 := newList(n_2_00, n_2_01)
 

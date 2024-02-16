@@ -95,10 +95,10 @@ func mockObserver(scope Scope) IObserver {
 	})
 }
 
-func newMockBareNodeWithHeight(height int) *mockBareNode {
-	mbn := &mockBareNode{
+func newMockBareNodeWithHeight(scope Scope, height int) *mockBareNode {
+	mbn := WithinScope(scope, &mockBareNode{
 		n: NewNode("bare_node"),
-	}
+	})
 	mbn.n.height = height
 	return mbn
 }
@@ -262,4 +262,49 @@ func hasKey[A INode](nodes []A, id Identifier) bool {
 func mapHasKey[K comparable, V any](m map[K]V, k K) (ok bool) {
 	_, ok = m[k]
 	return
+}
+
+func cutoffAlways[A, B any](scope Scope, input Incr[A], cutoff func(context.Context, A) (bool, error), fn func(context.Context, A) (B, error)) Incr[B] {
+	return WithinScope(scope, &ccutoffAlwaysIncr[A, B]{
+		n:      NewNode("cutoff-always"),
+		input:  input,
+		cutoff: cutoff,
+		fn:     fn,
+	})
+}
+
+type ccutoffAlwaysIncr[A, B any] struct {
+	n      *Node
+	input  Incr[A]
+	cutoff func(context.Context, A) (bool, error)
+	fn     func(context.Context, A) (B, error)
+	value  B
+}
+
+func (n *ccutoffAlwaysIncr[A, B]) Parents() []INode {
+	return []INode{n.input}
+}
+
+func (n *ccutoffAlwaysIncr[A, B]) Node() *Node { return n.n }
+
+func (n *ccutoffAlwaysIncr[A, B]) Value() B { return n.value }
+
+func (n *ccutoffAlwaysIncr[A, B]) Always() {}
+
+func (n *ccutoffAlwaysIncr[A, B]) Cutoff(ctx context.Context) (bool, error) {
+	return n.cutoff(ctx, n.input.Value())
+}
+
+func (n *ccutoffAlwaysIncr[A, B]) Stabilize(ctx context.Context) (err error) {
+	var value B
+	value, err = n.fn(ctx, n.input.Value())
+	if err != nil {
+		return
+	}
+	n.value = value
+	return
+}
+
+func (n *ccutoffAlwaysIncr[A, B]) String() string {
+	return n.n.String()
 }

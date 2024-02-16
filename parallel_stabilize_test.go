@@ -355,3 +355,22 @@ func Test_ParallelStabilize_preRequisite_heightsAreParallel(t *testing.T) {
 	_ = g.ParallelStabilize(testContext())
 	testutil.NotEqual(t, "", o.Value())
 }
+
+func Test_ParallelStabilize_alwaysInRecomputeHeapOnError(t *testing.T) {
+	g := New()
+
+	v0 := Var(g, "foo")
+	coa := cutoffAlways(g, v0,
+		func(_ context.Context, _ string) (bool, error) {
+			return false, fmt.Errorf("this is only a test")
+		},
+		func(_ context.Context, i string) (string, error) {
+			return i + "-bar", nil
+		},
+	)
+	_, _ = Observe(g, coa)
+
+	err := g.ParallelStabilize(testContext())
+	testutil.Error(t, err)
+	testutil.Equal(t, "this is only a test", err.Error())
+}

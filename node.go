@@ -17,6 +17,8 @@ func NewNode(kind string) *Node {
 	}
 }
 
+const heightUnset = -1
+
 // Node is the common metadata for any node in the computation graph.
 type Node struct {
 	// id is a unique identifier for the node

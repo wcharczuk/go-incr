@@ -34,8 +34,6 @@ func (ah *adjustHeightsHeap) remove(node INode) {
 	ah.removeUnsafe(node)
 }
 
-const heightUnset = -1
-
 func (ah *adjustHeightsHeap) setHeight(node INode, height int) error {
 	ah.mu.Lock()
 	defer ah.mu.Unlock()
@@ -131,7 +129,7 @@ func (ah *adjustHeightsHeap) removeUnsafe(node INode) {
 	height := node.Node().heightInAdjustHeightsHeap
 	if height >= ah.heightLowerBound && height <= ah.maxHeightSeen {
 		if ah.nodesByHeight[height] != nil && ah.nodesByHeight[height].has(nodeID) {
-			ah.nodesByHeight[height].remove(node.Node().id)
+			ah.nodesByHeight[height].remove(nodeID)
 			ah.numNodes--
 			return
 		}

@@ -43,22 +43,10 @@ func graphFromCreatedIn(node INode) *Graph {
 	return node.Node().createdIn.scopeGraph()
 }
 
-func maybeRemoveScopeNode(scope Scope, node INode) {
-	if scope == nil || scope != nil && scope.isTopScope() {
-		return
-	}
-	scope.removeScopeNode(node)
-}
-
 func maybeAddScopeNode(scope Scope, node INode) {
 	node.Node().createdIn = scope
 	if scope != nil && scope.isTopScope() {
 		return
 	}
 	scope.addScopeNode(node)
-}
-
-func updateNodeScope(scope Scope, node INode) {
-	maybeRemoveScopeNode(node.Node().createdIn, node)
-	maybeAddScopeNode(scope, node)
 }

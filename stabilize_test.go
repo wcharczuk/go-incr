@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/wcharczuk/go-incr/testutil"
 	. "github.com/wcharczuk/go-incr/testutil"
 )
 
@@ -1467,5 +1468,23 @@ func Test_Stabilize_Bind_jsCombination(t *testing.T) {
 	NoError(t, err)
 
 	Equal(t, v1.Value()+(2*v2.Value())+(3*v3.Value())+(4*v4.Value()), o.Value())
+}
 
+func Test_Stabilize_alwaysInRecomputeHeapOnError(t *testing.T) {
+	g := New()
+
+	v0 := Var(g, "foo")
+	coa := cutoffAlways(g, v0,
+		func(_ context.Context, _ string) (bool, error) {
+			return false, fmt.Errorf("this is only a test")
+		},
+		func(_ context.Context, i string) (string, error) {
+			return i + "-bar", nil
+		},
+	)
+	_, _ = Observe(g, coa)
+
+	err := g.Stabilize(testContext())
+	testutil.Error(t, err)
+	testutil.Equal(t, "this is only a test", err.Error())
 }
