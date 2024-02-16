@@ -49,6 +49,18 @@ func Test_Graph_IsStabilizing(t *testing.T) {
 	testutil.Equal(t, false, g.IsStabilizing())
 }
 
+func Test_Graph_Scope(t *testing.T) {
+	g := New()
+
+	testutil.NotNil(t, g.scopeGraph())
+	testutil.Equal(t, heightUnset, g.scopeHeight())
+	testutil.Equal(t, true, g.isTopScope())
+	testutil.Equal(t, true, g.isScopeNecessary())
+	testutil.Equal(t, true, g.isScopeValid())
+
+	testutil.Matches(t, `\{graph:(.*)\}`, g.String())
+}
+
 func Test_Graph_addObserver_rediscover(t *testing.T) {
 	g := New()
 
