@@ -272,7 +272,6 @@ func Test_Node_removeObservers(t *testing.T) {
 
 	testutil.Equal(t, true, hasKey(n.n.observers, o0.Node().id))
 	testutil.Equal(t, false, hasKey(n.n.observers, o1.Node().id))
-
 }
 
 func Test_Node_maybeStabilize(t *testing.T) {

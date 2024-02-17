@@ -9,20 +9,22 @@ import "fmt"
 // in special cases; the vast majority of direct use cases
 // for the incremental library cannot create graph cycles.
 func DetectCycleIfLinked(child, parent INode) error {
-	getParents := func(n INode) []INode {
-		typed, ok := n.(IParents)
-		if !ok {
-			if n.Node().ID() == child.Node().ID() {
-				return []INode{parent}
-			}
-			return nil
-		}
-		if n.Node().ID() == child.Node().ID() {
-			return append(typed.Parents(), parent)
-		}
-		return typed.Parents()
+	if child == nil || parent == nil {
+		return nil
 	}
-	if detectCycleFast(child.Node().ID(), parent /*startAt*/, getParents) {
+	getParents := func(n INode) []INode {
+		if typed, ok := n.(IParents); ok {
+			return typed.Parents()
+		}
+		return nil
+	}
+	getParentsWithPossibleParent := func(n INode) []INode {
+		if n.Node().ID() == child.Node().ID() {
+			return append(getParents(n), parent)
+		}
+		return getParents(n)
+	}
+	if detectCycleFast(child.Node().ID(), parent /*startAt*/, getParentsWithPossibleParent) {
 		return fmt.Errorf("adding %v as child of %v would cause a cycle", child, parent)
 	}
 	return nil

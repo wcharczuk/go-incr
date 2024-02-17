@@ -38,6 +38,25 @@ func Test_DetectCycleIfLinked(t *testing.T) {
 	testutil.Error(t, err)
 }
 
+func Test_DetectCycleIfLinked_nils(t *testing.T) {
+	g := New()
+	n0 := newMockBareNode(g)
+	n1 := newMockBareNode(g)
+	n1.n.parentsFn = func() []INode {
+		return []INode{nil}
+	}
+
+	var err error
+	err = DetectCycleIfLinked(nil, n0)
+	testutil.NoError(t, err)
+
+	err = DetectCycleIfLinked(n0, nil)
+	testutil.NoError(t, err)
+
+	err = DetectCycleIfLinked(n0, n1)
+	testutil.NoError(t, err)
+}
+
 func detectCycleNode(label string) MapNIncr[any, any] {
 	g := New()
 	n := MapN[any, any](g, identMany)
