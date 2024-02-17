@@ -997,8 +997,8 @@ func Test_Bind_nestedScopeHasGraph(t *testing.T) {
 	_ = g.Stabilize(ctx)
 	testutil.Equal(t, "aa", ob.Value())
 
-	testutil.NotNil(t, graphFromCreatedIn(ibv00))
-	testutil.NotNil(t, graphFromCreatedIn(ibv01))
+	testutil.NotNil(t, GraphForNode(ibv00))
+	testutil.NotNil(t, GraphForNode(ibv01))
 
 	testutil.Equal(t, false, ibv00.Node().createdIn.isTopScope())
 	testutil.Equal(t, false, ibv01.Node().createdIn.isTopScope())

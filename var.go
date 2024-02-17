@@ -58,7 +58,7 @@ func (vn *varIncr[T]) ShouldBeInvalidated() bool {
 }
 
 func (vn *varIncr[T]) Set(v T) {
-	graph := graphFromCreatedIn(vn)
+	graph := GraphForNode(vn)
 	if atomic.LoadInt32(&graph.status) == StatusStabilizing {
 		vn.setDuringStabilizationValue = v
 		vn.setDuringStabilization = true

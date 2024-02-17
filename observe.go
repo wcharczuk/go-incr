@@ -70,7 +70,7 @@ func (o *observeIncr[A]) Node() *Node { return o.n }
 //
 // To observe parts of a graph again, use the `MustObserve(...)` helper.
 func (o *observeIncr[A]) Unobserve(ctx context.Context) {
-	graphFromCreatedIn(o).unobserveNode(o, o.observed)
+	GraphForNode(o).unobserveNode(o, o.observed)
 	var value A
 	o.value = value
 	o.observed = nil

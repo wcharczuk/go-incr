@@ -164,7 +164,7 @@ func (b *bindMainIncr[A, B]) Stabilize(ctx context.Context) error {
 
 func (b *bindMainIncr[A, B]) Invalidate() {
 	for _, n := range b.bind.rhsNodes {
-		graphFromCreatedIn(b).invalidateNode(n)
+		GraphForNode(b).invalidateNode(n)
 	}
 }
 
@@ -207,7 +207,7 @@ func (b *bindLeftChangeIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 		b.bind.main.parents = []INode{b}
 	}
 
-	if err = graphFromCreatedIn(b).changeParent(b.bind.main, oldRhs, b.bind.rhs); err != nil {
+	if err = GraphForNode(b).changeParent(b.bind.main, oldRhs, b.bind.rhs); err != nil {
 		return err
 	}
 	if oldRhs != nil {
@@ -215,7 +215,7 @@ func (b *bindLeftChangeIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 		// for (2) different behaviors here. the commented out below
 		// is if the option is enabled.
 		for _, n := range oldRightNodes {
-			graphFromCreatedIn(b).invalidateNode(n)
+			GraphForNode(b).invalidateNode(n)
 		}
 		// else {
 		// // rescope_nodes_created_on_rhs
@@ -224,7 +224,7 @@ func (b *bindLeftChangeIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 		// 	b.bind.addScopeNode(n)
 		// }
 	}
-	graphFromCreatedIn(b).propagateInvalidity()
+	GraphForNode(b).propagateInvalidity()
 	return nil
 }
 

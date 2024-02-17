@@ -487,7 +487,7 @@ func (graph *Graph) observeNode(o IObserver, input INode) error {
 }
 
 func (graph *Graph) unobserveNode(o IObserver, input INode) {
-	g := graphFromCreatedIn(o)
+	g := GraphForNode(o)
 	g.removeObserver(o)
 	input.Node().removeObserver(o.Node().id)
 	g.checkIfUnnecessary(input)

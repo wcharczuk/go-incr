@@ -63,7 +63,7 @@ func (mn *mapNIncr[A, B]) AddInput(i Incr[A]) error {
 	if mn.n.height != HeightUnset {
 		// if we're already part of the graph, we have
 		// to tell the graph to update our parent<>child metadata
-		return graphFromCreatedIn(mn).addChild(mn, i)
+		return GraphForNode(mn).addChild(mn, i)
 	}
 	return nil
 }
