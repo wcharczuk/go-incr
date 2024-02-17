@@ -8,12 +8,19 @@ import "fmt"
 // It is a low-level utility function that should be used
 // in special cases; the vast majority of direct use cases
 // for the incremental library cannot create graph cycles.
-func DetectCycleIfLinked(child, parent IIncr) error {
-	getParents := func(n IIncr) []INode {
-		if n.Node().ID() == child.Node().ID() {
-			return append(n.Parents(), parent)
+func DetectCycleIfLinked(child, parent INode) error {
+	getParents := func(n INode) []INode {
+		typed, ok := n.(IParents)
+		if !ok {
+			if n.Node().ID() == child.Node().ID() {
+				return []INode{parent}
+			}
+			return nil
 		}
-		return n.Parents()
+		if n.Node().ID() == child.Node().ID() {
+			return append(typed.Parents(), parent)
+		}
+		return typed.Parents()
 	}
 	if detectCycleFast(child.Node().ID(), parent /*startAt*/, getParents) {
 		return fmt.Errorf("adding %v as child of %v would cause a cycle", child, parent)
@@ -21,12 +28,12 @@ func DetectCycleIfLinked(child, parent IIncr) error {
 	return nil
 }
 
-func detectCycleFast(childID Identifier, startAt IIncr, getParents func(IIncr) []INode) bool {
+func detectCycleFast(childID Identifier, startAt INode, getParents func(INode) []INode) bool {
 	if startAt.Node().ID() == childID {
 		return true
 	}
 	for _, p := range getParents(startAt) {
-		if detectCycleFast(childID, p.(IIncr), getParents) {
+		if detectCycleFast(childID, p, getParents) {
 			return true
 		}
 	}

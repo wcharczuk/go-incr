@@ -301,13 +301,18 @@ func (n *Node) shouldBeInvalidated() bool {
 	return false
 }
 
-func (n *Node) isStaleInRespectToParent() (stale bool) {
+func (n *Node) nodeParents() []INode {
 	if parents := n.parentsFn; parents != nil {
-		for _, p := range parents() {
-			if p.Node().changedAt > n.recomputedAt {
-				stale = true
-				return
-			}
+		return n.parentsFn()
+	}
+	return nil
+}
+
+func (n *Node) isStaleInRespectToParent() (stale bool) {
+	for _, p := range n.nodeParents() {
+		if p.Node().changedAt > n.recomputedAt {
+			stale = true
+			return
 		}
 	}
 	return

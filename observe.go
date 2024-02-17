@@ -9,8 +9,8 @@ import (
 // as well as all of its parents.
 //
 // If this detects a cycle or any other issue a panic will be raised.
-func MustObserve[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
-	o, err := Observe[A](g, input)
+func MustObserve[A any](g *Graph, observed Incr[A]) ObserveIncr[A] {
+	o, err := Observe[A](g, observed)
 	if err != nil {
 		panic(err)
 	}
@@ -19,12 +19,12 @@ func MustObserve[A any](g *Graph, input Incr[A]) ObserveIncr[A] {
 
 // Observe observes a node, specifically including it for computation
 // as well as all of its parents.
-func Observe[A any](g *Graph, input Incr[A]) (ObserveIncr[A], error) {
+func Observe[A any](g *Graph, observed Incr[A]) (ObserveIncr[A], error) {
 	o := WithinScope(g, &observeIncr[A]{
-		n:     NewNode("observer"),
-		input: input,
+		n:        NewNode("observer"),
+		observed: observed,
 	})
-	if err := g.observeNode(o, input); err != nil {
+	if err := g.observeNode(o, observed); err != nil {
 		return nil, err
 	}
 	return o, nil
@@ -33,9 +33,14 @@ func Observe[A any](g *Graph, input Incr[A]) (ObserveIncr[A], error) {
 // ObserveIncr is an incremental that observes a graph
 // of incrementals starting a given input.
 type ObserveIncr[A any] interface {
-	INode
+	IObserver
 	// Value returns the observed node value.
 	Value() A
+}
+
+// IObserver is an INode that can be unobserved.
+type IObserver interface {
+	INode
 	// Unobserve effectively removes a given node from the observed ref count for a graph.
 	//
 	// As well, it unlinks the observer from its parent nodes, and as a result
@@ -45,22 +50,15 @@ type ObserveIncr[A any] interface {
 	Unobserve(context.Context)
 }
 
-// IObserver is an INode that can be unobserved.
-type IObserver interface {
-	INode
-	Unobserve(context.Context)
-}
-
 var (
 	_ ObserveIncr[any] = (*observeIncr[any])(nil)
-	_ INode            = (*observeIncr[any])(nil)
 	_ fmt.Stringer     = (*observeIncr[any])(nil)
 )
 
 type observeIncr[A any] struct {
-	n     *Node
-	input Incr[A]
-	value A
+	n        *Node
+	observed Incr[A]
+	value    A
 }
 
 func (o *observeIncr[A]) Node() *Node { return o.n }
@@ -72,17 +70,17 @@ func (o *observeIncr[A]) Node() *Node { return o.n }
 //
 // To observe parts of a graph again, use the `MustObserve(...)` helper.
 func (o *observeIncr[A]) Unobserve(ctx context.Context) {
-	graphFromCreatedIn(o).unobserveNode(o, o.input)
+	graphFromCreatedIn(o).unobserveNode(o, o.observed)
 	var value A
 	o.value = value
-	o.input = nil
+	o.observed = nil
 }
 
 func (o *observeIncr[A]) Value() (output A) {
-	if o.input == nil {
+	if o.observed == nil {
 		return
 	}
-	return o.input.Value()
+	return o.observed.Value()
 }
 
 func (o *observeIncr[A]) String() string {

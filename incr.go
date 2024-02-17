@@ -6,7 +6,7 @@ import (
 
 // Incr is a type that can be an incremental node in a computation graph.
 type Incr[T any] interface {
-	IIncr
+	INode
 	// Value returns the stabilized
 	// value of the node.
 	//
@@ -17,18 +17,18 @@ type Incr[T any] interface {
 	Value() T
 }
 
-type IIncr interface {
-	INode
-	IParents
-}
-
 // INode is a node in the incremental graph.
 type INode interface {
+	// INode returns the underlying node metadata
+	// for a given incremental node.
 	Node() *Node
 }
 
-// IParents is a type that can supply parent
-// information directly versus inferring from links.
+// IParents is a type that has parents or inputs.
+//
+// This list is used to link the node into the graph
+// but also to reconstruct the links if the node becomes
+// unnecessary, and then necessary again after construction.
 type IParents interface {
 	// Parents provides a list of nodes that this node takes as inputs
 	// for propagation of changes and dependency tracking.

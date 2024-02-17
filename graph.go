@@ -257,7 +257,7 @@ func (graph *Graph) invalidateNode(node INode) {
 }
 
 func (graph *Graph) removeParents(child INode) {
-	for _, parent := range child.Node().parentsFn() {
+	for _, parent := range child.Node().nodeParents() {
 		graph.removeParent(child, parent)
 	}
 }
@@ -365,15 +365,13 @@ func (graph *Graph) becameNecessaryRecursive(node INode) (err error) {
 	if err = graph.adjustHeightsHeap.setHeight(node, node.Node().createdIn.scopeHeight()+1); err != nil {
 		return
 	}
-	if parents := node.Node().parentsFn; parents != nil {
-		for _, parent := range parents() {
-			if err = graph.addChildWithoutAdjustingHeights(node, parent); err != nil {
-				return err
-			}
-			if parent.Node().height >= node.Node().height {
-				if err = graph.adjustHeightsHeap.setHeight(node, parent.Node().height+1); err != nil {
-					return
-				}
+	for _, parent := range node.Node().nodeParents() {
+		if err = graph.addChildWithoutAdjustingHeights(node, parent); err != nil {
+			return err
+		}
+		if parent.Node().height >= node.Node().height {
+			if err = graph.adjustHeightsHeap.setHeight(node, parent.Node().height+1); err != nil {
+				return
 			}
 		}
 	}
