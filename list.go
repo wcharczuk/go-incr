@@ -123,7 +123,6 @@ func (l *list[K, V]) each(fn func(K, V)) {
 		fn(ptr.key, ptr.value)
 		ptr = ptr.next
 	}
-	return
 }
 
 func (l *list[K, V]) consume(fn func(K, V)) {
@@ -135,7 +134,6 @@ func (l *list[K, V]) consume(fn func(K, V)) {
 	l.head = nil
 	l.tail = nil
 	clear(l.items)
-	return
 }
 
 func (l *list[K, V]) has(k K) (ok bool) {

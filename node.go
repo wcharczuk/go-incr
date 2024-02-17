@@ -190,21 +190,15 @@ func (n *Node) initializeFrom(in INode) {
 }
 
 func (n *Node) addChildren(children ...INode) {
-	for _, c := range children {
-		n.children = append(n.children, c)
-	}
+	n.children = append(n.children, children...)
 }
 
 func (n *Node) addParents(parents ...INode) {
-	for _, p := range parents {
-		n.parents = append(n.parents, p)
-	}
+	n.parents = append(n.parents, parents...)
 }
 
 func (n *Node) addObservers(observers ...IObserver) {
-	for _, o := range observers {
-		n.observers = append(n.observers, o)
-	}
+	n.observers = append(n.observers, observers...)
 }
 
 func (n *Node) removeChild(id Identifier) {
