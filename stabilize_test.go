@@ -1136,9 +1136,13 @@ func Test_Stabilize_MapN_AddInput(t *testing.T) {
 	c1 := Return(g, 2)
 	c2 := Return(g, 3)
 	mn := MapN(g, sum)
-	mn.AddInput(c0)
-	mn.AddInput(c1)
-	mn.AddInput(c2)
+	var err error
+	err = mn.AddInput(c0)
+	testutil.NoError(t, err)
+	err = mn.AddInput(c1)
+	testutil.NoError(t, err)
+	err = mn.AddInput(c2)
+	testutil.NoError(t, err)
 
 	_ = MustObserve(g, mn)
 
