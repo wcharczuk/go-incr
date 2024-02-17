@@ -21,6 +21,8 @@ const heightUnset = -1
 
 // Node is the common metadata for any node in the computation graph.
 type Node struct {
+	// createdIn is the "scope" the node was created in
+	createdIn Scope
 	// id is a unique identifier for the node
 	id Identifier
 	// kind is the meta-type of the node
@@ -39,6 +41,10 @@ type Node struct {
 	// observers are observer nodes that are attached to this
 	// node or its children.
 	observers []IObserver
+	// valid indicates if the scope that created the node is itself valid
+	valid bool
+	// forceNecessary forces the necessary state on the node
+	forceNecessary bool
 	// height is the topological sort pseudo-height of the
 	// node and is used to order recomputation
 	// it is established when the graph is initialized but
@@ -47,10 +53,6 @@ type Node struct {
 	// this node, e.g. how many other nodes have to update before
 	// this node has to update.
 	height int
-	// valid indicates if the scope that created the node is itself valid
-	valid bool
-	// forceNecessary forces the necessary state on the node
-	forceNecessary bool
 	// heightInRecomputeHeap is the height of a node in the recompute heap
 	heightInRecomputeHeap int
 	// heightInAdjustHeightsHeap is the height of a node in the adjust heights heap
@@ -95,8 +97,6 @@ type Node struct {
 	numRecomputes uint64
 	// numChanges is the number of times we changed the node
 	numChanges uint64
-	// createdIn is the "scope" the node was created in
-	createdIn Scope
 }
 
 //

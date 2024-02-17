@@ -28,8 +28,11 @@ type IExpertGraph interface {
 	RecomputeHeapLen() int
 	RecomputeHeapIDs() []Identifier
 
-	AddObserver(IObserver)
-	RemoveObserver(IObserver)
+	AddChild(INode, INode) error
+	RemoveParent(INode, INode)
+
+	ObserveNode(IObserver, INode) error
+	UnobserveNode(IObserver, INode)
 }
 
 type expertGraph struct {
@@ -86,10 +89,18 @@ func (eg *expertGraph) RecomputeHeapIDs() []Identifier {
 	return output
 }
 
-func (eg *expertGraph) AddObserver(on IObserver) {
-	eg.graph.addObserver(on)
+func (eg *expertGraph) AddChild(child, parent INode) error {
+	return eg.graph.addChild(child, parent)
 }
 
-func (eg *expertGraph) RemoveObserver(on IObserver) {
-	eg.graph.removeObserver(on)
+func (eg *expertGraph) RemoveParent(child, parent INode) {
+	eg.graph.removeParent(child, parent)
+}
+
+func (eg *expertGraph) ObserveNode(obs IObserver, node INode) error {
+	return eg.graph.observeNode(obs, node)
+}
+
+func (eg *expertGraph) UnobserveNode(obs IObserver, node INode) {
+	eg.graph.unobserveNode(obs, node)
 }

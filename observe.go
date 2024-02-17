@@ -24,8 +24,7 @@ func Observe[A any](g *Graph, input Incr[A]) (ObserveIncr[A], error) {
 		n:     NewNode("observer"),
 		input: input,
 	})
-	g.addObserver(o)
-	if err := g.addChildObserver(o, input); err != nil {
+	if err := g.observeNode(o, input); err != nil {
 		return nil, err
 	}
 	return o, nil
@@ -73,10 +72,7 @@ func (o *observeIncr[A]) Node() *Node { return o.n }
 //
 // To observe parts of a graph again, use the `MustObserve(...)` helper.
 func (o *observeIncr[A]) Unobserve(ctx context.Context) {
-	g := graphFromCreatedIn(o)
-	g.removeObserver(o)
-	o.input.Node().removeObserver(o.n.id)
-	g.checkIfUnnecessary(o.input)
+	graphFromCreatedIn(o).unobserveNode(o, o.input)
 	var value A
 	o.value = value
 	o.input = nil

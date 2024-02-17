@@ -17,23 +17,40 @@ func ExpertNode(in INode) IExpertNode {
 // Note there are no compatibility guarantees on this interface
 // and you should use this interface at your own caution.
 type IExpertNode interface {
-	Graph() *Graph
+	CreatedIn() Scope
 	SetID(Identifier)
+
+	Valid() bool
+	SetValid(bool)
+
 	Height() int
 	SetHeight(int)
+
+	HeightInRecomputeHeap() int
+	SetHeightInRecomputeHeap(int)
+
+	HeightInAdjustHeightsHeap() int
+	SetHeightInAdjustHeightsHeap(int)
+
 	ChangedAt() uint64
 	SetChangedAt(uint64)
 	SetAt() uint64
 	SetSetAt(uint64)
 	RecomputedAt() uint64
 	SetRecomputedAt(uint64)
+
 	Always() bool
 	SetAlways(bool)
 
+	Observer() bool
+	SetObserver(bool)
+
 	AddChildren(...INode)
 	AddParents(...INode)
+	AddObservers(...IObserver)
 	RemoveChild(Identifier)
 	RemoveParent(Identifier)
+	RemoveObserver(Identifier)
 
 	// ComputePseudoHeight walks the node graph up from a given node
 	// computing the height of the node in-respect to its full graph.
@@ -56,16 +73,36 @@ type expertNode struct {
 	node *Node
 }
 
-func (en *expertNode) Graph() *Graph { return graphFromCreatedIn(en.incr) }
+func (en *expertNode) CreatedIn() Scope { return en.node.createdIn }
 
 func (en *expertNode) SetID(id Identifier) {
 	en.node.id = id
+}
+
+func (en *expertNode) Valid() bool {
+	return en.node.valid
+}
+
+func (en *expertNode) SetValid(valid bool) {
+	en.node.valid = valid
 }
 
 func (en *expertNode) Height() int { return en.node.height }
 
 func (en *expertNode) SetHeight(height int) {
 	en.node.height = height
+}
+
+func (en *expertNode) HeightInRecomputeHeap() int { return en.node.heightInRecomputeHeap }
+
+func (en *expertNode) SetHeightInRecomputeHeap(height int) {
+	en.node.heightInRecomputeHeap = height
+}
+
+func (en *expertNode) HeightInAdjustHeightsHeap() int { return en.node.heightInAdjustHeightsHeap }
+
+func (en *expertNode) SetHeightInAdjustHeightsHeap(height int) {
+	en.node.heightInAdjustHeightsHeap = height
 }
 
 func (en *expertNode) ChangedAt() uint64 { return en.node.changedAt }
@@ -87,9 +124,13 @@ func (en *expertNode) SetRecomputedAt(recomputedAt uint64) {
 }
 
 func (en *expertNode) Always() bool { return en.node.always }
-
 func (en *expertNode) SetAlways(always bool) {
 	en.node.always = always
+}
+
+func (en *expertNode) Observer() bool { return en.node.observer }
+func (en *expertNode) SetObserver(observer bool) {
+	en.node.observer = observer
 }
 
 func (en *expertNode) AddChildren(c ...INode) {
@@ -100,12 +141,20 @@ func (en *expertNode) AddParents(c ...INode) {
 	en.node.addParents(c...)
 }
 
+func (en *expertNode) AddObservers(o ...IObserver) {
+	en.node.addObservers(o...)
+}
+
 func (en *expertNode) RemoveChild(id Identifier) {
 	en.node.removeChild(id)
 }
 
 func (en *expertNode) RemoveParent(id Identifier) {
 	en.node.removeParent(id)
+}
+
+func (en *expertNode) RemoveObserver(id Identifier) {
+	en.node.removeObserver(id)
 }
 
 func (en *expertNode) Value() any {

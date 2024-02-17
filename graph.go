@@ -467,7 +467,8 @@ func (graph *Graph) zeroNode(n INode) {
 	nn.heightInAdjustHeightsHeap = heightUnset
 }
 
-func (graph *Graph) addChildObserver(o IObserver, input INode) error {
+func (graph *Graph) observeNode(o IObserver, input INode) error {
+	graph.addObserver(o)
 	wasNecsesary := input.Node().isNecessary()
 	input.Node().addObservers(o)
 	if !input.Node().valid {
@@ -485,6 +486,13 @@ func (graph *Graph) addChildObserver(o IObserver, input INode) error {
 
 	graph.propagateInvalidity()
 	return nil
+}
+
+func (graph *Graph) unobserveNode(o IObserver, input INode) {
+	g := graphFromCreatedIn(o)
+	g.removeObserver(o)
+	input.Node().removeObserver(o.Node().id)
+	g.checkIfUnnecessary(input)
 }
 
 //

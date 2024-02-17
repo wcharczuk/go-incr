@@ -63,20 +63,3 @@ func Test_ExpertGraph_RecomputeHeapIDs(t *testing.T) {
 	testutil.Any(t, recomputeHeapIDs, func(id Identifier) bool { return id == n1.n.id })
 	testutil.Any(t, recomputeHeapIDs, func(id Identifier) bool { return id == n2.n.id })
 }
-
-func Test_ExpertGraph_AddObserver(t *testing.T) {
-	g := New()
-	eg := ExpertGraph(g)
-	o0 := mockObserver(g)
-	o1 := mockObserver(g)
-
-	eg.AddObserver(o1)
-
-	testutil.Equal(t, false, mapHasKey(g.observers, o0.Node().id))
-	testutil.Equal(t, true, mapHasKey(g.observers, o1.Node().id))
-
-	eg.RemoveObserver(o1)
-
-	testutil.Equal(t, false, mapHasKey(g.observers, o0.Node().id))
-	testutil.Equal(t, false, mapHasKey(g.observers, o1.Node().id))
-}
