@@ -38,7 +38,6 @@ type CutoffContextFunc[A any] func(context.Context, A, A) (bool, error)
 
 var (
 	_ Incr[string] = (*cutoffIncr[string])(nil)
-	_ INode        = (*cutoffIncr[string])(nil)
 	_ IStabilize   = (*cutoffIncr[string])(nil)
 	_ ICutoff      = (*cutoffIncr[string])(nil)
 	_ fmt.Stringer = (*cutoffIncr[string])(nil)

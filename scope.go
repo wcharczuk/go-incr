@@ -26,7 +26,7 @@ func WithinScope[A INode](scope Scope, node A) A {
 
 // GraphForNode returns the graph for a given node as derrived through
 // the scope it was created in, which must return a graph reference.
-func GraphForNode(node INode) *Graph {
+func GraphForNode(node Noder) *Graph {
 	if node == nil {
 		return nil
 	}

@@ -19,6 +19,11 @@ type Incr[T any] interface {
 
 // INode is a node in the incremental graph.
 type INode interface {
+	IParents
+	Noder
+}
+
+type Noder interface {
 	// INode returns the underlying node metadata
 	// for a given incremental node.
 	Node() *Node

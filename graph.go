@@ -421,7 +421,7 @@ func (graph *Graph) removeObserver(on IObserver) {
 	graph.observersMu.Lock()
 	delete(graph.observers, on.Node().id)
 	graph.observersMu.Unlock()
-	graph.zeroNode(on)
+	graph.zeroObserver(on)
 }
 
 func (graph *Graph) removeNode(gn INode) {
@@ -465,7 +465,35 @@ func (graph *Graph) zeroNode(n INode) {
 	nn.heightInAdjustHeightsHeap = HeightUnset
 }
 
+func (graph *Graph) zeroObserver(on IObserver) {
+	graph.numNodes--
+
+	nn := on.Node()
+
+	graph.handleAfterStabilizationMu.Lock()
+	delete(graph.handleAfterStabilization, nn.ID())
+	graph.handleAfterStabilizationMu.Unlock()
+
+	nn.setAt = 0
+	nn.changedAt = 0
+	nn.recomputedAt = 0
+
+	// mirror how we initialized the node
+	nn.valid = true
+
+	nn.parents = nil
+	nn.children = nil
+	nn.observers = nil
+
+	// TODO (wc): why can't i zero these out?
+	// nn.createdIn = nil
+	nn.height = HeightUnset
+	nn.heightInRecomputeHeap = HeightUnset
+	nn.heightInAdjustHeightsHeap = HeightUnset
+}
+
 func (graph *Graph) observeNode(o IObserver, input INode) error {
+	o.Node().createdIn = graph
 	graph.addObserver(o)
 	wasNecsesary := input.Node().isNecessary()
 	input.Node().addObservers(o)

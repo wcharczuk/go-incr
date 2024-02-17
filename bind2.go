@@ -4,7 +4,7 @@ import "context"
 
 // Bind2 lets you swap out an entire subgraph of a computation based
 // on a given set of 2 input incrementals.
-func Bind2[A, B, C any](scope Scope, a Incr[A], b Incr[B], fn func(Scope, A, B) Incr[C]) BindIncr[C] {
+func Bind2[A, B, C any](scope Scope, a Incr[A], b Incr[B], fn Bind2Func[A, B, C]) BindIncr[C] {
 	return Bind2Context(scope, a, b, func(_ context.Context, scope Scope, x0 A, x1 B) (Incr[C], error) {
 		return fn(scope, x0, x1), nil
 	})
@@ -12,7 +12,7 @@ func Bind2[A, B, C any](scope Scope, a Incr[A], b Incr[B], fn func(Scope, A, B) 
 
 // Bind2Context lets you swap out an entire subgraph of a computation based
 // on a given set of 2 input incrementals, taking a context and as well returning an error.
-func Bind2Context[A, B, C any](scope Scope, a Incr[A], b Incr[B], fn func(context.Context, Scope, A, B) (Incr[C], error)) BindIncr[C] {
+func Bind2Context[A, B, C any](scope Scope, a Incr[A], b Incr[B], fn Bind2ContextFunc[A, B, C]) BindIncr[C] {
 	m := Map2(scope, a, b, func(av A, bv B) tuple2[A, B] {
 		return tuple2[A, B]{av, bv}
 	})
@@ -22,6 +22,12 @@ func Bind2Context[A, B, C any](scope Scope, a Incr[A], b Incr[B], fn func(contex
 	bind.Node().SetKind("bind2")
 	return bind
 }
+
+// Bind2Func is the type of bind function.
+type Bind2Func[A, B, C any] func(Scope, A, B) Incr[C]
+
+// Bind2ContextFunc is the type of bind function.
+type Bind2ContextFunc[A, B, C any] func(context.Context, Scope, A, B) (Incr[C], error)
 
 // tuple2 is a tuple of values.
 type tuple2[A, B any] struct {

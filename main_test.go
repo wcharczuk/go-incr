@@ -89,10 +89,12 @@ func identMany[T any](v ...T) (out T) {
 
 var _ Incr[any] = (*mockBareNode)(nil)
 
-func mockObserver(scope Scope) IObserver {
-	return WithinScope(scope, &observeIncr[any]{
+func mockObserver(g *Graph) IObserver {
+	o := &observeIncr[any]{
 		n: NewNode("mock_observer"),
-	})
+	}
+	o.n.createdIn = g
+	return o
 }
 
 func newMockBareNodeWithHeight(scope Scope, height int) *mockBareNode {
@@ -250,7 +252,7 @@ func dumpDot(g *Graph, path string) error {
 	return nil
 }
 
-func hasKey[A INode](nodes []A, id Identifier) bool {
+func hasKey[A Noder](nodes []A, id Identifier) bool {
 	for _, n := range nodes {
 		if n.Node().id == id {
 			return true

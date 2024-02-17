@@ -20,10 +20,10 @@ func MustObserve[A any](g *Graph, observed Incr[A]) ObserveIncr[A] {
 // Observe observes a node, specifically including it for computation
 // as well as all of its parents.
 func Observe[A any](g *Graph, observed Incr[A]) (ObserveIncr[A], error) {
-	o := WithinScope(g, &observeIncr[A]{
+	o := &observeIncr[A]{
 		n:        NewNode("observer"),
 		observed: observed,
-	})
+	}
 	if err := g.observeNode(o, observed); err != nil {
 		return nil, err
 	}
@@ -40,7 +40,8 @@ type ObserveIncr[A any] interface {
 
 // IObserver is an INode that can be unobserved.
 type IObserver interface {
-	INode
+	// Node returns the node metadata.
+	Node() *Node
 	// Unobserve effectively removes a given node from the observed ref count for a graph.
 	//
 	// As well, it unlinks the observer from its parent nodes, and as a result

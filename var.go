@@ -21,7 +21,6 @@ func Var[T any](scope Scope, t T) VarIncr[T] {
 // VarIncr is a graph node type that implements an incremental variable.
 type VarIncr[T any] interface {
 	Incr[T]
-
 	// Set sets the var value.
 	//
 	// The value is realized on the next stabilization pass.
@@ -56,6 +55,8 @@ func (vn *varIncr[T]) Stale() bool {
 func (vn *varIncr[T]) ShouldBeInvalidated() bool {
 	return false
 }
+
+func (vn *varIncr[T]) Parents() []INode { return nil }
 
 func (vn *varIncr[T]) Set(v T) {
 	graph := GraphForNode(vn)

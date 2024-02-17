@@ -34,12 +34,6 @@ func Bind[A, B any](scope Scope, input Incr[A], fn BindFunc[A, B]) BindIncr[B] {
 	})
 }
 
-// BindFunc is the type of bind function.
-type BindFunc[A, B any] func(Scope, A) Incr[B]
-
-// BindContextFunc is the type of bind function.
-type BindContextFunc[A, B any] func(context.Context, Scope, A) (Incr[B], error)
-
 // BindContext is like Bind but allows the bind delegate to take a context and return an error.
 //
 // If an error returned, the bind is aborted, the error listener(s) will fire for the node, and the
@@ -64,6 +58,12 @@ func BindContext[A, B any](scope Scope, input Incr[A], fn BindContextFunc[A, B])
 	bind.main = bindMain
 	return bindMain
 }
+
+// BindFunc is the type of bind function.
+type BindFunc[A, B any] func(Scope, A) Incr[B]
+
+// BindContextFunc is the type of bind function.
+type BindContextFunc[A, B any] func(context.Context, Scope, A) (Incr[B], error)
 
 // BindIncr is a node that implements Bind, which can dynamically swap out
 // subgraphs based on input incrementals changing.

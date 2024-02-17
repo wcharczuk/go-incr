@@ -1,6 +1,6 @@
 package incr
 
-func nodeSorter(a, b INode) int {
+func nodeSorter(a, b Noder) int {
 	if a.Node().height == b.Node().height {
 		aID := a.Node().ID().String()
 		bID := b.Node().ID().String()

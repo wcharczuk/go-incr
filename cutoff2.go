@@ -29,12 +29,9 @@ func Cutoff2Context[A, B any](bs Scope, epsilon Incr[A], input Incr[B], fn Cutof
 // CutoffIncr is an incremental node that implements the ICutoff interface.
 type Cutoff2Incr[A, B any] interface {
 	Incr[B]
-	IStabilize
-	ICutoff
 }
 
 var (
-	_ Incr[string]             = (*cutoff2Incr[int, string])(nil)
 	_ Cutoff2Incr[int, string] = (*cutoff2Incr[int, string])(nil)
 	_ IStabilize               = (*cutoff2Incr[int, string])(nil)
 	_ ICutoff                  = (*cutoff2Incr[int, string])(nil)

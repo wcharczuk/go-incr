@@ -184,7 +184,7 @@ func (n *Node) Observers() []IObserver {
 //
 
 // initializeFrom detects delegates on the node type.
-func (n *Node) initializeFrom(in INode) {
+func (n *Node) initializeFrom(in any) {
 	n.detectAlways(in)
 	n.detectCutoff(in)
 	n.detectInvalidate(in)
@@ -228,45 +228,45 @@ func (n *Node) maybeCutoff(ctx context.Context) (bool, error) {
 	return false, nil
 }
 
-func (n *Node) detectCutoff(gn INode) {
+func (n *Node) detectCutoff(gn any) {
 	if typed, ok := gn.(ICutoff); ok {
 		n.cutoffFn = typed.Cutoff
 	}
 }
 
-func (n *Node) detectParents(gn INode) {
+func (n *Node) detectParents(gn any) {
 	if typed, ok := gn.(IParents); ok {
 		n.parentsFn = typed.Parents
 	}
 }
 
-func (n *Node) detectAlways(gn INode) {
+func (n *Node) detectAlways(gn any) {
 	_, n.always = gn.(IAlways)
 }
 
-func (n *Node) detectInvalidate(gn INode) {
+func (n *Node) detectInvalidate(gn any) {
 	if typed, ok := gn.(IBindMain); ok {
 		n.invalidateFn = typed.Invalidate
 	}
 }
 
-func (n *Node) detectObserver(gn INode) {
+func (n *Node) detectObserver(gn any) {
 	_, n.observer = gn.(IObserver)
 }
 
-func (n *Node) detectStabilize(gn INode) {
+func (n *Node) detectStabilize(gn any) {
 	if typed, ok := gn.(IStabilize); ok {
 		n.stabilizeFn = typed.Stabilize
 	}
 }
 
-func (n *Node) detectStale(gn INode) {
+func (n *Node) detectStale(gn any) {
 	if typed, ok := gn.(IStale); ok {
 		n.staleFn = typed.Stale
 	}
 }
 
-func (n *Node) detectShouldBeInvalidated(gn INode) {
+func (n *Node) detectShouldBeInvalidated(gn any) {
 	if typed, ok := gn.(IShouldBeInvalidated); ok {
 		n.shouldBeInvalidatedFn = typed.ShouldBeInvalidated
 	}

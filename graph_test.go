@@ -70,27 +70,10 @@ func Test_Graph_addObserver_rediscover(t *testing.T) {
 	testutil.Equal(t, true, ok)
 	testutil.Equal(t, 2, g.numNodes)
 	testutil.Equal(t, -1, o.Node().height)
-	testutil.Equal(t, false, g.recomputeHeap.has(o))
 
 	g.addObserver(o)
 	testutil.Equal(t, 2, g.numNodes)
 	testutil.Equal(t, -1, o.Node().height)
-	testutil.Equal(t, false, g.recomputeHeap.has(o))
-}
-
-func Test_Graph_recompute_recomputesObservers(t *testing.T) {
-	g := New()
-	n := newMockBareNode(g)
-	o := MustObserve(g, n)
-	g.recomputeHeap.clear()
-
-	testutil.Equal(t, false, g.recomputeHeap.has(n))
-	testutil.Equal(t, false, g.recomputeHeap.has(o))
-
-	err := g.recompute(testContext(), n)
-	testutil.Nil(t, err)
-	testutil.Equal(t, 0, g.recomputeHeap.len())
-	testutil.Equal(t, false, g.recomputeHeap.has(o))
 }
 
 func Test_Graph_removeNodeFromGraph(t *testing.T) {

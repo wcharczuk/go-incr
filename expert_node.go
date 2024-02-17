@@ -8,7 +8,7 @@ import (
 //
 // Note there are no compatibility guarantees on this interface
 // and you should use this interface at your own caution.
-func ExpertNode(in INode) IExpertNode {
+func ExpertNode(in Noder) IExpertNode {
 	return &expertNode{incr: in, node: in.Node()}
 }
 
@@ -73,7 +73,7 @@ type IExpertNode interface {
 }
 
 type expertNode struct {
-	incr INode
+	incr Noder
 	node *Node
 }
 
@@ -179,7 +179,7 @@ func (en *expertNode) ComputePseudoHeight() int {
 	return en.computePseudoHeightCached(make(map[Identifier]int), en.incr)
 }
 
-func (en *expertNode) computePseudoHeightCached(cache map[Identifier]int, n INode) int {
+func (en *expertNode) computePseudoHeightCached(cache map[Identifier]int, n Noder) int {
 	nn := n.Node()
 	if height, ok := cache[nn.ID()]; ok {
 		return height
