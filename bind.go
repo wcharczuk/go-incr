@@ -78,20 +78,20 @@ type BindIncr[A any] interface {
 	fmt.Stringer
 }
 
-// IBindMain is the type of the bind main node.
+// IBindMain holds the methods specific to the bind main node.
 type IBindMain interface {
 	Invalidate()
 }
 
-// IBindChange is the type of the bind lhs change node.
+// IBindChange holds the methods specific to the bind-lhs-change node.
 type IBindChange interface {
-	// TODO: more stuff here?
 	RightScopeNodes() []INode
 }
 
 var (
-	_ BindIncr[bool]       = (*bindMainIncr[string, bool])(nil)
-	_ Scope                = (*bind[string, bool])(nil)
+	_ BindIncr[bool] = (*bindMainIncr[string, bool])(nil)
+	_ Scope          = (*bind[string, bool])(nil)
+
 	_ INode                = (*bindLeftChangeIncr[string, bool])(nil)
 	_ IShouldBeInvalidated = (*bindLeftChangeIncr[string, bool])(nil)
 	_ IBindChange          = (*bindLeftChangeIncr[string, bool])(nil)

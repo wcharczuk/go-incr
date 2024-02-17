@@ -246,9 +246,7 @@ func (graph *Graph) invalidateNode(node INode) {
 		graph.removeParents(node)
 		nn.height = node.Node().createdIn.scopeHeight() + 1
 	}
-	if typedBind, isBind := node.(IBindMain); isBind {
-		typedBind.Invalidate()
-	}
+	nn.maybeInvalidate()
 	nn.valid = false
 	for _, child := range node.Node().children {
 		graph.propagateInvalidityQueue.push(child)

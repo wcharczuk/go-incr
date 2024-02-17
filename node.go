@@ -85,6 +85,8 @@ type Node struct {
 	// eachParentFn is a function that nodes can implement to
 	// yield their inputs very quickly.
 	parentsFn func() []INode
+	// invalidateFn is a reference to the nodes invalidate function if present.
+	invalidateFn func()
 	// observer determines if we treat this as a special necessary state.
 	observer bool
 	// always determines if we always recompute this node.
@@ -182,11 +184,12 @@ func (n *Node) Observers() []IObserver {
 func (n *Node) initializeFrom(in INode) {
 	n.detectAlways(in)
 	n.detectCutoff(in)
+	n.detectInvalidate(in)
 	n.detectObserver(in)
 	n.detectParents(in)
-	n.detectStale(in)
 	n.detectShouldBeInvalidated(in)
 	n.detectStabilize(in)
+	n.detectStale(in)
 }
 
 func (n *Node) addChildren(children ...INode) {
@@ -244,6 +247,12 @@ func (n *Node) detectAlways(gn INode) {
 	_, n.always = gn.(IAlways)
 }
 
+func (n *Node) detectInvalidate(gn INode) {
+	if typed, ok := gn.(IBindMain); ok {
+		n.invalidateFn = typed.Invalidate
+	}
+}
+
 func (n *Node) detectObserver(gn INode) {
 	_, n.observer = gn.(IObserver)
 }
@@ -264,6 +273,13 @@ func (n *Node) detectShouldBeInvalidated(gn INode) {
 	if typed, ok := gn.(IShouldBeInvalidated); ok {
 		n.shouldBeInvalidatedFn = typed.ShouldBeInvalidated
 	}
+}
+
+func (n *Node) maybeInvalidate() {
+	if n.invalidateFn != nil {
+		n.invalidateFn()
+	}
+	return
 }
 
 func (n *Node) maybeStabilize(ctx context.Context) (err error) {
