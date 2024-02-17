@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/wcharczuk/go-incr/testutil"
-	. "github.com/wcharczuk/go-incr/testutil"
 )
 
 func Test_Stabilize(t *testing.T) {
@@ -26,35 +25,35 @@ func Test_Stabilize(t *testing.T) {
 	_ = MustObserve(g, m0)
 
 	err := g.Stabilize(ctx)
-	Nil(t, err)
+	testutil.Nil(t, err)
 
-	Equal(t, "foo bar", m0.Value())
+	testutil.Equal(t, "foo bar", m0.Value())
 
-	Equal(t, 0, v0.Node().setAt)
-	Equal(t, 0, v0.Node().changedAt, "vars only are recomputed after the first set")
-	Equal(t, 0, v1.Node().setAt)
-	Equal(t, 0, v1.Node().changedAt)
-	Equal(t, 1, m0.Node().changedAt)
-	Equal(t, 0, v0.Node().recomputedAt)
-	Equal(t, 0, v1.Node().recomputedAt)
-	Equal(t, 1, m0.Node().recomputedAt)
+	testutil.Equal(t, 0, v0.Node().setAt)
+	testutil.Equal(t, 0, v0.Node().changedAt, "vars only are recomputed after the first set")
+	testutil.Equal(t, 0, v1.Node().setAt)
+	testutil.Equal(t, 0, v1.Node().changedAt)
+	testutil.Equal(t, 1, m0.Node().changedAt)
+	testutil.Equal(t, 0, v0.Node().recomputedAt)
+	testutil.Equal(t, 0, v1.Node().recomputedAt)
+	testutil.Equal(t, 1, m0.Node().recomputedAt)
 
 	v0.Set("not foo")
-	Equal(t, 2, v0.Node().setAt)
-	Equal(t, 0, v1.Node().setAt)
+	testutil.Equal(t, 2, v0.Node().setAt)
+	testutil.Equal(t, 0, v1.Node().setAt)
 
 	err = g.Stabilize(ctx)
-	Nil(t, err)
+	testutil.Nil(t, err)
 
-	Equal(t, 2, v0.Node().changedAt)
-	Equal(t, 0, v1.Node().changedAt)
-	Equal(t, 2, m0.Node().changedAt)
+	testutil.Equal(t, 2, v0.Node().changedAt)
+	testutil.Equal(t, 0, v1.Node().changedAt)
+	testutil.Equal(t, 2, m0.Node().changedAt)
 
-	Equal(t, 2, v0.Node().recomputedAt)
-	Equal(t, 0, v1.Node().recomputedAt)
-	Equal(t, 2, m0.Node().recomputedAt)
+	testutil.Equal(t, 2, v0.Node().recomputedAt)
+	testutil.Equal(t, 0, v1.Node().recomputedAt)
+	testutil.Equal(t, 2, m0.Node().recomputedAt)
 
-	Equal(t, "not foo bar", m0.Value())
+	testutil.Equal(t, "not foo bar", m0.Value())
 }
 
 func Test_Stabilize_error(t *testing.T) {
@@ -68,8 +67,8 @@ func Test_Stabilize_error(t *testing.T) {
 	_ = MustObserve(g, m0)
 
 	err := g.Stabilize(ctx)
-	NotNil(t, err)
-	Equal(t, "this is just a test", err.Error())
+	testutil.NotNil(t, err)
+	testutil.Equal(t, "this is just a test", err.Error())
 }
 
 func Test_Stabilize_errorHandler(t *testing.T) {
@@ -81,16 +80,16 @@ func Test_Stabilize_errorHandler(t *testing.T) {
 	})
 	var gotError error
 	m0.Node().OnError(func(ctx context.Context, err error) {
-		BlueDye(ctx, t)
+		testutil.BlueDye(ctx, t)
 		gotError = err
 	})
 
 	_ = MustObserve(g, m0)
 
 	err := g.Stabilize(ctx)
-	NotNil(t, err)
-	Equal(t, "this is just a test", err.Error())
-	Equal(t, "this is just a test", gotError.Error())
+	testutil.NotNil(t, err)
+	testutil.Equal(t, "this is just a test", err.Error())
+	testutil.Equal(t, "this is just a test", gotError.Error())
 }
 
 func Test_Stabilize_alreadyStabilizing(t *testing.T) {
@@ -123,10 +122,10 @@ func Test_Stabilize_alreadyStabilizing(t *testing.T) {
 		}
 	}()
 	err := <-errs
-	Equal(t, ErrAlreadyStabilizing, err)
+	testutil.Equal(t, ErrAlreadyStabilizing, err)
 	close(hold)
 	wg.Wait()
-	Equal(t, "ok!", m0.Value())
+	testutil.Equal(t, "ok!", m0.Value())
 }
 
 func Test_Stabilize_updateHandlers(t *testing.T) {
@@ -147,13 +146,13 @@ func Test_Stabilize_updateHandlers(t *testing.T) {
 	_ = MustObserve(g, m0)
 
 	err := g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, 1, updates)
+	testutil.Nil(t, err)
+	testutil.Equal(t, 1, updates)
 
 	v0.Set("not foo")
 	err = g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, 2, updates)
+	testutil.Nil(t, err)
+	testutil.Equal(t, 2, updates)
 }
 
 func Test_Stabilize_unevenHeights(t *testing.T) {
@@ -173,13 +172,13 @@ func Test_Stabilize_unevenHeights(t *testing.T) {
 	_ = MustObserve(g, m1)
 
 	err := g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, "moo != foo bar", m1.Value())
+	testutil.Nil(t, err)
+	testutil.Equal(t, "moo != foo bar", m1.Value())
 
 	v0.Set("not foo")
 	err = g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, "moo != not foo bar", m1.Value())
+	testutil.Nil(t, err)
+	testutil.Equal(t, "moo != not foo bar", m1.Value())
 }
 
 func Test_Stabilize_chain(t *testing.T) {
@@ -201,12 +200,12 @@ func Test_Stabilize_chain(t *testing.T) {
 	o := MustObserve(g, maps[len(maps)-1])
 
 	err := g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, strings.Repeat(".", 101), o.Value())
+	testutil.Nil(t, err)
+	testutil.Equal(t, strings.Repeat(".", 101), o.Value())
 
-	Equal(t, 102, g.numNodes, "should include the observer!")
-	Equal(t, 100, g.numNodesChanged, "should _not_ include the observer!")
-	Equal(t, 100, g.numNodesRecomputed, "should _not_ include the observer!")
+	testutil.Equal(t, 102, g.numNodes, "should include the observer!")
+	testutil.Equal(t, 100, g.numNodesChanged, "should _not_ include the observer!")
+	testutil.Equal(t, 100, g.numNodesRecomputed, "should _not_ include the observer!")
 }
 
 func Test_Stabilize_setDuringStabilization(t *testing.T) {
@@ -234,15 +233,15 @@ func Test_Stabilize_setDuringStabilization(t *testing.T) {
 
 	// we're now stabilizing
 	v0.Set("not-foo")
-	Equal(t, "foo", v0.Value())
+	testutil.Equal(t, "foo", v0.Value())
 
 	close(wait)
 	<-done
 
 	// we're now _done_ stabilizing
-	Equal(t, "not-foo", v0.Value())
-	Equal(t, g.stabilizationNum, v0.Node().setAt)
-	Equal(t, 1, g.recomputeHeap.numItems)
+	testutil.Equal(t, "not-foo", v0.Value())
+	testutil.Equal(t, g.stabilizationNum, v0.Node().setAt)
+	testutil.Equal(t, 1, g.recomputeHeap.numItems)
 }
 
 func Test_Stabilize_onUpdate(t *testing.T) {
@@ -263,10 +262,10 @@ func Test_Stabilize_onUpdate(t *testing.T) {
 	_ = MustObserve(g, m0)
 
 	err := g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, "helloworld", m0.Value())
-	Equal(t, true, didCallUpdateHandler0)
-	Equal(t, true, didCallUpdateHandler1)
+	testutil.Nil(t, err)
+	testutil.Equal(t, "helloworld", m0.Value())
+	testutil.Equal(t, true, didCallUpdateHandler0)
+	testutil.Equal(t, true, didCallUpdateHandler1)
 }
 
 func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
@@ -297,16 +296,16 @@ func Test_Stabilize_recombinant_singleUpdate(t *testing.T) {
 	_ = MustObserve(g, z)
 
 	err := g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, 1, z.Node().numRecomputes)
-	Equal(t, "a->b->c->d+a->f->e->z", z.Value())
+	testutil.Nil(t, err)
+	testutil.Equal(t, 1, z.Node().numRecomputes)
+	testutil.Equal(t, "a->b->c->d+a->f->e->z", z.Value())
 
 	a.Set("!a")
 
 	err = g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, "!a->b->c->d+!a->f->e->z", z.Value())
-	Equal(t, 2, z.Node().numRecomputes)
+	testutil.Nil(t, err)
+	testutil.Equal(t, "!a->b->c->d+!a->f->e->z", z.Value())
+	testutil.Equal(t, 2, z.Node().numRecomputes)
 }
 
 func Test_Stabilize_doubleVarSet_singleUpdate(t *testing.T) {
@@ -322,16 +321,16 @@ func Test_Stabilize_doubleVarSet_singleUpdate(t *testing.T) {
 	_ = MustObserve(g, m)
 
 	_ = g.Stabilize(ctx)
-	Equal(t, "a b", m.Value())
+	testutil.Equal(t, "a b", m.Value())
 
 	a.Set("aa")
-	Equal(t, 1, g.recomputeHeap.len())
+	testutil.Equal(t, 1, g.recomputeHeap.len())
 
 	a.Set("aaa")
-	Equal(t, 1, g.recomputeHeap.len())
+	testutil.Equal(t, 1, g.recomputeHeap.len())
 
 	_ = g.Stabilize(ctx)
-	Equal(t, "aaa b", m.Value())
+	testutil.Equal(t, "aaa b", m.Value())
 }
 
 func Test_Stabilize_verifyPartial(t *testing.T) {
@@ -362,14 +361,14 @@ func Test_Stabilize_verifyPartial(t *testing.T) {
 	_ = MustObserve(g, mi)
 
 	err := g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, "foo bar", mi.Value())
+	testutil.Nil(t, err)
+	testutil.Equal(t, "foo bar", mi.Value())
 
 	v0.Set("Foo")
 
 	err = g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, "foo bar", mi.Value())
+	testutil.Nil(t, err)
+	testutil.Equal(t, "foo bar", mi.Value())
 }
 
 func Test_Stabilize_jsDocs(t *testing.T) {
@@ -410,8 +409,8 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 	err := g.Stabilize(
 		ctx,
 	)
-	Nil(t, err)
-	Equal(t, 2, len(output.Value()))
+	testutil.Nil(t, err)
+	testutil.Equal(t, 2, len(output.Value()))
 
 	data = append(data, Entry{
 		"5", now.Add(5 * time.Second),
@@ -419,15 +418,15 @@ func Test_Stabilize_jsDocs(t *testing.T) {
 	err = g.Stabilize(
 		ctx,
 	)
-	Nil(t, err)
-	Equal(t, 2, len(output.Value()))
+	testutil.Nil(t, err)
+	testutil.Equal(t, 2, len(output.Value()))
 
 	i.Set(data)
 	err = g.Stabilize(
 		context.Background(),
 	)
-	Nil(t, err)
-	Equal(t, 3, len(output.Value()))
+	testutil.Nil(t, err)
+	testutil.Equal(t, 3, len(output.Value()))
 }
 
 func Test_Stabilize_Bind(t *testing.T) {
@@ -456,38 +455,38 @@ func Test_Stabilize_Bind(t *testing.T) {
 
 	_ = MustObserve(g, mb)
 
-	Equal(t, true, g.Has(sw))
+	testutil.Equal(t, true, g.Has(sw))
 
 	err := g.Stabilize(ctx)
-	Nil(t, err)
+	testutil.Nil(t, err)
 
-	Equal(t, false, g.Has(i0))
-	Equal(t, false, g.Has(m0))
+	testutil.Equal(t, false, g.Has(i0))
+	testutil.Equal(t, false, g.Has(m0))
 
-	Equal(t, true, g.Has(i1))
-	Equal(t, true, g.Has(m1))
+	testutil.Equal(t, true, g.Has(i1))
+	testutil.Equal(t, true, g.Has(m1))
 
-	Equal(t, true, i1.Node().isNecessary())
-	Equal(t, true, m1.Node().isNecessary())
+	testutil.Equal(t, true, i1.Node().isNecessary())
+	testutil.Equal(t, true, m1.Node().isNecessary())
 
-	Equal(t, "bar-loo-baz", mb.Value())
+	testutil.Equal(t, "bar-loo-baz", mb.Value())
 
 	sw.Set(true)
-	Equal(t, true, g.recomputeHeap.has(sw))
+	testutil.Equal(t, true, g.recomputeHeap.has(sw))
 
 	err = g.Stabilize(ctx)
-	Nil(t, err)
+	testutil.Nil(t, err)
 
-	Equal(t, true, g.Has(i0))
-	Equal(t, true, g.Has(m0))
+	testutil.Equal(t, true, g.Has(i0))
+	testutil.Equal(t, true, g.Has(m0))
 
-	Equal(t, true, i0.Node().isNecessary())
-	Equal(t, true, m0.Node().isNecessary())
+	testutil.Equal(t, true, i0.Node().isNecessary())
+	testutil.Equal(t, true, m0.Node().isNecessary())
 
-	Equal(t, false, g.Has(i1))
-	Equal(t, false, g.Has(m1))
+	testutil.Equal(t, false, g.Has(i1))
+	testutil.Equal(t, false, g.Has(m1))
 
-	Equal(t, "foo-moo-baz", mb.Value())
+	testutil.Equal(t, "foo-moo-baz", mb.Value())
 }
 
 func Test_Stabilize_BindIf(t *testing.T) {
@@ -499,7 +498,7 @@ func Test_Stabilize_BindIf(t *testing.T) {
 	i1 := Return(g, "bar")
 
 	b := BindIf(g, sw, func(ctx context.Context, bs Scope, swv bool) (Incr[string], error) {
-		BlueDye(ctx, t)
+		testutil.BlueDye(ctx, t)
 		if swv {
 			return i0, nil
 		}
@@ -509,20 +508,20 @@ func Test_Stabilize_BindIf(t *testing.T) {
 	_ = MustObserve(g, b)
 
 	err := g.Stabilize(ctx)
-	Nil(t, err)
+	testutil.Nil(t, err)
 
 	// Nil(t, i0.Node().graph, "i0 should not be in the graph after the first stabilization")
 	// NotNil(t, i1.Node().graph, "i1 should be in the graph after the first stabilization")
 
-	Equal(t, "bar", b.Value())
+	testutil.Equal(t, "bar", b.Value())
 
 	sw.Set(true)
 	err = g.Stabilize(ctx)
-	Nil(t, err)
+	testutil.Nil(t, err)
 
 	// NotNil(t, i0.Node().graph, "i1 should not be in the graph after the third stabilization")
 
-	Equal(t, "foo", b.Value())
+	testutil.Equal(t, "foo", b.Value())
 }
 
 func Test_Stabilize_Bind2(t *testing.T) {
@@ -536,24 +535,24 @@ func Test_Stabilize_Bind2(t *testing.T) {
 		return Return(bs, a+b)
 	})
 
-	Equal(t, "bind2", b2.Node().Kind())
+	testutil.Equal(t, "bind2", b2.Node().Kind())
 
 	o := MustObserve(g, b2)
 	err := g.Stabilize(ctx)
-	NoError(t, err)
-	Equal(t, "ab", o.Value())
+	testutil.NoError(t, err)
+	testutil.Equal(t, "ab", o.Value())
 
 	v0.Set("xa")
 
 	err = g.Stabilize(ctx)
-	NoError(t, err)
-	Equal(t, "xab", o.Value())
+	testutil.NoError(t, err)
+	testutil.Equal(t, "xab", o.Value())
 
 	v1.Set("xb")
 
 	err = g.Stabilize(ctx)
-	NoError(t, err)
-	Equal(t, "xaxb", o.Value())
+	testutil.NoError(t, err)
+	testutil.Equal(t, "xaxb", o.Value())
 }
 
 func Test_Stabilize_Bind3(t *testing.T) {
@@ -567,30 +566,30 @@ func Test_Stabilize_Bind3(t *testing.T) {
 	b3 := Bind3(g, v0, v1, v2, func(bs Scope, a, b, c string) Incr[string] {
 		return Return(bs, a+b+c)
 	})
-	Equal(t, "bind3", b3.Node().Kind())
+	testutil.Equal(t, "bind3", b3.Node().Kind())
 
 	o := MustObserve(g, b3)
 	err := g.Stabilize(ctx)
-	NoError(t, err)
-	Equal(t, "abc", o.Value())
+	testutil.NoError(t, err)
+	testutil.Equal(t, "abc", o.Value())
 
 	v0.Set("xa")
 
 	err = g.Stabilize(ctx)
-	NoError(t, err)
-	Equal(t, "xabc", o.Value())
+	testutil.NoError(t, err)
+	testutil.Equal(t, "xabc", o.Value())
 
 	v1.Set("xb")
 
 	err = g.Stabilize(ctx)
-	NoError(t, err)
-	Equal(t, "xaxbc", o.Value())
+	testutil.NoError(t, err)
+	testutil.Equal(t, "xaxbc", o.Value())
 
 	v2.Set("xc")
 
 	err = g.Stabilize(ctx)
-	NoError(t, err)
-	Equal(t, "xaxbxc", o.Value())
+	testutil.NoError(t, err)
+	testutil.Equal(t, "xaxbxc", o.Value())
 }
 
 func Test_Stabilize_Bind4(t *testing.T) {
@@ -605,36 +604,36 @@ func Test_Stabilize_Bind4(t *testing.T) {
 	b4 := Bind4(g, v0, v1, v2, v3, func(bs Scope, a, b, c, d string) Incr[string] {
 		return Return(bs, a+b+c+d)
 	})
-	Equal(t, "bind4", b4.Node().Kind())
+	testutil.Equal(t, "bind4", b4.Node().Kind())
 
 	o := MustObserve(g, b4)
 	err := g.Stabilize(ctx)
-	NoError(t, err)
-	Equal(t, "abcd", o.Value())
+	testutil.NoError(t, err)
+	testutil.Equal(t, "abcd", o.Value())
 
 	v0.Set("xa")
 
 	err = g.Stabilize(ctx)
-	NoError(t, err)
-	Equal(t, "xabcd", o.Value())
+	testutil.NoError(t, err)
+	testutil.Equal(t, "xabcd", o.Value())
 
 	v1.Set("xb")
 
 	err = g.Stabilize(ctx)
-	NoError(t, err)
-	Equal(t, "xaxbcd", o.Value())
+	testutil.NoError(t, err)
+	testutil.Equal(t, "xaxbcd", o.Value())
 
 	v2.Set("xc")
 
 	err = g.Stabilize(ctx)
-	NoError(t, err)
-	Equal(t, "xaxbxcd", o.Value())
+	testutil.NoError(t, err)
+	testutil.Equal(t, "xaxbxcd", o.Value())
 
 	v3.Set("xd")
 
 	err = g.Stabilize(ctx)
-	NoError(t, err)
-	Equal(t, "xaxbxcxd", o.Value())
+	testutil.NoError(t, err)
+	testutil.Equal(t, "xaxbxcxd", o.Value())
 }
 
 func Test_Stabilize_Cutoff(t *testing.T) {
@@ -659,29 +658,29 @@ func Test_Stabilize_Cutoff(t *testing.T) {
 	_ = g.Stabilize(
 		ctx,
 	)
-	Equal(t, 13.14, output.Value())
-	Equal(t, 3.14, cutoff.Value())
+	testutil.Equal(t, 13.14, output.Value())
+	testutil.Equal(t, 3.14, cutoff.Value())
 
 	input.Set(3.15)
 
 	_ = g.Stabilize(
 		ctx,
 	)
-	Equal(t, 3.14, cutoff.Value())
-	Equal(t, 13.14, output.Value())
+	testutil.Equal(t, 3.14, cutoff.Value())
+	testutil.Equal(t, 13.14, output.Value())
 
 	input.Set(3.26) // differs by 0.11, which is > 0.1
 
 	_ = g.Stabilize(
 		ctx,
 	)
-	Equal(t, 3.26, cutoff.Value())
-	Equal(t, 13.26, output.Value())
+	testutil.Equal(t, 3.26, cutoff.Value())
+	testutil.Equal(t, 13.26, output.Value())
 
 	_ = g.Stabilize(
 		ctx,
 	)
-	Equal(t, 13.26, output.Value())
+	testutil.Equal(t, 13.26, output.Value())
 }
 
 func Test_Stabilize_CutoffContext(t *testing.T) {
@@ -707,29 +706,29 @@ func Test_Stabilize_CutoffContext(t *testing.T) {
 	_ = g.Stabilize(
 		ctx,
 	)
-	Equal(t, 13.14, output.Value())
-	Equal(t, 3.14, cutoff.Value())
+	testutil.Equal(t, 13.14, output.Value())
+	testutil.Equal(t, 3.14, cutoff.Value())
 
 	input.Set(3.15)
 
 	_ = g.Stabilize(
 		ctx,
 	)
-	Equal(t, 3.14, cutoff.Value())
-	Equal(t, 13.14, output.Value())
+	testutil.Equal(t, 3.14, cutoff.Value())
+	testutil.Equal(t, 13.14, output.Value())
 
 	input.Set(3.26) // differs by 0.11, which is > 0.1
 
 	_ = g.Stabilize(
 		ctx,
 	)
-	Equal(t, 3.26, cutoff.Value())
-	Equal(t, 13.26, output.Value())
+	testutil.Equal(t, 3.26, cutoff.Value())
+	testutil.Equal(t, 13.26, output.Value())
 
 	_ = g.Stabilize(
 		ctx,
 	)
-	Equal(t, 13.26, output.Value())
+	testutil.Equal(t, 13.26, output.Value())
 }
 
 func Test_Stabilize_CutoffContext_error(t *testing.T) {
@@ -764,18 +763,18 @@ func Test_Stabilize_CutoffContext_error(t *testing.T) {
 	err := g.Stabilize(
 		ctx,
 	)
-	NotNil(t, err)
-	Equal(t, 1, errors)
-	Equal(t, 0, output.Value())
+	testutil.NotNil(t, err)
+	testutil.Equal(t, 1, errors)
+	testutil.Equal(t, 0, output.Value())
 
 	input.Set(3.15)
 
 	err = g.Stabilize(
 		ctx,
 	)
-	NotNil(t, err)
-	Equal(t, 2, errors)
-	Equal(t, 0, output.Value())
+	testutil.NotNil(t, err)
+	testutil.Equal(t, 2, errors)
+	testutil.Equal(t, 0, output.Value())
 }
 
 func Test_Stabilize_Cutoff2(t *testing.T) {
@@ -802,29 +801,29 @@ func Test_Stabilize_Cutoff2(t *testing.T) {
 	_ = g.Stabilize(
 		ctx,
 	)
-	Equal(t, 13.14, output.Value())
-	Equal(t, 3.14, cutoff.Value())
+	testutil.Equal(t, 13.14, output.Value())
+	testutil.Equal(t, 3.14, cutoff.Value())
 
 	input.Set(3.15)
 
 	_ = g.Stabilize(
 		ctx,
 	)
-	Equal(t, 3.14, cutoff.Value())
-	Equal(t, 13.14, output.Value())
+	testutil.Equal(t, 3.14, cutoff.Value())
+	testutil.Equal(t, 13.14, output.Value())
 
 	input.Set(3.26) // differs by 0.11, which is > 0.1
 
 	_ = g.Stabilize(
 		ctx,
 	)
-	Equal(t, 3.26, cutoff.Value())
-	Equal(t, 13.26, output.Value())
+	testutil.Equal(t, 3.26, cutoff.Value())
+	testutil.Equal(t, 13.26, output.Value())
 
 	_ = g.Stabilize(
 		ctx,
 	)
-	Equal(t, 13.26, output.Value())
+	testutil.Equal(t, 13.26, output.Value())
 
 	epsilon.Set(0.5)
 	input.Set(3.37) // differs by 0.11, which is < 0.5
@@ -832,13 +831,13 @@ func Test_Stabilize_Cutoff2(t *testing.T) {
 	_ = g.Stabilize(
 		ctx,
 	)
-	Equal(t, 3.26, cutoff.Value())
-	Equal(t, 13.26, output.Value())
+	testutil.Equal(t, 3.26, cutoff.Value())
+	testutil.Equal(t, 13.26, output.Value())
 
 	_ = g.Stabilize(
 		ctx,
 	)
-	Equal(t, 13.26, output.Value())
+	testutil.Equal(t, 13.26, output.Value())
 }
 
 func Test_Stabilize_Cutoff2Context_error(t *testing.T) {
@@ -875,18 +874,18 @@ func Test_Stabilize_Cutoff2Context_error(t *testing.T) {
 	err := g.Stabilize(
 		ctx,
 	)
-	NotNil(t, err)
-	Equal(t, 1, errors)
-	Equal(t, 0, output.Value())
+	testutil.NotNil(t, err)
+	testutil.Equal(t, 1, errors)
+	testutil.Equal(t, 0, output.Value())
 
 	input.Set(3.15)
 
 	err = g.Stabilize(
 		ctx,
 	)
-	NotNil(t, err)
-	Equal(t, 2, errors)
-	Equal(t, 0, output.Value())
+	testutil.NotNil(t, err)
+	testutil.Equal(t, 2, errors)
+	testutil.Equal(t, 0, output.Value())
 }
 
 func Test_Stabilize_Watch(t *testing.T) {
@@ -902,17 +901,17 @@ func Test_Stabilize_Watch(t *testing.T) {
 
 	_ = g.Stabilize(ctx)
 
-	Equal(t, 1, len(w0.Values()))
-	Equal(t, 2, w0.Values()[0])
-	Equal(t, 2, w0.Value())
+	testutil.Equal(t, 1, len(w0.Values()))
+	testutil.Equal(t, 2, w0.Values()[0])
+	testutil.Equal(t, 2, w0.Value())
 
 	v0.Set(2)
 
 	_ = g.Stabilize(ctx)
 
-	Equal(t, 2, len(w0.Values()))
-	Equal(t, 2, w0.Values()[0])
-	Equal(t, 3, w0.Values()[1])
+	testutil.Equal(t, 2, len(w0.Values()))
+	testutil.Equal(t, 2, w0.Values()[0])
+	testutil.Equal(t, 3, w0.Values()[1])
 }
 
 func Test_Stabilize_Map(t *testing.T) {
@@ -927,7 +926,7 @@ func Test_Stabilize_Map(t *testing.T) {
 	_ = MustObserve(g, m)
 
 	_ = g.Stabilize(ctx)
-	Equal(t, 11, m.Value())
+	testutil.Equal(t, 11, m.Value())
 }
 
 func Test_Stabilize_MapContext(t *testing.T) {
@@ -936,14 +935,14 @@ func Test_Stabilize_MapContext(t *testing.T) {
 
 	c0 := Return(g, 1)
 	m := MapContext(g, c0, func(ictx context.Context, a int) (int, error) {
-		BlueDye(ictx, t)
+		testutil.BlueDye(ictx, t)
 		return a + 10, nil
 	})
 
 	_ = MustObserve(g, m)
 
 	_ = g.Stabilize(ctx)
-	Equal(t, 11, m.Value())
+	testutil.Equal(t, 11, m.Value())
 }
 
 func Test_Stabilize_Map2(t *testing.T) {
@@ -959,7 +958,7 @@ func Test_Stabilize_Map2(t *testing.T) {
 	_ = MustObserve(g, m2)
 
 	_ = g.Stabilize(ctx)
-	Equal(t, 3, m2.Value())
+	testutil.Equal(t, 3, m2.Value())
 }
 
 func Test_Stabilize_Map2Context(t *testing.T) {
@@ -969,14 +968,14 @@ func Test_Stabilize_Map2Context(t *testing.T) {
 	c0 := Return(g, 1)
 	c1 := Return(g, 2)
 	m2 := Map2Context(g, c0, c1, func(ictx context.Context, a, b int) (int, error) {
-		BlueDye(ctx, t)
+		testutil.BlueDye(ctx, t)
 		return a + b, nil
 	})
 
 	_ = MustObserve(g, m2)
 
 	_ = g.Stabilize(ctx)
-	Equal(t, 3, m2.Value())
+	testutil.Equal(t, 3, m2.Value())
 }
 
 func Test_Stabilize_Map2Context_error(t *testing.T) {
@@ -986,15 +985,15 @@ func Test_Stabilize_Map2Context_error(t *testing.T) {
 	c0 := Return(g, 1)
 	c1 := Return(g, 2)
 	m2 := Map2Context(g, c0, c1, func(ictx context.Context, a, b int) (int, error) {
-		BlueDye(ctx, t)
+		testutil.BlueDye(ctx, t)
 		return a + b, fmt.Errorf("this is just a test")
 	})
 
 	_ = MustObserve(g, m2)
 
 	err := g.Stabilize(ctx)
-	NotNil(t, err)
-	Equal(t, 0, m2.Value())
+	testutil.NotNil(t, err)
+	testutil.Equal(t, 0, m2.Value())
 }
 
 func Test_Stabilize_Map3(t *testing.T) {
@@ -1011,7 +1010,7 @@ func Test_Stabilize_Map3(t *testing.T) {
 	_ = MustObserve(g, m3)
 
 	_ = g.Stabilize(ctx)
-	Equal(t, 6, m3.Value())
+	testutil.Equal(t, 6, m3.Value())
 }
 
 func Test_Stabilize_Map4(t *testing.T) {
@@ -1029,7 +1028,7 @@ func Test_Stabilize_Map4(t *testing.T) {
 	_ = MustObserve(g, m3)
 
 	_ = g.Stabilize(ctx)
-	Equal(t, 10, m3.Value())
+	testutil.Equal(t, 10, m3.Value())
 }
 
 func Test_Stabilize_Map3Context(t *testing.T) {
@@ -1040,14 +1039,14 @@ func Test_Stabilize_Map3Context(t *testing.T) {
 	c1 := Return(g, 2)
 	c2 := Return(g, 3)
 	m3 := Map3Context(g, c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
-		BlueDye(ictx, t)
+		testutil.BlueDye(ictx, t)
 		return a + b + c, nil
 	})
 
 	_ = MustObserve(g, m3)
 
 	_ = g.Stabilize(ctx)
-	Equal(t, 6, m3.Value())
+	testutil.Equal(t, 6, m3.Value())
 }
 
 func Test_Stabilize_Map3Context_error(t *testing.T) {
@@ -1058,15 +1057,15 @@ func Test_Stabilize_Map3Context_error(t *testing.T) {
 	c1 := Return(g, 2)
 	c2 := Return(g, 3)
 	m3 := Map3Context(g, c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
-		BlueDye(ictx, t)
+		testutil.BlueDye(ictx, t)
 		return a + b + c, fmt.Errorf("this is just a test")
 	})
 
 	_ = MustObserve(g, m3)
 
 	err := g.Stabilize(ctx)
-	NotNil(t, err)
-	Equal(t, 0, m3.Value())
+	testutil.NotNil(t, err)
+	testutil.Equal(t, 0, m3.Value())
 }
 
 func Test_Stabilize_MapIf(t *testing.T) {
@@ -1081,15 +1080,15 @@ func Test_Stabilize_MapIf(t *testing.T) {
 	_ = MustObserve(g, mi0)
 
 	_ = g.Stabilize(ctx)
-	Equal(t, 2, mi0.Value())
+	testutil.Equal(t, 2, mi0.Value())
 
 	v0.Set(true)
 
 	_ = g.Stabilize(ctx)
-	Equal(t, 1, mi0.Value())
+	testutil.Equal(t, 1, mi0.Value())
 
 	_ = g.Stabilize(ctx)
-	Equal(t, 1, mi0.Value())
+	testutil.Equal(t, 1, mi0.Value())
 }
 
 func Test_Stabilize_MapN(t *testing.T) {
@@ -1115,7 +1114,7 @@ func Test_Stabilize_MapN(t *testing.T) {
 	_ = MustObserve(g, mn)
 
 	_ = g.Stabilize(ctx)
-	Equal(t, 6, mn.Value())
+	testutil.Equal(t, 6, mn.Value())
 }
 
 func Test_Stabilize_MapN_AddInput(t *testing.T) {
@@ -1144,7 +1143,7 @@ func Test_Stabilize_MapN_AddInput(t *testing.T) {
 	_ = MustObserve(g, mn)
 
 	_ = g.Stabilize(ctx)
-	Equal(t, 6, mn.Value())
+	testutil.Equal(t, 6, mn.Value())
 }
 
 func Test_Stabilize_MapNContext(t *testing.T) {
@@ -1152,7 +1151,7 @@ func Test_Stabilize_MapNContext(t *testing.T) {
 	g := New()
 
 	sum := func(ctx context.Context, values ...int) (output int, err error) {
-		BlueDye(ctx, t)
+		testutil.BlueDye(ctx, t)
 		if len(values) == 0 {
 			return
 		}
@@ -1171,7 +1170,7 @@ func Test_Stabilize_MapNContext(t *testing.T) {
 	_ = MustObserve(g, mn)
 
 	_ = g.Stabilize(ctx)
-	Equal(t, 6, mn.Value())
+	testutil.Equal(t, 6, mn.Value())
 }
 
 func Test_Stabilize_MapNContext_error(t *testing.T) {
@@ -1179,7 +1178,7 @@ func Test_Stabilize_MapNContext_error(t *testing.T) {
 	g := New()
 
 	sum := func(ctx context.Context, values ...int) (output int, err error) {
-		BlueDye(ctx, t)
+		testutil.BlueDye(ctx, t)
 		for _, value := range values {
 			output += value
 		}
@@ -1195,8 +1194,8 @@ func Test_Stabilize_MapNContext_error(t *testing.T) {
 	_ = MustObserve(g, mn)
 
 	err := g.Stabilize(ctx)
-	NotNil(t, err)
-	Equal(t, 0, mn.Value())
+	testutil.NotNil(t, err)
+	testutil.Equal(t, 0, mn.Value())
 }
 
 func Test_Stabilize_Func(t *testing.T) {
@@ -1205,30 +1204,30 @@ func Test_Stabilize_Func(t *testing.T) {
 
 	value := "hello"
 	f := Func(g, func(ictx context.Context) (string, error) {
-		BlueDye(ictx, t)
+		testutil.BlueDye(ictx, t)
 		return value, nil
 	})
 	m := MapContext(g, f, func(ictx context.Context, v string) (string, error) {
-		BlueDye(ctx, t)
+		testutil.BlueDye(ctx, t)
 		return v + " world!", nil
 	})
 
 	_ = MustObserve(g, m)
 
 	_ = g.Stabilize(ctx)
-	Equal(t, "hello world!", m.Value())
+	testutil.Equal(t, "hello world!", m.Value())
 
 	value = "not hello"
 
 	_ = g.Stabilize(ctx)
-	Equal(t, "hello world!", m.Value())
+	testutil.Equal(t, "hello world!", m.Value())
 
 	// mark the func node as stale
 	// not sure a better way to do this automatically?
 	g.SetStale(f)
 
 	_ = g.Stabilize(ctx)
-	Equal(t, "not hello world!", m.Value())
+	testutil.Equal(t, "not hello world!", m.Value())
 }
 
 func Test_Stabilize_FoldMap(t *testing.T) {
@@ -1250,7 +1249,7 @@ func Test_Stabilize_FoldMap(t *testing.T) {
 	_ = MustObserve(g, mf)
 
 	_ = g.Stabilize(ctx)
-	Equal(t, 21, mf.Value())
+	testutil.Equal(t, 21, mf.Value())
 }
 
 func Test_Stabilize_FoldLeft(t *testing.T) {
@@ -1272,7 +1271,7 @@ func Test_Stabilize_FoldLeft(t *testing.T) {
 	_ = MustObserve(g, mf)
 
 	_ = g.Stabilize(ctx)
-	Equal(t, "123456", mf.Value())
+	testutil.Equal(t, "123456", mf.Value())
 }
 
 func Test_Stabilize_FoldRight(t *testing.T) {
@@ -1294,12 +1293,12 @@ func Test_Stabilize_FoldRight(t *testing.T) {
 	_ = MustObserve(g, mf)
 
 	_ = g.Stabilize(ctx)
-	Equal(t, "654321", mf.Value())
+	testutil.Equal(t, "654321", mf.Value())
 
 	g.SetStale(mf)
 
 	_ = g.Stabilize(ctx)
-	Equal(t, "654321654321", mf.Value())
+	testutil.Equal(t, "654321654321", mf.Value())
 }
 
 func Test_Stabilize_Freeze(t *testing.T) {
@@ -1312,16 +1311,16 @@ func Test_Stabilize_Freeze(t *testing.T) {
 	_ = MustObserve(g, fv)
 
 	err := g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, "hello", v0.Value())
-	Equal(t, "hello", fv.Value())
+	testutil.Nil(t, err)
+	testutil.Equal(t, "hello", v0.Value())
+	testutil.Equal(t, "hello", fv.Value())
 
 	v0.Set("not-hello")
 
 	err = g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, "not-hello", v0.Value())
-	Equal(t, "hello", fv.Value())
+	testutil.Nil(t, err)
+	testutil.Equal(t, "not-hello", v0.Value())
+	testutil.Equal(t, "hello", fv.Value())
 }
 
 func Test_Stabilize_Always_Cutoff(t *testing.T) {
@@ -1341,22 +1340,22 @@ func Test_Stabilize_Always_Cutoff(t *testing.T) {
 	o := MustObserve(g, readFile)
 
 	err := g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, "test-1", o.Value())
+	testutil.Nil(t, err)
+	testutil.Equal(t, "test-1", o.Value())
 
 	err = g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, "test-1", o.Value())
+	testutil.Nil(t, err)
+	testutil.Equal(t, "test-1", o.Value())
 
 	modtime = 2
 
 	err = g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, "test-2", o.Value())
+	testutil.Nil(t, err)
+	testutil.Equal(t, "test-2", o.Value())
 
 	err = g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, "test-2", o.Value())
+	testutil.Nil(t, err)
+	testutil.Equal(t, "test-2", o.Value())
 }
 
 func Test_Stabilize_Always_Cutoff_error(t *testing.T) {
@@ -1376,10 +1375,10 @@ func Test_Stabilize_Always_Cutoff_error(t *testing.T) {
 	o := MustObserve(g, readFile)
 
 	err := g.Stabilize(ctx)
-	NotNil(t, err)
-	Equal(t, "", o.Value())
+	testutil.NotNil(t, err)
+	testutil.Equal(t, "", o.Value())
 
-	Equal(t, 2, g.recomputeHeap.len())
+	testutil.Equal(t, 2, g.recomputeHeap.len())
 }
 
 func Test_Stabilize_printsErrors(t *testing.T) {
@@ -1397,10 +1396,10 @@ func Test_Stabilize_printsErrors(t *testing.T) {
 	_ = MustObserve(g, gonnaPanic)
 
 	err := g.Stabilize(ctx)
-	NotNil(t, err)
-	NotEqual(t, 0, len(outBuf.String()))
-	NotEqual(t, 0, len(errBuf.String()))
-	Equal(t, true, strings.Contains(errBuf.String(), "this is only a test"))
+	testutil.NotNil(t, err)
+	testutil.NotEqual(t, 0, len(outBuf.String()))
+	testutil.NotEqual(t, 0, len(errBuf.String()))
+	testutil.Equal(t, true, strings.Contains(errBuf.String(), "this is only a test"))
 }
 
 func Test_Stabilize_handlers(t *testing.T) {
@@ -1420,19 +1419,19 @@ func Test_Stabilize_handlers(t *testing.T) {
 
 	_ = MustObserve(g, m0)
 	g.OnStabilizationStart(func(ictx context.Context) {
-		startWasBlueDye = HasBlueDye(ctx)
+		startWasBlueDye = testutil.HasBlueDye(ctx)
 		didCallStabilizationStart = true
 	})
 	g.OnStabilizationEnd(func(ictx context.Context, started time.Time, err error) {
-		endWasBlueDye = HasBlueDye(ctx)
+		endWasBlueDye = testutil.HasBlueDye(ctx)
 		didCallStabilizationEnd = true
 	})
 	err := g.Stabilize(ctx)
-	Nil(t, err)
-	Equal(t, true, didCallStabilizationStart)
-	Equal(t, true, didCallStabilizationEnd)
-	Equal(t, true, startWasBlueDye)
-	Equal(t, true, endWasBlueDye)
+	testutil.Nil(t, err)
+	testutil.Equal(t, true, didCallStabilizationStart)
+	testutil.Equal(t, true, didCallStabilizationEnd)
+	testutil.Equal(t, true, startWasBlueDye)
+	testutil.Equal(t, true, endWasBlueDye)
 }
 
 func Test_Stabilize_Bind_jsCombination(t *testing.T) {
@@ -1455,9 +1454,9 @@ func Test_Stabilize_Bind_jsCombination(t *testing.T) {
 	}))
 
 	err := g.Stabilize(ctx)
-	NoError(t, err)
+	testutil.NoError(t, err)
 
-	Equal(t, v1.Value()+(2*v2.Value())+(3*v3.Value())+(4*v4.Value()), o.Value())
+	testutil.Equal(t, v1.Value()+(2*v2.Value())+(3*v3.Value())+(4*v4.Value()), o.Value())
 
 	v1.Set(9)
 	v2.Set(10)
@@ -1465,9 +1464,9 @@ func Test_Stabilize_Bind_jsCombination(t *testing.T) {
 	v4.Set(12)
 
 	err = g.Stabilize(ctx)
-	NoError(t, err)
+	testutil.NoError(t, err)
 
-	Equal(t, v1.Value()+(2*v2.Value())+(3*v3.Value())+(4*v4.Value()), o.Value())
+	testutil.Equal(t, v1.Value()+(2*v2.Value())+(3*v3.Value())+(4*v4.Value()), o.Value())
 }
 
 func Test_Stabilize_alwaysInRecomputeHeapOnError(t *testing.T) {
