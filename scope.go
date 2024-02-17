@@ -16,8 +16,21 @@ import "fmt"
 // will be associated with its scope unless they were created _outside_
 // that scope and are simply referenced by nodes created by the bind.
 func WithinScope[A INode](scope Scope, node A) A {
-	maybeAddScopeNode(scope, node)
+	node.Node().createdIn = scope
+	if scope != nil && scope.isTopScope() {
+		return node
+	}
+	scope.addScopeNode(node)
 	return node
+}
+
+// GraphForNode returns the graph for a given node as derrived through
+// the scope it was created in, which must return a graph reference.
+func GraphForNode(node INode) *Graph {
+	if node == nil {
+		return nil
+	}
+	return node.Node().createdIn.scopeGraph()
 }
 
 // Scope is a type that's used to track which nodes are created by which "areas" of the graph.
@@ -34,19 +47,4 @@ type Scope interface {
 	addScopeNode(INode)
 	removeScopeNode(INode)
 	fmt.Stringer
-}
-
-func graphFromCreatedIn(node INode) *Graph {
-	if node == nil {
-		return nil
-	}
-	return node.Node().createdIn.scopeGraph()
-}
-
-func maybeAddScopeNode(scope Scope, node INode) {
-	node.Node().createdIn = scope
-	if scope != nil && scope.isTopScope() {
-		return
-	}
-	scope.addScopeNode(node)
 }

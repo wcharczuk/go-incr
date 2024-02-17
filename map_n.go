@@ -32,7 +32,7 @@ type MapNContextFunc[A, B any] func(context.Context, ...A) (B, error)
 // MapNIncr is a type of incremental that can add inputs over time.
 type MapNIncr[A, B any] interface {
 	Incr[B]
-	AddInput(Incr[A])
+	AddInput(Incr[A]) error
 }
 
 var (
@@ -58,9 +58,14 @@ func (mi *mapNIncr[A, B]) Parents() []INode {
 	return output
 }
 
-func (mn *mapNIncr[A, B]) AddInput(i Incr[A]) {
+func (mn *mapNIncr[A, B]) AddInput(i Incr[A]) error {
 	mn.inputs = append(mn.inputs, i)
-
+	if mn.n.height != HeightUnset {
+		// if we're already part of the graph, we have
+		// to tell the graph to update our parent<>child metadata
+		return GraphForNode(mn).addChild(mn, i)
+	}
+	return nil
 }
 
 func (mn *mapNIncr[A, B]) Node() *Node { return mn.n }

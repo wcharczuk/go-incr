@@ -128,9 +128,9 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.Equal(t, 0, s0.Node().height)
 	testutil.Equal(t, 1, s1.Node().height)
 
-	testutil.Equal(t, heightUnset, av.Node().height)
-	testutil.Equal(t, heightUnset, a0.Node().height)
-	testutil.Equal(t, heightUnset, a1.Node().height)
+	testutil.Equal(t, HeightUnset, av.Node().height)
+	testutil.Equal(t, HeightUnset, a0.Node().height)
+	testutil.Equal(t, HeightUnset, a1.Node().height)
 
 	testutil.Equal(t, 0, bv.Node().height)
 	testutil.Equal(t, 1, b0.Node().height)
@@ -170,14 +170,14 @@ func Test_Bind_basic(t *testing.T) {
 	testutil.Equal(t, 0, s0.Node().height)
 	testutil.Equal(t, 1, s1.Node().height)
 
-	testutil.Equal(t, heightUnset, av.Node().height)
-	testutil.Equal(t, heightUnset, a0.Node().height)
-	testutil.Equal(t, heightUnset, a1.Node().height)
+	testutil.Equal(t, HeightUnset, av.Node().height)
+	testutil.Equal(t, HeightUnset, a0.Node().height)
+	testutil.Equal(t, HeightUnset, a1.Node().height)
 
-	testutil.Equal(t, heightUnset, bv.Node().height)
-	testutil.Equal(t, heightUnset, b0.Node().height)
-	testutil.Equal(t, heightUnset, b1.Node().height)
-	testutil.Equal(t, heightUnset, b2.Node().height)
+	testutil.Equal(t, HeightUnset, bv.Node().height)
+	testutil.Equal(t, HeightUnset, b0.Node().height)
+	testutil.Equal(t, HeightUnset, b1.Node().height)
+	testutil.Equal(t, HeightUnset, b2.Node().height)
 
 	testutil.Equal(t, 4, bind.Node().height)
 	testutil.Equal(t, 5, o.Node().height)
@@ -997,8 +997,8 @@ func Test_Bind_nestedScopeHasGraph(t *testing.T) {
 	_ = g.Stabilize(ctx)
 	testutil.Equal(t, "aa", ob.Value())
 
-	testutil.NotNil(t, graphFromCreatedIn(ibv00))
-	testutil.NotNil(t, graphFromCreatedIn(ibv01))
+	testutil.NotNil(t, GraphForNode(ibv00))
+	testutil.NotNil(t, GraphForNode(ibv01))
 
 	testutil.Equal(t, false, ibv00.Node().createdIn.isTopScope())
 	testutil.Equal(t, false, ibv01.Node().createdIn.isTopScope())

@@ -11,16 +11,21 @@ func NewNode(kind string) *Node {
 		id:                        NewIdentifier(),
 		kind:                      kind,
 		valid:                     true, // start out valid!
-		height:                    heightUnset,
-		heightInRecomputeHeap:     heightUnset,
-		heightInAdjustHeightsHeap: heightUnset,
+		height:                    HeightUnset,
+		heightInRecomputeHeap:     HeightUnset,
+		heightInAdjustHeightsHeap: HeightUnset,
 	}
 }
 
-const heightUnset = -1
+// HeightUnset is a constant that denotes that a height isn't
+// strictly set (because heights can be 0, we have to use something
+// other than the integer zero value).
+const HeightUnset = -1
 
 // Node is the common metadata for any node in the computation graph.
 type Node struct {
+	// createdIn is the "scope" the node was created in
+	createdIn Scope
 	// id is a unique identifier for the node
 	id Identifier
 	// kind is the meta-type of the node
@@ -39,6 +44,10 @@ type Node struct {
 	// observers are observer nodes that are attached to this
 	// node or its children.
 	observers []IObserver
+	// valid indicates if the scope that created the node is itself valid
+	valid bool
+	// forceNecessary forces the necessary state on the node
+	forceNecessary bool
 	// height is the topological sort pseudo-height of the
 	// node and is used to order recomputation
 	// it is established when the graph is initialized but
@@ -47,10 +56,6 @@ type Node struct {
 	// this node, e.g. how many other nodes have to update before
 	// this node has to update.
 	height int
-	// valid indicates if the scope that created the node is itself valid
-	valid bool
-	// forceNecessary forces the necessary state on the node
-	forceNecessary bool
 	// heightInRecomputeHeap is the height of a node in the recompute heap
 	heightInRecomputeHeap int
 	// heightInAdjustHeightsHeap is the height of a node in the adjust heights heap
@@ -85,6 +90,8 @@ type Node struct {
 	// eachParentFn is a function that nodes can implement to
 	// yield their inputs very quickly.
 	parentsFn func() []INode
+	// invalidateFn is a reference to the nodes invalidate function if present.
+	invalidateFn func()
 	// observer determines if we treat this as a special necessary state.
 	observer bool
 	// always determines if we always recompute this node.
@@ -93,8 +100,6 @@ type Node struct {
 	numRecomputes uint64
 	// numChanges is the number of times we changed the node
 	numChanges uint64
-	// createdIn is the "scope" the node was created in
-	createdIn Scope
 }
 
 //
@@ -182,11 +187,12 @@ func (n *Node) Observers() []IObserver {
 func (n *Node) initializeFrom(in INode) {
 	n.detectAlways(in)
 	n.detectCutoff(in)
+	n.detectInvalidate(in)
 	n.detectObserver(in)
 	n.detectParents(in)
-	n.detectStale(in)
 	n.detectShouldBeInvalidated(in)
 	n.detectStabilize(in)
+	n.detectStale(in)
 }
 
 func (n *Node) addChildren(children ...INode) {
@@ -238,6 +244,12 @@ func (n *Node) detectAlways(gn INode) {
 	_, n.always = gn.(IAlways)
 }
 
+func (n *Node) detectInvalidate(gn INode) {
+	if typed, ok := gn.(IBindMain); ok {
+		n.invalidateFn = typed.Invalidate
+	}
+}
+
 func (n *Node) detectObserver(gn INode) {
 	_, n.observer = gn.(IObserver)
 }
@@ -258,6 +270,13 @@ func (n *Node) detectShouldBeInvalidated(gn INode) {
 	if typed, ok := gn.(IShouldBeInvalidated); ok {
 		n.shouldBeInvalidatedFn = typed.ShouldBeInvalidated
 	}
+}
+
+func (n *Node) maybeInvalidate() {
+	if n.invalidateFn != nil {
+		n.invalidateFn()
+	}
+	return
 }
 
 func (n *Node) maybeStabilize(ctx context.Context) (err error) {
@@ -285,13 +304,18 @@ func (n *Node) shouldBeInvalidated() bool {
 	return false
 }
 
-func (n *Node) isStaleInRespectToParent() (stale bool) {
+func (n *Node) nodeParents() []INode {
 	if parents := n.parentsFn; parents != nil {
-		for _, p := range parents() {
-			if p.Node().changedAt > n.recomputedAt {
-				stale = true
-				return
-			}
+		return n.parentsFn()
+	}
+	return nil
+}
+
+func (n *Node) isStaleInRespectToParent() (stale bool) {
+	for _, p := range n.nodeParents() {
+		if p.Node().changedAt > n.recomputedAt {
+			stale = true
+			return
 		}
 	}
 	return

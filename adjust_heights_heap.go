@@ -50,7 +50,7 @@ func (ah *adjustHeightsHeap) adjustHeights(rh *recomputeHeap, originalChild, ori
 	}
 	for ah.numNodes > 0 {
 		parent, _ := ah.removeMinUnsafe()
-		if parent.Node().heightInRecomputeHeap != heightUnset {
+		if parent.Node().heightInRecomputeHeap != HeightUnset {
 			rh.fix(parent)
 		}
 		for _, child := range parent.Node().children {
@@ -97,7 +97,7 @@ func (ah *adjustHeightsHeap) removeMinUnsafe() (node INode, ok bool) {
 		if ah.nodesByHeight[x] != nil && ah.nodesByHeight[x].len() > 0 {
 			_, node, ok = ah.nodesByHeight[x].pop()
 			ah.heightLowerBound = x
-			node.Node().heightInAdjustHeightsHeap = heightUnset
+			node.Node().heightInAdjustHeightsHeap = HeightUnset
 			ah.numNodes--
 			return
 		}
@@ -106,7 +106,7 @@ func (ah *adjustHeightsHeap) removeMinUnsafe() (node INode, ok bool) {
 }
 
 func (ah *adjustHeightsHeap) addUnsafe(node INode) {
-	if node.Node().heightInAdjustHeightsHeap != heightUnset {
+	if node.Node().heightInAdjustHeightsHeap != HeightUnset {
 		return
 	}
 	height := node.Node().height
@@ -125,7 +125,7 @@ func (ah *adjustHeightsHeap) removeUnsafe(node INode) {
 	if ah.numNodes == 0 {
 		return
 	}
-	if node.Node().heightInAdjustHeightsHeap == heightUnset {
+	if node.Node().heightInAdjustHeightsHeap == HeightUnset {
 		return
 	}
 	nodeID := node.Node().id

@@ -78,20 +78,20 @@ type BindIncr[A any] interface {
 	fmt.Stringer
 }
 
-// IBindMain is the type of the bind main node.
+// IBindMain holds the methods specific to the bind main node.
 type IBindMain interface {
 	Invalidate()
 }
 
-// IBindChange is the type of the bind lhs change node.
+// IBindChange holds the methods specific to the bind-lhs-change node.
 type IBindChange interface {
-	// TODO: more stuff here?
 	RightScopeNodes() []INode
 }
 
 var (
-	_ BindIncr[bool]       = (*bindMainIncr[string, bool])(nil)
-	_ Scope                = (*bind[string, bool])(nil)
+	_ BindIncr[bool] = (*bindMainIncr[string, bool])(nil)
+	_ Scope          = (*bind[string, bool])(nil)
+
 	_ INode                = (*bindLeftChangeIncr[string, bool])(nil)
 	_ IShouldBeInvalidated = (*bindLeftChangeIncr[string, bool])(nil)
 	_ IBindChange          = (*bindLeftChangeIncr[string, bool])(nil)
@@ -164,7 +164,7 @@ func (b *bindMainIncr[A, B]) Stabilize(ctx context.Context) error {
 
 func (b *bindMainIncr[A, B]) Invalidate() {
 	for _, n := range b.bind.rhsNodes {
-		graphFromCreatedIn(b).invalidateNode(n)
+		GraphForNode(b).invalidateNode(n)
 	}
 }
 
@@ -207,7 +207,7 @@ func (b *bindLeftChangeIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 		b.bind.main.parents = []INode{b}
 	}
 
-	if err = graphFromCreatedIn(b).changeParent(b.bind.main, oldRhs, b.bind.rhs); err != nil {
+	if err = GraphForNode(b).changeParent(b.bind.main, oldRhs, b.bind.rhs); err != nil {
 		return err
 	}
 	if oldRhs != nil {
@@ -215,7 +215,7 @@ func (b *bindLeftChangeIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 		// for (2) different behaviors here. the commented out below
 		// is if the option is enabled.
 		for _, n := range oldRightNodes {
-			graphFromCreatedIn(b).invalidateNode(n)
+			GraphForNode(b).invalidateNode(n)
 		}
 		// else {
 		// // rescope_nodes_created_on_rhs
@@ -224,7 +224,7 @@ func (b *bindLeftChangeIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 		// 	b.bind.addScopeNode(n)
 		// }
 	}
-	graphFromCreatedIn(b).propagateInvalidity()
+	GraphForNode(b).propagateInvalidity()
 	return nil
 }
 

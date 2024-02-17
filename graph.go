@@ -211,7 +211,7 @@ func (graph *Graph) OnStabilizationEnd(handler func(context.Context, time.Time, 
 func (graph *Graph) SetStale(gn INode) {
 	n := gn.Node()
 	n.setAt = graph.stabilizationNum
-	if gn.Node().heightInRecomputeHeap == heightUnset {
+	if gn.Node().heightInRecomputeHeap == HeightUnset {
 		graph.recomputeHeap.add(gn)
 	}
 }
@@ -224,7 +224,7 @@ func (graph *Graph) isTopScope() bool        { return true }
 func (graph *Graph) isScopeValid() bool      { return true }
 func (graph *Graph) isScopeNecessary() bool  { return true }
 func (graph *Graph) scopeGraph() *Graph      { return graph }
-func (graph *Graph) scopeHeight() int        { return heightUnset }
+func (graph *Graph) scopeHeight() int        { return HeightUnset }
 func (graph *Graph) addScopeNode(_ INode)    {}
 func (graph *Graph) removeScopeNode(_ INode) {}
 
@@ -246,20 +246,18 @@ func (graph *Graph) invalidateNode(node INode) {
 		graph.removeParents(node)
 		nn.height = node.Node().createdIn.scopeHeight() + 1
 	}
-	if typedBind, isBind := node.(IBindMain); isBind {
-		typedBind.Invalidate()
-	}
+	nn.maybeInvalidate()
 	nn.valid = false
 	for _, child := range node.Node().children {
 		graph.propagateInvalidityQueue.push(child)
 	}
-	if node.Node().heightInRecomputeHeap != heightUnset {
+	if node.Node().heightInRecomputeHeap != HeightUnset {
 		graph.recomputeHeap.remove(node)
 	}
 }
 
 func (graph *Graph) removeParents(child INode) {
-	for _, parent := range child.Node().parentsFn() {
+	for _, parent := range child.Node().nodeParents() {
 		graph.removeParent(child, parent)
 	}
 }
@@ -299,7 +297,7 @@ func (graph *Graph) addChild(child, parent INode) error {
 		}
 	}
 	graph.propagateInvalidity()
-	if child.Node().heightInRecomputeHeap == heightUnset &&
+	if child.Node().heightInRecomputeHeap == HeightUnset &&
 		(child.Node().recomputedAt == 0 || graph.edgeIsStale(child, parent)) {
 		graph.recomputeHeap.add(child)
 	}
@@ -336,7 +334,7 @@ func (graph *Graph) propagateInvalidity() {
 		if node.Node().valid {
 			if node.Node().shouldBeInvalidated() {
 				graph.invalidateNode(node)
-			} else if node.Node().heightInRecomputeHeap == heightUnset {
+			} else if node.Node().heightInRecomputeHeap == HeightUnset {
 				graph.recomputeHeap.add(node)
 			}
 		}
@@ -367,19 +365,17 @@ func (graph *Graph) becameNecessaryRecursive(node INode) (err error) {
 	if err = graph.adjustHeightsHeap.setHeight(node, node.Node().createdIn.scopeHeight()+1); err != nil {
 		return
 	}
-	if parents := node.Node().parentsFn; parents != nil {
-		for _, parent := range parents() {
-			if err = graph.addChildWithoutAdjustingHeights(node, parent); err != nil {
-				return err
-			}
-			if parent.Node().height >= node.Node().height {
-				if err = graph.adjustHeightsHeap.setHeight(node, parent.Node().height+1); err != nil {
-					return
-				}
+	for _, parent := range node.Node().nodeParents() {
+		if err = graph.addChildWithoutAdjustingHeights(node, parent); err != nil {
+			return err
+		}
+		if parent.Node().height >= node.Node().height {
+			if err = graph.adjustHeightsHeap.setHeight(node, parent.Node().height+1); err != nil {
+				return
 			}
 		}
 	}
-	if node.Node().isStale() && node.Node().heightInRecomputeHeap == heightUnset {
+	if node.Node().isStale() && node.Node().heightInRecomputeHeap == HeightUnset {
 		graph.recomputeHeap.add(node)
 	}
 	return
@@ -436,10 +432,10 @@ func (graph *Graph) removeNode(gn INode) {
 }
 
 func (graph *Graph) zeroNode(n INode) {
-	if n.Node().heightInRecomputeHeap != heightUnset {
+	if n.Node().heightInRecomputeHeap != HeightUnset {
 		graph.recomputeHeap.remove(n)
 	}
-	if n.Node().heightInAdjustHeightsHeap != heightUnset {
+	if n.Node().heightInAdjustHeightsHeap != HeightUnset {
 		graph.adjustHeightsHeap.remove(n)
 	}
 
@@ -464,12 +460,13 @@ func (graph *Graph) zeroNode(n INode) {
 
 	// TODO (wc): why can't i zero these out?
 	// nn.createdIn = nil
-	nn.height = heightUnset
-	nn.heightInRecomputeHeap = heightUnset
-	nn.heightInAdjustHeightsHeap = heightUnset
+	nn.height = HeightUnset
+	nn.heightInRecomputeHeap = HeightUnset
+	nn.heightInAdjustHeightsHeap = HeightUnset
 }
 
-func (graph *Graph) addChildObserver(o IObserver, input INode) error {
+func (graph *Graph) observeNode(o IObserver, input INode) error {
+	graph.addObserver(o)
 	wasNecsesary := input.Node().isNecessary()
 	input.Node().addObservers(o)
 	if !input.Node().valid {
@@ -487,6 +484,13 @@ func (graph *Graph) addChildObserver(o IObserver, input INode) error {
 
 	graph.propagateInvalidity()
 	return nil
+}
+
+func (graph *Graph) unobserveNode(o IObserver, input INode) {
+	g := GraphForNode(o)
+	g.removeObserver(o)
+	input.Node().removeObserver(o.Node().id)
+	g.checkIfUnnecessary(input)
 }
 
 //
@@ -598,7 +602,7 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	}
 
 	for _, c := range nn.children {
-		if c.Node().isNecessary() && c.Node().isStale() && c.Node().heightInRecomputeHeap == heightUnset {
+		if c.Node().isNecessary() && c.Node().isStale() && c.Node().heightInRecomputeHeap == HeightUnset {
 			graph.recomputeHeap.add(c)
 		}
 	}

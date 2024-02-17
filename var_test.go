@@ -90,6 +90,5 @@ func Test_Var_Set_duringStabilization_realistic(t *testing.T) {
 func Test_Var_ShouldBeInvalidated(t *testing.T) {
 	g := New()
 	v := Var(g, "foo")
-
-	testutil.Equal(t, false, v.ShouldBeInvalidated())
+	testutil.Equal(t, false, v.(*varIncr[string]).ShouldBeInvalidated())
 }

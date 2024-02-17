@@ -21,7 +21,6 @@ func Var[T any](scope Scope, t T) VarIncr[T] {
 // VarIncr is a graph node type that implements an incremental variable.
 type VarIncr[T any] interface {
 	Incr[T]
-	IShouldBeInvalidated
 
 	// Set sets the var value.
 	//
@@ -33,12 +32,11 @@ type VarIncr[T any] interface {
 
 // Assert interface implementations.
 var (
-	_ Incr[string]    = (*varIncr[string])(nil)
-	_ IStale          = (*varIncr[string])(nil)
-	_ VarIncr[string] = (*varIncr[string])(nil)
-	_ INode           = (*varIncr[string])(nil)
-	_ IStabilize      = (*varIncr[string])(nil)
-	_ fmt.Stringer    = (*varIncr[string])(nil)
+	_ VarIncr[string]      = (*varIncr[string])(nil)
+	_ IShouldBeInvalidated = (*varIncr[string])(nil)
+	_ IStale               = (*varIncr[string])(nil)
+	_ IStabilize           = (*varIncr[string])(nil)
+	_ fmt.Stringer         = (*varIncr[string])(nil)
 )
 
 // VarIncr is a type that can represent a Var incremental.
@@ -50,8 +48,6 @@ type varIncr[T any] struct {
 	setDuringStabilization      bool
 }
 
-func (vn *varIncr[T]) Parents() []INode { return nil }
-
 // Stale implements IStale.
 func (vn *varIncr[T]) Stale() bool {
 	return vn.setAt > vn.n.recomputedAt
@@ -62,7 +58,7 @@ func (vn *varIncr[T]) ShouldBeInvalidated() bool {
 }
 
 func (vn *varIncr[T]) Set(v T) {
-	graph := graphFromCreatedIn(vn)
+	graph := GraphForNode(vn)
 	if atomic.LoadInt32(&graph.status) == StatusStabilizing {
 		vn.setDuringStabilizationValue = v
 		vn.setDuringStabilization = true

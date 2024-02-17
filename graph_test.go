@@ -53,7 +53,7 @@ func Test_Graph_Scope(t *testing.T) {
 	g := New()
 
 	testutil.NotNil(t, g.scopeGraph())
-	testutil.Equal(t, heightUnset, g.scopeHeight())
+	testutil.Equal(t, HeightUnset, g.scopeHeight())
 	testutil.Equal(t, true, g.isTopScope())
 	testutil.Equal(t, true, g.isScopeNecessary())
 	testutil.Equal(t, true, g.isScopeValid())
@@ -119,9 +119,9 @@ func Test_Graph_removeNodeFromGraph(t *testing.T) {
 	testutil.Equal(t, 0, mn00.n.setAt)
 	testutil.Equal(t, 0, mn00.n.recomputedAt)
 	testutil.NotNil(t, mn00.n.createdIn)
-	testutil.Equal(t, heightUnset, mn00.n.height)
-	testutil.Equal(t, heightUnset, mn00.n.heightInRecomputeHeap)
-	testutil.Equal(t, heightUnset, mn00.n.heightInAdjustHeightsHeap)
+	testutil.Equal(t, HeightUnset, mn00.n.height)
+	testutil.Equal(t, HeightUnset, mn00.n.heightInRecomputeHeap)
+	testutil.Equal(t, HeightUnset, mn00.n.heightInAdjustHeightsHeap)
 }
 
 func Test_Graph_zeroNode(t *testing.T) {
@@ -132,7 +132,7 @@ func Test_Graph_zeroNode(t *testing.T) {
 
 	testutil.Equal(t, 0, r.Node().height)
 	testutil.Equal(t, 0, r.Node().heightInRecomputeHeap)
-	testutil.Equal(t, heightUnset, r.Node().heightInAdjustHeightsHeap)
+	testutil.Equal(t, HeightUnset, r.Node().heightInAdjustHeightsHeap)
 	testutil.Equal(t, true, r.Node().valid)
 	testutil.NotNil(t, r.Node().createdIn)
 	testutil.NotEmpty(t, r.Node().observers)
@@ -145,9 +145,9 @@ func Test_Graph_zeroNode(t *testing.T) {
 
 	g.zeroNode(r)
 
-	testutil.Equal(t, heightUnset, r.Node().height)
-	testutil.Equal(t, heightUnset, r.Node().heightInRecomputeHeap)
-	testutil.Equal(t, heightUnset, r.Node().heightInAdjustHeightsHeap)
+	testutil.Equal(t, HeightUnset, r.Node().height)
+	testutil.Equal(t, HeightUnset, r.Node().heightInRecomputeHeap)
+	testutil.Equal(t, HeightUnset, r.Node().heightInAdjustHeightsHeap)
 	testutil.Equal(t, true, r.Node().valid)
 	testutil.NotNil(t, r.Node().createdIn)
 	testutil.Equal(t, 0, r.Node().setAt)
