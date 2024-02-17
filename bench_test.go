@@ -117,7 +117,6 @@ func makeBenchmarkGraph(size int) (*Graph, []Incr[string]) {
 
 func benchmarkSize(size int, b *testing.B) {
 	graph, nodes := makeBenchmarkGraph(size)
-	// this is what we care about
 	ctx := context.Background()
 	b.ResetTimer()
 	var err error
@@ -145,8 +144,6 @@ func benchmarkSize(size int, b *testing.B) {
 
 func benchmarkParallelSize(size int, b *testing.B) {
 	graph, nodes := makeBenchmarkGraph(size)
-
-	// this is what we care about
 	ctx := context.Background()
 	b.ResetTimer()
 	var err error
@@ -180,7 +177,6 @@ func benchmarkDepth(width, depth int, b *testing.B) {
 	for x := 0; x < width; x++ {
 		vars[x] = Var(graph, fmt.Sprintf("var_%d", x))
 	}
-
 	nodes := make([]Incr[string], width*depth)
 	var nodeIndex int
 	for y := 0; y < depth; y++ {
@@ -194,12 +190,10 @@ func benchmarkDepth(width, depth int, b *testing.B) {
 			nodeIndex++
 		}
 	}
-
 	observers := make([]ObserveIncr[string], width)
 	for x := 0; x < width; x++ {
 		observers[x] = MustObserve(graph, nodes[(width*(depth-1))+x])
 	}
-
 	ctx := context.Background()
 	b.ResetTimer()
 	var err error
@@ -223,7 +217,6 @@ func benchmarkNestedBinds(depth int, b *testing.B) {
 	)
 	bindControl := Var(graph, 1)
 	o := makeNestedBindGraph(graph, depth, bindControl)
-
 	b.ResetTimer()
 	for x := 0; x < b.N; x++ {
 		err := graph.Stabilize(ctx)
@@ -253,19 +246,19 @@ func makeNestedBindGraph(g *Graph, depth int, bindControl VarIncr[int]) ObserveI
 	for x := 0; x < depth; x++ {
 		vars = append(vars, Var(g, x))
 	}
-
 	binds := make([]BindIncr[int], 0, depth*depth)
 	final := make([]Incr[int], 0, depth)
 	for y := 0; y < depth; y++ {
 		for x := 0; x < depth; x++ {
-			if y == 0 {
+			switch y {
+			case 0:
 				b := Bind(g, bindControl, func(x, y int) BindFunc[int, int] {
 					return func(_ Scope, which int) Incr[int] {
 						return vars[(x+which)%depth]
 					}
 				}(x, y))
 				binds = append(binds, b)
-			} else if y == depth-1 {
+			case depth - 1:
 				b := Bind(g, bindControl, func(x, y int) BindFunc[int, int] {
 					return func(_ Scope, which int) Incr[int] {
 						bindIndex := ((y - 1) * depth) + (x+which)%depth
@@ -273,7 +266,7 @@ func makeNestedBindGraph(g *Graph, depth int, bindControl VarIncr[int]) ObserveI
 					}
 				}(x, y))
 				final = append(final, b)
-			} else {
+			default:
 				b := Bind(g, bindControl, func(x, y int) BindFunc[int, int] {
 					return func(_ Scope, which int) Incr[int] {
 						bindIndex := ((y - 1) * depth) + (x+which)%depth

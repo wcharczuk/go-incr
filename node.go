@@ -276,7 +276,6 @@ func (n *Node) maybeInvalidate() {
 	if n.invalidateFn != nil {
 		n.invalidateFn()
 	}
-	return
 }
 
 func (n *Node) maybeStabilize(ctx context.Context) (err error) {
