@@ -40,6 +40,8 @@ type IExpertNode interface {
 	SetRecomputedAt(uint64)
 
 	IsNecessary() bool
+	IsStale() bool
+	IsInRecomputeHeap() bool
 
 	Always() bool
 	SetAlways(bool)
@@ -125,7 +127,9 @@ func (en *expertNode) SetRecomputedAt(recomputedAt uint64) {
 	en.node.recomputedAt = recomputedAt
 }
 
-func (en *expertNode) IsNecessary() bool { return en.node.isNecessary() }
+func (en *expertNode) IsNecessary() bool       { return en.node.isNecessary() }
+func (en *expertNode) IsStale() bool           { return en.node.isStale() }
+func (en *expertNode) IsInRecomputeHeap() bool { return en.node.heightInRecomputeHeap != HeightUnset }
 
 func (en *expertNode) Always() bool { return en.node.always }
 func (en *expertNode) SetAlways(always bool) {

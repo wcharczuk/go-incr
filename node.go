@@ -11,13 +11,16 @@ func NewNode(kind string) *Node {
 		id:                        NewIdentifier(),
 		kind:                      kind,
 		valid:                     true, // start out valid!
-		height:                    heightUnset,
-		heightInRecomputeHeap:     heightUnset,
-		heightInAdjustHeightsHeap: heightUnset,
+		height:                    HeightUnset,
+		heightInRecomputeHeap:     HeightUnset,
+		heightInAdjustHeightsHeap: HeightUnset,
 	}
 }
 
-const heightUnset = -1
+// HeightUnset is a constant that denotes that a height isn't
+// strictly set (because heights can be 0, we have to use something
+// other than the integer zero value).
+const HeightUnset = -1
 
 // Node is the common metadata for any node in the computation graph.
 type Node struct {

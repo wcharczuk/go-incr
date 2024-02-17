@@ -53,7 +53,7 @@ func Dot(wr io.Writer, g *Graph) (err error) {
 		if n.Node().label != "" {
 			nodeInternalLabelParts = append(nodeInternalLabelParts, fmt.Sprintf("label: %s", n.Node().label))
 		}
-		if n.Node().height != heightUnset {
+		if n.Node().height != HeightUnset {
 			nodeInternalLabelParts = append(nodeInternalLabelParts, fmt.Sprintf("height: %d", n.Node().height))
 		}
 		if value := ExpertNode(n).Value(); value != nil {

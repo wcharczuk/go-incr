@@ -91,7 +91,7 @@ func (rh *recomputeHeap) removeMinHeight() (nodes []INode) {
 	if rh.heights[rh.minHeight] != nil && rh.heights[rh.minHeight].len() > 0 {
 		nodes = make([]INode, 0, rh.heights[rh.minHeight].len())
 		rh.heights[rh.minHeight].consume(func(id Identifier, n INode) {
-			n.Node().heightInRecomputeHeap = heightUnset
+			n.Node().heightInRecomputeHeap = HeightUnset
 			nodes = append(nodes, n)
 			rh.numItems--
 		})
@@ -116,7 +116,7 @@ func (rh *recomputeHeap) removeMinUnsafe() (node INode, ok bool) {
 	for x := rh.minHeight; x <= rh.maxHeight; x++ {
 		if rh.heights[x] != nil && rh.heights[x].len() > 0 {
 			_, node, ok = rh.heights[x].pop()
-			node.Node().heightInRecomputeHeap = heightUnset
+			node.Node().heightInRecomputeHeap = HeightUnset
 			rh.numItems--
 			if rh.heights[x].len() > 0 {
 				rh.minHeight = x
@@ -163,7 +163,7 @@ func (rh *recomputeHeap) removeItemUnsafe(item INode) {
 	if height == rh.minHeight && isLastAtHeight {
 		rh.minHeight = rh.nextMinHeightUnsafe()
 	}
-	item.Node().heightInRecomputeHeap = heightUnset
+	item.Node().heightInRecomputeHeap = HeightUnset
 }
 
 func (rh *recomputeHeap) maybeUpdateMinMaxHeights(newHeight int) {

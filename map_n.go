@@ -60,7 +60,7 @@ func (mi *mapNIncr[A, B]) Parents() []INode {
 
 func (mn *mapNIncr[A, B]) AddInput(i Incr[A]) error {
 	mn.inputs = append(mn.inputs, i)
-	if mn.n.height != heightUnset {
+	if mn.n.height != HeightUnset {
 		// if we're already part of the graph, we have
 		// to tell the graph to update our parent<>child metadata
 		return graphFromCreatedIn(mn).addChild(mn, i)
