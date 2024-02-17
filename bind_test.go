@@ -809,7 +809,7 @@ func makeRegressionGraph(ctx context.Context) (*Graph, ObserveIncr[*int]) {
 	return graph, MustObserve(graph, o)
 }
 
-func Test_Bind_regression_neseted(t *testing.T) {
+func Test_Bind_regression_nested(t *testing.T) {
 	graph := New()
 	fakeFormula := Var(graph, "fakeFormula")
 	cache := make(map[string]Incr[*int])
