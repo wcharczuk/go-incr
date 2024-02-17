@@ -248,8 +248,6 @@ func benchmarkNestedBinds(depth int, b *testing.B) {
 	}
 }
 
-type nestedBindScopeFn func(_ Scope, which int) Incr[int]
-
 func makeNestedBindGraph(g *Graph, depth int, bindControl VarIncr[int]) ObserveIncr[int] {
 	vars := make([]VarIncr[int], 0, depth)
 	for x := 0; x < depth; x++ {
@@ -261,14 +259,14 @@ func makeNestedBindGraph(g *Graph, depth int, bindControl VarIncr[int]) ObserveI
 	for y := 0; y < depth; y++ {
 		for x := 0; x < depth; x++ {
 			if y == 0 {
-				b := Bind(g, bindControl, func(x, y int) nestedBindScopeFn {
+				b := Bind(g, bindControl, func(x, y int) BindFunc[int, int] {
 					return func(_ Scope, which int) Incr[int] {
 						return vars[(x+which)%depth]
 					}
 				}(x, y))
 				binds = append(binds, b)
 			} else if y == depth-1 {
-				b := Bind(g, bindControl, func(x, y int) nestedBindScopeFn {
+				b := Bind(g, bindControl, func(x, y int) BindFunc[int, int] {
 					return func(_ Scope, which int) Incr[int] {
 						bindIndex := ((y - 1) * depth) + (x+which)%depth
 						return binds[bindIndex]
@@ -276,7 +274,7 @@ func makeNestedBindGraph(g *Graph, depth int, bindControl VarIncr[int]) ObserveI
 				}(x, y))
 				final = append(final, b)
 			} else {
-				b := Bind(g, bindControl, func(x, y int) nestedBindScopeFn {
+				b := Bind(g, bindControl, func(x, y int) BindFunc[int, int] {
 					return func(_ Scope, which int) Incr[int] {
 						bindIndex := ((y - 1) * depth) + (x+which)%depth
 						return binds[bindIndex]

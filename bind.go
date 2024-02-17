@@ -28,17 +28,23 @@ import (
 // More information is available at:
 //
 //	https://github.com/janestreet/incremental/blob/master/src/incremental_intf.ml
-func Bind[A, B any](scope Scope, input Incr[A], fn func(Scope, A) Incr[B]) BindIncr[B] {
+func Bind[A, B any](scope Scope, input Incr[A], fn BindFunc[A, B]) BindIncr[B] {
 	return BindContext[A, B](scope, input, func(_ context.Context, bs Scope, va A) (Incr[B], error) {
 		return fn(bs, va), nil
 	})
 }
 
+// BindFunc is the type of bind function.
+type BindFunc[A, B any] func(Scope, A) Incr[B]
+
+// BindContextFunc is the type of bind function.
+type BindContextFunc[A, B any] func(context.Context, Scope, A) (Incr[B], error)
+
 // BindContext is like Bind but allows the bind delegate to take a context and return an error.
 //
 // If an error returned, the bind is aborted, the error listener(s) will fire for the node, and the
 // computation will stop.
-func BindContext[A, B any](scope Scope, input Incr[A], fn func(context.Context, Scope, A) (Incr[B], error)) BindIncr[B] {
+func BindContext[A, B any](scope Scope, input Incr[A], fn BindContextFunc[A, B]) BindIncr[B] {
 	bind := &bind[A, B]{
 		graph: scope.scopeGraph(),
 		lhs:   input,
@@ -72,10 +78,12 @@ type BindIncr[A any] interface {
 	fmt.Stringer
 }
 
+// IBindMain is the type of the bind main node.
 type IBindMain interface {
 	Invalidate()
 }
 
+// IBindChange is the type of the bind lhs change node.
 type IBindChange interface {
 	// TODO: more stuff here?
 	RightScopeNodes() []INode
@@ -96,7 +104,7 @@ type bind[A, B any] struct {
 	lhs       Incr[A]
 	rhs       Incr[B]
 	rhsNodes  []INode
-	fn        func(context.Context, Scope, A) (Incr[B], error)
+	fn        BindContextFunc[A, B]
 	main      *bindMainIncr[A, B]
 	lhsChange *bindLeftChangeIncr[A, B]
 }
