@@ -39,6 +39,8 @@ type IExpertNode interface {
 	RecomputedAt() uint64
 	SetRecomputedAt(uint64)
 
+	IsNecessary() bool
+
 	Always() bool
 	SetAlways(bool)
 
@@ -122,6 +124,8 @@ func (en *expertNode) RecomputedAt() uint64 { return en.node.recomputedAt }
 func (en *expertNode) SetRecomputedAt(recomputedAt uint64) {
 	en.node.recomputedAt = recomputedAt
 }
+
+func (en *expertNode) IsNecessary() bool { return en.node.isNecessary() }
 
 func (en *expertNode) Always() bool { return en.node.always }
 func (en *expertNode) SetAlways(always bool) {
