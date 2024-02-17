@@ -95,6 +95,14 @@ func Benchmark_Stabilize_nestedBinds_128(b *testing.B) {
 	benchmarkNestedBinds(128, b)
 }
 
+func Benchmark_closureCall(b *testing.B) {
+	benchmarkClosure(b)
+}
+
+func Benchmark_directCall(b *testing.B) {
+	benchmarkDirectCall(b)
+}
+
 func makeBenchmarkGraph(size int) (*Graph, []Incr[string]) {
 	graph := New()
 	nodes := make([]Incr[string], size)
@@ -285,4 +293,46 @@ func makeNestedBindGraph(g *Graph, depth int, bindControl VarIncr[int]) ObserveI
 	}, final...)
 	om := MustObserve(g, m)
 	return om
+}
+
+func benchmarkClosure(b *testing.B) {
+	ctx := testContext()
+	g := New()
+	r0 := Return(g, 1)
+	r1 := Return(g, 2)
+	m := &map2Incr[int, int, int]{
+		n:       NewNode("map2"),
+		a:       r0,
+		b:       r1,
+		fn:      func(_ context.Context, a, b int) (int, error) { return a + b, nil },
+		parents: []INode{r0, r1},
+	}
+	m.n.createdIn = g
+	_ = MustObserve(g, m)
+
+	b.ResetTimer()
+	for x := 0; x < b.N; x++ {
+		_ = m.Node().stabilizeFn(ctx)
+	}
+}
+
+func benchmarkDirectCall(b *testing.B) {
+	ctx := testContext()
+	g := New()
+	r0 := Return(g, 1)
+	r1 := Return(g, 2)
+	m := &map2Incr[int, int, int]{
+		n:       NewNode("map2"),
+		a:       r0,
+		b:       r1,
+		fn:      func(_ context.Context, a, b int) (int, error) { return a + b, nil },
+		parents: []INode{r0, r1},
+	}
+	m.n.createdIn = g
+	_ = MustObserve(g, m)
+
+	b.ResetTimer()
+	for x := 0; x < b.N; x++ {
+		_ = m.Stabilize(ctx)
+	}
 }
