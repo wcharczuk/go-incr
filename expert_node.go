@@ -18,6 +18,7 @@ func ExpertNode(in INode) IExpertNode {
 // and you should use this interface at your own caution.
 type IExpertNode interface {
 	CreatedIn() Scope
+	SetCreatedIn(Scope)
 	SetID(Identifier)
 
 	Valid() bool
@@ -77,7 +78,8 @@ type expertNode struct {
 	node *Node
 }
 
-func (en *expertNode) CreatedIn() Scope { return en.node.createdIn }
+func (en *expertNode) CreatedIn() Scope         { return en.node.createdIn }
+func (en *expertNode) SetCreatedIn(scope Scope) { en.node.createdIn = scope }
 
 func (en *expertNode) SetID(id Identifier) {
 	en.node.id = id
