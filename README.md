@@ -92,9 +92,9 @@ Specific implications of this are, the `INode` interface includes a function tha
 
 # Implementation details
 
-Internally `go-incr` uses a pseudo-height recomputation adjacency list similar to the Jane Street implementation. This offers "good enough" approximation of a heap while also allowing for fast iteration between results (e.g. faster than a traditional heap's O(log(n)) performance).
+To determine which nodes to recompute `go-incr` uses a partial-order pseudo-height adjacency list similar to the Jane Street implementation. This offers "good enough" approximation of a heap while also allowing for fast iteration (e.g. faster than a traditional heap's O(log(n)) performance).
 
-`go-incr` also supports multiple "graphs" rooted in specific variables.
+The underlying assumption is that nodes with the same pseudo-height _do not depend on each other_, and as a result can be recomputed in parallel.
 
 # A word on `Bind`
 
