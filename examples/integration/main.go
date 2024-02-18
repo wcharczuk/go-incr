@@ -42,10 +42,6 @@ func testCase(label string, action func()) {
 	}
 }
 
-func skipTestCase(label string, action func()) {
-	fmt.Println("--- SKIPPING -" + label)
-}
-
 func noError(err error) {
 	if err != nil {
 		panic(fmt.Errorf("expected error to be unset: %v", err))
@@ -54,7 +50,7 @@ func noError(err error) {
 
 func main() {
 
-	testCase("month_of_runway = if burn > 0: cash_balance / burn else 0. Calculate months of runway then burn", func() {
+	testCase("month_of_values = if burn > 0: cash_balance / burn else 0. Calculate months of values then burn", func() {
 		ctx := testContext()
 		graph := incr.New()
 		cache := make(map[string]incr.Incr[*int])
@@ -67,7 +63,7 @@ func main() {
 			if cached, ok := cache[key]; ok {
 				return cached // incr.WithinScope(bs, cache[key])
 			}
-			r := incr.Bind(graph, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
+			r := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
 				if t <= 0 {
 					out := 0
 					r := incr.Return(bs, &out)
@@ -132,7 +128,7 @@ func main() {
 			return o
 		}
 
-		// monthofrunway = if burn > 0 then cashbalance / burn else 0
+		// monthofvalues = if burn > 0 then cashbalance / burn else 0
 		monthsOfRunway := func(bs incr.Scope, t int) incr.Incr[*int] {
 			o := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
 				zero := 0
@@ -157,12 +153,12 @@ func main() {
 				})
 			})
 
-			o.Node().SetLabel("months_of_runway")
+			o.Node().SetLabel("months_of_values")
 			return o
 		}
 		num := 24
 
-		fmt.Println("Calculating months of runway for t= 1 to 24")
+		fmt.Println("Calculating months of values for t= 1 to 24")
 		start := time.Now()
 		for i := 0; i < num; i++ {
 			o := monthsOfRunway(graph, i)
@@ -174,7 +170,7 @@ func main() {
 		noError(err)
 		_ = dumpDot(graph, homedir("integration_00_00.png"))
 		elapsed := time.Since(start)
-		fmt.Printf("Calculating months of runway took %s \n", elapsed)
+		fmt.Printf("Calculating months of values took %s \n", elapsed)
 
 		fmt.Println("Calculating burn for t= 1 to 24")
 		start = time.Now()
@@ -191,7 +187,7 @@ func main() {
 		fmt.Printf("Calculating burn took %s \n", elapsed)
 	})
 
-	testCase("month_of_runway = if burn > 0: cash_balance / burn else 0. Calculate burn then months of runway", func() {
+	testCase("month_of_values = if burn > 0: cash_balance / burn else 0. Calculate burn then months of values", func() {
 		ctx := testContext()
 		graph := incr.New(
 			incr.OptGraphMaxHeight(1024),
@@ -206,7 +202,7 @@ func main() {
 			if cached, ok := cache[key]; ok {
 				return cached // incr.WithinScope(bs, cache[key])
 			}
-			r := incr.Bind(graph, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
+			r := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
 				if t <= 0 {
 					out := 0
 					r := incr.Return(bs, &out)
@@ -271,7 +267,7 @@ func main() {
 			return o
 		}
 
-		// monthofrunway = if burn > 0 then cashbalance / burn else 0
+		// monthofvalues = if burn > 0 then cashbalance / burn else 0
 		monthsOfRunway := func(bs incr.Scope, t int) incr.Incr[*int] {
 			o := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
 				zero := 0
@@ -295,7 +291,7 @@ func main() {
 					return incr.Return(bs, &out)
 				})
 			})
-			o.Node().SetLabel("months_of_runway")
+			o.Node().SetLabel("months_of_values")
 			return o
 		}
 		num := 24
@@ -313,7 +309,7 @@ func main() {
 		elapsed := time.Since(start)
 		fmt.Printf("Calculating burn took %s \n", elapsed)
 
-		fmt.Println("Calculating months of runway for t= 1 to 24")
+		fmt.Println("Calculating months of values for t= 1 to 24")
 		start = time.Now()
 		for i := 0; i < num; i++ {
 			o := monthsOfRunway(graph, i)
@@ -324,7 +320,7 @@ func main() {
 		_ = dumpDot(graph, homedir("integration_01_01.png"))
 		noError(err)
 		elapsed = time.Since(start)
-		fmt.Printf("Calculating months of runway took %s \n", elapsed)
+		fmt.Printf("Calculating months of values took %s \n", elapsed)
 	})
 
 	testCase("node amplification yields slower and slower stabilization", func() {
@@ -342,7 +338,7 @@ func main() {
 			if cached, ok := cache[key]; ok {
 				return cached // incr.WithinScope(bs, cache[key])
 			}
-			r := incr.Bind(graph, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
+			r := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
 				if t <= 0 {
 					out := 0
 					r := incr.Return(bs, &out)
@@ -407,7 +403,7 @@ func main() {
 			return o
 		}
 
-		// monthofrunway = if burn > 0 then cashbalance / burn else 0
+		// monthofvalues = if burn > 0 then cashbalance / burn else 0
 		monthsOfRunway := func(bs incr.Scope, t int) incr.Incr[*int] {
 			o := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
 				zero := 0
@@ -431,7 +427,7 @@ func main() {
 					return incr.Return(bs, &out)
 				})
 			})
-			o.Node().SetLabel("months_of_runway")
+			o.Node().SetLabel("months_of_values")
 			return o
 		}
 		w := func(bs incr.Scope, t int) incr.Incr[*int] {
@@ -460,7 +456,7 @@ func main() {
 		}
 		_ = graph.Stabilize(ctx)
 		elapsed := time.Since(start)
-		fmt.Printf("Baseline calculation of months of runway for t= %d to %d took %s\n", 0, max_t, elapsed)
+		fmt.Printf("Baseline calculation of months of values for t= %d to %d took %s\n", 0, max_t, elapsed)
 
 		maxMultiplier := 10
 		for k := 1; k <= maxMultiplier; k++ {
@@ -481,7 +477,7 @@ func main() {
 			_ = graph.Stabilize(ctx)
 
 			elapsed = time.Since(start)
-			fmt.Printf("Calculating months of runway for t= %d to %d took %s when prior_count(observed nodes) >%d\n", 0, max_t, elapsed, num)
+			fmt.Printf("Calculating months of values for t= %d to %d took %s when prior_count(observed nodes) >%d\n", 0, max_t, elapsed, num)
 			fmt.Printf("Graph node count=%d, observer count=%d\n", incr.ExpertGraph(graph).NumNodes(), incr.ExpertGraph(graph).NumObservers())
 		}
 	})

@@ -1,4 +1,4 @@
-go-incr
+`go-incr`
 ==============
 
 [![Continuous Integration](https://github.com/wcharczuk/go-incr/actions/workflows/ci.yml/badge.svg)](https://github.com/wcharczuk/go-incr/actions/workflows/ci.yml)
@@ -6,11 +6,13 @@ go-incr
 
 ![Graph](https://github.com/wcharczuk/go-incr/blob/main/_assets/basic_graph.png)
 
-`go-incr` is an incremental computation library to help implement partial computation of large graphs of operations.
+`go-incr` is an optimization tool to help implement partial computation of large graphs of operations.
 
-It is useful in situations where you want to efficiently compute the outputs of computations where only a subset of the computation changes based on changes in inputs.
+It's useful in situations where you want to efficiently compute the outputs of computations where only a subset of the computation changes based on changes in inputs.
 
 Think Excel spreadsheets and formulas, but in code.
+
+_Important caveat_ Very often code is faster _without_ incremental. Only reach for this library if you've hit a wall and need to add incrementality.
 
 # Inspiration & differences from the original
 
@@ -18,12 +20,12 @@ The inspiration for `go-incr` is Jane Street's [incremental](https://github.com/
 
 The key difference from this library versus the Jane Street implementation is _parallelism_. You can stabilize multiple nodes with the same recompute height at once using `ParallelStabilize`. This is especially useful if you have nodes that make network calls or do other non-cpu bound work.
 
-# Basics
+# Basic concepts
 
-A computation in `go-incr` can be thought of as being composed with a few "meta" node types.
+A computation in `go-incr` is composed of three "meta" node types.
 
 - "Input" types that act as entry-points for data that we'll need in our computation (think, raw cell values in Excel)
-- "Mutator" types that take other nodes as inputs, and transform their values into new values (think, formulas in Excel)
+- "Mutator" types that take other nodes as inputs, and transform those input values into new values (think, formulas in Excel) or even new sub-graph components.
 - "Observe" type that indicates which values we care about, and ultimately want to display or return.
 
 "Input" types for `go-incr` are `Var` and `Return` typically.
@@ -32,57 +34,51 @@ A computation in `go-incr` can be thought of as being composed with a few "meta"
 
 The observer node is special in that there is only (1) type of observer, and it has a very specific role and cannot be passed as an input to other nodes.
 
-# Sample Usage
+# Usage
 
-Given an example formula (in this case, the "Compound Interest" formula):
-
-`a = p * ((1 + r/n) ^ (n * t))`
-
-We might represent this as the following `go-incr` nodes:
+A mini-worked example:
 
 ```go
+import "github.com/wcharczuk/go-incr"
+...
 g := incr.New()
-
-p := incr.Var(g, 1000.0) // the princple amount
-r := incr.Var(g, 0.08) // the interest rate
-n := incr.Var(g, 12.0) // the number of times per year the interest compounds
-t := incr.Var(g, 30.0) // the number of years the interest is compounded for
-
-a := incr.Map4(g, p, r, n, t, func(pv, rv, nv, tv float64) float64 {
-  return pv * math.Pow((1+(rv/nv)), nv*tv)
+v0 := incr.Var(g, "hello")
+v1 := incr.Var(g, "world!")
+m := incr.Map2(g, v0, v1, func(a, b string) string {
+  return a+" "+b
 })
+om := incr.MustObserve(g, m)
+_ = g.Stabilize(context.Background())
+fmt.Println(om.Value()) // prints "hello world!"
 ```
 
-In order to realize the values, we need to observe nodes in a graph, and then call `Stabilize` on the graph:
+This is not intended as a "real" use case for the library, simply as a worked example to show the syntax.
 
-```go
-ao := incr.MustObserve(g, a)
-if err := g.Stabilize(context.Background()); err != nil {
-  // ... handle error if it comes up
-}
-```
+You can see more sample use cases in the `examples/` directory in this repo.
 
-`Stabilize` then does the full recomputation, with the "observer" `ao` marking the graph up from the `a` map as observed.
+# API compatability guarantees
 
-That's it! Now, we only have really (1) computation here (the `a` node), but we can build up from there and implement more computations that _take_ this computation, or share the output of this computation.
+As of v1.xxx you should assume that the functions and types exported by this library will maintain forward compatability until some future v2 necessitates changing things meaningfully, at which point we'll integrate [semantic import versioning](https://go.googlesource.com/proposal/+/master/design/24301-versioned-go.md) to create a new `/v2/` package. The goal will be to put off a v2 for as long as possible.
 
-# API compatability guidelines
-
-As soon as a v1 is minted for this repo, you should assume that the major functions and types will maintain forward compatability until some future v2 necessitates changing things meaningfully. The goal will be to put off a v2 for as long as possible.
-
-A notable carveout here is the `incr.Expert...` functions, for which there are no guarantees and the API may change between refs without notice. They are expert interfaces after all!
+An exception to the above are the `incr.Expert...` functions, for which there are no guarantees and the API may change between refs without notice.
 
 # A word on how to use this library effectively
 
-It can be tempting when looking at what this library can do to say, "We should make each operation in our process incrementally computed", and that would not be the ideal approach, specifically because making a computation incrementally computed adds overhead for each operation.
+It can be tempting to, when looking at what this library can do, make every operation in a slow piece of code incrementally computed.
 
-A more ideal balance is to use a coarse-grain approach to making a computation incrementally computed, specifically breaking up chunks that are mostly atomic, and making those chunks incrementally computed, but each chunk may incorporate multiple operations.
+This typically will make performance _worse_, as making a computation incrementally computed adds overhead for each operation.
 
-# More advanced use cases
+A more ideal balance is to write your code as normal assuming nothing is incrementally computed, then do a coarsed-grain pass, specifically breaking up chunks that are mostly atomic, and making those chunks incrementally computed.
 
-There are simplified versions of common node types (e.g. `Map` and `Map2`) as well as more advanced versions (e.g. `MapContext` and `Map2Context`) that are intended for real world use cases, and facilitating returning errors from nodes.
+# Error handling and context propagation
 
-Errors returned by incremental nodes will halt the computation for the stabilization pass in serial mode completely. In parallel mode, the current height "block" will finish processing in parallel, aborting subsequent height blocks from being recomputed.
+There are simplified versions of common node types (`Map` and `Map2`) as well as more advanced versions (`MapContext` and `Map2Context`) that are intended for real world use cases, and facilitating taking contexts and returning errors from operations.
+
+Errors returned by these incremental operations will halt the computation for the stabilization pass, but the effect will be slightly different based on the stabilization method used.
+
+When recomputing serially (using `.Stabilize(...)`) the stabilization pass will return immediately on error and no other nodes will be recomputed.
+
+When recomputing in parallel (using `.ParallelStabilize(...)`), the current height block will finish stabilizing, and subsequent height blocks will not be recomputed.
 
 # Design Choices
 
@@ -106,7 +102,9 @@ To explain its purpose; there are situations where you want to dynamically swap 
 
 The effect of `Bind` is that "children" of a `Bind` node may have their heights change significantly depending on the changes made to the "bound" nodes, and this has implications for the recomputation heap as a result, specifically that it has to handle updating the reflected height of nodes that may already be in the heap.
 
-`Bind` nodes may also return `Bind` nodes themselves, creating fun and interesting implications for how an inner right-hand-side incremental needs to be propagated through multiple layers of binds, and reflect both its and the original bind children's true height through recomputations. To do this, we adopt the trick from the main ocaml library of creating two new pieces of state; a `bind-lhs-change` node that links the original bind input, and the right-hand-side (or output) incremental of the bind, making sure that the rhs respects the height of the transitive dependency of the bind's input. We also maintain a "scope", or a list of all the nodes that were created in respect to the rhs, and when the outer bind stabilizes, we also propagate changes to inner binds, regardless of where they are in the rhs graph. If this sounds complicated, it is!
+`Bind` nodes may also return `Bind` nodes themselves, creating fun and interesting implications for how an inner right-hand-side incremental needs to be propagated through multiple layers of binds, and reflect both its and the original bind children's true height through recomputations. To do this, we adopt the trick from the main ocaml library of creating two new pieces of state; a `bind-lhs-change` node that links the original bind input, and the right-hand-side incremental of the bind, making sure that the rhs respects the height of the transitive dependency of the bind's input. We also maintain a "scope", or a list of all the nodes that were created in respect to the rhs, and when the outer bind stabilizes, we also propagate changes to inner binds, regardless of where they are in the rhs graph.
+
+If this sounds complicated, it is!
 
 # A word on `Scopes`
 
@@ -140,4 +138,4 @@ Many of the original library types are implemented, including:
 
 With these, you can create 90% of what this library is typically needed for, though some others would be relatively straightforward to implement given the primitives already implemented.
 
-An example of likely extension to this to facilitate some more advanced use cases; adding the ability to set inputs _after_ nodes have been created, as well as the ability to return untyped values from nodes.
+An example of likely extension to this to facilitate some more advanced use cases; adding the ability to set inputs _after_ nodes have been created, as well as the ability to return un-typed values from nodes.
