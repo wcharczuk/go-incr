@@ -81,7 +81,7 @@ func main() {
 	dataInput := incr.Var(graph, data)
 
 	dataInputAdds := incrutil.DiffMapByKeysAdded(graph, dataInput)
-	orders := incr.FoldMap(
+	orders := incrutil.FoldMap(
 		graph,
 		dataInputAdds,
 		0,
@@ -89,7 +89,7 @@ func main() {
 			return v + 1
 		},
 	)
-	shares := incr.FoldMap(
+	shares := incrutil.FoldMap(
 		graph,
 		dataInputAdds,
 		0,
@@ -97,7 +97,7 @@ func main() {
 			return v + o.Size
 		},
 	)
-	symbolCounts := incr.FoldMap(
+	symbolCounts := incrutil.FoldMap(
 		graph,
 		dataInputAdds,
 		make(map[Symbol]int),

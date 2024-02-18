@@ -476,9 +476,6 @@ func Test_nodeFormatters(t *testing.T) {
 		{Watch(g, Return(g, "")), "watch"},
 		{Freeze(g, Return(g, "")), "freeze"},
 		{Var(g, ""), "var"},
-		{FoldLeft(g, Return(g, []string{}), "", nil), "fold_left"},
-		{FoldRight(g, Return(g, []string{}), "", nil), "fold_right"},
-		{FoldMap(g, Return(g, map[string]int{}), "", nil), "fold_map"},
 		// {MustObserve(g, Return(g, "")), "observer"},
 		{Always(g, Return(g, "")), "always"},
 	}

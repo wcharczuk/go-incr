@@ -23,7 +23,7 @@ func Test_Stabilize_diffMapByKeysAdded(t *testing.T) {
 
 	mv := incr.Var(g, m)
 	mda := DiffMapByKeysAdded(g, mv)
-	mf := incr.FoldMap(g, mda, 0, func(key string, val, accum int) int {
+	mf := FoldMap(g, mda, 0, func(key string, val, accum int) int {
 		return accum + val
 	})
 
@@ -63,7 +63,7 @@ func Test_Stabilize_diffMapByKeysRemoved(t *testing.T) {
 
 	mv := incr.Var(g, m)
 	mdr := DiffMapByKeysRemoved(g, mv)
-	mf := incr.FoldMap(g, mdr, 0, func(key string, val, accum int) int {
+	mf := FoldMap(g, mdr, 0, func(key string, val, accum int) int {
 		return accum + val
 	})
 
@@ -96,10 +96,10 @@ func Test_Stabilize_diffMapByKeys(t *testing.T) {
 
 	mv := incr.Var(g, m)
 	mda, mdr := DiffMapByKeys(g, mv)
-	mfa := incr.FoldMap(g, mda, 0, func(key string, val, accum int) int {
+	mfa := FoldMap(g, mda, 0, func(key string, val, accum int) int {
 		return accum + val
 	})
-	mfr := incr.FoldMap(g, mdr, 0, func(key string, val, accum int) int {
+	mfr := FoldMap(g, mdr, 0, func(key string, val, accum int) int {
 		return accum + val
 	})
 
@@ -137,7 +137,7 @@ func Test_Stabilize_diffSlice(t *testing.T) {
 		6,
 	}
 	mv := incr.Var(g, m)
-	mf := incr.FoldLeft(g, DiffSliceByIndicesAdded(g, mv), "", func(accum string, val int) string {
+	mf := FoldLeft(g, DiffSliceByIndicesAdded(g, mv), "", func(accum string, val int) string {
 		return accum + fmt.Sprint(val)
 	})
 
@@ -151,4 +151,75 @@ func Test_Stabilize_diffSlice(t *testing.T) {
 
 	_ = g.Stabilize(ctx)
 	testutil.Equal(t, "123456789", mf.Value())
+}
+
+func Test_Stabilize_FoldMap(t *testing.T) {
+	ctx := testContext()
+	g := incr.New()
+
+	m := map[string]int{
+		"one":   1,
+		"two":   2,
+		"three": 3,
+		"four":  4,
+		"five":  5,
+		"six":   6,
+	}
+	mf := FoldMap(g, incr.Return(g, m), 0, func(key string, val, accum int) int {
+		return accum + val
+	})
+
+	_ = incr.MustObserve(g, mf)
+
+	_ = g.Stabilize(ctx)
+	testutil.Equal(t, 21, mf.Value())
+}
+
+func Test_Stabilize_FoldLeft(t *testing.T) {
+	ctx := testContext()
+	g := incr.New()
+
+	m := []int{
+		1,
+		2,
+		3,
+		4,
+		5,
+		6,
+	}
+	mf := FoldLeft(g, incr.Return(g, m), "", func(accum string, val int) string {
+		return accum + fmt.Sprint(val)
+	})
+
+	_ = incr.MustObserve(g, mf)
+
+	_ = g.Stabilize(ctx)
+	testutil.Equal(t, "123456", mf.Value())
+}
+
+func Test_Stabilize_FoldRight(t *testing.T) {
+	ctx := testContext()
+	g := incr.New()
+
+	m := []int{
+		1,
+		2,
+		3,
+		4,
+		5,
+		6,
+	}
+	mf := FoldRight(g, incr.Return(g, m), "", func(val int, accum string) string {
+		return accum + fmt.Sprint(val)
+	})
+
+	_ = incr.MustObserve(g, mf)
+
+	_ = g.Stabilize(ctx)
+	testutil.Equal(t, "654321", mf.Value())
+
+	g.SetStale(mf)
+
+	_ = g.Stabilize(ctx)
+	testutil.Equal(t, "654321654321", mf.Value())
 }

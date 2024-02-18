@@ -1,8 +1,10 @@
-package incr
+package incrutil
 
 import (
 	"context"
 	"fmt"
+
+	"github.com/wcharczuk/go-incr"
 )
 
 // FoldMap returns an incremental that takes a map typed incremental as an
@@ -10,44 +12,45 @@ import (
 // representing the result of the combinator for the input and zero value.
 //
 // Usage Note: there is no concept of "left" or "right" with maps in go
-// because the order is pseudo-random. As a result, the key order will
-// be what it will be and there is no way to know ahead of time what
-// "left" or "right" would even mean in practice.
+// because the iteration order is undefined. As a result, the keys passed
+// to the provided function, and their associated values will be assumed
+// to be unordered.
 func FoldMap[K comparable, V any, O any](
-	scope Scope,
-	i Incr[map[K]V],
+	scope incr.Scope,
+	i incr.Incr[map[K]V],
 	v0 O,
 	fn func(K, V, O) O,
-) Incr[O] {
-	return WithinScope(scope, &foldMapIncr[K, V, O]{
-		n:   NewNode("fold_map"),
-		i:   i,
-		fn:  fn,
-		val: v0,
+) incr.Incr[O] {
+	return incr.WithinScope(scope, &foldMapIncr[K, V, O]{
+		n:       incr.NewNode("fold_map"),
+		i:       i,
+		fn:      fn,
+		val:     v0,
+		parents: []incr.INode{i},
 	})
 }
 
 var (
-	_ Incr[int]    = (*foldMapIncr[string, float64, int])(nil)
-	_ INode        = (*foldMapIncr[string, float64, int])(nil)
-	_ IStabilize   = (*foldMapIncr[string, float64, int])(nil)
-	_ fmt.Stringer = (*foldMapIncr[string, float64, int])(nil)
+	_ incr.Incr[int]  = (*foldMapIncr[string, float64, int])(nil)
+	_ incr.IStabilize = (*foldMapIncr[string, float64, int])(nil)
+	_ fmt.Stringer    = (*foldMapIncr[string, float64, int])(nil)
 )
 
 type foldMapIncr[K comparable, V any, O any] struct {
-	n   *Node
-	i   Incr[map[K]V]
-	fn  func(K, V, O) O
-	val O
+	n       *incr.Node
+	i       incr.Incr[map[K]V]
+	parents []incr.INode
+	fn      func(K, V, O) O
+	val     O
 }
 
-func (fmi *foldMapIncr[K, V, O]) Parents() []INode {
-	return []INode{fmi.i}
+func (fmi *foldMapIncr[K, V, O]) Parents() []incr.INode {
+	return fmi.parents
 }
 
 func (fmi *foldMapIncr[K, V, O]) String() string { return fmi.n.String() }
 
-func (fmi *foldMapIncr[K, V, O]) Node() *Node { return fmi.n }
+func (fmi *foldMapIncr[K, V, O]) Node() *incr.Node { return fmi.n }
 
 func (fmi *foldMapIncr[K, V, O]) Value() O { return fmi.val }
 

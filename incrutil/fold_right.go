@@ -1,12 +1,16 @@
-package incr
+package incrutil
 
-import "context"
+import (
+	"context"
+
+	"github.com/wcharczuk/go-incr"
+)
 
 // FoldRight folds an array from N to 0 carrying the previous value
 // to the next interation, yielding a single value.
-func FoldRight[T, O any](scope Scope, i Incr[[]T], v0 O, fn func(T, O) O) Incr[O] {
-	return WithinScope(scope, &foldRightIncr[T, O]{
-		n:   NewNode("fold_right"),
+func FoldRight[T any, O any](scope incr.Scope, i incr.Incr[[]T], v0 O, fn func(T, O) O) incr.Incr[O] {
+	return incr.WithinScope(scope, &foldRightIncr[T, O]{
+		n:   incr.NewNode("fold_right"),
 		i:   i,
 		fn:  fn,
 		val: v0,
@@ -14,19 +18,19 @@ func FoldRight[T, O any](scope Scope, i Incr[[]T], v0 O, fn func(T, O) O) Incr[O
 }
 
 type foldRightIncr[T, O any] struct {
-	n   *Node
-	i   Incr[[]T]
+	n   *incr.Node
+	i   incr.Incr[[]T]
 	fn  func(T, O) O
 	val O
 }
 
-func (fri *foldRightIncr[T, O]) Parents() []INode {
-	return []INode{fri.i}
+func (fri *foldRightIncr[T, O]) Parents() []incr.INode {
+	return []incr.INode{fri.i}
 }
 
 func (fri *foldRightIncr[T, O]) String() string { return fri.n.String() }
 
-func (fri *foldRightIncr[T, O]) Node() *Node { return fri.n }
+func (fri *foldRightIncr[T, O]) Node() *incr.Node { return fri.n }
 
 func (fri *foldRightIncr[T, O]) Value() O { return fri.val }
 
