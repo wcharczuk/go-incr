@@ -236,9 +236,9 @@ func Test_list_PopBack(t *testing.T) {
 	testutil.Nil(t, n)
 
 	n0 := newHeightIncrLabel(g, 0, "n0")
-	n1 := newHeightIncrLabel(g, 0, "n1")
-	n2 := newHeightIncrLabel(g, 0, "n2")
-	n3 := newHeightIncrLabel(g, 0, "n3")
+	n1 := newHeightIncrLabel(g, 1, "n1")
+	n2 := newHeightIncrLabel(g, 2, "n2")
+	n3 := newHeightIncrLabel(g, 3, "n3")
 
 	q.push(idWithNode(n0))
 	q.push(idWithNode(n1))

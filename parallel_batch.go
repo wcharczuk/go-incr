@@ -16,7 +16,7 @@ type parallelBatch struct {
 	err     error
 }
 
-// parallelBatchToken is a token within the parallel batch system
+// parallelBatchToken is a token within the parallel batch system.
 type parallelBatchToken struct{}
 
 func (pb *parallelBatch) done() {

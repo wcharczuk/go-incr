@@ -718,7 +718,7 @@ func Test_Bind_regression_parallel(t *testing.T) {
 	testutil.Equal(t, 24, *o.Value())
 }
 
-func makeRegressionGraph(ctx context.Context) (*Graph, ObserveIncr[*int]) {
+func makeRegressionGraph(_ context.Context) (*Graph, ObserveIncr[*int]) {
 	cacheMu := sync.Mutex{}
 	cache := make(map[string]Incr[*int])
 

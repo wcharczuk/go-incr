@@ -511,16 +511,6 @@ func Test_Node_Properties_readonly(t *testing.T) {
 	testutil.Equal(t, 3, len(n.Parents()))
 }
 
-type emptyNode struct {
-	n *Node
-}
-
-func (en emptyNode) Parents() []INode { return nil }
-
-func (en emptyNode) Node() *Node {
-	return en.n
-}
-
 func Test_Node_Observers(t *testing.T) {
 	one := &observeIncr[any]{
 		n: NewNode("test_node"),

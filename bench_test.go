@@ -260,7 +260,7 @@ func makeNestedBindGraph(g *Graph, depth int, bindControl VarIncr[int]) ObserveI
 		for x := 0; x < depth; x++ {
 			switch y {
 			case 0:
-				b := Bind(g, bindControl, func(x, y int) BindFunc[int, int] {
+				b := Bind(g, bindControl, func(x, _ int) BindFunc[int, int] {
 					return func(_ Scope, which int) Incr[int] {
 						return vars[(x+which)%depth]
 					}

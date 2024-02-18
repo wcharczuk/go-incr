@@ -59,19 +59,10 @@ func mapAppend(suffix string) func(string) string {
 	}
 }
 
-// addConst returs a map fn that adds a constant value
-// to a given input
-func addConst(v float64) func(float64) float64 {
-	return func(v0 float64) float64 {
-		return v0 + v
-	}
-}
-
 type addable interface {
 	~int | ~float64
 }
 
-// add is a map2 fn that adds two values and returns the result
 func add[T addable](v0, v1 T) T {
 	return v0 + v1
 }
@@ -155,16 +146,6 @@ func (hi *heightIncr) Parents() []INode { return nil }
 
 func (hi heightIncr) Node() *Node {
 	return hi.n
-}
-
-func allHeightInRecomputeHeap(values []INode, height int) bool {
-	for _, v := range values {
-		fmt.Printf("%d vs. %d\n", v.Node().heightInRecomputeHeap, height)
-		if v.Node().heightInRecomputeHeap != height {
-			return false
-		}
-	}
-	return true
 }
 
 func newList(items ...INode) *list[Identifier, INode] {
@@ -257,11 +238,6 @@ func hasKey[A INode](nodes []A, id Identifier) bool {
 		}
 	}
 	return false
-}
-
-func mapHasKey[K comparable, V any](m map[K]V, k K) (ok bool) {
-	_, ok = m[k]
-	return
 }
 
 func cutoffAlways[A, B any](scope Scope, input Incr[A], cutoff func(context.Context, A) (bool, error), fn func(context.Context, A) (B, error)) Incr[B] {
