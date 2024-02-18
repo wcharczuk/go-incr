@@ -288,6 +288,12 @@ func (graph *Graph) edgeIsStale(child, parent INode) bool {
 }
 
 func (graph *Graph) addChild(child, parent INode) error {
+	if child == nil {
+		return fmt.Errorf("child node is <nil>, cannot continue")
+	}
+	if parent == nil {
+		return fmt.Errorf("parent node is <nil>, cannot continue")
+	}
 	if err := graph.addChildWithoutAdjustingHeights(child, parent); err != nil {
 		return err
 	}

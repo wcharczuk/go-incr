@@ -102,7 +102,6 @@ func (rh *recomputeHeap) remove(node INode) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
 	rh.removeItemUnsafe(node)
-	return
 }
 
 //
