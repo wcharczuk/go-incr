@@ -12,7 +12,9 @@ It's useful in situations where you want to efficiently compute the outputs of c
 
 Think Excel spreadsheets and formulas, but in code.
 
-_Important caveat_ Very often code is faster _without_ incremental. Only reach for this library if you've hit a wall and need to add incrementality.
+# Important caveat
+
+Very often code is faster _without_ incremental. Only reach for this library if you've hit a wall and need to add incrementality.
 
 # Inspiration & differences from the original
 
