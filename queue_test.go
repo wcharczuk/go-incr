@@ -262,7 +262,7 @@ func Test_queue_clear(t *testing.T) {
 	testutil.Equal(t, 0, okValue(buffer.peekBack()))
 }
 
-func Test_queue_trim(t *testing.T) {
+func Test_queue_setCapacity(t *testing.T) {
 	buffer := new(queue[int])
 
 	for x := 0; x < 7; x++ {
@@ -270,7 +270,7 @@ func Test_queue_trim(t *testing.T) {
 	}
 	testutil.Equal(t, 7, buffer.len())
 
-	buffer.trim(5)
+	buffer.setCapacity(5)
 	testutil.Equal(t, 5, buffer.len())
 
 	value, ok := buffer.popBack()

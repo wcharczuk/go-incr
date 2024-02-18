@@ -494,29 +494,3 @@ func Test_recomputeHeap_removeMin(t *testing.T) {
 	testutil.Equal(t, false, ok)
 	testutil.Nil(t, node)
 }
-
-func Test_recomputeHeap_string(t *testing.T) {
-	g := New()
-	rh := newRecomputeHeap(10)
-	n10 := newHeightIncr(g, 1)
-	n11 := newHeightIncr(g, 1)
-	n20 := newHeightIncr(g, 2)
-	n21 := newHeightIncr(g, 2)
-	n22 := newHeightIncr(g, 2)
-	n30 := newHeightIncr(g, 3)
-
-	rh.add(n10)
-	rh.add(n11)
-	rh.add(n20)
-	rh.add(n21)
-	rh.add(n22)
-	rh.add(n30)
-
-	goldenMatch := `{
-	1: \[\[(.*)\]@1, \[(.*)\]@1\],
-	2: \[\[(.*)\]@2, \[(.*)\]@2\, \[(.*)\]@2\],
-	3: \[\[(.*)\]@3],
-}`
-	asString := rh.String()
-	testutil.Matches(t, goldenMatch, asString)
-}

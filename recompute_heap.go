@@ -1,9 +1,7 @@
 package incr
 
 import (
-	"bytes"
 	"fmt"
-	"strings"
 	"sync"
 )
 
@@ -226,25 +224,4 @@ func (rh *recomputeHeap) sanityCheck() error {
 		}
 	}
 	return nil
-}
-
-func (rh *recomputeHeap) String() string {
-	output := new(bytes.Buffer)
-
-	fmt.Fprintf(output, "{\n")
-	for heightIndex, heightList := range rh.heights {
-		if heightList == nil {
-			continue
-		}
-		fmt.Fprintf(output, "\t%d: [", heightIndex)
-		lineParts := make([]string, 0, heightList.len())
-		cursor := heightList.head
-		for cursor != nil {
-			lineParts = append(lineParts, fmt.Sprint(cursor.value))
-			cursor = cursor.next
-		}
-		fmt.Fprintf(output, "%s],\n", strings.Join(lineParts, ", "))
-	}
-	fmt.Fprintf(output, "}\n")
-	return output.String()
 }

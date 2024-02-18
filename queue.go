@@ -4,6 +4,11 @@ const (
 	queueDefaultCapacity = 4
 )
 
+// queue implements a fifo buffer datastructure using a ringbuffer.
+//
+// Typically you would see queue's implemented with a linked list, but in
+// garbage collected languages there are advantages to keeping an array of items
+// live to prevent excess allocations which makes a ringbuffer faster in practice.
 type queue[A any] struct {
 	array []A
 	head  int
@@ -11,23 +16,28 @@ type queue[A any] struct {
 	size  int
 }
 
+// len returns the number of items in the queue.
 func (q *queue[A]) len() int {
 	return q.size
 }
 
+// cap is the full size of the ringbuffer's backing
+// array (which is typically more in practice than
+// the queue's actual length).
 func (q *queue[A]) cap() int {
 	return len(q.array)
 }
 
+// clear empties the queue, but does not reclaim any
+// allocated space.
+//
+// to resize the queue to a smaller size, you can use
+// the `setCapacity(...)` function.
 func (q *queue[A]) clear() {
 	clear(q.array)
 	q.head = 0
 	q.tail = 0
 	q.size = 0
-}
-
-func (q *queue[A]) trim(size int) {
-	q.setCapacity(size)
 }
 
 func (q *queue[A]) push(v A) {
