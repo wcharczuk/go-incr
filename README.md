@@ -2,6 +2,7 @@ go-incr
 ==============
 
 [![Continuous Integration](https://github.com/wcharczuk/go-incr/actions/workflows/ci.yml/badge.svg)](https://github.com/wcharczuk/go-incr/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/wcharczuk/go-incr)](https://goreportcard.com/report/github.com/wcharczuk/go-incr)
 
 ![Graph](https://github.com/wcharczuk/go-incr/blob/main/_assets/basic_graph.png)
 
@@ -15,7 +16,7 @@ Think Excel spreadsheets and formulas, but in code.
 
 The inspiration for `go-incr` is Jane Street's [incremental](https://github.com/janestreet/incremental) library.
 
-The key difference from this library versus the Jane Street implementation is _parallelism_. You can stabilize multiple nodes with the same recompute height at once using `ParallelStabilize`. This is especially useful if you have nodes that make network calls or do other non-cpu bound work. 
+The key difference from this library versus the Jane Street implementation is _parallelism_. You can stabilize multiple nodes with the same recompute height at once using `ParallelStabilize`. This is especially useful if you have nodes that make network calls or do other non-cpu bound work.
 
 # Basics
 
