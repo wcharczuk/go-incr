@@ -5,9 +5,9 @@ go-incr
 
 ![Graph](https://github.com/wcharczuk/go-incr/blob/main/_assets/basic_graph.png)
 
-`go-incr` is an incremental computation library designed for partial computation of large graphs of operations.
+`go-incr` is an incremental computation library to help implement partial computation of large graphs of operations.
 
-It is useful in situations where you want to efficiently compute the outputs of computations where only a subset of the computation changes for a given pass.
+It is useful in situations where you want to efficiently compute the outputs of computations where only a subset of the computation changes based on changes in inputs.
 
 Think Excel spreadsheets and formulas, but in code.
 
