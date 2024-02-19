@@ -60,6 +60,7 @@ func (l *recomputeHeapList) pop() (k Identifier, v INode, ok bool) {
 	next := l.head.Node().nextInRecomputeHeap
 	next.Node().previousInRecomputeHeap = nil
 	l.head = next
+
 	v.Node().nextInRecomputeHeap = nil
 	v.Node().previousInRecomputeHeap = nil
 	return
@@ -133,7 +134,6 @@ func (l *recomputeHeapList) removeHeadItem() {
 func (l *recomputeHeapList) removeLinkedItem(item INode) {
 	towardsHead := item.Node().previousInRecomputeHeap
 	towardsTail := item.Node().nextInRecomputeHeap
-
 	if towardsHead != nil {
 		towardsHead.Node().nextInRecomputeHeap = towardsTail
 	}
@@ -146,7 +146,6 @@ func (l *recomputeHeapList) removeLinkedItem(item INode) {
 			l.tail.Node().nextInRecomputeHeap = nil
 		}
 	}
-
 	item.Node().previousInRecomputeHeap = nil
 	item.Node().nextInRecomputeHeap = nil
 }
