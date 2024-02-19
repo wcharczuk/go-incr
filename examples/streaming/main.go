@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"sync/atomic"
+	"time"
 
 	"github.com/wcharczuk/go-incr"
 )
@@ -30,20 +32,42 @@ func main() {
 	critical := anyMatch(g, lastValues, func(v float64) bool {
 		return v > 0.99999
 	})
+
+	counter := countUpdates(g, currentValue)
+	observeCountUpdates := incr.MustObserve(g, counter)
+	lastTime := time.Now()
+	var lastCount uint64
+	observeCountUpdates.OnUpdate(func(_ context.Context) {
+		delta := observeCountUpdates.Value() - lastCount
+		elapsed := time.Since(lastTime) / time.Millisecond
+		fmt.Println("seen:", float64(delta)/float64(elapsed), "values/msec")
+		lastTime = time.Now()
+		lastCount = observeCountUpdates.Value()
+	})
+
 	observeLastValues := incr.MustObserve(g, lastValues)
 	observeCritical := incr.MustObserve(g, critical)
 	observeCritical.OnUpdate(func(_ context.Context) {
 		if observeCritical.Value() {
 			fmt.Printf("saw critical values!: %v\n", observeLastValues.Value())
-		} else {
-			fmt.Println("did not see any critical values")
 		}
 	})
+
 	for {
 		value := <-values
 		currentValue.Set(value)
 		_ = g.Stabilize(ctx)
 	}
+}
+
+func countUpdates[T any](scope incr.Scope, input incr.Incr[T]) incr.Incr[uint64] {
+	var updates uint64
+	counter := incr.Map(scope, input, func(_ T) uint64 {
+		atomic.AddUint64(&updates, 1)
+		return updates
+	})
+	countUpdates := incr.Timer(scope, counter, 500*time.Millisecond)
+	return countUpdates
 }
 
 func anyMatch[T any](scope incr.Scope, input incr.Incr[[]T], predicate func(T) bool) incr.Incr[bool] {
