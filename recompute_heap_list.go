@@ -73,10 +73,10 @@ func (l *recomputeHeapList) consume(fn func(Identifier, INode)) {
 	ptr := l.head
 	var next INode
 	for ptr != nil {
-		fn(ptr.Node().id, ptr)
 		next = ptr.Node().nextInRecomputeHeap
 		ptr.Node().nextInRecomputeHeap = nil
 		ptr.Node().previousInRecomputeHeap = nil
+		fn(ptr.Node().id, ptr)
 		ptr = next
 	}
 	l.head = nil

@@ -152,7 +152,7 @@ func benchmarkSize(size int, b *testing.B) {
 
 func benchmarkParallelSize(size int, b *testing.B) {
 	graph, nodes := makeBenchmarkGraph(size)
-	ctx := context.Background()
+	ctx := testContext()
 	b.ResetTimer()
 	var err error
 	for n := 0; n < b.N; n++ {
