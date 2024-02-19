@@ -1172,3 +1172,38 @@ func Test_Bind_observedInner_cached(t *testing.T) {
 	testutil.Equal(t, "bb-b-value", obb.Value())
 	testutil.Equal(t, "bb-b-value", obo.Value())
 }
+
+func Test_Bind_cycle(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	var b1 BindIncr[string]
+
+	b0v := Var(g, "a")
+	b0 := Bind(g, b0v, func(bs Scope, which string) Incr[string] {
+		if which == "a" {
+			return Return(bs, "foo")
+		}
+		return b1
+	})
+
+	b1v := Var(g, "a")
+	b1 = Bind(g, b1v, func(bs Scope, which string) Incr[string] {
+		if which == "a" {
+			return b0
+		}
+		return Return(bs, "bar")
+	})
+
+	o := MustObserve(g, b1)
+
+	err := g.Stabilize(ctx)
+	testutil.NoError(t, err)
+	testutil.Equal(t, "foo", o.Value())
+
+	b0v.Set("b")
+
+	err = g.Stabilize(ctx)
+	testutil.Error(t, err)
+	testutil.Equal(t, "foo", o.Value())
+}
