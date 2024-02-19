@@ -218,13 +218,13 @@ func (rh *recomputeHeap) sanityCheck() error {
 		}
 		cursor := height.head
 		for cursor != nil {
-			if (*cursor).Node().heightInRecomputeHeap != heightIndex {
-				return fmt.Errorf("recompute heap; sanity check; at height %d item has height %d", heightIndex, (*cursor).Node().heightInRecomputeHeap)
+			if cursor.Node().heightInRecomputeHeap != heightIndex {
+				return fmt.Errorf("recompute heap; sanity check; at height %d item has height %d", heightIndex, cursor.Node().heightInRecomputeHeap)
 			}
-			if (*cursor).Node().heightInRecomputeHeap != (*cursor).Node().height {
-				return fmt.Errorf("recompute heap; sanity check; at height %d item has height %d and node has height %d", heightIndex, (*cursor).Node().heightInRecomputeHeap, (*cursor).Node().height)
+			if cursor.Node().heightInRecomputeHeap != cursor.Node().height {
+				return fmt.Errorf("recompute heap; sanity check; at height %d item has height %d and node has height %d", heightIndex, cursor.Node().heightInRecomputeHeap, cursor.Node().height)
 			}
-			cursor = (*cursor).Node().nextInRecomputeHeap
+			cursor = cursor.Node().nextInRecomputeHeap
 		}
 	}
 	return nil

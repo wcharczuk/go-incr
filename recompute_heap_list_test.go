@@ -6,25 +6,25 @@ import (
 	"github.com/wcharczuk/go-incr/testutil"
 )
 
-func nodePtrID(n *INode) Identifier {
+func nodePtrID(n INode) Identifier {
 	if n == nil {
 		return zero
 	}
-	return (*n).Node().id
+	return n.Node().id
 }
 
-func rhnext(n *INode) *INode {
+func rhnext(n INode) INode {
 	if n == nil {
 		return nil
 	}
-	return (*n).Node().nextInRecomputeHeap
+	return n.Node().nextInRecomputeHeap
 }
 
-func rhprev(n *INode) *INode {
+func rhprev(n INode) INode {
 	if n == nil {
 		return nil
 	}
-	return (*n).Node().previousInRecomputeHeap
+	return n.Node().previousInRecomputeHeap
 }
 
 func Test_recomputeHeapList_push_pop(t *testing.T) {

@@ -101,8 +101,8 @@ type Node struct {
 	// numChanges is the number of times we changed the node
 	numChanges uint64
 
-	nextInRecomputeHeap     *INode
-	previousInRecomputeHeap *INode
+	nextInRecomputeHeap     INode
+	previousInRecomputeHeap INode
 }
 
 //
