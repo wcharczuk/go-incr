@@ -87,7 +87,22 @@ func Test_Graph_recompute_recomputesObservers(t *testing.T) {
 	testutil.Equal(t, false, g.recomputeHeap.has(n))
 	testutil.Equal(t, false, g.recomputeHeap.has(o))
 
-	err := g.recompute(testContext(), n)
+	err := g.recompute(testContext(), n, false)
+	testutil.Nil(t, err)
+	testutil.Equal(t, 0, g.recomputeHeap.len())
+	testutil.Equal(t, false, g.recomputeHeap.has(o))
+}
+
+func Test_Graph_recompute_recomputesObservers_parallel(t *testing.T) {
+	g := New()
+	n := newMockBareNode(g)
+	o := MustObserve(g, n)
+	g.recomputeHeap.clear()
+
+	testutil.Equal(t, false, g.recomputeHeap.has(n))
+	testutil.Equal(t, false, g.recomputeHeap.has(o))
+
+	err := g.recompute(testContext(), n, true)
 	testutil.Nil(t, err)
 	testutil.Equal(t, 0, g.recomputeHeap.len())
 	testutil.Equal(t, false, g.recomputeHeap.has(o))

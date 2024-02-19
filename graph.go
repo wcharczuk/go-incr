@@ -561,7 +561,7 @@ func (graph *Graph) stabilizeEndRunUpdateHandlers(ctx context.Context) {
 
 // recompute starts the recompute cycle for the node
 // setting the recomputedAt field and possibly changing the value.
-func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
+func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err error) {
 	graph.numNodesRecomputed++
 
 	nn := n.Node()
@@ -594,14 +594,22 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 
 	nn.changedAt = graph.stabilizationNum
 	if len(nn.onUpdateHandlers) > 0 {
-		graph.handleAfterStabilizationMu.Lock()
+		// graph.handleAfterStabilizationMu.Lock()
 		graph.handleAfterStabilization[nn.id] = nn.onUpdateHandlers
-		graph.handleAfterStabilizationMu.Unlock()
+		// graph.handleAfterStabilizationMu.Unlock()
 	}
 
-	for _, c := range nn.children {
-		if c.Node().isNecessary() && c.Node().isStale() {
-			graph.recomputeHeap.addIfNotPresent(c)
+	if parallel {
+		for _, c := range nn.children {
+			if c.Node().isNecessary() && c.Node().isStale() {
+				graph.recomputeHeap.addIfNotPresent(c)
+			}
+		}
+	} else {
+		for _, c := range nn.children {
+			if c.Node().isNecessary() && c.Node().isStale() && c.Node().heightInRecomputeHeap == HeightUnset {
+				graph.recomputeHeap.addNodeUnsafe(c)
+			}
 		}
 	}
 
@@ -609,9 +617,9 @@ func (graph *Graph) recompute(ctx context.Context, n INode) (err error) {
 	// children of this node but will not have any children themselves.
 	for _, o := range nn.observers {
 		if len(o.Node().onUpdateHandlers) > 0 {
-			graph.handleAfterStabilizationMu.Lock()
+			// graph.handleAfterStabilizationMu.Lock()
 			graph.handleAfterStabilization[nn.id] = o.Node().onUpdateHandlers
-			graph.handleAfterStabilizationMu.Unlock()
+			// graph.handleAfterStabilizationMu.Unlock()
 		}
 	}
 	return

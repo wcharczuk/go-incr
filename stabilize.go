@@ -22,7 +22,7 @@ func (graph *Graph) Stabilize(ctx context.Context) (err error) {
 	var next INode
 	for graph.recomputeHeap.numItems > 0 {
 		next, _ = graph.recomputeHeap.removeMinUnsafe()
-		err = graph.recompute(ctx, next)
+		err = graph.recompute(ctx, next, false /*parallel*/)
 		if next.Node().always {
 			immediateRecompute = append(immediateRecompute, next)
 		}
