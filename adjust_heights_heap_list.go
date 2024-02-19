@@ -109,13 +109,14 @@ func (l *adjustHeightsHeapList) removeHeadItem() {
 		return
 	}
 
-	// remove from head
+	oldHead := l.head
 	towardsTail := l.head.Node().nextInAdjustHeightsHeap
 	if towardsTail != nil {
-		l.head.Node().nextInAdjustHeightsHeap = nil
 		towardsTail.Node().previousInAdjustHeightsHeap = nil
 	}
 	l.head = towardsTail
+	oldHead.Node().nextInAdjustHeightsHeap = nil
+	oldHead.Node().previousInAdjustHeightsHeap = nil
 }
 
 func (l *adjustHeightsHeapList) removeLinkedItem(item INode) {

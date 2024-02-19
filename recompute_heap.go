@@ -78,14 +78,21 @@ func (rh *recomputeHeap) has(s INode) (ok bool) {
 func (rh *recomputeHeap) removeMinHeight() (nodes []INode) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
-	if rh.heights[rh.minHeight] != nil && rh.heights[rh.minHeight].len() > 0 {
-		nodes = make([]INode, 0, rh.heights[rh.minHeight].len())
-		rh.heights[rh.minHeight].consume(func(id Identifier, n INode) {
-			n.Node().heightInRecomputeHeap = HeightUnset
-			nodes = append(nodes, n)
-			rh.numItems--
-		})
-		rh.minHeight = rh.nextMinHeightUnsafe()
+	for x := 0; x < len(rh.heights); x++ {
+		if rh.heights[x] != nil && rh.heights[x].len() > 0 {
+			heightLen := rh.heights[x].len()
+			nodes = make([]INode, 0, rh.heights[x].len())
+			rh.heights[x].consume(func(id Identifier, n INode) {
+				n.Node().heightInRecomputeHeap = HeightUnset
+				nodes = append(nodes, n)
+				rh.numItems--
+			})
+			if len(nodes) != heightLen {
+				panic(fmt.Errorf("bad consume; %v vs. %v", len(nodes), heightLen))
+			}
+			// rh.minHeight = rh.nextMinHeightUnsafe()
+			return
+		}
 	}
 	return
 }
