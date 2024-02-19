@@ -221,13 +221,12 @@ func (graph *Graph) SetStale(gn INode) {
 // Scope interface methods
 //
 
-func (graph *Graph) isTopScope() bool        { return true }
-func (graph *Graph) isScopeValid() bool      { return true }
-func (graph *Graph) isScopeNecessary() bool  { return true }
-func (graph *Graph) scopeGraph() *Graph      { return graph }
-func (graph *Graph) scopeHeight() int        { return HeightUnset }
-func (graph *Graph) addScopeNode(_ INode)    {}
-func (graph *Graph) removeScopeNode(_ INode) {}
+func (graph *Graph) isTopScope() bool       { return true }
+func (graph *Graph) isScopeValid() bool     { return true }
+func (graph *Graph) isScopeNecessary() bool { return true }
+func (graph *Graph) scopeGraph() *Graph     { return graph }
+func (graph *Graph) scopeHeight() int       { return HeightUnset }
+func (graph *Graph) addScopeNode(_ INode)   {}
 
 func (graph *Graph) String() string { return fmt.Sprintf("{graph:%s}", graph.id.Short()) }
 

@@ -185,6 +185,9 @@ func (en *expertNode) RemoveObserver(id Identifier) {
 func (en *expertNode) Value() any {
 	rv := reflect.ValueOf(en.incr)
 	valueMethod := rv.MethodByName("Value")
+	if !valueMethod.IsValid() {
+		return nil
+	}
 	res := valueMethod.Call(nil)
 	if len(res) > 0 {
 		return res[0].Interface()
