@@ -146,6 +146,7 @@ func (ah *adjustHeightsHeap) setHeightUnsafe(node INode, height int) error {
 	if height > ah.maxHeightSeen {
 		ah.maxHeightSeen = height
 	}
+	fmt.Printf("set node height: %v %v\n", node, height)
 	node.Node().height = height
 	return nil
 }

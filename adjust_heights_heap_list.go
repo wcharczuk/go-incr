@@ -33,10 +33,8 @@ func (l *adjustHeightsHeapList) push(v INode) {
 		l.tail = v
 		return
 	}
-
 	l.tail.Node().nextInAdjustHeightsHeap = v
 	v.Node().previousInAdjustHeightsHeap = l.tail
-	v.Node().nextInAdjustHeightsHeap = nil
 	l.tail = v
 	return
 }
@@ -54,7 +52,6 @@ func (l *adjustHeightsHeapList) pop() (k Identifier, v INode, ok bool) {
 	if l.head == l.tail {
 		l.head = nil
 		l.tail = nil
-
 		v.Node().nextInAdjustHeightsHeap = nil
 		v.Node().previousInAdjustHeightsHeap = nil
 		return
@@ -98,17 +95,13 @@ func (l *adjustHeightsHeapList) remove(k Identifier) (ok bool) {
 }
 
 func (l *adjustHeightsHeapList) removeHeadItem() {
-	// if we have a single element,
-	// we will need to change the tail
-	// pointer as well
 	if l.head == l.tail {
 		l.head.Node().nextInAdjustHeightsHeap = nil
-		l.tail.Node().previousInAdjustHeightsHeap = nil
+		l.head.Node().previousInAdjustHeightsHeap = nil
 		l.head = nil
 		l.tail = nil
 		return
 	}
-
 	oldHead := l.head
 	towardsTail := l.head.Node().nextInAdjustHeightsHeap
 	if towardsTail != nil {
@@ -122,7 +115,6 @@ func (l *adjustHeightsHeapList) removeHeadItem() {
 func (l *adjustHeightsHeapList) removeLinkedItem(item INode) {
 	towardsHead := item.Node().previousInAdjustHeightsHeap
 	towardsTail := item.Node().nextInAdjustHeightsHeap
-
 	if towardsHead != nil {
 		towardsHead.Node().nextInAdjustHeightsHeap = towardsTail
 	}
@@ -135,7 +127,6 @@ func (l *adjustHeightsHeapList) removeLinkedItem(item INode) {
 			l.tail.Node().nextInAdjustHeightsHeap = nil
 		}
 	}
-
 	item.Node().previousInAdjustHeightsHeap = nil
 	item.Node().nextInAdjustHeightsHeap = nil
 }

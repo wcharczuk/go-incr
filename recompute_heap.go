@@ -35,6 +35,7 @@ type recomputeHeap struct {
 func (rh *recomputeHeap) clear() {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
+
 	rh.heights = make([]*recomputeHeapList, len(rh.heights))
 	rh.minHeight = 0
 	rh.maxHeight = 0
@@ -42,27 +43,32 @@ func (rh *recomputeHeap) clear() {
 }
 
 func (rh *recomputeHeap) len() int {
+	rh.mu.Lock()
+	defer rh.mu.Unlock()
+
 	return rh.numItems
 }
 
 func (rh *recomputeHeap) add(nodes ...INode) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
+
 	rh.addUnsafe(nodes...)
 }
 
 func (rh *recomputeHeap) fix(node INode) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
-
-	rh.heights[node.Node().heightInRecomputeHeap].remove(node.Node().id)
-	rh.numItems--
+	if rh.heights[node.Node().heightInRecomputeHeap].remove(node.Node().id) {
+		rh.numItems--
+	}
 	rh.addNodeUnsafe(node)
 }
 
 func (rh *recomputeHeap) has(s INode) (ok bool) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
+
 	nodeID := s.Node().id
 	for x := rh.minHeight; x <= rh.maxHeight; x++ {
 		if rh.heights[x].has(nodeID) {
@@ -73,24 +79,24 @@ func (rh *recomputeHeap) has(s INode) (ok bool) {
 	return
 }
 
-// removeMinHeight removes the minimum height nodes from
-// the recompute heap all at once.
 func (rh *recomputeHeap) removeMinHeight() (nodes []INode) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
 
 	if rh.heights[rh.minHeight] != nil && rh.heights[rh.minHeight].len() > 0 {
 		heightLen := rh.heights[rh.minHeight].len()
-		nodes = make([]INode, 0, rh.heights[rh.minHeight].len())
+		nodes = make([]INode, 0, heightLen)
 		rh.heights[rh.minHeight].consume(func(id Identifier, n INode) {
+			if n.Node().height != n.Node().heightInRecomputeHeap {
+				panic(fmt.Errorf("bad consume node height; %v vs. %v", n, n.Node().heightInRecomputeHeap))
+			}
 			n.Node().heightInRecomputeHeap = HeightUnset
 			nodes = append(nodes, n)
-			rh.numItems--
 		})
-
 		if len(nodes) != heightLen {
 			panic(fmt.Errorf("bad consume; %v vs. %v", len(nodes), heightLen))
 		}
+		rh.numItems -= len(nodes)
 		rh.minHeight = rh.nextMinHeightUnsafe()
 		return
 	}
@@ -100,6 +106,7 @@ func (rh *recomputeHeap) removeMinHeight() (nodes []INode) {
 func (rh *recomputeHeap) remove(node INode) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
+
 	rh.removeItemUnsafe(node)
 	return
 }

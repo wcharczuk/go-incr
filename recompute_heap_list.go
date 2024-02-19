@@ -27,6 +27,10 @@ func (l *recomputeHeapList) push(v INode) {
 	if l.items == nil {
 		l.items = make(map[Identifier]INode)
 	}
+
+	v.Node().nextInRecomputeHeap = nil
+	v.Node().previousInRecomputeHeap = nil
+
 	l.items[v.Node().id] = v
 	if l.head == nil {
 		l.head = v
@@ -99,20 +103,16 @@ func (l *recomputeHeapList) remove(k Identifier) (ok bool) {
 	if !ok {
 		return
 	}
-
-	delete(l.items, k)
 	if l.head == node {
 		l.removeHeadItem()
 	} else {
 		l.removeLinkedItem(node)
 	}
+	delete(l.items, k)
 	return
 }
 
 func (l *recomputeHeapList) removeHeadItem() {
-	// if we have a single element,
-	// we will need to change the tail
-	// pointer as well
 	if l.head == l.tail {
 		l.head.Node().nextInRecomputeHeap = nil
 		l.head.Node().previousInAdjustHeightsHeap = nil
@@ -120,7 +120,6 @@ func (l *recomputeHeapList) removeHeadItem() {
 		l.tail = nil
 		return
 	}
-
 	oldHead := l.head
 	towardsTail := l.head.Node().nextInRecomputeHeap
 	if towardsTail != nil {
