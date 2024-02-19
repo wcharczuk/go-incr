@@ -103,10 +103,13 @@ func newMockBareNode(scope Scope) *mockBareNode {
 }
 
 type mockBareNode struct {
-	n *Node
+	n       *Node
+	parents []INode
 }
 
-func (mn *mockBareNode) Parents() []INode { return nil }
+func (mn *mockBareNode) String() string { return mn.n.String() }
+
+func (mn *mockBareNode) Parents() []INode { return mn.parents }
 
 func (mn *mockBareNode) Node() *Node {
 	return mn.n

@@ -304,7 +304,7 @@ func (n *Node) shouldBeInvalidated() bool {
 }
 
 func (n *Node) nodeParents() []INode {
-	if parents := n.parentsFn; parents != nil {
+	if n.parentsFn != nil {
 		return n.parentsFn()
 	}
 	return nil

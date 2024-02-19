@@ -2,6 +2,7 @@ package incr
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime"
 	"sync"
@@ -287,12 +288,15 @@ func (graph *Graph) edgeIsStale(child, parent INode) bool {
 	return parent.Node().changedAt > child.Node().recomputedAt
 }
 
+var errChildNil = errors.New("child node is <nil>, cannot continue")
+var errParentNil = errors.New("parent node is <nil>, cannot continue")
+
 func (graph *Graph) addChild(child, parent INode) error {
 	if child == nil {
-		return fmt.Errorf("child node is <nil>, cannot continue")
+		return errChildNil
 	}
 	if parent == nil {
-		return fmt.Errorf("parent node is <nil>, cannot continue")
+		return errParentNil
 	}
 	if err := graph.addChildWithoutAdjustingHeights(child, parent); err != nil {
 		return err
