@@ -103,6 +103,10 @@ func Benchmark_directCall(b *testing.B) {
 	benchmarkDirectCall(b)
 }
 
+func Benchmark_interfaceUpgradeCall(b *testing.B) {
+	benchmarkInterfaceUpgradeCall(b)
+}
+
 func makeBenchmarkGraph(size int) (*Graph, []Incr[string]) {
 	graph := New()
 	nodes := make([]Incr[string], size)
@@ -334,5 +338,28 @@ func benchmarkDirectCall(b *testing.B) {
 	b.ResetTimer()
 	for x := 0; x < b.N; x++ {
 		_ = m.Stabilize(ctx)
+	}
+}
+
+func benchmarkInterfaceUpgradeCall(b *testing.B) {
+	ctx := testContext()
+	g := New()
+	r0 := Return(g, 1)
+	r1 := Return(g, 2)
+	var m Incr[int] = &map2Incr[int, int, int]{
+		n:       NewNode("map2"),
+		a:       r0,
+		b:       r1,
+		fn:      func(_ context.Context, a, b int) (int, error) { return a + b, nil },
+		parents: []INode{r0, r1},
+	}
+	m.Node().createdIn = g
+	_ = MustObserve(g, m)
+
+	b.ResetTimer()
+	for x := 0; x < b.N; x++ {
+		if typed, ok := m.(IStabilize); ok {
+			_ = typed.Stabilize(ctx)
+		}
 	}
 }
