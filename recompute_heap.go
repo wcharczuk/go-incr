@@ -8,7 +8,7 @@ import (
 // newRecomputeHeap returns a new recompute heap with a given maximum height.
 func newRecomputeHeap(maxHeight int) *recomputeHeap {
 	return &recomputeHeap{
-		heights: make([]*list[Identifier, INode], maxHeight),
+		heights: make([]*recomputeHeapList, maxHeight),
 	}
 }
 
@@ -25,7 +25,7 @@ type recomputeHeap struct {
 	// heights is an array of linked lists corresponding
 	// to node heights. it should be pre-allocated with
 	// the constructor to the height limit number of elements.
-	heights []*list[Identifier, INode]
+	heights []*recomputeHeapList
 
 	numItems int
 }
@@ -35,7 +35,7 @@ type recomputeHeap struct {
 func (rh *recomputeHeap) clear() {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
-	rh.heights = make([]*list[Identifier, INode], len(rh.heights))
+	rh.heights = make([]*recomputeHeapList, len(rh.heights))
 	rh.minHeight = 0
 	rh.maxHeight = 0
 	rh.numItems = 0
@@ -146,9 +146,9 @@ func (rh *recomputeHeap) addNodeUnsafe(s INode) {
 	rh.maybeUpdateMinMaxHeights(height)
 	rh.maybeAddNewHeightsUnsafe(height)
 	if rh.heights[height] == nil {
-		rh.heights[height] = new(list[Identifier, INode])
+		rh.heights[height] = new(recomputeHeapList)
 	}
-	rh.heights[height].push(sn.id, s)
+	rh.heights[height].push(s)
 	rh.numItems++
 }
 
@@ -213,14 +213,13 @@ func (rh *recomputeHeap) sanityCheck() error {
 		}
 		cursor := height.head
 		for cursor != nil {
-			item := cursor.value
-			if item.Node().heightInRecomputeHeap != heightIndex {
-				return fmt.Errorf("recompute heap; sanity check; at height %d item has height %d", heightIndex, item.Node().heightInRecomputeHeap)
+			if cursor.Node().heightInRecomputeHeap != heightIndex {
+				return fmt.Errorf("recompute heap; sanity check; at height %d item has height %d", heightIndex, cursor.Node().heightInRecomputeHeap)
 			}
-			if item.Node().heightInRecomputeHeap != item.Node().height {
-				return fmt.Errorf("recompute heap; sanity check; at height %d item has height %d and node has height %d", heightIndex, item.Node().heightInRecomputeHeap, item.Node().height)
+			if cursor.Node().heightInRecomputeHeap != cursor.Node().height {
+				return fmt.Errorf("recompute heap; sanity check; at height %d item has height %d and node has height %d", heightIndex, cursor.Node().heightInRecomputeHeap, cursor.Node().height)
 			}
-			cursor = cursor.next
+			cursor = cursor.Node().nextInRecomputeHeap
 		}
 	}
 	return nil

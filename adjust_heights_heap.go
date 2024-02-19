@@ -7,14 +7,14 @@ import (
 
 func newAdjustHeightsHeap(maxHeightAllowed int) *adjustHeightsHeap {
 	return &adjustHeightsHeap{
-		nodesByHeight:    make([]*list[Identifier, INode], maxHeightAllowed),
+		nodesByHeight:    make([]*adjustHeightsHeapList, maxHeightAllowed),
 		heightLowerBound: maxHeightAllowed + 1,
 	}
 }
 
 type adjustHeightsHeap struct {
 	mu               sync.Mutex
-	nodesByHeight    []*list[Identifier, INode]
+	nodesByHeight    []*adjustHeightsHeapList
 	numNodes         int
 	maxHeightSeen    int
 	heightLowerBound int
@@ -112,12 +112,12 @@ func (ah *adjustHeightsHeap) addUnsafe(node INode) {
 	height := node.Node().height
 	node.Node().heightInAdjustHeightsHeap = height
 	if ah.nodesByHeight[height] == nil {
-		ah.nodesByHeight[height] = new(list[Identifier, INode])
+		ah.nodesByHeight[height] = new(adjustHeightsHeapList)
 	}
 	if height > ah.maxHeightSeen {
 		ah.maxHeightSeen = height
 	}
-	ah.nodesByHeight[height].push(node.Node().id, node)
+	ah.nodesByHeight[height].push(node)
 	ah.numNodes++
 }
 
@@ -131,7 +131,7 @@ func (ah *adjustHeightsHeap) removeUnsafe(node INode) {
 	nodeID := node.Node().id
 	height := node.Node().heightInAdjustHeightsHeap
 	if height >= ah.heightLowerBound && height <= ah.maxHeightSeen {
-		if ah.nodesByHeight[height] != nil && ah.nodesByHeight[height].has(nodeID) {
+		if ah.nodesByHeight[height] != nil { // && ah.nodesByHeight[height].has(nodeID) {
 			ah.nodesByHeight[height].remove(nodeID)
 			ah.numNodes--
 			return

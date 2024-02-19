@@ -81,8 +81,8 @@ func (eg *expertGraph) RecomputeHeapIDs() []Identifier {
 		if height != nil {
 			cursor := height.head
 			for cursor != nil {
-				output = append(output, cursor.key)
-				cursor = cursor.next
+				output = append(output, cursor.Node().id)
+				cursor = cursor.Node().nextInRecomputeHeap
 			}
 		}
 	}

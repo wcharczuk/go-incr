@@ -322,7 +322,7 @@ func Test_recomputeHeap_sanityCheck_badItemHeight(t *testing.T) {
 
 	height2 := newList(n_2_00, n_2_01)
 
-	rh.heights = []*list[Identifier, INode]{
+	rh.heights = []*recomputeHeapList{
 		nil,
 		newList(n_1_00),
 		height2,
@@ -347,7 +347,7 @@ func Test_recomputeHeap_sanityCheck_badHeightInRecomputeHeap(t *testing.T) {
 
 	height2 := newList(n_2_00, n_2_01)
 
-	rh.heights = []*list[Identifier, INode]{
+	rh.heights = []*recomputeHeapList{
 		nil,
 		newList(n_1_00),
 		height2,

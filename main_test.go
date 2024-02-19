@@ -125,16 +125,6 @@ func newHeightIncr(scope Scope, height int) *heightIncr {
 	})
 }
 
-func newHeightIncrLabel(scope Scope, height int, label string) *heightIncr {
-	return WithinScope(scope, &heightIncr{
-		n: &Node{
-			id:     NewIdentifier(),
-			height: height,
-			label:  label,
-		},
-	})
-}
-
 type heightIncr struct {
 	Incr[struct{}]
 	n *Node
@@ -148,11 +138,11 @@ func (hi heightIncr) Node() *Node {
 	return hi.n
 }
 
-func newList(items ...INode) *list[Identifier, INode] {
-	l := new(list[Identifier, INode])
+func newList(items ...INode) *recomputeHeapList {
+	l := new(recomputeHeapList)
 	for _, i := range items {
 		i.Node().heightInRecomputeHeap = i.Node().height
-		l.push(i.Node().id, i)
+		l.push(i)
 	}
 	return l
 }
