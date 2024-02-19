@@ -577,11 +577,9 @@ func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err 
 		return
 	}
 	if shouldCutoff {
-		TracePrintf(ctx, "stabilization saw active cutoff %v", n)
 		return
 	}
 
-	TracePrintf(ctx, "stabilization is recomputing %v", n)
 	graph.numNodesChanged++
 	nn.numChanges++
 
