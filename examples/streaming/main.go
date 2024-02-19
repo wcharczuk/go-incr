@@ -20,11 +20,11 @@ func main() {
 	max := maxOf(g, currentValue, 0.01)
 	min := minOf(g, currentValue, 0.01)
 	observeMax := incr.MustObserve(g, max)
-	observeMax.Node().OnUpdate(func(_ context.Context) {
+	observeMax.OnUpdate(func(_ context.Context) {
 		fmt.Printf("new max: %0.2f\n", observeMax.Value())
 	})
 	observeMin := incr.MustObserve(g, min)
-	observeMin.Node().OnUpdate(func(_ context.Context) {
+	observeMin.OnUpdate(func(_ context.Context) {
 		fmt.Printf("new min: %0.2f\n", observeMin.Value())
 	})
 	critical := anyMatch(g, lastValues, func(v float64) bool {
@@ -32,7 +32,7 @@ func main() {
 	})
 	observeLastValues := incr.MustObserve(g, lastValues)
 	observeCritical := incr.MustObserve(g, critical)
-	observeCritical.Node().OnUpdate(func(_ context.Context) {
+	observeCritical.OnUpdate(func(_ context.Context) {
 		if observeCritical.Value() {
 			fmt.Printf("saw critical values!: %v\n", observeLastValues.Value())
 		} else {
