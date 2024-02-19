@@ -68,7 +68,9 @@ func (eg *expertGraph) SetStabilizationNum(stabilizationNum uint64) {
 }
 
 func (eg *expertGraph) RecomputeHeapAdd(nodes ...INode) {
-	eg.graph.recomputeHeap.add(nodes...)
+	for _, n := range nodes {
+		eg.graph.recomputeHeap.add(n)
+	}
 }
 
 func (eg *expertGraph) RecomputeHeapLen() int {
@@ -79,10 +81,8 @@ func (eg *expertGraph) RecomputeHeapIDs() []Identifier {
 	output := make([]Identifier, 0, eg.graph.recomputeHeap.numItems)
 	for _, height := range eg.graph.recomputeHeap.heights {
 		if height != nil {
-			cursor := height.head
-			for cursor != nil {
-				output = append(output, cursor.key)
-				cursor = cursor.next
+			for key := range height.items {
+				output = append(output, key)
 			}
 		}
 	}

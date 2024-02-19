@@ -103,6 +103,11 @@ func Test_recomputeHeap_removeMinHeight(t *testing.T) {
 	testutil.Equal(t, 4, rh.heights[1].len())
 	testutil.Equal(t, 5, rh.heights[5].len())
 
+	for _, n := range output {
+		testutil.Nil(t, n.Node().nextInRecomputeHeap)
+		testutil.Nil(t, n.Node().previousInRecomputeHeap)
+	}
+
 	testutil.Equal(t, 1, rh.minHeight)
 	testutil.Equal(t, 5, rh.maxHeight)
 
@@ -114,6 +119,11 @@ func Test_recomputeHeap_removeMinHeight(t *testing.T) {
 	testutil.Equal(t, 0, rh.heights[1].len())
 	testutil.Equal(t, 5, rh.heights[5].len())
 
+	for _, n := range output {
+		testutil.Nil(t, n.Node().nextInRecomputeHeap)
+		testutil.Nil(t, n.Node().previousInRecomputeHeap)
+	}
+
 	output = rh.removeMinHeight()
 	testutil.Nil(t, rh.sanityCheck())
 	testutil.Equal(t, 0, rh.len())
@@ -121,6 +131,11 @@ func Test_recomputeHeap_removeMinHeight(t *testing.T) {
 	testutil.Equal(t, 0, rh.heights[0].len())
 	testutil.Equal(t, 0, rh.heights[1].len())
 	testutil.Equal(t, 0, rh.heights[5].len())
+
+	for _, n := range output {
+		testutil.Nil(t, n.Node().nextInRecomputeHeap)
+		testutil.Nil(t, n.Node().previousInRecomputeHeap)
+	}
 
 	rh.add(n50)
 	rh.add(n51)
@@ -140,6 +155,11 @@ func Test_recomputeHeap_removeMinHeight(t *testing.T) {
 	testutil.Equal(t, 0, rh.heights[0].len())
 	testutil.Equal(t, 0, rh.heights[1].len())
 	testutil.Equal(t, 0, rh.heights[5].len())
+
+	for _, n := range output {
+		testutil.Nil(t, n.Node().nextInRecomputeHeap)
+		testutil.Nil(t, n.Node().previousInRecomputeHeap)
+	}
 }
 
 func Test_recomputeHeap_remove(t *testing.T) {
@@ -322,7 +342,7 @@ func Test_recomputeHeap_sanityCheck_badItemHeight(t *testing.T) {
 
 	height2 := newList(n_2_00, n_2_01)
 
-	rh.heights = []*list[Identifier, INode]{
+	rh.heights = []*recomputeHeapList{
 		nil,
 		newList(n_1_00),
 		height2,
@@ -347,7 +367,7 @@ func Test_recomputeHeap_sanityCheck_badHeightInRecomputeHeap(t *testing.T) {
 
 	height2 := newList(n_2_00, n_2_01)
 
-	rh.heights = []*list[Identifier, INode]{
+	rh.heights = []*recomputeHeapList{
 		nil,
 		newList(n_1_00),
 		height2,
@@ -398,7 +418,7 @@ func Test_recomputeHeap_clear(t *testing.T) {
 	testutil.Equal(t, 7, rh.maxHeight)
 }
 
-func Test_recomputeHeap_removeMin(t *testing.T) {
+func Test_recomputeHeap_removeMinUnsafe(t *testing.T) {
 	g := New()
 
 	rh := newRecomputeHeap(10)
@@ -431,66 +451,66 @@ func Test_recomputeHeap_removeMin(t *testing.T) {
 	rh.add(n53)
 	rh.add(n54)
 
-	node, ok := rh.removeMin()
+	node, ok := rh.removeMinUnsafe()
 	testutil.Equal(t, true, ok)
 	testutil.Equal(t, n00.Node().id, node.Node().id)
 
-	node, ok = rh.removeMin()
+	node, ok = rh.removeMinUnsafe()
 	testutil.Equal(t, true, ok)
 	testutil.Equal(t, n01.Node().id, node.Node().id)
 
-	node, ok = rh.removeMin()
+	node, ok = rh.removeMinUnsafe()
 	testutil.Equal(t, true, ok)
 	testutil.Equal(t, n02.Node().id, node.Node().id)
 
-	node, ok = rh.removeMin()
+	node, ok = rh.removeMinUnsafe()
 	testutil.Equal(t, true, ok)
 	testutil.Equal(t, n10.Node().id, node.Node().id)
 
-	node, ok = rh.removeMin()
+	node, ok = rh.removeMinUnsafe()
 	testutil.Equal(t, true, ok)
 	testutil.Equal(t, n11.Node().id, node.Node().id)
 
-	node, ok = rh.removeMin()
+	node, ok = rh.removeMinUnsafe()
 	testutil.Equal(t, true, ok)
 	testutil.Equal(t, n12.Node().id, node.Node().id)
 
-	node, ok = rh.removeMin()
+	node, ok = rh.removeMinUnsafe()
 	testutil.Equal(t, true, ok)
 	testutil.Equal(t, n13.Node().id, node.Node().id)
 
 	rh.add(n10)
 	rh.add(n11)
 
-	node, ok = rh.removeMin()
+	node, ok = rh.removeMinUnsafe()
 	testutil.Equal(t, true, ok)
 	testutil.Equal(t, n10.Node().id, node.Node().id)
 
-	node, ok = rh.removeMin()
+	node, ok = rh.removeMinUnsafe()
 	testutil.Equal(t, true, ok)
 	testutil.Equal(t, n11.Node().id, node.Node().id)
 
-	node, ok = rh.removeMin()
+	node, ok = rh.removeMinUnsafe()
 	testutil.Equal(t, true, ok)
 	testutil.Equal(t, n50.Node().id, node.Node().id)
 
-	node, ok = rh.removeMin()
+	node, ok = rh.removeMinUnsafe()
 	testutil.Equal(t, true, ok)
 	testutil.Equal(t, n51.Node().id, node.Node().id)
 
-	node, ok = rh.removeMin()
+	node, ok = rh.removeMinUnsafe()
 	testutil.Equal(t, true, ok)
 	testutil.Equal(t, n52.Node().id, node.Node().id)
 
-	node, ok = rh.removeMin()
+	node, ok = rh.removeMinUnsafe()
 	testutil.Equal(t, true, ok)
 	testutil.Equal(t, n53.Node().id, node.Node().id)
 
-	node, ok = rh.removeMin()
+	node, ok = rh.removeMinUnsafe()
 	testutil.Equal(t, true, ok)
 	testutil.Equal(t, n54.Node().id, node.Node().id)
 
-	node, ok = rh.removeMin()
+	node, ok = rh.removeMinUnsafe()
 	testutil.Equal(t, false, ok)
 	testutil.Nil(t, node)
 }

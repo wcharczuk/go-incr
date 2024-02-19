@@ -47,7 +47,6 @@ func (pb *parallelBatch) Go(f func() error) {
 	pb.wg.Add(1)
 	go func() {
 		defer pb.done()
-
 		if err := f(); err != nil {
 			pb.errOnce.Do(func() {
 				pb.err = err
