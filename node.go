@@ -122,11 +122,16 @@ func (n *Node) String() string {
 // Set/Get properties
 
 // OnUpdate registers an update handler.
+//
+// An update handler is called when this node is recomputed.
 func (n *Node) OnUpdate(fn func(context.Context)) {
 	n.onUpdateHandlers = append(n.onUpdateHandlers, fn)
 }
 
 // OnError registers an error handler.
+//
+// An error handler is called when the stabilize or cutoff
+// function for this node returns an error.
 func (n *Node) OnError(fn func(context.Context, error)) {
 	n.onErrorHandlers = append(n.onErrorHandlers, fn)
 }
@@ -160,23 +165,6 @@ func (n *Node) Kind() string {
 // SetMetadata sets the metadata on the node.
 func (n *Node) SetKind(kind string) {
 	n.kind = kind
-}
-
-// Parent / Child helpers
-
-// Parents returns the node parent list.
-func (n *Node) Parents() []INode {
-	return n.parents
-}
-
-// Parents returns the node child list.
-func (n *Node) Children() []INode {
-	return n.children
-}
-
-// Observers returns the node observer list.
-func (n *Node) Observers() []IObserver {
-	return n.observers
 }
 
 //

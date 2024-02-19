@@ -242,13 +242,9 @@ func Test_Node_addObserver(t *testing.T) {
 	n.Node().addObservers(o0, o1)
 
 	testutil.Equal(t, 2, len(n.n.observers))
-	testutil.Equal(t, 2, len(n.n.Observers()))
 
 	testutil.Equal(t, true, hasKey(n.n.observers, o0.Node().id))
 	testutil.Equal(t, true, hasKey(n.n.observers, o1.Node().id))
-
-	testutil.Equal(t, true, hasKey(n.n.Observers(), o0.Node().id))
-	testutil.Equal(t, true, hasKey(n.n.Observers(), o1.Node().id))
 }
 
 func Test_Node_removeObservers(t *testing.T) {
@@ -263,12 +259,10 @@ func Test_Node_removeObservers(t *testing.T) {
 	n.Node().addObservers(o0, o1)
 
 	testutil.Equal(t, 2, len(n.n.observers))
-	testutil.Equal(t, 2, len(n.n.Observers()))
 
 	n.Node().removeObserver(o1.Node().id)
 
 	testutil.Equal(t, 1, len(n.n.observers))
-	testutil.Equal(t, 1, len(n.n.Observers()))
 
 	testutil.Equal(t, true, hasKey(n.n.observers, o0.Node().id))
 	testutil.Equal(t, false, hasKey(n.n.observers, o1.Node().id))
@@ -487,28 +481,6 @@ func Test_nodeFormatters(t *testing.T) {
 		tc.Node.Node().label = "test-label"
 		testutil.Equal(t, fmt.Sprintf("%s[%s]:test-label@2", tc.Label, id.Short()), fmt.Sprint(tc.Node))
 	}
-}
-
-func Test_Node_Properties_readonly(t *testing.T) {
-	g := New()
-
-	n := &Node{
-		height:    1,
-		setAt:     2,
-		changedAt: 3,
-		children: []INode{
-			newMockBareNode(g),
-			newMockBareNode(g),
-		},
-		parents: []INode{
-			newMockBareNode(g),
-			newMockBareNode(g),
-			newMockBareNode(g),
-		},
-	}
-
-	testutil.Equal(t, 2, len(n.Children()))
-	testutil.Equal(t, 3, len(n.Parents()))
 }
 
 func Test_Node_Observers(t *testing.T) {

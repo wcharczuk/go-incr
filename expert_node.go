@@ -50,8 +50,11 @@ type IExpertNode interface {
 	Observer() bool
 	SetObserver(bool)
 
+	Children() []INode
 	AddChildren(...INode)
+	Parents() []INode
 	AddParents(...INode)
+	Observers() []IObserver
 	AddObservers(...IObserver)
 	RemoveChild(Identifier)
 	RemoveParent(Identifier)
@@ -147,12 +150,24 @@ func (en *expertNode) AddChildren(c ...INode) {
 	en.node.addChildren(c...)
 }
 
+func (en *expertNode) Children() []INode {
+	return en.node.children
+}
+
 func (en *expertNode) AddParents(c ...INode) {
 	en.node.addParents(c...)
 }
 
+func (en *expertNode) Parents() []INode {
+	return en.node.parents
+}
+
 func (en *expertNode) AddObservers(o ...IObserver) {
 	en.node.addObservers(o...)
+}
+
+func (en *expertNode) Observers() []IObserver {
+	return en.node.observers
 }
 
 func (en *expertNode) RemoveChild(id Identifier) {
@@ -188,7 +203,7 @@ func (en *expertNode) computePseudoHeightCached(cache map[Identifier]int, n INod
 	}
 
 	var maxParentHeight int
-	for _, p := range nn.Parents() {
+	for _, p := range nn.parents {
 		parentHeight := en.computePseudoHeightCached(cache, p)
 		if parentHeight > maxParentHeight {
 			maxParentHeight = parentHeight
