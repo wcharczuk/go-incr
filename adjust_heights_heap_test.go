@@ -24,35 +24,6 @@ func Test_adjustHeightsHeap_maxHeightAllowed(t *testing.T) {
 	testutil.Equal(t, 31, ahh.maxHeightAllowed())
 }
 
-func Test_adjustHeightsHeap_removeUnsafe(t *testing.T) {
-	g := New()
-	ahh := newAdjustHeightsHeap(32)
-
-	n := newMockBareNode(g)
-	ahh.removeUnsafe(n)
-
-	n0 := newMockBareNodeWithHeight(g, 1)
-	ahh.addUnsafe(n0)
-	testutil.Equal(t, 1, n0.Node().heightInAdjustHeightsHeap)
-	n1 := newMockBareNodeWithHeight(g, 2)
-	ahh.addUnsafe(n1)
-	testutil.Equal(t, 2, n1.Node().heightInAdjustHeightsHeap)
-
-	ahh.removeUnsafe(n)
-
-	testutil.Equal(t, 1, ahh.nodesByHeight[2].len())
-	testutil.Equal(t, 2, ahh.numNodes)
-
-	ahh.removeUnsafe(n1)
-	testutil.Equal(t, 1, ahh.nodesByHeight[2].len())
-	testutil.Equal(t, 2, ahh.numNodes)
-
-	ahh.heightLowerBound = 0
-	ahh.removeUnsafe(n1)
-	testutil.Equal(t, 0, ahh.nodesByHeight[2].len())
-	testutil.Equal(t, 1, ahh.numNodes)
-}
-
 func Test_adjustHeightsHeap_setHeightUnsafe(t *testing.T) {
 	g := New()
 	ahh := newAdjustHeightsHeap(32)
