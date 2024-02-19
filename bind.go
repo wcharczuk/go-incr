@@ -90,6 +90,7 @@ type IBindChange interface {
 
 var (
 	_ BindIncr[bool] = (*bindMainIncr[string, bool])(nil)
+	_ IStale         = (*bindMainIncr[string, bool])(nil)
 	_ Scope          = (*bind[string, bool])(nil)
 
 	_ INode                = (*bindLeftChangeIncr[string, bool])(nil)
@@ -119,10 +120,6 @@ func (b *bind[A, B]) addScopeNode(n INode) {
 	b.rhsNodes = append(b.rhsNodes, n)
 }
 
-func (b *bind[A, B]) removeScopeNode(n INode) {
-	b.rhsNodes = remove(b.rhsNodes, n.Node().id)
-}
-
 func (b *bind[A, B]) String() string {
 	return fmt.Sprintf("{%v}", b.main)
 }
@@ -138,7 +135,7 @@ func (b *bindMainIncr[A, B]) Parents() (out []INode) {
 	return b.parents
 }
 
-func (b *bindMainIncr[A, B]) IsStale() bool {
+func (b *bindMainIncr[A, B]) Stale() bool {
 	return b.n.recomputedAt == 0 || b.n.isStaleInRespectToParent()
 }
 

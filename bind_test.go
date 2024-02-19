@@ -1172,3 +1172,98 @@ func Test_Bind_observedInner_cached(t *testing.T) {
 	testutil.Equal(t, "bb-b-value", obb.Value())
 	testutil.Equal(t, "bb-b-value", obo.Value())
 }
+
+func Test_Bind_cycle(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	var b1 BindIncr[string]
+
+	b0v := Var(g, "a")
+	b0 := Bind(g, b0v, func(bs Scope, which string) Incr[string] {
+		if which == "a" {
+			return Return(bs, "foo")
+		}
+		return b1
+	})
+
+	b1v := Var(g, "a")
+	b1 = Bind(g, b1v, func(bs Scope, which string) Incr[string] {
+		if which == "a" {
+			return b0
+		}
+		return Return(bs, "bar")
+	})
+
+	o := MustObserve(g, b1)
+
+	err := g.Stabilize(ctx)
+	testutil.NoError(t, err)
+	testutil.Equal(t, "foo", o.Value())
+
+	b0v.Set("b")
+
+	err = g.Stabilize(ctx)
+	testutil.Error(t, err)
+	testutil.Equal(t, "foo", o.Value())
+}
+
+func Test_bind_scope(t *testing.T) {
+	g := New()
+
+	bv := Var(g, "a")
+	b := Bind(g, bv, func(bs Scope, which string) Incr[string] {
+		return Return(bs, "foo")
+	})
+
+	bindTyped := b.(*bindMainIncr[string, string])
+
+	testutil.Equal(t, false, bindTyped.bind.isTopScope())
+	testutil.Equal(t, true, bindTyped.bind.isScopeValid())
+	bindTyped.Node().valid = false
+	testutil.Equal(t, false, bindTyped.bind.isScopeValid())
+
+	bindTyped.Node().valid = true
+
+	testutil.Equal(t, false, bindTyped.bind.isScopeNecessary())
+	bindTyped.Node().forceNecessary = true
+	testutil.Equal(t, true, bindTyped.bind.isScopeNecessary())
+
+	testutil.NotNil(t, bindTyped.bind.scopeGraph())
+	testutil.Equal(t, -1, bindTyped.bind.scopeHeight())
+
+	bv.Node().height = 22
+	testutil.Equal(t, 22, bindTyped.bind.scopeHeight())
+
+	testutil.Matches(t, "{(.*)}", bindTyped.bind.String())
+}
+
+func Test_bindLeftChange_ShouldBeInvalidated(t *testing.T) {
+	g := New()
+
+	bv := Var(g, "a")
+	b := Bind(g, bv, func(bs Scope, which string) Incr[string] {
+		return Return(bs, "foo")
+	})
+
+	bindTyped := b.(*bindMainIncr[string, string])
+	testutil.Equal(t, false, bindTyped.bind.lhsChange.ShouldBeInvalidated())
+	bv.Node().valid = false
+	testutil.Equal(t, true, bindTyped.bind.lhsChange.ShouldBeInvalidated())
+}
+
+func Test_bindLeftChange_RightScopeNodes(t *testing.T) {
+	g := New()
+
+	bv := Var(g, "a")
+	b := Bind(g, bv, func(bs Scope, which string) Incr[string] {
+		return Map(bs, Return(bs, "foo"), ident)
+	})
+	_ = MustObserve(g, b)
+	bindTyped := b.(*bindMainIncr[string, string])
+	testutil.Equal(t, 0, len(bindTyped.bind.lhsChange.RightScopeNodes()))
+
+	_ = g.Stabilize(testContext())
+
+	testutil.Equal(t, 2, len(bindTyped.bind.lhsChange.RightScopeNodes()))
+}

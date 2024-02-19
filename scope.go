@@ -45,6 +45,5 @@ type Scope interface {
 	scopeGraph() *Graph
 	scopeHeight() int
 	addScopeNode(INode)
-	removeScopeNode(INode)
 	fmt.Stringer
 }

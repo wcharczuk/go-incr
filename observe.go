@@ -41,6 +41,12 @@ type ObserveIncr[A any] interface {
 // IObserver is an INode that can be unobserved.
 type IObserver interface {
 	INode
+
+	// OnUpdate lets you register an update handler for the observer node.
+	//
+	// This handler is called when the observed node is recomputed (and
+	// not strictly if the node has changed.)
+	OnUpdate(func(context.Context))
 	// Unobserve effectively removes a given node from the observed ref count for a graph.
 	//
 	// As well, it unlinks the observer from its parent nodes, and as a result
@@ -59,6 +65,10 @@ type observeIncr[A any] struct {
 	n        *Node
 	observed Incr[A]
 	value    A
+}
+
+func (o *observeIncr[A]) OnUpdate(fn func(context.Context)) {
+	o.n.OnUpdate(fn)
 }
 
 func (o *observeIncr[A]) Node() *Node { return o.n }

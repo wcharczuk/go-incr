@@ -38,7 +38,7 @@ func Test_ExpertNode_AddChildren(t *testing.T) {
 	en := ExpertNode(n)
 
 	en.AddChildren(newMockBareNode(g), newMockBareNode(g))
-	testutil.Equal(t, 2, len(n.Node().Children()))
+	testutil.Equal(t, 2, len(en.Children()))
 }
 
 func Test_ExpertNode_AddParents(t *testing.T) {
@@ -48,7 +48,7 @@ func Test_ExpertNode_AddParents(t *testing.T) {
 	en := ExpertNode(n)
 
 	en.AddParents(newMockBareNode(g), newMockBareNode(g))
-	testutil.Equal(t, 2, len(n.Node().Parents()))
+	testutil.Equal(t, 2, len(en.Parents()))
 }
 
 func Test_ExpertNode_RemoveChild(t *testing.T) {
@@ -60,10 +60,10 @@ func Test_ExpertNode_RemoveChild(t *testing.T) {
 	mbn0 := newMockBareNode(g)
 	mbn1 := newMockBareNode(g)
 	en.AddChildren(mbn0, mbn1)
-	testutil.Equal(t, 2, len(n.Node().Children()))
+	testutil.Equal(t, 2, len(en.Children()))
 
 	en.RemoveChild(mbn0.Node().ID())
-	testutil.Equal(t, 1, len(n.Node().Children()))
+	testutil.Equal(t, 1, len(en.Children()))
 }
 
 func Test_ExpertNode_RemoveParent(t *testing.T) {
@@ -75,10 +75,10 @@ func Test_ExpertNode_RemoveParent(t *testing.T) {
 	mbn0 := newMockBareNode(g)
 	mbn1 := newMockBareNode(g)
 	en.AddParents(mbn0, mbn1)
-	testutil.Equal(t, 2, len(n.Node().Parents()))
+	testutil.Equal(t, 2, len(en.Parents()))
 
 	en.RemoveParent(mbn0.Node().ID())
-	testutil.Equal(t, 1, len(n.Node().Parents()))
+	testutil.Equal(t, 1, len(en.Parents()))
 }
 
 func Test_ExpertNode_Value(t *testing.T) {

@@ -170,5 +170,21 @@ func Test_Graph_zeroNode(t *testing.T) {
 	testutil.Empty(t, r.Node().observers)
 
 	testutil.Equal(t, 1, g.numNodes)
+}
 
+func Test_Graph_addChild(t *testing.T) {
+	g := New()
+
+	n0 := newMockBareNode(g)
+	n1 := newMockBareNode(g)
+
+	var err error
+	err = g.addChild(nil, n0)
+	testutil.Error(t, err)
+
+	err = g.addChild(n0, nil)
+	testutil.Error(t, err)
+
+	err = g.addChild(n0, n1)
+	testutil.NoError(t, err)
 }
