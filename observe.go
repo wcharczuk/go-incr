@@ -36,8 +36,12 @@ type ObserveIncr[A any] interface {
 	IObserver
 	// OnUpdate lets you register an update handler for the observer node.
 	//
-	// This handler is called when the observed node is recomputed (and
-	// not strictly if the node has changed.)
+	// This handler is called when the observed node is recomputed. It is
+	// passed the value of the observed node post-stabilization.
+	//
+	// If the stabilization is "serial" all update handlers that are registered
+	// will also be called serially, conversely if the stabilization is "paralllel"
+	// all update handlers will be called in parallel using the graph worker pool.
 	OnUpdate(func(context.Context, A))
 	// Value returns the observed node value.
 	Value() A
