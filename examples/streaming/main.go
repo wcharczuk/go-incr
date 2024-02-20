@@ -22,12 +22,12 @@ func main() {
 	max := maxOf(g, currentValue, 0.01)
 	min := minOf(g, currentValue, 0.01)
 	observeMax := incr.MustObserve(g, max)
-	observeMax.OnUpdate(func(_ context.Context) {
-		fmt.Printf("new max: %0.2f\n", observeMax.Value())
+	observeMax.OnUpdate(func(_ context.Context, value float64) {
+		fmt.Printf("new max: %0.2f\n", value)
 	})
 	observeMin := incr.MustObserve(g, min)
-	observeMin.OnUpdate(func(_ context.Context) {
-		fmt.Printf("new min: %0.2f\n", observeMin.Value())
+	observeMin.OnUpdate(func(_ context.Context, value float64) {
+		fmt.Printf("new min: %0.2f\n", value)
 	})
 	critical := anyMatch(g, lastValues, func(v float64) bool {
 		return v > 0.99999
@@ -37,8 +37,8 @@ func main() {
 	observeCountUpdates := incr.MustObserve(g, counter)
 	lastTime := time.Now()
 	var lastCount uint64
-	observeCountUpdates.OnUpdate(func(_ context.Context) {
-		delta := observeCountUpdates.Value() - lastCount
+	observeCountUpdates.OnUpdate(func(_ context.Context, value uint64) {
+		delta := value - lastCount
 		elapsed := time.Since(lastTime) / time.Millisecond
 		fmt.Println("seen:", float64(delta)/float64(elapsed), "values/msec")
 		lastTime = time.Now()
@@ -47,8 +47,8 @@ func main() {
 
 	observeLastValues := incr.MustObserve(g, lastValues)
 	observeCritical := incr.MustObserve(g, critical)
-	observeCritical.OnUpdate(func(_ context.Context) {
-		if observeCritical.Value() {
+	observeCritical.OnUpdate(func(_ context.Context, value bool) {
+		if value {
 			fmt.Printf("saw critical values!: %v\n", observeLastValues.Value())
 		}
 	})
