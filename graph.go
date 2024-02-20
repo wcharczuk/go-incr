@@ -520,7 +520,7 @@ func (graph *Graph) stabilizeStart(ctx context.Context) context.Context {
 	return ctx
 }
 
-func (graph *Graph) stabilizeEnd(ctx context.Context, err error) {
+func (graph *Graph) stabilizeEnd(ctx context.Context, err error, parallel bool) {
 	defer func() {
 		graph.stabilizationStarted = time.Time{}
 		atomic.StoreInt32(&graph.status, StatusNotStabilizing)
@@ -534,7 +534,7 @@ func (graph *Graph) stabilizeEnd(ctx context.Context, err error) {
 	} else {
 		TracePrintf(ctx, "stabilization complete (%v elapsed)", time.Since(graph.stabilizationStarted).Round(time.Microsecond))
 	}
-	graph.stabilizeEndRunUpdateHandlers(ctx)
+	graph.stabilizeEndRunUpdateHandlers(ctx, parallel)
 	graph.stabilizationNum++
 	graph.stabilizeEndHandleSetDuringStabilization(ctx)
 }
@@ -549,7 +549,7 @@ func (graph *Graph) stabilizeEndHandleSetDuringStabilization(ctx context.Context
 	clear(graph.setDuringStabilization)
 }
 
-func (graph *Graph) stabilizeEndRunUpdateHandlers(ctx context.Context) {
+func (graph *Graph) stabilizeEndRunUpdateHandlers(ctx context.Context, parallel bool) {
 	graph.handleAfterStabilizationMu.Lock()
 	defer graph.handleAfterStabilizationMu.Unlock()
 
@@ -560,9 +560,23 @@ func (graph *Graph) stabilizeEndRunUpdateHandlers(ctx context.Context) {
 			TracePrintln(ctx, "stabilization calling user update handlers complete")
 		}()
 	}
-	for _, uhGroup := range graph.handleAfterStabilization {
-		for _, uh := range uhGroup {
-			uh(ctx)
+	if parallel {
+		for _, uhGroup := range graph.handleAfterStabilization {
+			for _, uh := range uhGroup {
+				graph.workerPool.Go(func(handler func(context.Context)) func() error {
+					return func() error {
+						handler(ctx)
+						return nil
+					}
+				}(uh))
+			}
+		}
+		_ = graph.workerPool.Wait()
+	} else {
+		for _, uhGroup := range graph.handleAfterStabilization {
+			for _, uh := range uhGroup {
+				uh(ctx)
+			}
 		}
 	}
 	clear(graph.handleAfterStabilization)
@@ -601,9 +615,9 @@ func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err 
 
 	nn.changedAt = graph.stabilizationNum
 	if len(nn.onUpdateHandlers) > 0 {
-		// graph.handleAfterStabilizationMu.Lock()
+		graph.handleAfterStabilizationMu.Lock()
 		graph.handleAfterStabilization[nn.id] = nn.onUpdateHandlers
-		// graph.handleAfterStabilizationMu.Unlock()
+		graph.handleAfterStabilizationMu.Unlock()
 	}
 
 	if parallel {
@@ -624,9 +638,9 @@ func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err 
 	// children of this node but will not have any children themselves.
 	for _, o := range nn.observers {
 		if len(o.Node().onUpdateHandlers) > 0 {
-			// graph.handleAfterStabilizationMu.Lock()
+			graph.handleAfterStabilizationMu.Lock()
 			graph.handleAfterStabilization[nn.id] = o.Node().onUpdateHandlers
-			// graph.handleAfterStabilizationMu.Unlock()
+			graph.handleAfterStabilizationMu.Unlock()
 		}
 	}
 	return

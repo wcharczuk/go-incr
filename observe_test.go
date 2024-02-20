@@ -1,6 +1,7 @@
 package incr
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -183,4 +184,36 @@ func Test_Observe_alreadyNecessary(t *testing.T) {
 	testutil.NoError(t, err)
 
 	testutil.Equal(t, "foo", o2.Value())
+}
+
+func Test_Observe_onUpdate(t *testing.T) {
+	g := New()
+	v := Var(g, "foo")
+	m0 := Map(g, v, ident)
+	o, err := Observe(g, m0)
+	testutil.NoError(t, err)
+
+	var gotValues []string
+	var updateCalls int
+	o.OnUpdate(func(ctx context.Context, value string) {
+		testutil.BlueDye(ctx, t)
+		gotValues = append(gotValues, value)
+		updateCalls++
+	})
+	ctx := testContext()
+	err = g.Stabilize(ctx)
+	testutil.NoError(t, err)
+
+	testutil.Equal(t, "foo", o.Value())
+	testutil.Equal(t, 1, updateCalls)
+	testutil.Equal(t, []string{"foo"}, gotValues)
+
+	v.Set("not-foo")
+
+	err = g.Stabilize(ctx)
+	testutil.NoError(t, err)
+
+	testutil.Equal(t, "not-foo", o.Value())
+	testutil.Equal(t, 2, updateCalls)
+	testutil.Equal(t, []string{"foo", "not-foo"}, gotValues)
 }
