@@ -84,7 +84,8 @@ func (s *sentinelIncr) Cutoff(ctx context.Context) (bool, error) {
 }
 
 func (s *sentinelIncr) Unwatch(_ context.Context) {
+	graph := s.n.createdIn.scopeGraph()
 	for _, w := range s.watched {
-		GraphForNode(s).unwatchNode(s, w)
+		graph.unwatchNode(s, w)
 	}
 }
