@@ -2,42 +2,45 @@ package incr
 
 import "context"
 
-// Sentinel returns a node that always evaluates a cutoff function for each stabilization.
+// Sentinel returns a node that evaluates a staleness function for each stabilization.
 //
-// You can attach sentinels to parts of a graph to automatically recompute nodes
-// on the result of a function withouth having to mark those nodes explicitly stale.
+// Put another way, you can attach sentinels to parts of a graph to automatically recompute
+// nodes on the result of a function withouth having to mark those nodes explicitly stale.
 //
-// As a result, sentinels are somewhat expensive, and should only be used in situations
-// where you know the function will return true rarely.
+// Sentinels are somewhat expensive as a result, and should only be used sparingly, and even
+// then only in situations where the stalness function will return true infequently.
 //
-// The provided function should return `true` if we should recompute watched nodes, and
-// returning `false` will stop recomputation from propagating past this node.
+// The provided function should return `true` if we should recompute watched nodes.
+// Returning `false` will stop recomputation from propagating past this node.
 //
 // The `watched` variadic list of nodes are the nodes that will be recomputed if the provided
 // function returns true. The watched node list is associated as children, but because the sentinel
-// has no value, the nodes existing parent values are passed to them as normal.
+// has no value, the nodes existing parent values are passed to them as normal, and the sentinel
+// does not provide a value to the watched node.
 func Sentinel(scope Scope, fn func() bool, watched ...INode) SentinelIncr {
 	return SentinelContext(scope, func(_ context.Context) (bool, error) {
 		return fn(), nil
 	}, watched...)
 }
 
-// SentinelContext returns a node that always evaluates a context cutoff function for each stabilization.
+// SentinelContext returns a node that evaluates a staleness function for each stabilization.
 //
 // You can attach sentinels to parts of a graph to automatically recompute nodes
 // on the result of a function withouth having to mark those nodes explicitly stale.
 //
-// As a result, sentinels are somewhat expensive, and should only be used in situations
-// where you know the function will return true rarely.
+// Sentinels are somewhat expensive as a result, and should only be used sparingly, and even
+// then only in situations where the stalness function will return true infequently.
 //
-// The provided function should return `true` if we should recompute watched nodes, and
-// returning `false` will stop recomputation from propagating past this node. If the provided function
-// returns an error, the stabilization is stopped and depending on if the stabilization is parallel or serial
-// the error will be returned after the height block is completed, or immediately respectively.
+// The provided function should return `true` if we should recompute watched nodes.
+// Returning `false` will stop recomputation from propagating past this node.
+// If the provided function returns an error, the stabilization is stopped and depending
+// on if the stabilization is parallel or serial the error will be returned after the
+// height block is completed, or immediately respectively.
 //
 // The `watched` variadic list of nodes are the nodes that will be recomputed if the provided
 // function returns true. The watched node list is associated as children, but because the sentinel
-// has no value, the nodes existing parent values are passed to them as normal.
+// has no value, the nodes existing parent values are passed to them as normal, and the sentinel
+// does not provide a value to the watched node.
 func SentinelContext(scope Scope, fn func(context.Context) (bool, error), watched ...INode) SentinelIncr {
 	s := WithinScope(scope, &sentinelIncr{
 		n:       NewNode("sentinel"),
