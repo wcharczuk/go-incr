@@ -47,8 +47,6 @@ type Node struct {
 	// observers are observer nodes that are attached to this
 	// node or its children.
 	sentinels []ISentinel
-	// watched are nodes that a sentinel could be watching
-	watched []INode
 	// valid indicates if the scope that created the node is itself valid
 	valid bool
 	// forceNecessary forces the necessary state on the node
@@ -207,10 +205,6 @@ func (n *Node) addSentinels(sentinels ...ISentinel) {
 	n.sentinels = append(n.sentinels, sentinels...)
 }
 
-func (n *Node) addWatched(watched ...INode) {
-	n.watched = append(n.watched, watched...)
-}
-
 func (n *Node) removeChild(id Identifier) {
 	n.children = remove(n.children, id)
 }
@@ -225,10 +219,6 @@ func (n *Node) removeObserver(id Identifier) {
 
 func (n *Node) removeSentinel(id Identifier) {
 	n.sentinels = remove(n.sentinels, id)
-}
-
-func (n *Node) removeWatched(id Identifier) {
-	n.watched = remove(n.watched, id)
 }
 
 // maybeCutoff calls the cutoff delegate if it's set, otherwise

@@ -524,7 +524,6 @@ func (graph *Graph) watchNode(sn ISentinel, input INode) error {
 	graph.addSentinel(sn)
 	wasNecsesary := input.Node().isNecessary()
 	input.Node().addSentinels(sn)
-	sn.Node().addWatched(input)
 	graph.link(input, sn)
 	if !wasNecsesary {
 		if err := graph.becameNecessary(input); err != nil {
@@ -535,7 +534,6 @@ func (graph *Graph) watchNode(sn ISentinel, input INode) error {
 		return err
 	}
 	graph.recomputeHeap.addIfNotPresent(sn)
-
 	graph.handleAfterStabilizationMu.Lock()
 	graph.handleAfterStabilization[sn.Node().id] = sn.Node().onUpdateHandlers
 	graph.handleAfterStabilizationMu.Unlock()
@@ -551,7 +549,6 @@ func (graph *Graph) unobserveNode(o IObserver, input INode) {
 func (graph *Graph) unwatchNode(sn ISentinel, input INode) {
 	graph.removeSentinel(sn)
 	input.Node().removeSentinel(sn.Node().id)
-	sn.Node().removeWatched(input.Node().id)
 	graph.unlink(input, sn)
 	graph.checkIfUnnecessary(input)
 }
