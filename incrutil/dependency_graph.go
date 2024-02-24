@@ -52,6 +52,9 @@ func (dg DependencyGraph[Result]) Create(ctx context.Context) (*incr.Graph, map[
 	// build "dependedBy" list(s)
 	for _, p := range dg.Dependencies {
 		for _, d := range p.DependsOn {
+			if _, exists := dependencyLookup[d]; !exists {
+				return nil, nil, fmt.Errorf("dependency graph; dependency %q names non-existent dependency %q", p.Name, d)
+			}
 			dependencyLookup[d].dependedBy = append(dependencyLookup[d].dependedBy, p.Name)
 		}
 	}
@@ -111,14 +114,13 @@ func (dg DependencyGraph[Result]) mapAction(d Dependency) func(ctx context.Conte
 }
 
 func (dg DependencyGraph[Result]) createDependencyIncr(g *incr.Graph, d Dependency) (DependencyIncr[Result], error) {
-
-	if dg.CheckIfStale != nil {
-		// create sentinel
-
-	}
-
 	output := incr.MapNContext[Result, Result](g, dg.mapAction(d))
 	output.Node().SetLabel(d.Name)
+	if dg.CheckIfStale != nil {
+		_ = incr.SentinelContext(g, func(ctx context.Context) (bool, error) {
+			return dg.CheckIfStale(ctx, d)
+		}, output)
+	}
 	_, err := incr.Observe(g, output)
 	return output, err
 }

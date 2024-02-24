@@ -551,6 +551,7 @@ func (graph *Graph) unobserveNode(o IObserver, input INode) {
 func (graph *Graph) unwatchNode(sn ISentinel, input INode) {
 	graph.removeSentinel(sn)
 	input.Node().removeSentinel(sn.Node().id)
+	sn.Node().removeWatched(input.Node().id)
 	graph.checkIfUnnecessary(input)
 }
 

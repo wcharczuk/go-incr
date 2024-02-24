@@ -17,8 +17,7 @@ func Test_Sentinel(t *testing.T) {
 		return vv + fmt.Sprintf("-mapped-%d", updates)
 	})
 	s := Sentinel(g, func() bool {
-		fmt.Println("evaluating sentinel")
-		return updates < 2
+		return updates < 3
 	}, m)
 
 	testutil.NotNil(t, s)
@@ -35,5 +34,11 @@ func Test_Sentinel(t *testing.T) {
 
 	err = g.Stabilize(ctx)
 	testutil.NoError(t, err)
-	testutil.Equal(t, "foo-mapped-2", om.Value())
+	testutil.Equal(t, "foo-mapped-3", om.Value())
+
+	err = g.Stabilize(ctx)
+	testutil.NoError(t, err)
+	testutil.Equal(t, "foo-mapped-3", om.Value())
+
+	testutil.Equal(t, 3, updates)
 }
