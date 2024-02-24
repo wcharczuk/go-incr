@@ -40,8 +40,9 @@ func Sentinel(scope Scope, fn func() bool, watched ...INode) SentinelIncr {
 // has no value, the nodes existing parent values are passed to them as normal.
 func SentinelContext(scope Scope, fn func(context.Context) (bool, error), watched ...INode) SentinelIncr {
 	s := WithinScope(scope, &sentinelIncr{
-		n:  NewNode("sentinel"),
-		fn: fn,
+		n:       NewNode("sentinel"),
+		fn:      fn,
+		watched: watched,
 	})
 	graph := scope.scopeGraph()
 	for _, w := range watched {

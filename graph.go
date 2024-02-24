@@ -552,6 +552,7 @@ func (graph *Graph) unwatchNode(sn ISentinel, input INode) {
 	graph.removeSentinel(sn)
 	input.Node().removeSentinel(sn.Node().id)
 	sn.Node().removeWatched(input.Node().id)
+	graph.unlink(input, sn)
 	graph.checkIfUnnecessary(input)
 }
 
