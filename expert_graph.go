@@ -4,7 +4,7 @@ package incr
 // internal fields of the graph type.
 //
 // Note there are no compatibility guarantees on this interface
-// and you should use this interface at your own caution.
+// and you should use this interface at your own risk.
 func ExpertGraph(g *Graph) IExpertGraph {
 	return &expertGraph{graph: g}
 }
@@ -14,7 +14,7 @@ func ExpertGraph(g *Graph) IExpertGraph {
 // deserializing the graph from a durable store).
 //
 // Note there are no compatibility guarantees on this interface
-// and you should use this interface at your own caution.
+// and you should use this interface at your own risk.
 type IExpertGraph interface {
 	SetID(Identifier)
 	NumNodes() uint64

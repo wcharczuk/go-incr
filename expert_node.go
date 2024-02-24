@@ -7,7 +7,7 @@ import (
 // ExpertNode returns an "expert" interface to interact with nodes.
 //
 // Note there are no compatibility guarantees on this interface
-// and you should use this interface at your own caution.
+// and you should use this interface at your own risk.
 func ExpertNode(in INode) IExpertNode {
 	return &expertNode{incr: in, node: in.Node()}
 }
@@ -15,7 +15,7 @@ func ExpertNode(in INode) IExpertNode {
 // IExpertNode is an expert interface for nodes.
 //
 // Note there are no compatibility guarantees on this interface
-// and you should use this interface at your own caution.
+// and you should use this interface at your own risk.
 type IExpertNode interface {
 	CreatedIn() Scope
 	SetCreatedIn(Scope)
