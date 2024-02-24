@@ -41,6 +41,9 @@ func Dot(wr io.Writer, g *Graph) (err error) {
 	for _, o := range g.observers {
 		nodes = append(nodes, o)
 	}
+	for _, o := range g.sentinels {
+		nodes = append(nodes, o)
+	}
 
 	slices.SortStableFunc(nodes, nodeSorter)
 
