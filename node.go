@@ -44,6 +44,11 @@ type Node struct {
 	// observers are observer nodes that are attached to this
 	// node or its children.
 	observers []IObserver
+	// observers are observer nodes that are attached to this
+	// node or its children.
+	sentinels []ISentinel
+	// watched are nodes that a sentinel could be watching
+	watched []INode
 	// valid indicates if the scope that created the node is itself valid
 	valid bool
 	// forceNecessary forces the necessary state on the node
@@ -198,6 +203,14 @@ func (n *Node) addObservers(observers ...IObserver) {
 	n.observers = append(n.observers, observers...)
 }
 
+func (n *Node) addSentinels(sentinels ...ISentinel) {
+	n.sentinels = append(n.sentinels, sentinels...)
+}
+
+func (n *Node) addWatched(watched ...INode) {
+	n.watched = append(n.watched, watched...)
+}
+
 func (n *Node) removeChild(id Identifier) {
 	n.children = remove(n.children, id)
 }
@@ -208,6 +221,14 @@ func (n *Node) removeParent(id Identifier) {
 
 func (n *Node) removeObserver(id Identifier) {
 	n.observers = remove(n.observers, id)
+}
+
+func (n *Node) removeSentinel(id Identifier) {
+	n.sentinels = remove(n.sentinels, id)
+}
+
+func (n *Node) removeWatched(id Identifier) {
+	n.watched = remove(n.watched, id)
 }
 
 // maybeCutoff calls the cutoff delegate if it's set, otherwise
@@ -302,7 +323,7 @@ func (n *Node) nodeParents() []INode {
 }
 
 func (n *Node) isStaleInRespectToParent() (stale bool) {
-	for _, p := range n.nodeParents() {
+	for _, p := range n.parents {
 		if p.Node().changedAt > n.recomputedAt {
 			stale = true
 			return
@@ -328,5 +349,5 @@ func (n *Node) isNecessary() bool {
 	if n.forceNecessary {
 		return true
 	}
-	return len(n.children) > 0 || len(n.observers) > 0
+	return len(n.children) > 0 || len(n.observers) > 0 || len(n.sentinels) > 0
 }

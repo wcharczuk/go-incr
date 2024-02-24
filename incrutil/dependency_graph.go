@@ -2,6 +2,7 @@ package incrutil
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/wcharczuk/go-incr"
 )
@@ -13,14 +14,33 @@ import (
 // abstractions above incremental, e.g. how you'd represent a specific
 // type of directed graph.
 type DependencyGraph[Result any] struct {
+	// Dependency is a flat list of individual dependency items, and their "parents" or
+	// the other items they depend on.
+	//
+	// The dependency graph is then built from thist list using the `Create` function.
 	Dependencies []Dependency
-	Action       func(context.Context, Dependency) (Result, error)
-	OnUpdate     func(context.Context, Dependency)
+
+	// CheckIfStale is an optional delegate to provide an automatic method for determining
+	// if a dependency needs to be rebuilt.
+	//
+	// If this is not provided, you will have to set the dependencies stale individually
+	// with `incr.Graph::SetStale(Dependency)`, which is returned by the function `Create`.
+	CheckIfStale func(context.Context, Dependency) (bool, error)
+
+	// Action is the function that is called to "resolve" or build a dependency.
+	//
+	// It could also be thought of as the map or stabilize function.
+	Action func(context.Context, Dependency) (Result, error)
 }
 
 // Dependency is pseudo-dependency metadata.
 type Dependency struct {
-	Name      string
+	// Name is a unique name for the dependency, and should be referred to by the `DependsOn` slice.
+	Name string
+
+	// DependsOn is a slice of names of other dependencies that this dependency depends on.
+	//
+	// Specifically the dependencies named in this list will need to be built before this dependency.
 	DependsOn []string
 }
 
@@ -41,21 +61,9 @@ func (dg DependencyGraph[Result]) Create(ctx context.Context) (*incr.Graph, map[
 	// build package incrementals
 	// including the relationships between the
 	// packages and their dependencies.
-	packageIncrementals, err := dg.createDependencyIncrLookup(ctx, graph)
+	packageIncrementals, err := dg.createDependencyIncrLookup(graph)
 	if err != nil {
 		return nil, nil, err
-	}
-
-	// build "leaves" list by filtering for
-	// nodes with zero "dependedBy" entries
-	var leaves []DependencyIncr[Result]
-	for _, d := range dependencyLookup {
-		if len(d.dependedBy) == 0 {
-			leaves = append(leaves, packageIncrementals[d.Name])
-		}
-	}
-	for _, n := range leaves {
-		_ = incr.MustObserve[Result](graph, n)
 	}
 	return graph, packageIncrementals, nil
 }
@@ -68,13 +76,26 @@ func (dg DependencyGraph[Result]) createDependencyLookup() (output map[string]*d
 	return
 }
 
-func (dg DependencyGraph[Result]) createDependencyIncrLookup(ctx context.Context, g *incr.Graph) (output map[string]DependencyIncr[Result], err error) {
+// createDependencyIncrLookup loops over the dependency list and creates a mapping between dependency name and dependency.
+func (dg DependencyGraph[Result]) createDependencyIncrLookup(g *incr.Graph) (output map[string]DependencyIncr[Result], err error) {
 	output = make(map[string]DependencyIncr[Result])
 	for _, d := range dg.Dependencies {
-		output[d.Name] = dg.createDependencyIncr(g, d)
+		if _, alreadyExists := output[d.Name]; alreadyExists {
+			err = fmt.Errorf("dependency graph; duplicate dependency %q", d.Name)
+			return
+		}
+		output[d.Name], err = dg.createDependencyIncr(g, d)
+		if err != nil {
+			return
+		}
 	}
+
 	for _, p := range dg.Dependencies {
 		for _, d := range p.DependsOn {
+			if _, exists := output[d]; !exists {
+				err = fmt.Errorf("dependency graph; dependency %q names non-existent dependency %q", p.Name, d)
+				return
+			}
 			if err = output[p.Name].AddInput(output[d]); err != nil {
 				return
 			}
@@ -89,19 +110,17 @@ func (dg DependencyGraph[Result]) mapAction(d Dependency) func(ctx context.Conte
 	}
 }
 
-func (dg DependencyGraph[Result]) mapOnUpdate(d Dependency) func(context.Context) {
-	return func(ctx context.Context) {
-		dg.OnUpdate(ctx, d)
-	}
-}
+func (dg DependencyGraph[Result]) createDependencyIncr(g *incr.Graph, d Dependency) (DependencyIncr[Result], error) {
 
-func (dg DependencyGraph[Result]) createDependencyIncr(g *incr.Graph, d Dependency) DependencyIncr[Result] {
-	output := incr.MapNContext[Result, Result](g, dg.mapAction(d))
-	if dg.OnUpdate != nil {
-		output.Node().OnUpdate(dg.mapOnUpdate(d))
+	if dg.CheckIfStale != nil {
+		// create sentinel
+
 	}
+
+	output := incr.MapNContext[Result, Result](g, dg.mapAction(d))
 	output.Node().SetLabel(d.Name)
-	return output
+	_, err := incr.Observe(g, output)
+	return output, err
 }
 
 type dependencyWithDependedBy struct {

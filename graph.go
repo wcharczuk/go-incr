@@ -34,6 +34,7 @@ func New(opts ...GraphOption) *Graph {
 		status:                   StatusNotStabilizing,
 		nodes:                    make(map[Identifier]INode),
 		observers:                make(map[Identifier]IObserver),
+		sentinels:                make(map[Identifier]ISentinel),
 		recomputeHeap:            newRecomputeHeap(options.MaxHeight),
 		adjustHeightsHeap:        newAdjustHeightsHeap(options.MaxHeight),
 		setDuringStabilization:   make(map[Identifier]INode),
@@ -82,15 +83,21 @@ type Graph struct {
 	// label is a descriptive label for the graph
 	label string
 
+	// nodesMu interlocks access to nodes
 	nodesMu sync.Mutex
 	// observed are the nodes that the graph currently observes
 	// organized by node id.
 	nodes map[Identifier]INode
 
-	// observersMu interlocks acces to observers
+	// observersMu interlocks access to observers
 	observersMu sync.Mutex
 	// observers hold references to observers organized by node id.
 	observers map[Identifier]IObserver
+
+	// sentinelsMu interlocks access to sentinels
+	sentinelsMu sync.Mutex
+	// sentinels hold references to sentinels organized by node id.
+	sentinels map[Identifier]ISentinel
 
 	// recomputeHeap is the heap of nodes to be processed
 	// organized by pseudo-height. The recompute heap
@@ -189,10 +196,18 @@ func (graph *Graph) Has(gn INode) (ok bool) {
 }
 
 // HasObserver returns if a graph has a given observer.
-func (graph *Graph) HasObserver(gn INode) (ok bool) {
+func (graph *Graph) HasObserver(on IObserver) (ok bool) {
 	graph.observersMu.Lock()
-	_, ok = graph.observers[gn.Node().id]
+	_, ok = graph.observers[on.Node().id]
 	graph.observersMu.Unlock()
+	return
+}
+
+// HasSentinel returns if a graph has a given sentinel.
+func (graph *Graph) HasSentinel(sn ISentinel) (ok bool) {
+	graph.sentinelsMu.Lock()
+	_, ok = graph.sentinels[sn.Node().id]
+	graph.sentinelsMu.Unlock()
 	return
 }
 
@@ -424,11 +439,32 @@ func (graph *Graph) addObserver(on IObserver) {
 	graph.observers[onn.id] = on
 }
 
+func (graph *Graph) addSentinel(sn ISentinel) {
+	graph.sentinelsMu.Lock()
+	defer graph.sentinelsMu.Unlock()
+
+	snn := sn.Node()
+	_, graphAlreadyHasSentinel := graph.sentinels[snn.id]
+	if graphAlreadyHasSentinel {
+		return
+	}
+	graph.numNodes++
+	snn.initializeFrom(sn)
+	graph.sentinels[snn.id] = sn
+}
+
 func (graph *Graph) removeObserver(on IObserver) {
 	graph.observersMu.Lock()
 	delete(graph.observers, on.Node().id)
 	graph.observersMu.Unlock()
 	graph.zeroNode(on)
+}
+
+func (graph *Graph) removeSentinel(sn ISentinel) {
+	graph.sentinelsMu.Lock()
+	delete(graph.sentinels, sn.Node().id)
+	graph.sentinelsMu.Unlock()
+	graph.zeroNode(sn)
 }
 
 func (graph *Graph) removeNode(gn INode) {
@@ -473,28 +509,49 @@ func (graph *Graph) observeNode(o IObserver, input INode) error {
 	graph.addObserver(o)
 	wasNecsesary := input.Node().isNecessary()
 	input.Node().addObservers(o)
-	if !input.Node().valid {
-		graph.propagateInvalidityQueue.push(input)
-	}
 	if !wasNecsesary {
 		if err := graph.becameNecessary(input); err != nil {
 			return err
 		}
 	}
-
 	graph.handleAfterStabilizationMu.Lock()
 	graph.handleAfterStabilization[o.Node().id] = o.Node().onUpdateHandlers
 	graph.handleAfterStabilizationMu.Unlock()
+	return nil
+}
 
-	graph.propagateInvalidity()
+func (graph *Graph) watchNode(sn ISentinel, input INode) error {
+	graph.addSentinel(sn)
+	wasNecsesary := input.Node().isNecessary()
+	input.Node().addSentinels(sn)
+	sn.Node().addWatched(input)
+	graph.link(input, sn)
+	if !wasNecsesary {
+		if err := graph.becameNecessary(input); err != nil {
+			return err
+		}
+	}
+	if err := graph.adjustHeightsHeap.setHeight(sn, sn.Node().createdIn.scopeHeight()+1); err != nil {
+		return err
+	}
+	graph.recomputeHeap.addIfNotPresent(sn)
+
+	graph.handleAfterStabilizationMu.Lock()
+	graph.handleAfterStabilization[sn.Node().id] = sn.Node().onUpdateHandlers
+	graph.handleAfterStabilizationMu.Unlock()
 	return nil
 }
 
 func (graph *Graph) unobserveNode(o IObserver, input INode) {
-	g := GraphForNode(o)
-	g.removeObserver(o)
+	graph.removeObserver(o)
 	input.Node().removeObserver(o.Node().id)
-	g.checkIfUnnecessary(input)
+	graph.checkIfUnnecessary(input)
+}
+
+func (graph *Graph) unwatchNode(sn ISentinel, input INode) {
+	graph.removeSentinel(sn)
+	input.Node().removeSentinel(sn.Node().id)
+	graph.checkIfUnnecessary(input)
 }
 
 //
@@ -627,8 +684,16 @@ func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err 
 			}
 		}
 	} else {
+		// we differentiate here because in parallel mode
+		// we may be competing with other goroutines to add
+		// nodes to the recompute heap; in serial mode
+		// we don't need to grab the lock, so we skip that
+		// to save on some overhead.
 		for _, c := range nn.children {
-			if c.Node().isNecessary() && c.Node().isStale() && c.Node().heightInRecomputeHeap == HeightUnset {
+			isNecessary := c.Node().isNecessary()
+			isStale := c.Node().isStale()
+			isNotInRecomputeHeap := c.Node().heightInRecomputeHeap == HeightUnset
+			if isNecessary && isStale && isNotInRecomputeHeap {
 				graph.recomputeHeap.addNodeUnsafe(c)
 			}
 		}

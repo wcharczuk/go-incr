@@ -1,0 +1,39 @@
+package incr
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/wcharczuk/go-incr/testutil"
+)
+
+func Test_Sentinel(t *testing.T) {
+	ctx := testContext()
+	g := New()
+	v := Var(g, "foo")
+	var updates int
+	m := Map(g, v, func(vv string) string {
+		updates++
+		return vv + fmt.Sprintf("-mapped-%d", updates)
+	})
+	s := Sentinel(g, func() bool {
+		fmt.Println("evaluating sentinel")
+		return updates < 2
+	}, m)
+
+	testutil.NotNil(t, s)
+
+	om := MustObserve(g, m)
+
+	err := g.Stabilize(ctx)
+	testutil.NoError(t, err)
+	testutil.Equal(t, "foo-mapped-1", om.Value())
+
+	err = g.Stabilize(ctx)
+	testutil.NoError(t, err)
+	testutil.Equal(t, "foo-mapped-2", om.Value())
+
+	err = g.Stabilize(ctx)
+	testutil.NoError(t, err)
+	testutil.Equal(t, "foo-mapped-2", om.Value())
+}
