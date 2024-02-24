@@ -20,6 +20,8 @@ func Test_Sentinel(t *testing.T) {
 		return updates < 3
 	}, m)
 
+	testutil.Equal(t, false, m.Node().isNecessary(), "sentinels should not mark nodes as necessary")
+
 	testutil.NotNil(t, s)
 
 	om := MustObserve(g, m)
@@ -120,11 +122,11 @@ func Test_Sentinel_withinBind(t *testing.T) {
 
 	err = g.Stabilize(ctx)
 	testutil.NoError(t, err)
-	testutil.Equal(t, "foo-mapped-3", ob.Value())
+	testutil.Equal(t, "foo-mapped-4", ob.Value())
 
 	err = g.Stabilize(ctx)
 	testutil.NoError(t, err)
-	testutil.Equal(t, "foo-mapped-3", ob.Value())
+	testutil.Equal(t, "foo-mapped-4", ob.Value())
 
-	testutil.Equal(t, 3, updates)
+	testutil.Equal(t, 4, updates)
 }

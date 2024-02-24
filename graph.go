@@ -397,6 +397,9 @@ func (graph *Graph) becameNecessaryRecursive(node INode) (err error) {
 			}
 		}
 	}
+	for _, sentinels := range node.Node().sentinels {
+		graph.recomputeHeap.addIfNotPresent(sentinels)
+	}
 	if node.Node().isStale() {
 		graph.recomputeHeap.addIfNotPresent(node)
 	}
@@ -522,21 +525,11 @@ func (graph *Graph) observeNode(o IObserver, input INode) error {
 
 func (graph *Graph) watchNode(sn ISentinel, input INode) error {
 	graph.addSentinel(sn)
-	wasNecsesary := input.Node().isNecessary()
 	input.Node().addSentinels(sn)
 	graph.link(input, sn)
-	if !wasNecsesary {
-		if err := graph.becameNecessary(input); err != nil {
-			return err
-		}
-	}
 	if err := graph.adjustHeightsHeap.setHeight(sn, sn.Node().createdIn.scopeHeight()+1); err != nil {
 		return err
 	}
-	graph.recomputeHeap.addIfNotPresent(sn)
-	graph.handleAfterStabilizationMu.Lock()
-	graph.handleAfterStabilization[sn.Node().id] = sn.Node().onUpdateHandlers
-	graph.handleAfterStabilizationMu.Unlock()
 	return nil
 }
 
@@ -550,7 +543,6 @@ func (graph *Graph) unwatchNode(sn ISentinel, input INode) {
 	graph.removeSentinel(sn)
 	input.Node().removeSentinel(sn.Node().id)
 	graph.unlink(input, sn)
-	graph.checkIfUnnecessary(input)
 }
 
 //

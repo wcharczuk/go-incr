@@ -31,7 +31,9 @@ func (graph *Graph) Stabilize(ctx context.Context) (err error) {
 		}
 	}
 	if len(immediateRecompute) > 0 {
-		graph.recomputeHeap.add(immediateRecompute...)
+		for _, n := range immediateRecompute {
+			graph.recomputeHeap.addIfNotPresent(n)
+		}
 	}
 	return
 }

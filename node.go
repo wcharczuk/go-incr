@@ -339,5 +339,5 @@ func (n *Node) isNecessary() bool {
 	if n.forceNecessary {
 		return true
 	}
-	return len(n.children) > 0 || len(n.observers) > 0 || len(n.sentinels) > 0
+	return len(n.children) > 0 || len(n.observers) > 0
 }

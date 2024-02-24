@@ -89,3 +89,7 @@ func (s *sentinelIncr) Unwatch(_ context.Context) {
 		graph.unwatchNode(s, w)
 	}
 }
+
+func (s *sentinelIncr) String() string {
+	return s.n.String()
+}

@@ -116,6 +116,7 @@ func (rh *recomputeHeap) removeMinHeight() (nodes []INode) {
 func (rh *recomputeHeap) remove(node INode) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
+
 	rh.removeNodeUnsafe(node)
 }
 
