@@ -24,6 +24,11 @@ func WithinScope[A INode](scope Scope, node A) A {
 	return node
 }
 
+// GraphForScope returns the graph for a given scope.
+func GraphForScope(s Scope) *Graph {
+	return s.scopeGraph()
+}
+
 // GraphForNode returns the graph for a given node as derrived through
 // the scope it was created in, which must return a graph reference.
 func GraphForNode(node INode) *Graph {

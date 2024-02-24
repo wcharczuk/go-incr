@@ -32,14 +32,12 @@ func main() {
 			{Name: "pkg/engine", DependsOn: []string{"pkg/config", "pkg/util"}},
 			{Name: "pkg/util"},
 		},
-		OnUpdate: func(_ context.Context, d incrutil.Dependency) {
-			fmt.Printf("built: %s\n", d.Name)
-		},
 		Action: func(ctx context.Context, d incrutil.Dependency) (BuildResult, error) {
 			start := time.Now()
 			var delay = time.Duration(250 + rand.Intn(1500))
 			<-time.After(delay * time.Millisecond)
 			elapsed := time.Since(start)
+			fmt.Printf("built: %s\n", d.Name)
 			return BuildResult{
 				Package: d.Name,
 				Elapsed: elapsed,

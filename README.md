@@ -135,6 +135,7 @@ Many of the original library types are implemented, including:
 - Map(2,3,4,If,N)
 - Observe
 - Return
+- Sentinel
 - Var
 - Watch
 
