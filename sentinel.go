@@ -13,14 +13,14 @@ import "context"
 // The provided function should return `true` if we should recompute watched nodes.
 // Returning `false` will stop recomputation from propagating past this node.
 //
-// The `watched` variadic list of nodes are the nodes that will be recomputed if the provided
-// function returns true. The watched node list is associated as children, but because the sentinel
-// has no value, the nodes existing parent values are passed to them as normal, and the sentinel
+// The `watched` node will be recomputed if the provided function returns true.
+// The watched node is associated as a child, but because the sentinel
+// has no value, the node's existing parent values are passed to it as normal, and the sentinel
 // does not provide a value to the watched node.
-func Sentinel(scope Scope, fn func() bool, watched ...INode) SentinelIncr {
+func Sentinel(scope Scope, fn func() bool, watched INode) SentinelIncr {
 	return SentinelContext(scope, func(_ context.Context) (bool, error) {
 		return fn(), nil
-	}, watched...)
+	}, watched)
 }
 
 // SentinelContext returns a node that evaluates a staleness function for each stabilization.
@@ -37,20 +37,18 @@ func Sentinel(scope Scope, fn func() bool, watched ...INode) SentinelIncr {
 // on if the stabilization is parallel or serial the error will be returned after the
 // height block is completed, or immediately respectively.
 //
-// The `watched` variadic list of nodes are the nodes that will be recomputed if the provided
-// function returns true. The watched node list is associated as children, but because the sentinel
-// has no value, the nodes existing parent values are passed to them as normal, and the sentinel
+// The `watched` node will be recomputed if the provided function returns true.
+// The watched node is associated as a child, but because the sentinel
+// has no value, the node's existing parent values are passed to it as normal, and the sentinel
 // does not provide a value to the watched node.
-func SentinelContext(scope Scope, fn func(context.Context) (bool, error), watched ...INode) SentinelIncr {
+func SentinelContext(scope Scope, fn func(context.Context) (bool, error), watched INode) SentinelIncr {
 	s := WithinScope(scope, &sentinelIncr{
 		n:       NewNode("sentinel"),
 		fn:      fn,
 		watched: watched,
 	})
 	graph := scope.scopeGraph()
-	for _, w := range watched {
-		_ = graph.watchNode(s, w)
-	}
+	_ = graph.watchNode(s, watched)
 	return s
 }
 
@@ -72,7 +70,7 @@ type ISentinel interface {
 type sentinelIncr struct {
 	n       *Node
 	fn      func(context.Context) (bool, error)
-	watched []INode
+	watched INode
 }
 
 func (s *sentinelIncr) Node() *Node { return s.n }
@@ -88,9 +86,8 @@ func (s *sentinelIncr) Cutoff(ctx context.Context) (bool, error) {
 
 func (s *sentinelIncr) Unwatch(_ context.Context) {
 	graph := s.n.createdIn.scopeGraph()
-	for _, w := range s.watched {
-		graph.unwatchNode(s, w)
-	}
+	graph.unwatchNode(s, s.watched)
+	s.watched = nil
 }
 
 func (s *sentinelIncr) String() string {
