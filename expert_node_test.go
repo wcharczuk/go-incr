@@ -89,3 +89,18 @@ func Test_ExpertNode_Value(t *testing.T) {
 	value := en.Value()
 	testutil.Equal(t, "hello", value)
 }
+
+func Test_ExpertNode_ComputePseudoheight(t *testing.T) {
+	g := New()
+
+	r00 := Return(g, "r")
+	m10 := Map(g, r00, ident)
+	m20 := Map(g, m10, ident)
+	m30 := Map(g, m20, ident)
+
+	_ = MustObserve(g, m30)
+
+	testutil.Equal(t, m10.Node().height, ExpertNode(m10).ComputePseudoHeight())
+	testutil.Equal(t, m20.Node().height, ExpertNode(m20).ComputePseudoHeight())
+	testutil.Equal(t, m30.Node().height, ExpertNode(m30).ComputePseudoHeight())
+}
