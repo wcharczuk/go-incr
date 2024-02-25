@@ -6,16 +6,16 @@ import (
 	"math/rand"
 
 	"github.com/wcharczuk/go-incr"
-	"github.com/wcharczuk/go-incr/incrutil"
+	"github.com/wcharczuk/go-incr/incrutil/mapi"
 )
 
 // Symbol is a stock symbol identifier.
 type Symbol string
 
-// Dir is a order direction
+// Dir is a order direction.
 type Dir int
 
-// Dir constants
+// Dir constants.
 const (
 	Buy Dir = iota
 	Sell
@@ -39,6 +39,7 @@ var Symbols = []Symbol{
 	"MSFT",
 	"AAPL",
 	"BLND",
+	"NVDA",
 }
 
 func randomDir() Dir {
@@ -80,41 +81,49 @@ func main() {
 	data := make(map[incr.Identifier]Order)
 	dataInput := incr.Var(graph, data)
 
-	dataInputAdds := incrutil.DiffMapByKeysAdded(graph, dataInput)
-	orders := incrutil.FoldMap(
+	dataInputAdds := mapi.Added(graph, dataInput)
+
+	orders := incr.Map(
 		graph,
 		dataInputAdds,
-		0,
-		func(_ incr.Identifier, o Order, v int) int {
-			return v + 1
-		},
-	)
-	shares := incrutil.FoldMap(
-		graph,
-		dataInputAdds,
-		0,
-		func(_ incr.Identifier, o Order, v int) int {
-			return v + o.Size
-		},
-	)
-	symbolCounts := incrutil.FoldMap(
-		graph,
-		dataInputAdds,
-		make(map[Symbol]int),
-		func(_ incr.Identifier, o Order, w map[Symbol]int) map[Symbol]int {
-			w[o.Sym]++
-			return w
+		func(added map[incr.Identifier]Order) (total int) {
+			total += len(added)
+			return
 		},
 	)
 
-	_ = incr.MustObserve(graph, orders)
-	_ = incr.MustObserve(graph, shares)
-	_ = incr.MustObserve(graph, symbolCounts)
+	shares := incr.Map(
+		graph,
+		dataInputAdds,
+		func(added map[incr.Identifier]Order) (total int) {
+			for _, o := range added {
+				total += o.Size
+			}
+			return
+		},
+	)
+
+	symbolCounts := incr.Map(
+		graph,
+		dataInputAdds,
+		func(added map[incr.Identifier]Order) (output map[Symbol]int) {
+			output = make(map[Symbol]int)
+			for _, o := range added {
+				output[o.Sym]++
+			}
+			return output
+		},
+	)
+
+	ordersObs := incr.MustObserve(graph, orders)
+	sharesObs := incr.MustObserve(graph, shares)
+	symbolObs := incr.MustObserve(graph, symbolCounts)
+
 	for x := 0; x < 10; x++ {
 		_ = graph.Stabilize(ctx)
-		fmt.Println("orders:", orders.Value())
-		fmt.Println("shares:", shares.Value())
-		fmt.Println("orders by symbol:", symbolCounts.Value())
+		fmt.Println("orders:", ordersObs.Value())
+		fmt.Println("shares:", sharesObs.Value())
+		fmt.Println("orders by symbol:", symbolObs.Value())
 		fillOrders(data, 2048)
 		dataInput.Set(data)
 	}
