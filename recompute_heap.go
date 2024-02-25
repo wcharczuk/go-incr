@@ -86,7 +86,7 @@ func (rh *recomputeHeap) has(s INode) (ok bool) {
 	return
 }
 
-func (rh *recomputeHeap) removeMinHeight() (nodes []INode) {
+func (rh *recomputeHeap) removeMinHeight(dst *[]INode) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
 
@@ -98,17 +98,18 @@ func (rh *recomputeHeap) removeMinHeight() (nodes []INode) {
 		}
 	}
 
-	if heightBlock == nil {
-		panic(fmt.Errorf("recomputeHeap removeMinHeight block unset or empty with numItems=%d", rh.numItems))
-	}
-
 	heightLen := heightBlock.len()
-	nodes = make([]INode, 0, heightLen)
-	heightBlock.consume(func(id Identifier, n INode) {
+	(*dst) = make([]INode, 0, heightLen)
+	for _, n := range heightBlock.items {
+		n.Node().nextInRecomputeHeap = nil
+		n.Node().previousInRecomputeHeap = nil
 		n.Node().heightInRecomputeHeap = HeightUnset
-		nodes = append(nodes, n)
-	})
-	rh.numItems = rh.numItems - len(nodes)
+		(*dst) = append((*dst), n)
+	}
+	heightBlock.head = nil
+	heightBlock.tail = nil
+	clear(heightBlock.items)
+	rh.numItems = rh.numItems - len(*dst)
 	rh.minHeight = rh.nextMinHeightUnsafe()
 	return
 }
@@ -116,7 +117,6 @@ func (rh *recomputeHeap) removeMinHeight() (nodes []INode) {
 func (rh *recomputeHeap) remove(node INode) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
-
 	rh.removeNodeUnsafe(node)
 }
 

@@ -95,7 +95,8 @@ func Test_recomputeHeap_removeMinHeight(t *testing.T) {
 	testutil.Equal(t, 0, rh.minHeight)
 	testutil.Equal(t, 5, rh.maxHeight)
 
-	output := rh.removeMinHeight()
+	var output []INode
+	rh.removeMinHeight(&output)
 	testutil.Nil(t, rh.sanityCheck())
 	testutil.Equal(t, 9, rh.len())
 	testutil.Equal(t, 3, len(output))
@@ -111,7 +112,7 @@ func Test_recomputeHeap_removeMinHeight(t *testing.T) {
 	testutil.Equal(t, 1, rh.minHeight)
 	testutil.Equal(t, 5, rh.maxHeight)
 
-	output = rh.removeMinHeight()
+	rh.removeMinHeight(&output)
 	testutil.Nil(t, rh.sanityCheck())
 	testutil.Equal(t, 5, rh.len())
 	testutil.Equal(t, 4, len(output))
@@ -124,7 +125,7 @@ func Test_recomputeHeap_removeMinHeight(t *testing.T) {
 		testutil.Nil(t, n.Node().previousInRecomputeHeap)
 	}
 
-	output = rh.removeMinHeight()
+	rh.removeMinHeight(&output)
 	testutil.Nil(t, rh.sanityCheck())
 	testutil.Equal(t, 0, rh.len())
 	testutil.Equal(t, 5, len(output))
@@ -148,7 +149,7 @@ func Test_recomputeHeap_removeMinHeight(t *testing.T) {
 	testutil.Equal(t, 5, rh.minHeight)
 	testutil.Equal(t, 5, rh.maxHeight)
 
-	output = rh.removeMinHeight()
+	rh.removeMinHeight(&output)
 	testutil.Nil(t, rh.sanityCheck())
 	testutil.Equal(t, 0, rh.len())
 	testutil.Equal(t, 5, len(output))
