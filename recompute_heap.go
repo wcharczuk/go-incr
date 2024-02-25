@@ -111,7 +111,6 @@ func (rh *recomputeHeap) removeMinHeight(dst *[]INode) {
 	clear(heightBlock.items)
 	rh.numItems = rh.numItems - len(*dst)
 	rh.minHeight = rh.nextMinHeightUnsafe()
-	return
 }
 
 func (rh *recomputeHeap) remove(node INode) {

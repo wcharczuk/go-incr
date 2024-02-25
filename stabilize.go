@@ -15,7 +15,7 @@ func (graph *Graph) Stabilize(ctx context.Context) (err error) {
 	}
 	ctx = graph.stabilizeStart(ctx)
 	defer func() {
-		graph.stabilizeEnd(ctx, err, false /*parallel*/)
+		graph.stabilizeEnd(ctx, err)
 	}()
 
 	var immediateRecompute []INode

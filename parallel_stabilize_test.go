@@ -132,54 +132,6 @@ func Test_ParallelStabilize_error(t *testing.T) {
 	testutil.NotNil(t, err)
 }
 
-func Test_parallelBatch(t *testing.T) {
-	pb := new(parallelBatch)
-
-	var values = make(chan string, 1)
-	pb.Go(func() error {
-		values <- "hello"
-		return nil
-	})
-	err := pb.Wait()
-	testutil.Nil(t, err)
-	got := <-values
-	testutil.Equal(t, "hello", got)
-}
-
-func Test_parallelBatch_error(t *testing.T) {
-	pb := new(parallelBatch)
-
-	pb.Go(func() error {
-		return fmt.Errorf("this is a test")
-	})
-	err := pb.Wait()
-	testutil.NotNil(t, err)
-}
-
-func Test_parallelBatch_SetLimit(t *testing.T) {
-	pb := new(parallelBatch)
-
-	pb.SetLimit(4)
-	testutil.Equal(t, 0, len(pb.sem))
-	testutil.Equal(t, 4, cap(pb.sem))
-
-	pb.SetLimit(-1)
-	testutil.Nil(t, pb.sem)
-
-	var recovered any
-	func() {
-		defer func() {
-			recovered = recover()
-		}()
-		pb.SetLimit(4)
-		pb.sem <- parallelBatchToken{}
-		// this will panic hopefully
-		pb.SetLimit(4)
-	}()
-
-	testutil.NotNil(t, recovered)
-}
-
 func Test_ParallelStabilize_Always(t *testing.T) {
 	ctx := testContext()
 	g := New()
