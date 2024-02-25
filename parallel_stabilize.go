@@ -26,7 +26,7 @@ func (graph *Graph) ParallelStabilize(ctx context.Context) (err error) {
 	}
 	ctx = graph.stabilizeStart(ctx)
 	defer func() {
-		graph.stabilizeEnd(ctx, err, true /*parallel*/)
+		graph.stabilizeEnd(ctx, err)
 	}()
 	err = graph.parallelStabilize(ctx)
 	return
@@ -40,14 +40,15 @@ func (graph *Graph) parallelStabilize(ctx context.Context) (err error) {
 	var immediateRecompute []INode
 	var minHeightBlock []INode
 	for graph.recomputeHeap.len() > 0 {
-		minHeightBlock = graph.recomputeHeap.removeMinHeight()
+		graph.recomputeHeap.removeMinHeight(&minHeightBlock)
+
+		err = parallelBatch[INode](ctx, graph.parallelRecomputeNode, minHeightBlock...)
 		for _, n := range minHeightBlock {
-			graph.workerPool.Go(graph.parallelRecomputeNode(ctx, n))
 			if n.Node().always {
 				immediateRecompute = append(immediateRecompute, n)
 			}
 		}
-		if err = graph.workerPool.Wait(); err != nil {
+		if err != nil {
 			break
 		}
 	}
@@ -59,9 +60,7 @@ func (graph *Graph) parallelStabilize(ctx context.Context) (err error) {
 	return
 }
 
-func (graph *Graph) parallelRecomputeNode(ctx context.Context, n INode) func() error {
-	return func() (err error) {
-		err = graph.recompute(ctx, n, true)
-		return
-	}
+func (graph *Graph) parallelRecomputeNode(ctx context.Context, n INode) (err error) {
+	err = graph.recompute(ctx, n, true)
+	return
 }

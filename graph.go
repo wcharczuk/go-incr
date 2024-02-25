@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -28,7 +27,7 @@ func New(opts ...GraphOption) *Graph {
 	for _, opt := range opts {
 		opt(&options)
 	}
-	g := &Graph{
+	return &Graph{
 		id:                       NewIdentifier(),
 		stabilizationNum:         1,
 		status:                   StatusNotStabilizing,
@@ -40,10 +39,7 @@ func New(opts ...GraphOption) *Graph {
 		setDuringStabilization:   make(map[Identifier]INode),
 		handleAfterStabilization: make(map[Identifier][]func(context.Context)),
 		propagateInvalidityQueue: new(queue[INode]),
-		workerPool:               new(parallelBatch),
 	}
-	g.workerPool.SetLimit(runtime.NumCPU())
-	return g
 }
 
 // GraphOption mutates GraphOptions.
@@ -153,8 +149,6 @@ type Graph struct {
 	onStabilizationEnd []func(context.Context, time.Time, error)
 
 	propagateInvalidityQueue *queue[INode]
-
-	workerPool *parallelBatch
 }
 
 // ID is the identifier for the graph.
@@ -568,7 +562,7 @@ func (graph *Graph) stabilizeStart(ctx context.Context) context.Context {
 	return ctx
 }
 
-func (graph *Graph) stabilizeEnd(ctx context.Context, err error, parallel bool) {
+func (graph *Graph) stabilizeEnd(ctx context.Context, err error) {
 	defer func() {
 		graph.stabilizationStarted = time.Time{}
 		atomic.StoreInt32(&graph.status, StatusNotStabilizing)
@@ -582,7 +576,7 @@ func (graph *Graph) stabilizeEnd(ctx context.Context, err error, parallel bool) 
 	} else {
 		TracePrintf(ctx, "stabilization complete (%v elapsed)", time.Since(graph.stabilizationStarted).Round(time.Microsecond))
 	}
-	graph.stabilizeEndRunUpdateHandlers(ctx, parallel)
+	graph.stabilizeEndRunUpdateHandlers(ctx)
 	graph.stabilizationNum++
 	graph.stabilizeEndHandleSetDuringStabilization(ctx)
 }
@@ -597,7 +591,7 @@ func (graph *Graph) stabilizeEndHandleSetDuringStabilization(ctx context.Context
 	clear(graph.setDuringStabilization)
 }
 
-func (graph *Graph) stabilizeEndRunUpdateHandlers(ctx context.Context, parallel bool) {
+func (graph *Graph) stabilizeEndRunUpdateHandlers(ctx context.Context) {
 	graph.handleAfterStabilizationMu.Lock()
 	defer graph.handleAfterStabilizationMu.Unlock()
 
@@ -608,23 +602,9 @@ func (graph *Graph) stabilizeEndRunUpdateHandlers(ctx context.Context, parallel 
 			TracePrintln(ctx, "stabilization calling user update handlers complete")
 		}()
 	}
-	if parallel {
-		for _, uhGroup := range graph.handleAfterStabilization {
-			for _, uh := range uhGroup {
-				graph.workerPool.Go(func(handler func(context.Context)) func() error {
-					return func() error {
-						handler(ctx)
-						return nil
-					}
-				}(uh))
-			}
-		}
-		_ = graph.workerPool.Wait()
-	} else {
-		for _, uhGroup := range graph.handleAfterStabilization {
-			for _, uh := range uhGroup {
-				uh(ctx)
-			}
+	for _, uhGroup := range graph.handleAfterStabilization {
+		for _, uh := range uhGroup {
+			uh(ctx)
 		}
 	}
 	clear(graph.handleAfterStabilization)
