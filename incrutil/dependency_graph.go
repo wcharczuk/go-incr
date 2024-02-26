@@ -48,8 +48,6 @@ type Dependency struct {
 // are not depended on by any other nodes.
 func (dg DependencyGraph[Result]) Create(ctx context.Context) (*incr.Graph, map[string]DependencyIncr[Result], error) {
 	dependencyLookup := dg.createDependencyLookup()
-
-	// build "dependedBy" list(s)
 	for _, p := range dg.Dependencies {
 		for _, d := range p.DependsOn {
 			if _, exists := dependencyLookup[d]; !exists {
@@ -58,12 +56,7 @@ func (dg DependencyGraph[Result]) Create(ctx context.Context) (*incr.Graph, map[
 			dependencyLookup[d].dependedBy = append(dependencyLookup[d].dependedBy, p.Name)
 		}
 	}
-
 	graph := incr.New()
-
-	// build package incrementals
-	// including the relationships between the
-	// packages and their dependencies.
 	packageIncrementals, err := dg.createDependencyIncrLookup(graph)
 	if err != nil {
 		return nil, nil, err
@@ -79,7 +72,6 @@ func (dg DependencyGraph[Result]) createDependencyLookup() (output map[string]*d
 	return
 }
 
-// createDependencyIncrLookup loops over the dependency list and creates a mapping between dependency name and dependency.
 func (dg DependencyGraph[Result]) createDependencyIncrLookup(g *incr.Graph) (output map[string]DependencyIncr[Result], err error) {
 	output = make(map[string]DependencyIncr[Result])
 	for _, d := range dg.Dependencies {
