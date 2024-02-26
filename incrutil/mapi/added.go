@@ -7,9 +7,8 @@ import (
 	"github.com/wcharczuk/go-incr"
 )
 
-// DiffMapByKeysAdded returns an incremental that takes an input map typed
-// incremental, and each stabilization pass returns just the subset
-// of the map that was added since the last pass according to the keys.
+// Added returns an incremental node whose value is just the added keys (and their associated values)
+// of an input map between stabilizations.
 func Added[M ~map[K]V, K comparable, V any](scope incr.Scope, i incr.Incr[M]) incr.Incr[M] {
 	return incr.WithinScope(scope, &addedIncr[M, K, V]{
 		n:       incr.NewNode("mapi_added"),
