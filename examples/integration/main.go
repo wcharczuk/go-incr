@@ -1,13 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"runtime/debug"
+	"sync"
 	"time"
 
 	"github.com/wcharczuk/go-incr"
@@ -53,16 +51,30 @@ func main() {
 	testCase("month_of_values = if burn > 0: cash_balance / burn else 0. Calculate months of values then burn", func() {
 		ctx := testContext()
 		graph := incr.New()
+
+		var cacheMu sync.Mutex
 		cache := make(map[string]incr.Incr[*int])
+		cacheGet := func(key string) (incr.Incr[*int], bool) {
+			cacheMu.Lock()
+			defer cacheMu.Unlock()
+			v, ok := cache[key]
+			return v, ok
+		}
+		cachePut := func(key string, value incr.Incr[*int]) {
+			cacheMu.Lock()
+			defer cacheMu.Unlock()
+			cache[key] = value
+		}
 
 		fakeFormula := incr.Var(graph, "fakeformula")
 		fakeFormula.Node().SetLabel("fakeformula")
 		var f func(incr.Scope, int) incr.Incr[*int]
 		f = func(bs incr.Scope, t int) incr.Incr[*int] {
 			key := fmt.Sprintf("f-%d", t)
-			if cached, ok := cache[key]; ok {
-				return cached // incr.WithinScope(bs, cache[key])
+			if cached, ok := cacheGet(key); ok {
+				return cached
 			}
+
 			r := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
 				if t <= 0 {
 					out := 0
@@ -81,7 +93,7 @@ func main() {
 				return bindOutput
 			})
 			r.Node().SetLabel(fmt.Sprintf("f(%d)", t))
-			cache[key] = r
+			cachePut(key, r)
 			return r
 		}
 
@@ -128,7 +140,6 @@ func main() {
 			return o
 		}
 
-		// monthofvalues = if burn > 0 then cashbalance / burn else 0
 		monthsOfRunway := func(bs incr.Scope, t int) incr.Incr[*int] {
 			o := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
 				zero := 0
@@ -166,9 +177,8 @@ func main() {
 			obs.Node().SetLabel(fmt.Sprintf("observer(%d)", i))
 		}
 
-		err := graph.Stabilize(ctx)
+		err := graph.ParallelStabilize(ctx)
 		noError(err)
-		_ = dumpDot(graph, homedir("integration_00_00.png"))
 		elapsed := time.Since(start)
 		fmt.Printf("Calculating months of values took %s \n", elapsed)
 
@@ -180,9 +190,8 @@ func main() {
 			obs.Node().SetLabel(fmt.Sprintf("observer(%d)", i))
 		}
 
-		err = graph.Stabilize(ctx)
+		err = graph.ParallelStabilize(ctx)
 		noError(err)
-		_ = dumpDot(graph, homedir("integration_00_01.png"))
 		elapsed = time.Since(start)
 		fmt.Printf("Calculating burn took %s \n", elapsed)
 	})
@@ -192,15 +201,28 @@ func main() {
 		graph := incr.New(
 			incr.OptGraphMaxHeight(1024),
 		)
+
+		var cacheMu sync.Mutex
 		cache := make(map[string]incr.Incr[*int])
+		cacheGet := func(key string) (incr.Incr[*int], bool) {
+			cacheMu.Lock()
+			defer cacheMu.Unlock()
+			v, ok := cache[key]
+			return v, ok
+		}
+		cachePut := func(key string, value incr.Incr[*int]) {
+			cacheMu.Lock()
+			defer cacheMu.Unlock()
+			cache[key] = value
+		}
 
 		fakeFormula := incr.Var(graph, "fakeformula")
 		fakeFormula.Node().SetLabel("fakeformula")
 		var f func(incr.Scope, int) incr.Incr[*int]
 		f = func(bs incr.Scope, t int) incr.Incr[*int] {
 			key := fmt.Sprintf("f-%d", t)
-			if cached, ok := cache[key]; ok {
-				return cached // incr.WithinScope(bs, cache[key])
+			if cached, ok := cacheGet(key); ok {
+				return cached
 			}
 			r := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
 				if t <= 0 {
@@ -220,7 +242,7 @@ func main() {
 				return bindOutput
 			})
 			r.Node().SetLabel(fmt.Sprintf("f(%d)", t))
-			cache[key] = r
+			cachePut(key, r)
 			return r
 		}
 
@@ -303,9 +325,8 @@ func main() {
 			incr.MustObserve(graph, o)
 		}
 
-		err := graph.Stabilize(ctx)
+		err := graph.ParallelStabilize(ctx)
 		noError(err)
-		_ = dumpDot(graph, homedir("integration_01_00.png"))
 		elapsed := time.Since(start)
 		fmt.Printf("Calculating burn took %s \n", elapsed)
 
@@ -316,8 +337,7 @@ func main() {
 			incr.MustObserve(graph, o)
 		}
 
-		err = graph.Stabilize(ctx)
-		_ = dumpDot(graph, homedir("integration_01_01.png"))
+		err = graph.ParallelStabilize(ctx)
 		noError(err)
 		elapsed = time.Since(start)
 		fmt.Printf("Calculating months of values took %s \n", elapsed)
@@ -328,15 +348,27 @@ func main() {
 		graph := incr.New(
 			incr.OptGraphMaxHeight(1024),
 		)
+		var cacheMu sync.Mutex
 		cache := make(map[string]incr.Incr[*int])
+		cacheGet := func(key string) (incr.Incr[*int], bool) {
+			cacheMu.Lock()
+			defer cacheMu.Unlock()
+			v, ok := cache[key]
+			return v, ok
+		}
+		cachePut := func(key string, value incr.Incr[*int]) {
+			cacheMu.Lock()
+			defer cacheMu.Unlock()
+			cache[key] = value
+		}
 
 		fakeFormula := incr.Var(graph, "fakeformula")
 		fakeFormula.Node().SetLabel("fakeformula")
 		var f func(incr.Scope, int) incr.Incr[*int]
 		f = func(bs incr.Scope, t int) incr.Incr[*int] {
 			key := fmt.Sprintf("f-%d", t)
-			if cached, ok := cache[key]; ok {
-				return cached // incr.WithinScope(bs, cache[key])
+			if cached, ok := cacheGet(key); ok {
+				return cached
 			}
 			r := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
 				if t <= 0 {
@@ -356,7 +388,7 @@ func main() {
 				return bindOutput
 			})
 			r.Node().SetLabel(fmt.Sprintf("f(%d)", t))
-			cache[key] = r
+			cachePut(key, r)
 			return r
 		}
 
@@ -366,21 +398,6 @@ func main() {
 				return f(bs, t)
 			})
 		}
-
-		// The below is a "cached" version of burn that can help performance
-		// but really shouldn't be needed!
-		// burn := func(bs incr.Scope, t int) incr.Incr[*int] {
-		// 	key := fmt.Sprintf("burn-%d", t)
-		// 	if _, ok := cache[key]; ok {
-		// 		return incr.WithinBindScope(bs, cache[key])
-		// 	}
-		// 	o := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
-		// 		return f(bs, t)
-		// 	})
-		// 	o.Node().SetLabel(key)
-		// 	cache[key] = o
-		// 	return o
-		// }
 
 		// cashbalance = cashbalance(t-1) - burn(t)
 		var cashBalance func(bs incr.Scope, t int) incr.Incr[*int]
@@ -430,10 +447,11 @@ func main() {
 			o.Node().SetLabel("months_of_values")
 			return o
 		}
+
 		w := func(bs incr.Scope, t int) incr.Incr[*int] {
 			key := fmt.Sprintf("w-%d", t)
-			if _, ok := cache[key]; ok {
-				return incr.WithinScope(bs, cache[key])
+			if cached, ok := cacheGet(key); ok {
+				return cached // incr.WithinScope(bs, cache[key])
 			}
 
 			r := incr.Bind(bs, incr.Var(bs, "fakeformula"), func(bs incr.Scope, formula string) incr.Incr[*int] {
@@ -441,7 +459,7 @@ func main() {
 				return incr.Return(bs, &out)
 			})
 			r.Node().SetLabel(fmt.Sprintf("w(%d)", t))
-			cache[key] = r
+			cachePut(key, r)
 			return r
 		}
 
@@ -454,7 +472,7 @@ func main() {
 			o := monthsOfRunway(graph, i)
 			_ = incr.MustObserve(graph, o)
 		}
-		_ = graph.Stabilize(ctx)
+		_ = graph.ParallelStabilize(ctx)
 		elapsed := time.Since(start)
 		fmt.Printf("Baseline calculation of months of values for t= %d to %d took %s\n", 0, max_t, elapsed)
 
@@ -481,42 +499,4 @@ func main() {
 			fmt.Printf("Graph node count=%d, observer count=%d\n", incr.ExpertGraph(graph).NumNodes(), incr.ExpertGraph(graph).NumObservers())
 		}
 	})
-}
-
-func homedir(filename string) string {
-	var rootDir string
-	if rootDir = os.Getenv("INCR_DEBUG_DOT_ROOT"); rootDir == "" {
-		rootDir = os.ExpandEnv("$HOME/Desktop")
-	}
-	return filepath.Join(rootDir, filename)
-}
-
-func dumpDot(g *incr.Graph, path string) error {
-	if os.Getenv("INCR_DEBUG_DOT") != "true" {
-		return nil
-	}
-
-	dotContents := new(bytes.Buffer)
-	if err := incr.Dot(dotContents, g); err != nil {
-		return err
-	}
-	dotOutput, err := os.Create(os.ExpandEnv(path))
-	if err != nil {
-		return err
-	}
-	defer func() { _ = dotOutput.Close() }()
-	dotFullPath, err := exec.LookPath("dot")
-	if err != nil {
-		return fmt.Errorf("there was an issue finding `dot` in your path; you may need to install the `graphviz` package or similar on your platform: %w", err)
-	}
-
-	errOut := new(bytes.Buffer)
-	cmd := exec.Command(dotFullPath, "-Tpng")
-	cmd.Stdin = dotContents
-	cmd.Stdout = dotOutput
-	cmd.Stderr = errOut
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("%v; %w", errOut.String(), err)
-	}
-	return nil
 }

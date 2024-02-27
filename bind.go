@@ -80,6 +80,7 @@ type BindIncr[A any] interface {
 
 // IBindMain holds the methods specific to the bind main node.
 type IBindMain interface {
+	IParents
 	Invalidate()
 }
 
