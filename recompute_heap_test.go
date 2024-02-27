@@ -58,6 +58,15 @@ func Test_recomputeHeap_add(t *testing.T) {
 	}
 }
 
+func iterToArray[A any](fn func() (A, bool)) (output []A) {
+	value, ok := fn()
+	for ok {
+		output = append(output, value)
+		value, ok = fn()
+	}
+	return output
+}
+
 func Test_recomputeHeap_removeMinHeight(t *testing.T) {
 	g := New()
 
@@ -95,16 +104,20 @@ func Test_recomputeHeap_removeMinHeight(t *testing.T) {
 	testutil.Equal(t, 0, rh.minHeight)
 	testutil.Equal(t, 5, rh.maxHeight)
 
-	var output []INode
-	rh.removeMinHeight(&output)
+	var iter recomputeHeapListIter
+	var iterValues []INode
+	rh.removeMinHeightIter(&iter)
+	iterValues = iterToArray(iter.Next)
+
 	testutil.Nil(t, rh.sanityCheck())
 	testutil.Equal(t, 9, rh.len())
-	testutil.Equal(t, 3, len(output))
+	testutil.Equal(t, 3, len(iterValues))
 	testutil.Equal(t, 0, rh.heights[0].len())
 	testutil.Equal(t, 4, rh.heights[1].len())
 	testutil.Equal(t, 5, rh.heights[5].len())
 
-	for _, n := range output {
+	for _, n := range iterValues {
+		testutil.NotNil(t, n)
 		testutil.Nil(t, n.Node().nextInRecomputeHeap)
 		testutil.Nil(t, n.Node().previousInRecomputeHeap)
 	}
@@ -112,28 +125,32 @@ func Test_recomputeHeap_removeMinHeight(t *testing.T) {
 	testutil.Equal(t, 1, rh.minHeight)
 	testutil.Equal(t, 5, rh.maxHeight)
 
-	rh.removeMinHeight(&output)
+	rh.removeMinHeightIter(&iter)
+	iterValues = iterToArray(iter.Next)
 	testutil.Nil(t, rh.sanityCheck())
 	testutil.Equal(t, 5, rh.len())
-	testutil.Equal(t, 4, len(output))
+	testutil.Equal(t, 4, len(iterValues))
 	testutil.Equal(t, 0, rh.heights[0].len())
 	testutil.Equal(t, 0, rh.heights[1].len())
 	testutil.Equal(t, 5, rh.heights[5].len())
 
-	for _, n := range output {
+	for _, n := range iterValues {
+		testutil.NotNil(t, n)
 		testutil.Nil(t, n.Node().nextInRecomputeHeap)
 		testutil.Nil(t, n.Node().previousInRecomputeHeap)
 	}
 
-	rh.removeMinHeight(&output)
+	rh.removeMinHeightIter(&iter)
+	iterValues = iterToArray(iter.Next)
 	testutil.Nil(t, rh.sanityCheck())
 	testutil.Equal(t, 0, rh.len())
-	testutil.Equal(t, 5, len(output))
+	testutil.Equal(t, 5, len(iterValues))
 	testutil.Equal(t, 0, rh.heights[0].len())
 	testutil.Equal(t, 0, rh.heights[1].len())
 	testutil.Equal(t, 0, rh.heights[5].len())
 
-	for _, n := range output {
+	for _, n := range iterValues {
+		testutil.NotNil(t, n)
 		testutil.Nil(t, n.Node().nextInRecomputeHeap)
 		testutil.Nil(t, n.Node().previousInRecomputeHeap)
 	}
@@ -149,15 +166,17 @@ func Test_recomputeHeap_removeMinHeight(t *testing.T) {
 	testutil.Equal(t, 5, rh.minHeight)
 	testutil.Equal(t, 5, rh.maxHeight)
 
-	rh.removeMinHeight(&output)
+	rh.removeMinHeightIter(&iter)
+	iterValues = iterToArray(iter.Next)
 	testutil.Nil(t, rh.sanityCheck())
 	testutil.Equal(t, 0, rh.len())
-	testutil.Equal(t, 5, len(output))
+	testutil.Equal(t, 5, len(iterValues))
 	testutil.Equal(t, 0, rh.heights[0].len())
 	testutil.Equal(t, 0, rh.heights[1].len())
 	testutil.Equal(t, 0, rh.heights[5].len())
 
-	for _, n := range output {
+	for _, n := range iterValues {
+		testutil.NotNil(t, n)
 		testutil.Nil(t, n.Node().nextInRecomputeHeap)
 		testutil.Nil(t, n.Node().previousInRecomputeHeap)
 	}

@@ -10,11 +10,27 @@ import (
 	"github.com/wcharczuk/go-incr/testutil"
 )
 
+type arrayIter[A any] struct {
+	values []A
+	index  int
+}
+
+func (a *arrayIter[A]) Next() (v A, ok bool) {
+	if a.index == len(a.values) {
+		return
+	}
+	v = a.values[a.index]
+	a.index++
+	return v, true
+}
+
 func Test_parallelBatch(t *testing.T) {
 	var work []string
 	for x := 0; x < runtime.NumCPU()<<1; x++ {
 		work = append(work, fmt.Sprintf("work-%d", x))
 	}
+
+	workIter := &arrayIter[string]{values: work}
 
 	seen := make(map[string]struct{})
 	var seenMu sync.Mutex
@@ -23,7 +39,7 @@ func Test_parallelBatch(t *testing.T) {
 		seen[v] = struct{}{}
 		seenMu.Unlock()
 		return nil
-	}, work...)
+	}, workIter.Next)
 	testutil.NoError(t, err)
 	testutil.Equal(t, len(work), len(seen))
 
@@ -39,6 +55,7 @@ func Test_parallelBatch_error(t *testing.T) {
 	for x := 0; x < runtime.NumCPU()<<1; x++ {
 		work = append(work, fmt.Sprintf("work-%d", x))
 	}
+	workIter := &arrayIter[string]{values: work}
 
 	var processed int
 	err := parallelBatch[string](testContext(), func(_ context.Context, v string) error {
@@ -47,7 +64,7 @@ func Test_parallelBatch_error(t *testing.T) {
 			return fmt.Errorf("this is only a test")
 		}
 		return nil
-	}, work...)
+	}, workIter.Next)
 	testutil.Error(t, err)
 	testutil.Equal(t, len(work), processed)
 }

@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-func parallelBatch[A any](ctx context.Context, fn func(context.Context, A) error, work ...A) (err error) {
+func parallelBatch[A any](ctx context.Context, fn func(context.Context, A) error, iter func() (A, bool)) (err error) {
 	var errOnce sync.Once
 	sem := make(chan A, runtime.NumCPU())
 	wg := new(sync.WaitGroup)
@@ -20,10 +20,12 @@ func parallelBatch[A any](ctx context.Context, fn func(context.Context, A) error
 			})
 		}
 	}
-	for _, w := range work {
+	w, ok := iter()
+	for ok {
 		sem <- w
 		wg.Add(1)
 		go process()
+		w, ok = iter()
 	}
 	wg.Wait()
 	return

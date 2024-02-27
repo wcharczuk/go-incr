@@ -2,6 +2,7 @@ package incr
 
 import (
 	"context"
+	"sync"
 )
 
 // ParallelStabilize stabilizes graphs in parallel as entered
@@ -38,29 +39,34 @@ func (graph *Graph) parallelStabilize(ctx context.Context) (err error) {
 	}
 
 	var immediateRecompute []INode
-	var minHeightBlock []INode
-	for graph.recomputeHeap.len() > 0 {
-		graph.recomputeHeap.removeMinHeight(&minHeightBlock)
-
-		err = parallelBatch[INode](ctx, graph.parallelRecomputeNode, minHeightBlock...)
-		for _, n := range minHeightBlock {
-			if n.Node().always {
-				immediateRecompute = append(immediateRecompute, n)
-			}
+	var immediateRecomputeMu sync.Mutex
+	parallelRecomputeNode := func(ctx context.Context, n INode) (err error) {
+		err = graph.recompute(ctx, n, true)
+		if n.Node().always {
+			immediateRecomputeMu.Lock()
+			immediateRecompute = append(immediateRecompute, n)
+			immediateRecomputeMu.Unlock()
 		}
+		return
+	}
+
+	var iter recomputeHeapListIter
+	for graph.recomputeHeap.len() > 0 {
+		graph.recomputeHeap.removeMinHeightIter(&iter)
+		err = parallelBatch[INode](ctx, parallelRecomputeNode, iter.Next)
 		if err != nil {
 			break
 		}
 	}
-	if len(immediateRecompute) > 0 {
-		for _, n := range immediateRecompute {
-			graph.recomputeHeap.addIfNotPresent(n)
-		}
-	}
-	return
-}
 
-func (graph *Graph) parallelRecomputeNode(ctx context.Context, n INode) (err error) {
-	err = graph.recompute(ctx, n, true)
+	if len(immediateRecompute) > 0 {
+		graph.recomputeHeap.mu.Lock()
+		for _, n := range immediateRecompute {
+			if n.Node().heightInRecomputeHeap == HeightUnset {
+				graph.recomputeHeap.addNodeUnsafe(n)
+			}
+		}
+		graph.recomputeHeap.mu.Unlock()
+	}
 	return
 }

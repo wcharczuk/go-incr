@@ -649,17 +649,17 @@ func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err 
 	}
 
 	if parallel {
+		graph.recomputeHeap.mu.Lock()
 		for _, c := range nn.children {
-			if c.Node().isNecessary() && c.Node().isStale() {
-				graph.recomputeHeap.addIfNotPresent(c)
+			isNecessary := c.Node().isNecessary()
+			isStale := c.Node().isStale()
+			isNotInRecomputeHeap := c.Node().heightInRecomputeHeap == HeightUnset
+			if isNecessary && isStale && isNotInRecomputeHeap {
+				graph.recomputeHeap.addNodeUnsafe(c)
 			}
 		}
+		graph.recomputeHeap.mu.Unlock()
 	} else {
-		// we differentiate here because in parallel mode
-		// we may be competing with other goroutines to add
-		// nodes to the recompute heap; in serial mode
-		// we don't need to grab the lock, so we skip that
-		// to save on some overhead.
 		for _, c := range nn.children {
 			isNecessary := c.Node().isNecessary()
 			isStale := c.Node().isStale()
