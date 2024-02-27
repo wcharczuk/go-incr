@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -19,6 +20,7 @@ func (a *arrayIter[A]) Next() (v A, ok bool) {
 	if a.index == len(a.values) {
 		return
 	}
+
 	v = a.values[a.index]
 	a.index++
 	return v, true
@@ -57,14 +59,14 @@ func Test_parallelBatch_error(t *testing.T) {
 	}
 	workIter := &arrayIter[string]{values: work}
 
-	var processed int
+	var processed uint32
 	err := parallelBatch[string](testContext(), func(_ context.Context, v string) error {
-		processed++
+		atomic.AddUint32(&processed, 1)
 		if v == "work-2" {
 			return fmt.Errorf("this is only a test")
 		}
 		return nil
 	}, workIter.Next)
 	testutil.Error(t, err)
-	testutil.Equal(t, len(work), processed)
+	testutil.Equal(t, len(work), processed, fmt.Sprintf("work=%d processed=%d", len(work), processed))
 }
