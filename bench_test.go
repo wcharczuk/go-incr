@@ -55,6 +55,38 @@ func Benchmark_ParallelStabilize_withPreInitialize_16384(b *testing.B) {
 	benchmarkParallelSize(16384, b)
 }
 
+func Benchmark_Stabilize_recombinant_64(b *testing.B) {
+	benchmarkRecombinantSize(64, b)
+}
+
+func Benchmark_Stabilize_recombinant_128(b *testing.B) {
+	benchmarkRecombinantSize(128, b)
+}
+
+func Benchmark_Stabilize_recombinant_256(b *testing.B) {
+	benchmarkRecombinantSize(256, b)
+}
+
+func Benchmark_Stabilize_recombinant_512(b *testing.B) {
+	benchmarkRecombinantSize(512, b)
+}
+
+func Benchmark_ParallelStabilize_recombinant_64(b *testing.B) {
+	benchmarkParallelRecombinantSize(64, b)
+}
+
+func Benchmark_ParallelStabilize_recombinant_128(b *testing.B) {
+	benchmarkParallelRecombinantSize(128, b)
+}
+
+func Benchmark_ParallelStabilize_recombinant_256(b *testing.B) {
+	benchmarkParallelRecombinantSize(256, b)
+}
+
+func Benchmark_ParallelStabilize_recombinant_512(b *testing.B) {
+	benchmarkParallelRecombinantSize(512, b)
+}
+
 func Benchmark_Stabilize_deep_2_32(b *testing.B) {
 	benchmarkDepth(2, 32, b)
 }
@@ -133,6 +165,51 @@ func makeBenchmarkGraph(size int) (*Graph, []Incr[*string]) {
 	return graph, nodes
 }
 
+func makeBenchmarkRecombinantGraph(size int) (*Graph, VarIncr[*string], ObserveIncr[*string]) {
+	g := New()
+
+	input := Var(g, ref("input"))
+	input.Node().SetLabel("input")
+	nodes := []Incr[*string]{input}
+	m00 := Map(g, input, ident)
+	m00.Node().SetLabel("exp-m0-0")
+	m01 := Map(g, input, ident)
+	m01.Node().SetLabel("exp-m0-1")
+	nodes = append(nodes, m01)
+
+	cursor := 1
+	level := 1
+	for x := 2; x <= size; x <<= 1 {
+		var levelNode int
+		for y := 0; y < x; y++ {
+			m00 := Map(g, nodes[cursor+y], ident)
+			m00.Node().SetLabel(fmt.Sprintf("exp-m%d-%d", level, levelNode))
+			nodes = append(nodes, m00)
+			levelNode++
+			m01 := Map(g, nodes[cursor+y], ident)
+			m01.Node().SetLabel(fmt.Sprintf("exp-m%d-%d", level, levelNode))
+			nodes = append(nodes, m01)
+			levelNode++
+		}
+		cursor += x
+		level++
+	}
+	cursor = len(nodes) - 1
+	for x := size << 1; x > 0; x >>= 1 {
+		var levelNode int
+		for y := 0; y < x-1; y += 2 {
+			m := Map2(g, nodes[cursor-y], nodes[cursor-(y+1)], longer)
+			m.Node().SetLabel(fmt.Sprintf("cont-m%d-%d", level, levelNode))
+			nodes = append(nodes, m)
+			levelNode++
+		}
+		cursor += (x >> 1)
+		level--
+	}
+	observer := MustObserve(g, nodes[len(nodes)-1])
+	return g, input, observer
+}
+
 func benchmarkSize(size int, b *testing.B) {
 	graph, nodes := makeBenchmarkGraph(size)
 	ctx := context.Background()
@@ -183,6 +260,70 @@ func benchmarkParallelSize(size int, b *testing.B) {
 		err = graph.ParallelStabilize(ctx)
 		if err != nil {
 			b.Fatal(err)
+		}
+	}
+}
+
+func benchmarkRecombinantSize(size int, b *testing.B) {
+	graph, input, observer := makeBenchmarkRecombinantGraph(size)
+	ctx := testContext()
+	b.ResetTimer()
+	var err error
+	for n := 0; n < b.N; n++ {
+		err = graph.Stabilize(ctx)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if observer.Value() == nil {
+			b.Fail()
+		}
+		graph.SetStale(input)
+		err = graph.Stabilize(ctx)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if observer.Value() == nil {
+			b.Fail()
+		}
+		graph.SetStale(input)
+		err = graph.Stabilize(ctx)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if observer.Value() == nil {
+			b.Fail()
+		}
+	}
+}
+
+func benchmarkParallelRecombinantSize(size int, b *testing.B) {
+	graph, input, observer := makeBenchmarkRecombinantGraph(size)
+	ctx := testContext()
+	b.ResetTimer()
+	var err error
+	for n := 0; n < b.N; n++ {
+		err = graph.ParallelStabilize(ctx)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if observer.Value() == nil {
+			b.Fail()
+		}
+		graph.SetStale(input)
+		err = graph.ParallelStabilize(ctx)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if observer.Value() == nil {
+			b.Fail()
+		}
+		graph.SetStale(input)
+		err = graph.ParallelStabilize(ctx)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if observer.Value() == nil {
+			b.Fail()
 		}
 	}
 }

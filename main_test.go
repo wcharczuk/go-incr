@@ -203,6 +203,7 @@ func dumpDot(g *Graph, path string) error {
 	if err := Dot(dotContents, g); err != nil {
 		return err
 	}
+
 	dotOutput, err := os.Create(os.ExpandEnv(path))
 	if err != nil {
 		return err
