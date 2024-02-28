@@ -66,8 +66,7 @@ var (
 // but actually implements caching under the hood for returned bind nodes.
 type BindMemoizedIncr[A comparable, B any] interface {
 	incr.BindIncr[B]
-	Purge(A)
-	Clear()
+	Cache() BindCache[A, B]
 }
 
 type bindMemoizedIncr[A comparable, B any] struct {
@@ -75,12 +74,8 @@ type bindMemoizedIncr[A comparable, B any] struct {
 	cache BindCache[A, B]
 }
 
-func (bmi *bindMemoizedIncr[A, B]) Purge(k A) {
-	bmi.cache.Purge(k)
-}
-
-func (bmi *bindMemoizedIncr[A, B]) Clear() {
-	bmi.cache.Clear()
+func (bmi *bindMemoizedIncr[A, B]) Cache() BindCache[A, B] {
+	return bmi.cache
 }
 
 // mapCache is a map backed cache that is _incredibly_ basic.

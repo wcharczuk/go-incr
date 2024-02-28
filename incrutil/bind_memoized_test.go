@@ -27,9 +27,9 @@ func Test_BindMemoized(t *testing.T) {
 	obm := incr.MustObserve(g, bm)
 
 	// shouldn't do anything
-	bm.Purge("doesn't exist")
+	bm.Cache().Purge("doesn't exist")
 	// shouldn't do anything
-	bm.Clear()
+	bm.Cache().Clear()
 
 	testutil.Equal(t, 0, called)
 
@@ -51,7 +51,7 @@ func Test_BindMemoized(t *testing.T) {
 	testutil.Equal(t, "a-value", obm.Value())
 
 	bv.Set("a") // we have to trigger staleness
-	bm.Purge("a")
+	bm.Cache().Purge("a")
 
 	err = g.Stabilize(ctx)
 	testutil.NoError(t, err)
@@ -66,7 +66,7 @@ func Test_BindMemoized(t *testing.T) {
 	testutil.Equal(t, "other-value", obm.Value())
 
 	bv.Set("b")
-	bm.Clear()
+	bm.Cache().Clear()
 
 	err = g.Stabilize(ctx)
 	testutil.NoError(t, err)
