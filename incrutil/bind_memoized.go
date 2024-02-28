@@ -12,7 +12,7 @@ import (
 func BindMemoized[A comparable, B any](scope incr.Scope, a incr.Incr[A], fn incr.BindFunc[A, B]) BindMemoizedIncr[A, B] {
 	return BindMemoizedContextCached[A, B](scope, a, func(_ context.Context, innerScope incr.Scope, av A) (incr.Incr[B], error) {
 		return fn(innerScope, av), nil
-	}, new(mapCache[A, incr.Incr[B]]))
+	}, BindMapCache[A, B]())
 }
 
 // BindMemoizedCached returns a node that caches the results of the bind function, and as a result the input must be typed such that the
@@ -29,7 +29,7 @@ func BindMemoizedCached[A comparable, B any](scope incr.Scope, a incr.Incr[A], f
 func BindMemoizedContext[A comparable, B any](scope incr.Scope, a incr.Incr[A], fn incr.BindContextFunc[A, B]) BindMemoizedIncr[A, B] {
 	return BindMemoizedContextCached[A, B](scope, a, func(ctx context.Context, innerScope incr.Scope, av A) (incr.Incr[B], error) {
 		return fn(ctx, innerScope, av)
-	}, new(mapCache[A, incr.Incr[B]]))
+	}, BindMapCache[A, B]())
 }
 
 // BindMemoizedContextCached returns a memoized bind node.
@@ -76,6 +76,11 @@ type bindMemoizedIncr[A comparable, B any] struct {
 
 func (bmi *bindMemoizedIncr[A, B]) Cache() BindCache[A, B] {
 	return bmi.cache
+}
+
+// BindMapCache returns an interlocked bind cache.
+func BindMapCache[A comparable, B any]() BindCache[A, B] {
+	return new(mapCache[A, incr.Incr[B]])
 }
 
 // mapCache is a map backed cache that is _incredibly_ basic.
