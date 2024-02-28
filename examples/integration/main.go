@@ -48,7 +48,8 @@ func noError(err error) {
 }
 
 func main() {
-	testCase("naiive > month_of_values = if burn > 0: cash_balance / burn else 0. Calculate months of values then burn", func() {
+
+	testCase("naive > month_of_values = if burn > 0: cash_balance / burn else 0. Calculate months of values then burn", func() {
 		var cacheMu sync.Mutex
 		cache := make(map[string]naive.Node[*int])
 		cacheGet := func(key string) (naive.Node[*int], bool) {
@@ -172,7 +173,7 @@ func main() {
 		fmt.Printf("Calculating burn took %s \n", elapsed)
 	})
 
-	testCase("naiive > month_of_values = if burn > 0: cash_balance / burn else 0. Calculate months of values then burn", func() {
+	testCase("naive > month_of_values = if burn > 0: cash_balance / burn else 0. Calculate months of values then burn", func() {
 		var cacheMu sync.Mutex
 		cache := make(map[string]naive.Node[*int])
 		cacheGet := func(key string) (naive.Node[*int], bool) {
