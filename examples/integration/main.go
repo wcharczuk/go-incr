@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/wcharczuk/go-incr"
+	"github.com/wcharczuk/go-incr/incrutil/naive"
 	"github.com/wcharczuk/go-incr/testutil"
 )
 
@@ -47,6 +48,253 @@ func noError(err error) {
 }
 
 func main() {
+	testCase("naiive > month_of_values = if burn > 0: cash_balance / burn else 0. Calculate months of values then burn", func() {
+		var cacheMu sync.Mutex
+		cache := make(map[string]naive.Node[*int])
+		cacheGet := func(key string) (naive.Node[*int], bool) {
+			cacheMu.Lock()
+			defer cacheMu.Unlock()
+			v, ok := cache[key]
+			return v, ok
+		}
+		cachePut := func(key string, value naive.Node[*int]) {
+			cacheMu.Lock()
+			defer cacheMu.Unlock()
+			cache[key] = value
+		}
+
+		fakeFormula := naive.Var("fakeformula")
+		var f func(int) naive.Node[*int]
+		f = func(t int) naive.Node[*int] {
+			key := fmt.Sprintf("f-%d", t)
+			if cached, ok := cacheGet(key); ok {
+				return cached
+			}
+
+			r := naive.Bind(fakeFormula, func(formula string) naive.Node[*int] {
+				if t <= 0 {
+					out := 0
+					r := naive.Var(&out)
+					return r
+				}
+				bindOutput := naive.Map(func(values ...*int) *int {
+					r := values[0]
+					if r == nil {
+						return nil
+					}
+					out := *r + 1
+					return &out
+				}, f(t-1))
+				return bindOutput
+			})
+			cachePut(key, r)
+			return r
+		}
+
+		// burn(t) = f(t)
+		burn := func(t int) naive.Node[*int] {
+			return naive.Bind(fakeFormula, func(formula string) naive.Node[*int] {
+				return f(t)
+			})
+		}
+
+		// cashbalance = cashbalance(t-1) - burn(t)
+		var cashBalance func(int) naive.Node[*int]
+		cashBalance = func(t int) naive.Node[*int] {
+			o := naive.Bind(fakeFormula, func(formula string) naive.Node[*int] {
+				if t <= 0 {
+					out := 0
+					r := naive.Var(&out)
+					return r
+				}
+				return naive.Map(func(values ...*int) *int {
+					c := values[0]
+					b := values[1]
+					if c == nil || b == nil {
+						return nil
+					}
+					out := *c - *b
+					return &out
+				}, cashBalance(t-1), burn(t))
+			})
+			return o
+		}
+
+		monthsOfRunway := func(t int) naive.Node[*int] {
+			o := naive.Bind(fakeFormula, func(formula string) naive.Node[*int] {
+				zero := 0
+				predicateIncr := naive.Map(func(values ...*int) bool {
+					val := values[0]
+					cmp := values[1]
+					if val == nil || cmp == nil {
+						return false
+					}
+					return *val > *cmp
+				}, burn(t), naive.Var(&zero))
+				return naive.Bind(predicateIncr, func(predicate bool) naive.Node[*int] {
+					var out int = 0
+					if predicate {
+						return naive.Map(func(values ...*int) *int {
+							c := values[0]
+							b := values[1]
+							if c == nil || b == nil {
+								return nil
+							}
+							out = *c / *b
+							return &out
+						}, cashBalance(t), burn(t))
+					}
+					return naive.Var(&out)
+				})
+			})
+			return o
+		}
+
+		num := 48
+
+		fmt.Println("Calculating months of values for t= 1 to 48")
+		start := time.Now()
+		for i := 0; i < num; i++ {
+			o := monthsOfRunway(i)
+			_ = o.Value()
+		}
+
+		elapsed := time.Since(start)
+		fmt.Printf("Calculating months of values took %s \n", elapsed)
+
+		fmt.Println("Calculating burn for t= 1 to 48")
+		start = time.Now()
+		for i := 0; i < num; i++ {
+			o := burn(i)
+			_ = o.Value()
+		}
+		elapsed = time.Since(start)
+		fmt.Printf("Calculating burn took %s \n", elapsed)
+	})
+
+	testCase("naiive > month_of_values = if burn > 0: cash_balance / burn else 0. Calculate months of values then burn", func() {
+		var cacheMu sync.Mutex
+		cache := make(map[string]naive.Node[*int])
+		cacheGet := func(key string) (naive.Node[*int], bool) {
+			cacheMu.Lock()
+			defer cacheMu.Unlock()
+			v, ok := cache[key]
+			return v, ok
+		}
+		cachePut := func(key string, value naive.Node[*int]) {
+			cacheMu.Lock()
+			defer cacheMu.Unlock()
+			cache[key] = value
+		}
+
+		fakeFormula := naive.Var("fakeformula")
+		var f func(int) naive.Node[*int]
+		f = func(t int) naive.Node[*int] {
+			key := fmt.Sprintf("f-%d", t)
+			if cached, ok := cacheGet(key); ok {
+				return cached
+			}
+
+			r := naive.Bind(fakeFormula, func(formula string) naive.Node[*int] {
+				if t <= 0 {
+					out := 0
+					r := naive.Var(&out)
+					return r
+				}
+				bindOutput := naive.Map(func(values ...*int) *int {
+					r := values[0]
+					if r == nil {
+						return nil
+					}
+					out := *r + 1
+					return &out
+				}, f(t-1))
+				return bindOutput
+			})
+			cachePut(key, r)
+			return r
+		}
+
+		// burn(t) = f(t)
+		burn := func(t int) naive.Node[*int] {
+			return naive.Bind(fakeFormula, func(formula string) naive.Node[*int] {
+				return f(t)
+			})
+		}
+
+		// cashbalance = cashbalance(t-1) - burn(t)
+		var cashBalance func(int) naive.Node[*int]
+		cashBalance = func(t int) naive.Node[*int] {
+			o := naive.Bind(fakeFormula, func(formula string) naive.Node[*int] {
+				if t <= 0 {
+					out := 0
+					r := naive.Var(&out)
+					return r
+				}
+				return naive.Map(func(values ...*int) *int {
+					c := values[0]
+					b := values[1]
+					if c == nil || b == nil {
+						return nil
+					}
+					out := *c - *b
+					return &out
+				}, cashBalance(t-1), burn(t))
+			})
+			return o
+		}
+
+		monthsOfRunway := func(t int) naive.Node[*int] {
+			o := naive.Bind(fakeFormula, func(formula string) naive.Node[*int] {
+				zero := 0
+				predicateIncr := naive.Map(func(values ...*int) bool {
+					val := values[0]
+					cmp := values[1]
+					if val == nil || cmp == nil {
+						return false
+					}
+					return *val > *cmp
+				}, burn(t), naive.Var(&zero))
+				return naive.Bind(predicateIncr, func(predicate bool) naive.Node[*int] {
+					var out int = 0
+					if predicate {
+						return naive.Map(func(values ...*int) *int {
+							c := values[0]
+							b := values[1]
+							if c == nil || b == nil {
+								return nil
+							}
+							out = *c / *b
+							return &out
+						}, cashBalance(t), burn(t))
+					}
+					return naive.Var(&out)
+				})
+			})
+			return o
+		}
+
+		num := 48
+
+		fmt.Println("Calculating burn for t= 1 to 48")
+		start := time.Now()
+		for i := 0; i < num; i++ {
+			o := burn(i)
+			_ = o.Value()
+		}
+
+		elapsed := time.Since(start)
+		fmt.Printf("Calculating burn took %s \n", elapsed)
+
+		fmt.Println("Calculating months of values for t= 1 to 48")
+		start = time.Now()
+		for i := 0; i < num; i++ {
+			o := monthsOfRunway(i)
+			_ = o.Value()
+		}
+		elapsed = time.Since(start)
+		fmt.Printf("Calculating months of values took %s \n", elapsed)
+	})
 
 	testCase("month_of_values = if burn > 0: cash_balance / burn else 0. Calculate months of values then burn", func() {
 		ctx := testContext()
@@ -104,21 +352,6 @@ func main() {
 			})
 		}
 
-		// The below is a "cached" version of burn that can help performance
-		// but really shouldn't be needed!
-		// burn := func(bs incr.Scope, t int) incr.Incr[*int] {
-		// 	key := fmt.Sprintf("burn-%d", t)
-		// 	if _, ok := cache[key]; ok {
-		// 		return incr.WithinBindScope(bs, cache[key])
-		// 	}
-		// 	o := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
-		// 		return f(bs, t)
-		// 	})
-		// 	o.Node().SetLabel(key)
-		// 	cache[key] = o
-		// 	return o
-		// }
-
 		// cashbalance = cashbalance(t-1) - burn(t)
 		var cashBalance func(bs incr.Scope, t int) incr.Incr[*int]
 		cashBalance = func(bs incr.Scope, t int) incr.Incr[*int] {
@@ -167,9 +400,9 @@ func main() {
 			o.Node().SetLabel("months_of_values")
 			return o
 		}
-		num := 24
+		num := 48
 
-		fmt.Println("Calculating months of values for t= 1 to 24")
+		fmt.Println("Calculating months of values for t= 1 to 48")
 		start := time.Now()
 		for i := 0; i < num; i++ {
 			o := monthsOfRunway(graph, i)
@@ -177,12 +410,12 @@ func main() {
 			obs.Node().SetLabel(fmt.Sprintf("observer(%d)", i))
 		}
 
-		err := graph.ParallelStabilize(ctx)
+		err := graph.Stabilize(ctx)
 		noError(err)
 		elapsed := time.Since(start)
 		fmt.Printf("Calculating months of values took %s \n", elapsed)
 
-		fmt.Println("Calculating burn for t= 1 to 24")
+		fmt.Println("Calculating burn for t= 1 to 48")
 		start = time.Now()
 		for i := 0; i < num; i++ {
 			o := burn(graph, i)
@@ -190,7 +423,7 @@ func main() {
 			obs.Node().SetLabel(fmt.Sprintf("observer(%d)", i))
 		}
 
-		err = graph.ParallelStabilize(ctx)
+		err = graph.Stabilize(ctx)
 		noError(err)
 		elapsed = time.Since(start)
 		fmt.Printf("Calculating burn took %s \n", elapsed)
@@ -253,21 +486,6 @@ func main() {
 			})
 		}
 
-		// The below is a "cached" version of burn that can help performance
-		// but really shouldn't be needed!
-		// burn := func(bs incr.Scope, t int) incr.Incr[*int] {
-		// 	key := fmt.Sprintf("burn-%d", t)
-		// 	if _, ok := cache[key]; ok {
-		// 		return incr.WithinBindScope(bs, cache[key])
-		// 	}
-		// 	o := incr.Bind(bs, fakeFormula, func(bs incr.Scope, formula string) incr.Incr[*int] {
-		// 		return f(bs, t)
-		// 	})
-		// 	o.Node().SetLabel(key)
-		// 	cache[key] = o
-		// 	return o
-		// }
-
 		// cashbalance = cashbalance(t-1) - burn(t)
 		var cashBalance func(bs incr.Scope, t int) incr.Incr[*int]
 		cashBalance = func(bs incr.Scope, t int) incr.Incr[*int] {
@@ -316,28 +534,28 @@ func main() {
 			o.Node().SetLabel("months_of_values")
 			return o
 		}
-		num := 24
+		num := 48
 
-		fmt.Println("Calculating burn for t= 1 to 24")
+		fmt.Println("Calculating burn for t= 1 to 48")
 		start := time.Now()
 		for i := 0; i < num; i++ {
 			o := burn(graph, i)
 			incr.MustObserve(graph, o)
 		}
 
-		err := graph.ParallelStabilize(ctx)
+		err := graph.Stabilize(ctx)
 		noError(err)
 		elapsed := time.Since(start)
-		fmt.Printf("Calculating burn took %s \n", elapsed)
+		fmt.Printf("Calculating burn took %s\n", elapsed)
 
-		fmt.Println("Calculating months of values for t= 1 to 24")
+		fmt.Println("Calculating months of values for t= 1 to 48")
 		start = time.Now()
 		for i := 0; i < num; i++ {
 			o := monthsOfRunway(graph, i)
 			incr.MustObserve(graph, o)
 		}
 
-		err = graph.ParallelStabilize(ctx)
+		err = graph.Stabilize(ctx)
 		noError(err)
 		elapsed = time.Since(start)
 		fmt.Printf("Calculating months of values took %s \n", elapsed)
@@ -472,7 +690,7 @@ func main() {
 			o := monthsOfRunway(graph, i)
 			_ = incr.MustObserve(graph, o)
 		}
-		_ = graph.ParallelStabilize(ctx)
+		_ = graph.Stabilize(ctx)
 		elapsed := time.Since(start)
 		fmt.Printf("Baseline calculation of months of values for t= %d to %d took %s\n", 0, max_t, elapsed)
 
