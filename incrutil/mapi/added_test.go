@@ -27,7 +27,7 @@ func Test_Added(t *testing.T) {
 	testutil.Equal(t, 1, len(od.Value()))
 	testutil.Equal(t, 3, od.Value()["snoo"])
 
-	v.Set(map[string]any{"foo": 1, "bar": 2, "snoo": 3})
+	v.Set(map[string]any{"foo": 2, "bar": 3, "snoo": 4})
 	_ = g.Stabilize(ctx)
 
 	testutil.Equal(t, 0, len(od.Value()))
