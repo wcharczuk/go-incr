@@ -40,6 +40,11 @@ type IExpertNode interface {
 	RecomputedAt() uint64
 	SetRecomputedAt(uint64)
 
+	NumRecomputes() uint64
+	SetNumRecomputes(uint64)
+	NumChanges() uint64
+	SetNumChanges(uint64)
+
 	IsNecessary() bool
 	IsStale() bool
 	IsInRecomputeHeap() bool
@@ -130,6 +135,18 @@ func (en *expertNode) RecomputedAt() uint64 { return en.node.recomputedAt }
 
 func (en *expertNode) SetRecomputedAt(recomputedAt uint64) {
 	en.node.recomputedAt = recomputedAt
+}
+
+func (en *expertNode) NumRecomputes() uint64 { return en.node.numRecomputes }
+
+func (en *expertNode) SetNumRecomputes(numRecomputes uint64) {
+	en.node.numRecomputes = numRecomputes
+}
+
+func (en *expertNode) NumChanges() uint64 { return en.node.numChanges }
+
+func (en *expertNode) SetNumChanges(numChanges uint64) {
+	en.node.numChanges = numChanges
 }
 
 func (en *expertNode) IsNecessary() bool       { return en.node.isNecessary() }
