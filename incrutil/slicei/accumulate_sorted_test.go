@@ -70,7 +70,7 @@ func Test_AccumulateSorted_desc(t *testing.T) {
 	testutil.Equal(t, []int{3, 2, 1, 0}, os.Value())
 }
 
-func Test_insertionSort(t *testing.T) {
+func Test_insertionSort_asc(t *testing.T) {
 	testCases := [...]struct {
 		Values   []int
 		NewValue int
@@ -96,6 +96,36 @@ func Test_insertionSort(t *testing.T) {
 
 	for _, tc := range testCases {
 		actual := insertionSort(tc.Values, tc.NewValue, Asc)
+		testutil.Equal(t, tc.Expected, actual, fmt.Sprintf("values=%#v new_value=%v", tc.Values, tc.NewValue))
+	}
+}
+
+func Test_insertionSort_desc(t *testing.T) {
+	testCases := [...]struct {
+		Values   []int
+		NewValue int
+		Expected []int
+	}{
+		{nil, 0, []int{0}},
+		{nil, 1, []int{1}},
+		{nil, 2, []int{2}},
+		{[]int{1}, 0, []int{1, 0}},
+		{[]int{1}, 1, []int{1, 1}},
+		{[]int{1}, 2, []int{2, 1}},
+		{[]int{2}, 1, []int{2, 1}},
+		{[]int{2}, 2, []int{2, 2}},
+		{[]int{2}, 3, []int{3, 2}},
+		{[]int{2, 1}, 3, []int{3, 2, 1}},
+		{[]int{2, 1}, 0, []int{2, 1, 0}},
+		{[]int{3, 1}, 2, []int{3, 2, 1}},
+		{[]int{4, 3, 1}, 2, []int{4, 3, 2, 1}},
+		{[]int{4, 2, 1}, 3, []int{4, 3, 2, 1}},
+		{[]int{4, 3, 2}, 1, []int{4, 3, 2, 1}},
+		{[]int{3, 2, 1}, 4, []int{4, 3, 2, 1}},
+	}
+
+	for _, tc := range testCases {
+		actual := insertionSort(tc.Values, tc.NewValue, Desc)
 		testutil.Equal(t, tc.Expected, actual, fmt.Sprintf("values=%#v new_value=%v", tc.Values, tc.NewValue))
 	}
 }
