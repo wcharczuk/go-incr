@@ -8,9 +8,9 @@
 
 `go-incr` is an optimization tool to help implement partial computation of large graphs of operations.
 
-It's useful in situations where you want to efficiently compute the outputs of computations where only a subset of the computation changes based on changes in inputs.
+It's useful in situations where you want to efficiently compute the outputs of computations where only a subset of the computation changes based on changes in inputs, but also specifically when the graph might be _dynamic_ over the course of the computation's lifetime.
 
-Think Excel spreadsheets and formulas, but in code.
+Think Excel spreadsheets and formulas, but in code, which can change over time.
 
 # Important caveat
 
@@ -56,19 +56,19 @@ fmt.Println(om.Value()) // prints "hello world!"
 
 This is not intended as a "real" use case for the library, simply as a worked example to show the syntax.
 
-You can see more sample use cases in the `examples/` directory in this repo.
+You can see more sample use cases in the `examples/` directory in this repository.
 
-# API compatability guarantees
+# API compatibility guarantees
 
-As of v1.xxx you should assume that the functions and types exported by this library will maintain forward compatability until some future v2 necessitates changing things meaningfully, at which point we'll integrate [semantic import versioning](https://go.googlesource.com/proposal/+/master/design/24301-versioned-go.md) to create a new `/v2/` package. The goal will be to put off a v2 for as long as possible.
+As of v1.xxx you should assume that the functions and types exported by this library will maintain forward compatibility until some future v2 necessitates changing things meaningfully, at which point we'll integrate [semantic import versioning](https://go.googlesource.com/proposal/+/master/design/24301-versioned-go.md) to create a new `/v2/` package. The goal will be to put off a v2 for as long as possible.
 
-An exception to the above are the `incr.Expert...` functions, for which there are no guarantees and the API may change between refs without notice.
+An exception to the preceeding are the `incr.Expert...` functions, for which there are no guarantees and the API may change between refs without notice.
 
 # A word on how to use this library effectively
 
 It can be tempting to, when looking at what this library can do, make every operation in a slow piece of code incrementally computed.
 
-This typically will make performance _worse_, as making a computation incrementally computed adds overhead for each operation.
+This will typically make performance _worse_, as making a computation incrementally computed adds overhead for each operation.
 
 A more ideal balance is to write your code as normal assuming nothing is incrementally computed, then do a coarsed-grain pass, specifically breaking up chunks that are mostly atomic, and making those chunks incrementally computed.
 
