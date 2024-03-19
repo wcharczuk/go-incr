@@ -6,11 +6,11 @@ import (
 	"github.com/wcharczuk/go-incr/testutil"
 )
 
-func okValue[K any](v K, ok bool) K {
+func okValue[K any](v K, _ bool) K {
 	return v
 }
 
-func ok[K any](v K, ok bool) bool {
+func ok[K any](_ K, ok bool) bool {
 	return ok
 }
 
