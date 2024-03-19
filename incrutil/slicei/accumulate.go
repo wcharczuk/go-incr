@@ -1,4 +1,4 @@
-package incrutil
+package slicei
 
 import (
 	"context"

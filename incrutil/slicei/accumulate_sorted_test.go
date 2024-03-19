@@ -1,4 +1,4 @@
-package incrutil
+package slicei
 
 import (
 	"fmt"
@@ -8,12 +8,12 @@ import (
 	"github.com/wcharczuk/go-incr/testutil"
 )
 
-func Test_Sorted_asc(t *testing.T) {
+func Test_AccumulateSorted_asc(t *testing.T) {
 	ctx := testContext()
 	g := incr.New()
 
 	v := incr.Var(g, 0)
-	s := Sorted(g, v, Asc)
+	s := AccumulateSorted(g, v, Asc)
 	os := incr.MustObserve(g, s)
 
 	err := g.Stabilize(ctx)
@@ -39,12 +39,12 @@ func Test_Sorted_asc(t *testing.T) {
 	testutil.Equal(t, []int{0, 1, 2, 3}, os.Value())
 }
 
-func Test_Sorted_desc(t *testing.T) {
+func Test_AccumulateSorted_desc(t *testing.T) {
 	ctx := testContext()
 	g := incr.New()
 
 	v := incr.Var(g, 0)
-	s := Sorted(g, v, Desc)
+	s := AccumulateSorted(g, v, Desc)
 	os := incr.MustObserve(g, s)
 
 	err := g.Stabilize(ctx)
@@ -95,9 +95,7 @@ func Test_insertionSort(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		actual := insertionSort(tc.Values, tc.NewValue, func(searchVal, newValue int) bool {
-			return searchVal > newValue
-		})
+		actual := insertionSort(tc.Values, tc.NewValue, Asc)
 		testutil.Equal(t, tc.Expected, actual, fmt.Sprintf("values=%#v new_value=%v", tc.Values, tc.NewValue))
 	}
 }
