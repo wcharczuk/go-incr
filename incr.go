@@ -7,10 +7,9 @@ import (
 // Incr is a type that can be an incremental node in a computation graph.
 type Incr[T any] interface {
 	INode
-	// Value returns the stabilized
-	// value of the node.
+	// Value returns the stabilized value of the node.
 	//
-	// Note that you do not want to access this value
+	// In practice you do not want to access this value
 	// directly, you almost always want to associate this
 	// value with a node as an input, and use the value
 	// as resolved through a map or bind function.
