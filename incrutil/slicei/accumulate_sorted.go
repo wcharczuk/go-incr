@@ -16,7 +16,7 @@ func AccumulateSorted[A any](scope incr.Scope, from incr.Incr[A], f SortFunc[A])
 type SortFunc[A any] func(a, b A) int
 
 // Asc returns a sorted comparer for sortable values in ascending order.
-func Asc[A ~int | ~float64 | ~string](testValue, newValue A) int {
+func Asc[A ~int | ~uint | ~float64 | ~string](testValue, newValue A) int {
 	if testValue == newValue {
 		return 0
 	}
@@ -27,7 +27,7 @@ func Asc[A ~int | ~float64 | ~string](testValue, newValue A) int {
 }
 
 // Desc returns a sorted comparer for sortable values in descending order.
-func Desc[A ~int | ~float64 | ~string](testValue, newValue A) int {
+func Desc[A ~int | ~uint | ~float64 | ~string](testValue, newValue A) int {
 	if testValue == newValue {
 		return 0
 	}
