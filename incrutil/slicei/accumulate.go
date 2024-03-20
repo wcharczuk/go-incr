@@ -8,7 +8,9 @@ import (
 )
 
 // Accumulate returns an incremental that accepts new values from an input incremental
-// and returns an array of those values.
+// and returns an array of those values based on the result of a function.
+//
+// You can use this function to sort the values, filter the values, or to simply append.
 func Accumulate[A any](scope incr.Scope, from incr.Incr[A], fn func([]A, A) []A) incr.Incr[[]A] {
 	ai := &accumulateIncr[A]{
 		n:  incr.NewNode("accumulate"),
