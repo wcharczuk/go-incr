@@ -11,12 +11,12 @@ func Test_First(t *testing.T) {
 	ctx := testContext()
 	g := incr.New()
 
-	v := incr.Var(g, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
-	f := First(g, v, 5)
+	v := incr.Var(g, []int{1, 2, 3, 4, 5, 6, 7, 8, 9})
+	f := First(g, v)
 	of := incr.MustObserve(g, f)
 	err := g.Stabilize(ctx)
 	testutil.NoError(t, err)
-	testutil.Equal(t, []int{0, 1, 2, 3, 4}, of.Value())
+	testutil.Equal(t, 1, of.Value())
 }
 
 func Test_First_empty(t *testing.T) {
@@ -24,23 +24,23 @@ func Test_First_empty(t *testing.T) {
 	g := incr.New()
 
 	v := incr.Var(g, []int{})
-	f := First(g, v, 5)
+	f := First(g, v)
 	of := incr.MustObserve(g, f)
 	err := g.Stabilize(ctx)
 	testutil.NoError(t, err)
-	testutil.Equal(t, []int{}, of.Value())
+	testutil.Equal(t, 0, of.Value())
 }
 
 func Test_Last(t *testing.T) {
 	ctx := testContext()
 	g := incr.New()
 
-	v := incr.Var(g, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
-	f := Last(g, v, 5)
+	v := incr.Var(g, []int{1, 2, 3, 4, 5, 6, 7, 8, 9})
+	f := Last(g, v)
 	of := incr.MustObserve(g, f)
 	err := g.Stabilize(ctx)
 	testutil.NoError(t, err)
-	testutil.Equal(t, []int{5, 6, 7, 8, 9}, of.Value())
+	testutil.Equal(t, 9, of.Value())
 }
 
 func Test_Last_empty(t *testing.T) {
@@ -48,19 +48,67 @@ func Test_Last_empty(t *testing.T) {
 	g := incr.New()
 
 	v := incr.Var(g, []int{})
-	f := Last(g, v, 5)
+	f := Last(g, v)
+	of := incr.MustObserve(g, f)
+	err := g.Stabilize(ctx)
+	testutil.NoError(t, err)
+	testutil.Equal(t, 0, of.Value())
+}
+
+func Test_TakeFirst(t *testing.T) {
+	ctx := testContext()
+	g := incr.New()
+
+	v := incr.Var(g, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
+	f := TakeFirst(g, v, 5)
+	of := incr.MustObserve(g, f)
+	err := g.Stabilize(ctx)
+	testutil.NoError(t, err)
+	testutil.Equal(t, []int{0, 1, 2, 3, 4}, of.Value())
+}
+
+func Test_TakeFirst_empty(t *testing.T) {
+	ctx := testContext()
+	g := incr.New()
+
+	v := incr.Var(g, []int{})
+	f := TakeFirst(g, v, 5)
 	of := incr.MustObserve(g, f)
 	err := g.Stabilize(ctx)
 	testutil.NoError(t, err)
 	testutil.Equal(t, []int{}, of.Value())
 }
 
-func Test_BeforeSorted(t *testing.T) {
+func Test_TakeLast(t *testing.T) {
 	ctx := testContext()
 	g := incr.New()
 
 	v := incr.Var(g, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
-	f := BeforeSorted(g, v, func(v int) bool {
+	f := TakeLast(g, v, 5)
+	of := incr.MustObserve(g, f)
+	err := g.Stabilize(ctx)
+	testutil.NoError(t, err)
+	testutil.Equal(t, []int{5, 6, 7, 8, 9}, of.Value())
+}
+
+func Test_TakeLast_empty(t *testing.T) {
+	ctx := testContext()
+	g := incr.New()
+
+	v := incr.Var(g, []int{})
+	f := TakeLast(g, v, 5)
+	of := incr.MustObserve(g, f)
+	err := g.Stabilize(ctx)
+	testutil.NoError(t, err)
+	testutil.Equal(t, []int{}, of.Value())
+}
+
+func Test_TakeFirstSearch(t *testing.T) {
+	ctx := testContext()
+	g := incr.New()
+
+	v := incr.Var(g, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
+	f := TakeFirstSearch(g, v, func(v int) bool {
 		return v >= 5
 	})
 	of := incr.MustObserve(g, f)
@@ -69,12 +117,12 @@ func Test_BeforeSorted(t *testing.T) {
 	testutil.Equal(t, []int{0, 1, 2, 3, 4}, of.Value())
 }
 
-func Test_BeforeSorted_empty(t *testing.T) {
+func Test_TakeFirstSearch_empty(t *testing.T) {
 	ctx := testContext()
 	g := incr.New()
 
 	v := incr.Var(g, []int{})
-	f := BeforeSorted(g, v, func(v int) bool {
+	f := TakeFirstSearch(g, v, func(v int) bool {
 		return v >= 5
 	})
 	of := incr.MustObserve(g, f)
@@ -83,12 +131,12 @@ func Test_BeforeSorted_empty(t *testing.T) {
 	testutil.Equal(t, []int{}, of.Value())
 }
 
-func Test_AfterSorted_empty(t *testing.T) {
+func Test_TakeLastSearch_empty(t *testing.T) {
 	ctx := testContext()
 	g := incr.New()
 
 	v := incr.Var(g, []int{})
-	f := AfterSorted(g, v, func(v int) bool {
+	f := TakeLastSearch(g, v, func(v int) bool {
 		return v > 5
 	})
 	of := incr.MustObserve(g, f)
@@ -97,12 +145,12 @@ func Test_AfterSorted_empty(t *testing.T) {
 	testutil.Equal(t, []int{}, of.Value())
 }
 
-func Test_AfterSorted(t *testing.T) {
+func Test_TakeLastSearch(t *testing.T) {
 	ctx := testContext()
 	g := incr.New()
 
 	v := incr.Var(g, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
-	f := AfterSorted(g, v, func(v int) bool {
+	f := TakeLastSearch(g, v, func(v int) bool {
 		return v > 5
 	})
 	of := incr.MustObserve(g, f)

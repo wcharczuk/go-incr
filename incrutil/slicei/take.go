@@ -2,8 +2,30 @@ package slicei
 
 import "github.com/wcharczuk/go-incr"
 
-// First returns the first count elements from an incremental that is typed as an array.
-func First[A any](scope incr.Scope, input incr.Incr[[]A], count int) incr.Incr[[]A] {
+// First returns the first element from an incremental that is typed as an array.
+func First[A any](scope incr.Scope, input incr.Incr[[]A]) incr.Incr[A] {
+	return incr.Map(scope, input, func(values []A) (output A) {
+		if len(values) == 0 {
+			return
+		}
+		output = values[0]
+		return
+	})
+}
+
+// Last returns the last element from an incremental that is typed as an array.
+func Last[A any](scope incr.Scope, input incr.Incr[[]A]) incr.Incr[A] {
+	return incr.Map(scope, input, func(values []A) (output A) {
+		if len(values) == 0 {
+			return
+		}
+		output = values[len(values)-1]
+		return
+	})
+}
+
+// TakeFirst returns the first count elements from an incremental that is typed as an array.
+func TakeFirst[A any](scope incr.Scope, input incr.Incr[[]A], count int) incr.Incr[[]A] {
 	return incr.Map(scope, input, func(values []A) []A {
 		if len(values) < count {
 			return values
@@ -14,7 +36,7 @@ func First[A any](scope incr.Scope, input incr.Incr[[]A], count int) incr.Incr[[
 	})
 }
 
-// BeforeSorted returns the elements before a point determined by a search function.
+// TakeFirstSearch returns the elements before a point determined by a search function.
 //
 // The requirement for the input incremental is that it should already be sorted.
 //
@@ -28,7 +50,7 @@ func First[A any](scope incr.Scope, input incr.Incr[[]A], count int) incr.Incr[[
 //	}
 //
 // For a list of `[]int{0,1,2,3,4,5,6,7,8,9}` this will return `[]int{0,1,2,3,4}`.
-func BeforeSorted[A any](scope incr.Scope, input incr.Incr[[]A], fn func(A) bool) incr.Incr[[]A] {
+func TakeFirstSearch[A any](scope incr.Scope, input incr.Incr[[]A], fn func(A) bool) incr.Incr[[]A] {
 	return incr.Map(scope, input, func(values []A) []A {
 		if len(values) == 0 {
 			return values
@@ -41,7 +63,7 @@ func BeforeSorted[A any](scope incr.Scope, input incr.Incr[[]A], fn func(A) bool
 }
 
 // Last returns the last count elements from an incremental that is typed as an array.
-func Last[A any](scope incr.Scope, input incr.Incr[[]A], count int) incr.Incr[[]A] {
+func TakeLast[A any](scope incr.Scope, input incr.Incr[[]A], count int) incr.Incr[[]A] {
 	return incr.Map(scope, input, func(values []A) []A {
 		if len(values) < count {
 			return values
@@ -52,7 +74,7 @@ func Last[A any](scope incr.Scope, input incr.Incr[[]A], count int) incr.Incr[[]
 	})
 }
 
-// AfterSorted returns the elements after a point determined by a search function.
+// TakeLastSearch returns the elements after a point determined by a search function.
 //
 // The requirement for the input incremental is that it should already be sorted.
 //
@@ -66,7 +88,7 @@ func Last[A any](scope incr.Scope, input incr.Incr[[]A], count int) incr.Incr[[]
 //	}
 //
 // For a list of `[]int{0,1,2,3,4,5,6,7,8,9}` this will return `[]int{6,7,8,9}`.
-func AfterSorted[A any](scope incr.Scope, input incr.Incr[[]A], fn func(A) bool) incr.Incr[[]A] {
+func TakeLastSearch[A any](scope incr.Scope, input incr.Incr[[]A], fn func(A) bool) incr.Incr[[]A] {
 	return incr.Map(scope, input, func(values []A) []A {
 		if len(values) == 0 {
 			return values
