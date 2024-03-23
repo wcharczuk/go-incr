@@ -216,18 +216,25 @@ func (en *expertNode) ComputePseudoHeight() int {
 	return en.computePseudoHeightCached(make(map[Identifier]int), en.incr)
 }
 
+func (en *expertNode) nodeParents(n INode) []INode {
+	if typed, ok := n.(IParents); ok {
+		return typed.Parents()
+	}
+	return nil
+}
+
 func (en *expertNode) computePseudoHeightCached(cache map[Identifier]int, n INode) int {
 	nn := n.Node()
 	if height, ok := cache[nn.ID()]; ok {
 		return height
 	}
 
-	if len(nn.parents) == 0 {
+	if len(en.nodeParents(n)) == 0 {
 		return 0
 	}
 
 	var maxParentHeight int
-	for _, p := range nn.nodeParents() {
+	for _, p := range en.nodeParents(n) {
 		parentHeight := en.computePseudoHeightCached(cache, p)
 		if parentHeight > maxParentHeight {
 			maxParentHeight = parentHeight

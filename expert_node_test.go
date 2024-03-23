@@ -104,3 +104,16 @@ func Test_ExpertNode_ComputePseudoheight(t *testing.T) {
 	testutil.Equal(t, m20.Node().height, ExpertNode(m20).ComputePseudoHeight())
 	testutil.Equal(t, m30.Node().height, ExpertNode(m30).ComputePseudoHeight())
 }
+
+func Test_ExpertNode_ComputePseudoheight_usesParentsFn(t *testing.T) {
+	g := New()
+
+	r00 := Return(g, "r")
+	m10 := Map(g, r00, ident)
+	m20 := Map(g, m10, ident)
+	m30 := Map(g, m20, ident)
+
+	testutil.Equal(t, 1, ExpertNode(m10).ComputePseudoHeight())
+	testutil.Equal(t, 2, ExpertNode(m20).ComputePseudoHeight())
+	testutil.Equal(t, 3, ExpertNode(m30).ComputePseudoHeight())
+}
