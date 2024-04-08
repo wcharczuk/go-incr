@@ -7,6 +7,70 @@ import (
 	"testing"
 )
 
+func Benchmark_createGraph_pooled_512(b *testing.B) {
+	identifierRandPoolEnabled = true
+	b.Cleanup(func() {
+		identifierRandPoolEnabled = true
+	})
+	benchmarkCreateGraph(512, b)
+}
+
+func Benchmark_createGraph_notPooled_512(b *testing.B) {
+	identifierRandPoolEnabled = false
+	b.Cleanup(func() {
+		identifierRandPoolEnabled = true
+	})
+	benchmarkCreateGraph(512, b)
+}
+
+func Benchmark_createGraph_pooled_1024(b *testing.B) {
+	identifierRandPoolEnabled = true
+	b.Cleanup(func() {
+		identifierRandPoolEnabled = true
+	})
+	benchmarkCreateGraph(1024, b)
+}
+
+func Benchmark_createGraph_notPooled_1024(b *testing.B) {
+	identifierRandPoolEnabled = false
+	b.Cleanup(func() {
+		identifierRandPoolEnabled = true
+	})
+	benchmarkCreateGraph(1024, b)
+}
+
+func Benchmark_createGraph_pooled_2048(b *testing.B) {
+	identifierRandPoolEnabled = true
+	b.Cleanup(func() {
+		identifierRandPoolEnabled = true
+	})
+	benchmarkCreateGraph(2048, b)
+}
+
+func Benchmark_createGraph_notPooled_2048(b *testing.B) {
+	identifierRandPoolEnabled = false
+	b.Cleanup(func() {
+		identifierRandPoolEnabled = true
+	})
+	benchmarkCreateGraph(2048, b)
+}
+
+func Benchmark_createGraph_pooled_4096(b *testing.B) {
+	identifierRandPoolEnabled = true
+	b.Cleanup(func() {
+		identifierRandPoolEnabled = true
+	})
+	benchmarkCreateGraph(4096, b)
+}
+
+func Benchmark_createGraph_notPooled_4096(b *testing.B) {
+	identifierRandPoolEnabled = false
+	b.Cleanup(func() {
+		identifierRandPoolEnabled = true
+	})
+	benchmarkCreateGraph(4096, b)
+}
+
 func Benchmark_Stabilize_withPreInitialize_512(b *testing.B) {
 	benchmarkSize(512, b)
 }
@@ -208,6 +272,12 @@ func makeBenchmarkRecombinantGraph(size int) (*Graph, VarIncr[*string], ObserveI
 	}
 	observer := MustObserve(g, nodes[len(nodes)-1])
 	return g, input, observer
+}
+
+func benchmarkCreateGraph(size int, b *testing.B) {
+	for x := 0; x < b.N; x++ {
+		_, _ = makeBenchmarkGraph(size)
+	}
 }
 
 func benchmarkSize(size int, b *testing.B) {
