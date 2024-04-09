@@ -7,67 +7,23 @@ import (
 	"testing"
 )
 
-func Benchmark_createGraph_pooled_512(b *testing.B) {
-	identifierRandPoolEnabled = true
-	b.Cleanup(func() {
-		identifierRandPoolEnabled = true
-	})
+func Benchmark_createGraph_512(b *testing.B) {
 	benchmarkCreateGraph(512, b)
 }
 
-func Benchmark_createGraph_notPooled_512(b *testing.B) {
-	identifierRandPoolEnabled = false
-	b.Cleanup(func() {
-		identifierRandPoolEnabled = true
-	})
-	benchmarkCreateGraph(512, b)
-}
-
-func Benchmark_createGraph_pooled_1024(b *testing.B) {
-	identifierRandPoolEnabled = true
-	b.Cleanup(func() {
-		identifierRandPoolEnabled = true
-	})
+func Benchmark_createGraph_1024(b *testing.B) {
 	benchmarkCreateGraph(1024, b)
 }
 
-func Benchmark_createGraph_notPooled_1024(b *testing.B) {
-	identifierRandPoolEnabled = false
-	b.Cleanup(func() {
-		identifierRandPoolEnabled = true
-	})
-	benchmarkCreateGraph(1024, b)
-}
-
-func Benchmark_createGraph_pooled_2048(b *testing.B) {
-	identifierRandPoolEnabled = true
-	b.Cleanup(func() {
-		identifierRandPoolEnabled = true
-	})
+func Benchmark_createGraph_2048(b *testing.B) {
 	benchmarkCreateGraph(2048, b)
 }
 
-func Benchmark_createGraph_notPooled_2048(b *testing.B) {
-	identifierRandPoolEnabled = false
-	b.Cleanup(func() {
-		identifierRandPoolEnabled = true
-	})
-	benchmarkCreateGraph(2048, b)
-}
-
-func Benchmark_createGraph_pooled_4096(b *testing.B) {
-	identifierRandPoolEnabled = true
-	b.Cleanup(func() {
-		identifierRandPoolEnabled = true
-	})
+func Benchmark_createGraph_4096(b *testing.B) {
 	benchmarkCreateGraph(4096, b)
 }
 
-func Benchmark_createGraph_notPooled_4096(b *testing.B) {
-	identifierRandPoolEnabled = false
-	b.Cleanup(func() {
-		identifierRandPoolEnabled = true
-	})
+func Benchmark_createGraph_8192(b *testing.B) {
 	benchmarkCreateGraph(4096, b)
 }
 
