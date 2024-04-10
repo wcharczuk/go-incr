@@ -24,7 +24,7 @@ func Benchmark_createGraph_4096(b *testing.B) {
 }
 
 func Benchmark_createGraph_8192(b *testing.B) {
-	benchmarkCreateGraph(4096, b)
+	benchmarkCreateGraph(8192, b)
 }
 
 func Benchmark_Stabilize_withPreInitialize_512(b *testing.B) {
