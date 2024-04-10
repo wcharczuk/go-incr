@@ -76,7 +76,7 @@ func OptGraphParallelism(parallelism int) func(*GraphOptions) {
 // the graph with a given size number of elements for items.
 //
 // If not provided, no size for elements will be preallocated.
-func OptGraphPreallocateNodeSize(size int) func(*GraphOptions) {
+func OptGraphPreallocateNodesSize(size int) func(*GraphOptions) {
 	return func(g *GraphOptions) {
 		g.PreallocateNodesSize = size
 	}
