@@ -8,23 +8,43 @@ import (
 )
 
 func Benchmark_createGraph_512(b *testing.B) {
-	benchmarkCreateGraph(512, b)
+	benchmarkCreateGraph(512, false, b)
+}
+
+func Benchmark_createGraph_preallocateNodes_512(b *testing.B) {
+	benchmarkCreateGraph(512, true, b)
 }
 
 func Benchmark_createGraph_1024(b *testing.B) {
-	benchmarkCreateGraph(1024, b)
+	benchmarkCreateGraph(1024, false, b)
+}
+
+func Benchmark_createGraph_preallocateNodes_1024(b *testing.B) {
+	benchmarkCreateGraph(1024, true, b)
 }
 
 func Benchmark_createGraph_2048(b *testing.B) {
-	benchmarkCreateGraph(2048, b)
+	benchmarkCreateGraph(2048, false, b)
+}
+
+func Benchmark_createGraph_preallocateNodes_2048(b *testing.B) {
+	benchmarkCreateGraph(2048, true, b)
 }
 
 func Benchmark_createGraph_4096(b *testing.B) {
-	benchmarkCreateGraph(4096, b)
+	benchmarkCreateGraph(4096, false, b)
+}
+
+func Benchmark_createGraph_preallocateNodes_4096(b *testing.B) {
+	benchmarkCreateGraph(4096, true, b)
 }
 
 func Benchmark_createGraph_8192(b *testing.B) {
-	benchmarkCreateGraph(8192, b)
+	benchmarkCreateGraph(8192, false, b)
+}
+
+func Benchmark_createGraph_preallocateNodes_8192(b *testing.B) {
+	benchmarkCreateGraph(8192, true, b)
 }
 
 func Benchmark_Stabilize_withPreInitialize_512(b *testing.B) {
@@ -165,8 +185,12 @@ func longer(a, b *string) *string {
 
 func ref[A any](v A) *A { return &v }
 
-func makeBenchmarkGraph(size int) (*Graph, []Incr[*string]) {
-	graph := New()
+func makeBenchmarkGraph(size int, preallocate bool) (*Graph, []Incr[*string]) {
+	var options []GraphOption
+	if preallocate {
+		options = append(options, OptGraphPreallocateNodeSize(size<<1))
+	}
+	graph := New(options...)
 	nodes := make([]Incr[*string], size)
 	for x := 0; x < size; x++ {
 		nodes[x] = Var(graph, ref(fmt.Sprintf("var_%d", x)))
@@ -230,14 +254,14 @@ func makeBenchmarkRecombinantGraph(size int) (*Graph, VarIncr[*string], ObserveI
 	return g, input, observer
 }
 
-func benchmarkCreateGraph(size int, b *testing.B) {
+func benchmarkCreateGraph(size int, preallocate bool, b *testing.B) {
 	for x := 0; x < b.N; x++ {
-		_, _ = makeBenchmarkGraph(size)
+		_, _ = makeBenchmarkGraph(size, preallocate)
 	}
 }
 
 func benchmarkSize(size int, b *testing.B) {
-	graph, nodes := makeBenchmarkGraph(size)
+	graph, nodes := makeBenchmarkGraph(size, false /*preallocate*/)
 	ctx := context.Background()
 	b.ResetTimer()
 	var err error
@@ -260,7 +284,7 @@ func benchmarkSize(size int, b *testing.B) {
 }
 
 func benchmarkParallelSize(size int, b *testing.B) {
-	graph, nodes := makeBenchmarkGraph(size)
+	graph, nodes := makeBenchmarkGraph(size, false /*preallocate*/)
 	ctx := testContext()
 	b.ResetTimer()
 	var err error

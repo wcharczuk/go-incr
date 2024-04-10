@@ -34,15 +34,22 @@ func New(opts ...GraphOption) *Graph {
 		parallelism:              options.Parallelism,
 		stabilizationNum:         1,
 		status:                   StatusNotStabilizing,
-		nodes:                    make(map[Identifier]INode),
-		observers:                make(map[Identifier]IObserver),
-		sentinels:                make(map[Identifier]ISentinel),
+		nodes:                    allocateMapWithSize[Identifier, INode](options.PreallocateNodesSize),
+		observers:                allocateMapWithSize[Identifier, IObserver](options.PreallocateObserversSize),
+		sentinels:                allocateMapWithSize[Identifier, ISentinel](options.PreallocateSentinelsSize),
 		recomputeHeap:            newRecomputeHeap(options.MaxHeight),
 		adjustHeightsHeap:        newAdjustHeightsHeap(options.MaxHeight),
 		setDuringStabilization:   make(map[Identifier]INode),
 		handleAfterStabilization: make(map[Identifier][]func(context.Context)),
 		propagateInvalidityQueue: new(queue[INode]),
 	}
+}
+
+func allocateMapWithSize[K comparable, V any](size int) map[K]V {
+	if size > 0 {
+		return make(map[K]V, size)
+	}
+	return make(map[K]V)
 }
 
 // GraphOption mutates GraphOptions.
@@ -55,8 +62,8 @@ func OptGraphMaxHeight(maxHeight int) func(*GraphOptions) {
 	}
 }
 
-// OptGraphParallelism sets the parallelism factor to use when
-// calling [Graph.ParallelStabilize].
+// OptGraphParallelism sets the parallelism factor, or said another way
+// the number of goroutines, to use when stabilizing using [Graph.ParallelStabilize].
 //
 // This will default to [runtime.NumCPU] if unset.
 func OptGraphParallelism(parallelism int) func(*GraphOptions) {
@@ -65,10 +72,43 @@ func OptGraphParallelism(parallelism int) func(*GraphOptions) {
 	}
 }
 
+// OptGraphPreallocateNodesSize preallocates the node tracking map within
+// the graph with a given size number of elements for items.
+//
+// If not provided, no size for elements will be preallocated.
+func OptGraphPreallocateNodeSize(size int) func(*GraphOptions) {
+	return func(g *GraphOptions) {
+		g.PreallocateNodesSize = size
+	}
+}
+
+// OptGraphPreallocateObserversSize preallocates the observer tracking map within
+// the graph with a given size number of elements for items.
+//
+// If not provided, no size for elements will be preallocated.
+func OptGraphPreallocateObserversSize(size int) func(*GraphOptions) {
+	return func(g *GraphOptions) {
+		g.PreallocateObserversSize = size
+	}
+}
+
+// OptGraphPreallocateSentinelsSize preallocates the sentinel tracking map within
+// the graph with a given size number of elements for items.
+//
+// If not provided, no size for elements will be preallocated.
+func OptGraphPreallocateSentinelsSize(size int) func(*GraphOptions) {
+	return func(g *GraphOptions) {
+		g.PreallocateSentinelsSize = size
+	}
+}
+
 // GraphOptions are options for graphs.
 type GraphOptions struct {
-	MaxHeight   int
-	Parallelism int
+	MaxHeight                int
+	Parallelism              int
+	PreallocateNodesSize     int
+	PreallocateObserversSize int
+	PreallocateSentinelsSize int
 }
 
 const (
