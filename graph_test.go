@@ -2,6 +2,7 @@ package incr
 
 import (
 	"context"
+	"runtime"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -19,11 +20,16 @@ func Test_New(t *testing.T) {
 	testutil.Equal(t, true, g.Has(m0))
 }
 
-func Test_New_options(t *testing.T) {
+func Test_New_options_MaxHeight(t *testing.T) {
 	g := New(OptGraphMaxHeight(1024))
 	testutil.NotEqual(t, 1024, DefaultMaxHeight)
 	testutil.Equal(t, 1024, len(g.recomputeHeap.heights))
 	testutil.Equal(t, 1024, len(g.adjustHeightsHeap.nodesByHeight))
+}
+
+func Test_New_options_Parallelism(t *testing.T) {
+	g := New(OptGraphParallelism(runtime.NumCPU() * 2))
+	testutil.Equal(t, runtime.NumCPU()*2, g.parallelism)
 }
 
 func Test_Graph_Metadata(t *testing.T) {
