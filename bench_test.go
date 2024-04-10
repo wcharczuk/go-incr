@@ -188,7 +188,7 @@ func ref[A any](v A) *A { return &v }
 func makeBenchmarkGraph(size int, preallocate bool) (*Graph, []Incr[*string]) {
 	var options []GraphOption
 	if preallocate {
-		options = append(options, OptGraphPreallocateNodeSize(size<<1))
+		options = append(options, OptGraphPreallocateNodesSize(size<<1))
 	}
 	graph := New(options...)
 	nodes := make([]Incr[*string], size)
