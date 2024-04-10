@@ -41,7 +41,7 @@ func Test_parallelBatch(t *testing.T) {
 		seen[v] = struct{}{}
 		seenMu.Unlock()
 		return nil
-	}, workIter.Next)
+	}, workIter.Next, runtime.NumCPU())
 	testutil.NoError(t, err)
 	testutil.Equal(t, len(work), len(seen))
 
@@ -66,7 +66,7 @@ func Test_parallelBatch_error(t *testing.T) {
 			return fmt.Errorf("this is only a test")
 		}
 		return nil
-	}, workIter.Next)
+	}, workIter.Next, runtime.NumCPU())
 	testutil.Error(t, err)
 	testutil.Equal(t, len(work), processed, fmt.Sprintf("work=%d processed=%d", len(work), processed))
 }

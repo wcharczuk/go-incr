@@ -8,9 +8,12 @@ import (
 
 // Var returns a new var node.
 //
-// It will include an extra method `Set` above what you
-// typically find on Incr[A], as well as a `Read` method
-// that helps integrate into subcomputations.
+// [Var] nodes are special nodes in incremental as they let you input data
+// into a computation, and specifically change data between stabilization passes.
+//
+// [Var] nodes include a method [Var.Set] that let you update the value after the initial
+// construction. Calling [Var.Set] will mark the [Var] node stale, as well any of the nodes that
+// take the [Var] node as an input (i.e. the [Var] node's children).
 func Var[T any](scope Scope, t T) VarIncr[T] {
 	return WithinScope(scope, &varIncr[T]{
 		n:     NewNode("var"),
@@ -24,13 +27,10 @@ type VarIncr[T any] interface {
 
 	// Set sets the var value.
 	//
-	// The value is realized on the next stabilization pass.
-	//
-	// This will invalidate any nodes that reference this variable.
+	// Calling [Set] will invalidate any nodes that reference this variable.
 	Set(T)
 }
 
-// Assert interface implementations.
 var (
 	_ VarIncr[string]      = (*varIncr[string])(nil)
 	_ IShouldBeInvalidated = (*varIncr[string])(nil)
@@ -39,7 +39,6 @@ var (
 	_ fmt.Stringer         = (*varIncr[string])(nil)
 )
 
-// VarIncr is a type that can represent a Var incremental.
 type varIncr[T any] struct {
 	n                           *Node
 	setAt                       uint64
@@ -48,7 +47,6 @@ type varIncr[T any] struct {
 	setDuringStabilization      bool
 }
 
-// Stale implements IStale.
 func (vn *varIncr[T]) Stale() bool {
 	return vn.setAt > vn.n.recomputedAt
 }
@@ -74,13 +72,10 @@ func (vn *varIncr[T]) Set(v T) {
 	}
 }
 
-// Node implements Incr[A].
 func (vn *varIncr[T]) Node() *Node { return vn.n }
 
-// Value implements Incr[A].
 func (vn *varIncr[T]) Value() T { return vn.value }
 
-// Stabilize implements Incr[A].
 func (vn *varIncr[T]) Stabilize(ctx context.Context) error {
 	if vn.setDuringStabilization {
 		var zero T
@@ -92,7 +87,6 @@ func (vn *varIncr[T]) Stabilize(ctx context.Context) error {
 	return nil
 }
 
-// String implements fmt.Striger.
 func (vn *varIncr[T]) String() string {
 	return vn.n.String()
 }

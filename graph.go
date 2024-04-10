@@ -4,31 +4,34 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
-// New returns a new graph state, which is the type that represents the
+// New returns a new [Graph], which is the type that represents the
 // shared state of a computation graph.
 //
-// You can pass configuration options as `GraphOption` to customize settings
+// You can pass configuration options as [GraphOption] to customize settings
 // within the graph, such as what the maximum "height" a node can be.
 //
 // This is the entrypoint for all stabilization and computation
-// operations, and generally the Graph will be passed to node constructors.
+// operations, and generally the [Graph] will be passed to node constructors.
 //
 // Nodes you initialize the graph with will need to be be observed by
-// an `Observer` before you can stabilize them.
+// an [Observer] before you can stabilize them.
 func New(opts ...GraphOption) *Graph {
 	options := GraphOptions{
-		MaxHeight: DefaultMaxHeight,
+		MaxHeight:   DefaultMaxHeight,
+		Parallelism: runtime.NumCPU(),
 	}
 	for _, opt := range opts {
 		opt(&options)
 	}
 	return &Graph{
 		id:                       NewIdentifier(),
+		parallelism:              options.Parallelism,
 		stabilizationNum:         1,
 		status:                   StatusNotStabilizing,
 		nodes:                    make(map[Identifier]INode),
@@ -52,9 +55,20 @@ func OptGraphMaxHeight(maxHeight int) func(*GraphOptions) {
 	}
 }
 
+// OptGraphParallelism sets the parallelism factor to use when
+// calling [Graph.ParallelStabilize].
+//
+// This will default to [runtime.NumCPU] if unset.
+func OptGraphParallelism(parallelism int) func(*GraphOptions) {
+	return func(g *GraphOptions) {
+		g.Parallelism = parallelism
+	}
+}
+
 // GraphOptions are options for graphs.
 type GraphOptions struct {
-	MaxHeight int
+	MaxHeight   int
+	Parallelism int
 }
 
 const (
@@ -69,7 +83,7 @@ var (
 
 // Graph is the state that is shared across nodes in a computation graph.
 //
-// You should instantiate this type with the `New()` function.
+// You should instantiate this type with the [New] function.
 //
 // The graph holds information such as, how many stabilizations have happened,
 // what node are currently observed, and what nodes need to be recomputed.
@@ -78,6 +92,10 @@ type Graph struct {
 	id Identifier
 	// label is a descriptive label for the graph
 	label string
+
+	// parallelism is the degree of parallelism used when processing nodes
+	// with the [parallelBatch] iterator.
+	parallelism int
 
 	// nodesMu interlocks access to nodes
 	nodesMu sync.Mutex

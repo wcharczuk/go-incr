@@ -5,22 +5,19 @@ import (
 	"sync"
 )
 
-// ParallelStabilize stabilizes graphs in parallel as entered
-// through representative nodes.
+// ParallelStabilize stabilizes a graph in parallel.
 //
-// For each input node, if the node is not attached to a graph, the full
-// graph is discovered from the relationships on that given input node.
+// This is done similarly to [Graph.Stabilize], in that nodes are stabilized
+// starting with the minimum height in the recompute heap working upwards, but
+// unlike the serial processing that [Graph.Stabilize] does, [Graph.ParallelStabilize] will
+// process a height "block" all at once concurrently.
 //
-// If multiple nodes are supplied that are actually connected, initialization
-// will skip the already connected (and as a result, initialized) graph.
+// Because of the concurrent nature of the block processing, [Graph.ParallelStabilize] is
+// considerably slower to process nodes, specifically because locks have to be acquired and shared
+// state managed carefully.
 //
-// ParallelStabilize differs from Stabilize in that it reads the current
-// recompute heap in pseudo-height chunks, processing each pseudo-height in
-// parallel before moving on to the next, smallest height chunk.
-//
-// Each parallel recompute cycle may produce new nodes to process, and as a result
-// parallel stabilization can move up and down in height before fully recomputing
-// the graph.
+// You should only reach for [Graph.ParallelStabilize] if you have very long running node recomputations
+// that would benefit from processing in parallel, e.g. if you have nodes that are I/O bound or CPU intensive.
 func (graph *Graph) ParallelStabilize(ctx context.Context) (err error) {
 	if err = graph.ensureNotStabilizing(ctx); err != nil {
 		return
@@ -53,7 +50,7 @@ func (graph *Graph) parallelStabilize(ctx context.Context) (err error) {
 	var iter recomputeHeapListIter
 	for graph.recomputeHeap.len() > 0 {
 		graph.recomputeHeap.removeMinHeightIter(&iter)
-		err = parallelBatch[INode](ctx, parallelRecomputeNode, iter.Next)
+		err = parallelBatch[INode](ctx, parallelRecomputeNode, iter.Next, graph.parallelism)
 		if err != nil {
 			break
 		}

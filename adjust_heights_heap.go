@@ -12,6 +12,14 @@ func newAdjustHeightsHeap(maxHeightAllowed int) *adjustHeightsHeap {
 	}
 }
 
+// adjustHeightsHeap is a specialized heap that handles setting node heights
+// such that we don't recompute heights of nodes more than once.
+//
+// the way the heap works is as we add nodes, we ensure that the invariant
+// that a child's node height is more than it's parents. to do that we
+// add the parent to a [nodesByHeight] list, and any children to the
+// height above that, recursing through the children adding more as we
+// see them, preserving the invariant.
 type adjustHeightsHeap struct {
 	mu               sync.Mutex
 	nodesByHeight    []*queue[INode]

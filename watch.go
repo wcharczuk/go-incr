@@ -17,7 +17,13 @@ func Watch[A any](scope Scope, i Incr[A]) WatchIncr[A] {
 // WatchIncr is a type that implements the watch interface.
 type WatchIncr[A any] interface {
 	Incr[A]
-	fmt.Stringer
+
+	// Reset empties the tracked values.
+	Reset()
+
+	// Values returns the input incremental values the [Watch] node
+	// has seen through stabilization passes. This array of values will
+	// continue to grow until you call [Reset] on the node.
 	Values() []A
 }
 
@@ -39,27 +45,26 @@ func (w *watchIncr[A]) Parents() []INode {
 	return []INode{w.incr}
 }
 
-// Value implements Incr[A].
 func (w *watchIncr[A]) Value() A {
 	return w.value
 }
 
-// Stabilize implements Incr[A].
 func (w *watchIncr[A]) Stabilize(ctx context.Context) error {
 	w.value = w.incr.Value()
 	w.values = append(w.values, w.value)
 	return nil
 }
 
-// Values returns the observed values.
+func (w *watchIncr[A]) Reset() {
+	w.values = nil
+}
+
 func (w *watchIncr[A]) Values() []A {
 	return w.values
 }
 
-// Node implements Incr[A].
 func (w *watchIncr[A]) Node() *Node {
 	return w.n
 }
 
-// String implements fmt.Stringer.
 func (w *watchIncr[A]) String() string { return w.n.String() }

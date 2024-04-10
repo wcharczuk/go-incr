@@ -5,34 +5,20 @@ import (
 	"sync"
 )
 
-// newRecomputeHeap returns a new recompute heap with a given maximum height.
 func newRecomputeHeap(maxHeight int) *recomputeHeap {
 	return &recomputeHeap{
 		heights: make([]*recomputeHeapList, maxHeight),
 	}
 }
 
-// recomputeHeap is a height ordered list of lists of nodes.
 type recomputeHeap struct {
-	// mu synchronizes critical sections for the heap.
-	mu sync.Mutex
-
-	// minHeight is the smallest heights index that has nodes
+	mu        sync.Mutex
 	minHeight int
-	// maxHeight is the largest heights index that has nodes
 	maxHeight int
-
-	// heights is an array of linked lists corresponding
-	// to node heights. it should be pre-allocated with
-	// the constructor to the height limit number of elements.
-	heights []*recomputeHeapList
-
-	// numItems are the number of items in the recompute heap.
-	numItems int
+	heights   []*recomputeHeapList
+	numItems  int
 }
 
-// clear completely resets the recompute heap, preserving
-// its current capacity.
 func (rh *recomputeHeap) clear() {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()

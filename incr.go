@@ -39,25 +39,31 @@ type IStabilize interface {
 	Stabilize(context.Context) error
 }
 
-// IShouldBeInvalidateds a type that determines if a
-// node should be invalidated or not.
+// IShouldBeInvalidateds a type that determines if a node should be invalidated or not.
 type IShouldBeInvalidated interface {
 	ShouldBeInvalidated() bool
 }
 
-// IStale is a type that determines if it's stale or not.
+// IStale is a type that determines if it is stale or not.
 type IStale interface {
 	Stale() bool
 }
 
 // ICutoff is a type that determines if changes should
-// continue to propagate or not.
+// continue to propagate past this node or not.
 type ICutoff interface {
 	Cutoff(context.Context) (bool, error)
 }
 
-// IAlways is a type that determines a node is always marked
-// for recomputation.
+// IAlways is a type that is opted into for recomputation each
+// pass of stabilization.
 type IAlways interface {
 	Always()
+}
+
+// ISentinel is a node that manages the staleness of a target node
+// based on a predicate and can mark that target node for recomputation.
+type ISentinel interface {
+	INode
+	Unwatch(context.Context)
 }

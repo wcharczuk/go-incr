@@ -17,6 +17,10 @@ type Tracer interface {
 type tracerKey struct{}
 
 // WithTracing adds a default tracer to a given context.
+//
+// Tracing writes text logs to a standard out and standard error
+// around the stabilization process, though for performance reasons this is typically
+// just the start and stop of stabilization, and the elapsed time.
 func WithTracing(ctx context.Context) context.Context {
 	return WithTracingOutputs(ctx, os.Stderr, os.Stderr)
 }

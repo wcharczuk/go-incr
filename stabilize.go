@@ -4,11 +4,24 @@ import (
 	"context"
 )
 
-// Stabilize kicks off the full stabilization pass given initial nodes
-// representing graphs.
+// Stabilize kicks off the stabilization for nodes that have been observed by the graph's scope.
 //
-// The nodes do not need to be any specific type of node in the graph
-// as the full graph will be initialized on the first call to stabilize for that graph.
+// The general process of stabilization is to scan the recompute heap up from the minimum height
+// block, processing each node in the block until there are no more nodes.
+//
+// Stabilizing a node can add more nodes to the recompute heap, creating more work as the stabilization
+// progresses, until finally no more nodes are left to process.
+//
+// The [Stabailize] stabilization process is serial, that is each node is recomputed in sequence one
+// after the other.
+//
+// This can be extremely fast in practice because it lets us makes some assumptions about what
+// can change in during each node's stabilization, specifically we can assume that [Bind] nodes
+// evaluate serially and we can adjust recompute heights accordingly, and as a result we don't need
+// to worry about shared resource contention and can skip acquiring locks.
+//
+// If during the stabilization pass a node's stabilize function returns an error, the recomputation pass
+// is stopped and the error is returned.
 func (graph *Graph) Stabilize(ctx context.Context) (err error) {
 	if err = graph.ensureNotStabilizing(ctx); err != nil {
 		return

@@ -27,8 +27,6 @@ type returnIncr[A any] struct {
 	v A
 }
 
-func (r *returnIncr[A]) Parents() []INode { return nil }
-
 func (r returnIncr[A]) Stale() bool {
 	return r.n.recomputedAt == 0
 }

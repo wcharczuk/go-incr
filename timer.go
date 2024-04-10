@@ -2,6 +2,7 @@ package incr
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -9,9 +10,9 @@ import (
 // has elapsed since it last stabilized.
 //
 // When it stabilizes, it assumes the value of the input node, and causes
-// any children (or nodes that take the timer as input) to recompute if this
+// any children (i.e. nodes that take the timer as input) to recompute if this
 // is the first stabilization or if the timer has elapsed.
-func Timer[A any](scope Scope, input Incr[A], every time.Duration) TimerIncr[A] {
+func Timer[A any](scope Scope, input Incr[A], every time.Duration) Incr[A] {
 	return WithinScope(scope, &timerIncr[A]{
 		n:           NewNode("timer"),
 		clockSource: func(_ context.Context) time.Time { return time.Now().UTC() },
@@ -20,15 +21,12 @@ func Timer[A any](scope Scope, input Incr[A], every time.Duration) TimerIncr[A] 
 	})
 }
 
-// TimerIncr is the exported methods of a Timer.
-type TimerIncr[A any] interface {
-	Incr[A]
-	IAlways
-	ICutoff
-}
-
 var (
-	_ TimerIncr[struct{}] = (*timerIncr[struct{}])(nil)
+	_ Incr[struct{}] = (*timerIncr[struct{}])(nil)
+	_ IAlways        = (*timerIncr[struct{}])(nil)
+	_ ICutoff        = (*timerIncr[struct{}])(nil)
+	_ IStabilize     = (*timerIncr[struct{}])(nil)
+	_ fmt.Stringer   = (*timerIncr[struct{}])(nil)
 )
 
 type timerIncr[A any] struct {

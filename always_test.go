@@ -18,7 +18,7 @@ func Test_Always(t *testing.T) {
 	m1 := Map(g, a, ident)
 	m1.Node().SetLabel("m1")
 
-	a.(AlwaysIncr[string]).Always() // does nothing
+	a.(IAlways).Always() // does nothing
 
 	var updates int
 	m1.Node().OnUpdate(func(_ context.Context) {
