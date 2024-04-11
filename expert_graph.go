@@ -16,22 +16,50 @@ func ExpertGraph(g *Graph) IExpertGraph {
 // Note there are no compatibility guarantees on this interface
 // and you should use this interface at your own risk.
 type IExpertGraph interface {
+	// SetID sets the identifier for the [Graph].
 	SetID(Identifier)
+
+	// NumNodes returns the number of nodes the [Graph] is tracking.
 	NumNodes() uint64
+
+	// NumNodesRecomputed returns the number of nodes the [Graph] has
+	// recomputed in its lifetime.
 	NumNodesRecomputed() uint64
+
+	// NumNodesChanged returns the number of nodes the [Graph] has
+	// updated the value of in its lifetime.
 	NumNodesChanged() uint64
+
+	// NumObservers returns the current count of observers the [Graph] is tracking.
 	NumObservers() uint64
+
+	// StabilizationNum returns the current stabilization number of the [Graph].
 	StabilizationNum() uint64
+
+	// SetStabilizationNumber sets the current stabilization number, specifically
+	// in situations where you're restoring graph state.
 	SetStabilizationNum(uint64)
 
+	// RecomputeHeapAdd directly adds a varadic array of nodes to the recompute heap.
 	RecomputeHeapAdd(...INode)
+
+	// RecomputeHeapLen returns the current length of the recompute heap.
 	RecomputeHeapLen() int
+
+	// RecomputeHeapIDs returns the node identifiers that are held in the recompute heap.
+	//
+	// This is useful when saving the state of a [Graph] to an external store.
 	RecomputeHeapIDs() []Identifier
 
-	AddChild(INode, INode) error
-	RemoveParent(INode, INode)
+	// AddChild associates a child node to a parent.
+	AddChild(child INode, parent INode) error
+	// RemoveParent removes the association between a child and a parent.
+	RemoveParent(child INode, parent INode)
 
+	// ObserveNode implements the observe steps usually handled by [Observe] for custom nodes.
 	ObserveNode(IObserver, INode) error
+
+	// UnobserveNode implements the unobserve steps usually handled by observers.
 	UnobserveNode(IObserver, INode)
 }
 

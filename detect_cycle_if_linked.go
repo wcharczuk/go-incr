@@ -5,9 +5,8 @@ import "fmt"
 // DetectCycleIfLinked determines if adding a given input to a given
 // child would cause a graph cycle.
 //
-// It is a low-level utility function that should be used
-// in special cases; the vast majority of direct use cases
-// for the incremental library cannot create graph cycles.
+// It is a low-level utility function that should be used in special cases; the vast
+// majority of situations outside very esoteric [Bind] use cases cannot create cycles.
 func DetectCycleIfLinked(child, parent INode) error {
 	if child == nil || parent == nil {
 		return nil

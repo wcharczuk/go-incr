@@ -6,8 +6,8 @@ import (
 
 // Return yields a constant incremental for a given value.
 //
-// Note that it does not implement `IStabilize` and is effectively
-// always the same value (and treated as such).
+// Note that it does not implement [IStabilize] and is effectively
+// always the same value, and never causes recomputations.
 func Return[A any](scope Scope, v A) Incr[A] {
 	return WithinScope(scope, &returnIncr[A]{
 		n: NewNode("return"),

@@ -14,7 +14,7 @@ func ExpertVar[A any](v VarIncr[A]) IExpertVar[A] {
 // and you should use this interface at your own risk.
 type IExpertVar[A any] interface {
 	// SetInternalValue allows you to set the underlying value of a var
-	// _without_ marking it as stale or needing to be recomputed.
+	// without marking it as stale.
 	//
 	// This can be useful when deserializing graphs from some other state.
 	SetInternalValue(A)

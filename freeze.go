@@ -6,7 +6,11 @@ import (
 )
 
 // Freeze yields an incremental that takes the value of an
-// input incremental and doesn't change thereafter.
+// input incremental on the first stabilization and
+// doesn't change thereafter.
+//
+// Stabilization propagates through this node even
+// after the first stabilization.
 func Freeze[A any](scope Scope, i Incr[A]) Incr[A] {
 	return WithinScope(scope, &freezeIncr[A]{
 		n: NewNode("freeze"),

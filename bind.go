@@ -25,9 +25,9 @@ import (
 // as a "child" of (b), preventing it from being considered part of the
 // overall computation unless it's referenced by another node in the graph.
 //
-// More information is available at:
+// More information is available at in the [Janestreet docs].
 //
-//	https://github.com/janestreet/incremental/blob/master/src/incremental_intf.ml
+// [Janestreet Docs]: https://github.com/janestreet/incremental/blob/master/src/incremental_intf.ml
 func Bind[A, B any](scope Scope, input Incr[A], fn BindFunc[A, B]) BindIncr[B] {
 	return BindContext(scope, input, func(_ context.Context, bs Scope, va A) (Incr[B], error) {
 		return fn(bs, va), nil
