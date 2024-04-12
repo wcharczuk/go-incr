@@ -21,7 +21,7 @@ func Test_Identifier(t *testing.T) {
 	testutil.Equal(t, hex.EncodeToString(id[12:]), id.Short())
 }
 
-func Test_SetIdentityProvider(t *testing.T) {
+func Test_SetIdentifierProvider(t *testing.T) {
 	t.Cleanup(func() {
 		SetIdentifierProvider(cryptoRandIdentifierProvider)
 	})
