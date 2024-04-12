@@ -7,6 +7,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 // Identifier is a unique id.
@@ -70,6 +71,19 @@ func cryptoRandIdentifierProvider() (output Identifier) {
 	return
 }
 
+func counterIdentifierProvider() (output Identifier) {
+	newCounter := atomic.AddUint64(&identifierCounter, 1)
+	output[15] = byte(newCounter)
+	output[14] = byte(newCounter >> 8)
+	output[13] = byte(newCounter >> 16)
+	output[12] = byte(newCounter >> 24)
+	output[11] = byte(newCounter >> 32)
+	output[10] = byte(newCounter >> 40)
+	output[9] = byte(newCounter >> 48)
+	output[8] = byte(newCounter >> 56)
+	return
+}
+
 const randPoolSize = 16 * 16
 
 var (
@@ -78,6 +92,7 @@ var (
 	identifierRandPoolPos = randPoolSize     // protected with poolMu
 	identifierRandPool    [randPoolSize]byte // protected with poolMu
 	randomSource          = rand.Reader      // random function
+	identifierCounter     uint64
 )
 
 var zero Identifier
