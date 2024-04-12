@@ -87,11 +87,43 @@ func Benchmark_createGraph_preallocateNodes_4096(b *testing.B) {
 	benchmarkCreateGraph(4096, true, b)
 }
 
+func Benchmark_createGraph_customIdentifierProvider_4096(b *testing.B) {
+	b.Cleanup(func() {
+		SetIdentifierProvider(cryptoRandIdentifierProvider)
+	})
+	SetIdentifierProvider(counterIdentifierProvider)
+	benchmarkCreateGraph(4096, false, b)
+}
+
+func Benchmark_createGraphpreallocateNodes__customIdentifierProvider_4096(b *testing.B) {
+	b.Cleanup(func() {
+		SetIdentifierProvider(cryptoRandIdentifierProvider)
+	})
+	SetIdentifierProvider(counterIdentifierProvider)
+	benchmarkCreateGraph(4096, true, b)
+}
+
 func Benchmark_createGraph_8192(b *testing.B) {
 	benchmarkCreateGraph(8192, false, b)
 }
 
 func Benchmark_createGraph_preallocateNodes_8192(b *testing.B) {
+	benchmarkCreateGraph(8192, true, b)
+}
+
+func Benchmark_createGraph_customIdentifierProvider_8192(b *testing.B) {
+	b.Cleanup(func() {
+		SetIdentifierProvider(cryptoRandIdentifierProvider)
+	})
+	SetIdentifierProvider(counterIdentifierProvider)
+	benchmarkCreateGraph(8192, false, b)
+}
+
+func Benchmark_createGraphpreallocateNodes__customIdentifierProvider_8192(b *testing.B) {
+	b.Cleanup(func() {
+		SetIdentifierProvider(cryptoRandIdentifierProvider)
+	})
+	SetIdentifierProvider(counterIdentifierProvider)
 	benchmarkCreateGraph(8192, true, b)
 }
 
