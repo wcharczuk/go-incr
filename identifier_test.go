@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -18,6 +19,21 @@ func Test_Identifier(t *testing.T) {
 	id := NewIdentifier()
 	testutil.Equal(t, hex.EncodeToString(id[:]), id.String())
 	testutil.Equal(t, hex.EncodeToString(id[12:]), id.Short())
+}
+
+var identifierCounter uint64
+
+func counterIdentifierProvider() (output Identifier) {
+	newCounter := atomic.AddUint64(&identifierCounter, 1)
+	output[15] = byte(newCounter)
+	output[14] = byte(newCounter >> 8)
+	output[13] = byte(newCounter >> 16)
+	output[12] = byte(newCounter >> 24)
+	output[11] = byte(newCounter >> 32)
+	output[10] = byte(newCounter >> 40)
+	output[9] = byte(newCounter >> 48)
+	output[8] = byte(newCounter >> 56)
+	return
 }
 
 func Test_SetIdentifierProvider(t *testing.T) {
