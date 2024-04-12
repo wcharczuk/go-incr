@@ -41,6 +41,7 @@ func Test_SetIdentifierProvider(t *testing.T) {
 		SetIdentifierProvider(cryptoRandIdentifierProvider)
 	})
 
+	identifierCounter = 0
 	SetIdentifierProvider(counterIdentifierProvider)
 	testutil.Equal(t, "00000000000000000000000000000001", NewIdentifier().String())
 	testutil.Equal(t, "00000000000000000000000000000002", NewIdentifier().String())
