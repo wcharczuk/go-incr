@@ -15,6 +15,22 @@ func Benchmark_createGraph_preallocateNodes_512(b *testing.B) {
 	benchmarkCreateGraph(512, true, b)
 }
 
+func Benchmark_createGraph_customIdentifierProvider_512(b *testing.B) {
+	b.Cleanup(func() {
+		SetIdentifierProvider(cryptoRandIdentifierProvider)
+	})
+	SetIdentifierProvider(counterIdentifierProvider)
+	benchmarkCreateGraph(512, false, b)
+}
+
+func Benchmark_createGraph_preallocateNodes_customIdentifierProvider_512(b *testing.B) {
+	b.Cleanup(func() {
+		SetIdentifierProvider(cryptoRandIdentifierProvider)
+	})
+	SetIdentifierProvider(counterIdentifierProvider)
+	benchmarkCreateGraph(512, true, b)
+}
+
 func Benchmark_createGraph_1024(b *testing.B) {
 	benchmarkCreateGraph(1024, false, b)
 }
@@ -23,11 +39,43 @@ func Benchmark_createGraph_preallocateNodes_1024(b *testing.B) {
 	benchmarkCreateGraph(1024, true, b)
 }
 
+func Benchmark_createGraph_customIdentifierProvider_1024(b *testing.B) {
+	b.Cleanup(func() {
+		SetIdentifierProvider(cryptoRandIdentifierProvider)
+	})
+	SetIdentifierProvider(counterIdentifierProvider)
+	benchmarkCreateGraph(1024, false, b)
+}
+
+func Benchmark_createGraph_preallocateNodes_customIdentifierProvider_1024(b *testing.B) {
+	b.Cleanup(func() {
+		SetIdentifierProvider(cryptoRandIdentifierProvider)
+	})
+	SetIdentifierProvider(counterIdentifierProvider)
+	benchmarkCreateGraph(1024, true, b)
+}
+
 func Benchmark_createGraph_2048(b *testing.B) {
 	benchmarkCreateGraph(2048, false, b)
 }
 
 func Benchmark_createGraph_preallocateNodes_2048(b *testing.B) {
+	benchmarkCreateGraph(2048, true, b)
+}
+
+func Benchmark_createGraph_customIdentifierProvider_2048(b *testing.B) {
+	b.Cleanup(func() {
+		SetIdentifierProvider(cryptoRandIdentifierProvider)
+	})
+	SetIdentifierProvider(counterIdentifierProvider)
+	benchmarkCreateGraph(2048, false, b)
+}
+
+func Benchmark_createGraph_preallocateNodes_customIdentifierProvider_2048(b *testing.B) {
+	b.Cleanup(func() {
+		SetIdentifierProvider(cryptoRandIdentifierProvider)
+	})
+	SetIdentifierProvider(counterIdentifierProvider)
 	benchmarkCreateGraph(2048, true, b)
 }
 
