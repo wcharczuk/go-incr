@@ -17,16 +17,7 @@ type Identifier [16]byte
 // Currently the underlying data looks like a
 // uuidv4 but that shouldn't be relied upon.
 func NewIdentifier() (output Identifier) {
-	identifierRandPoolMu.Lock()
-	if identifierRandPoolPos == randPoolSize {
-		_, _ = io.ReadFull(rander, identifierRandPool[:])
-		identifierRandPoolPos = 0
-	}
-	copy(output[:], identifierRandPool[identifierRandPoolPos:(identifierRandPoolPos+16)])
-	identifierRandPoolPos += 16
-	identifierRandPoolMu.Unlock()
-	output[6] = (output[6] & 0x0f) | 0x40 // Version 4
-	output[8] = (output[8] & 0x3f) | 0x80 // Variant is 10
+	output = identifierProvider()
 	return
 }
 
@@ -59,14 +50,34 @@ func ParseIdentifier(raw string) (output Identifier, err error) {
 	return
 }
 
+// SetIdentifierProvider sets the identifier provider
+// to a custom provider separate from the default.
+func SetIdentifierProvider(ip func() Identifier) {
+	identifierProvider = ip
+}
+
+func cryptoRandIdentifierProvider() (output Identifier) {
+	identifierRandPoolMu.Lock()
+	if identifierRandPoolPos == randPoolSize {
+		_, _ = io.ReadFull(randomSource, identifierRandPool[:])
+		identifierRandPoolPos = 0
+	}
+	copy(output[:], identifierRandPool[identifierRandPoolPos:(identifierRandPoolPos+16)])
+	identifierRandPoolPos += 16
+	identifierRandPoolMu.Unlock()
+	output[6] = (output[6] & 0x0f) | 0x40 // Version 4
+	output[8] = (output[8] & 0x3f) | 0x80 // Variant is 10
+	return
+}
+
 const randPoolSize = 16 * 16
 
 var (
+	identifierProvider    = cryptoRandIdentifierProvider
 	identifierRandPoolMu  sync.Mutex
 	identifierRandPoolPos = randPoolSize     // protected with poolMu
 	identifierRandPool    [randPoolSize]byte // protected with poolMu
-	rander                = rand.Reader      // random function
-
+	randomSource          = rand.Reader      // random function
 )
 
 var zero Identifier

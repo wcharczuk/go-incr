@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -18,6 +19,29 @@ func Test_Identifier(t *testing.T) {
 	id := NewIdentifier()
 	testutil.Equal(t, hex.EncodeToString(id[:]), id.String())
 	testutil.Equal(t, hex.EncodeToString(id[12:]), id.Short())
+}
+
+func Test_SetIdentityProvider(t *testing.T) {
+	t.Cleanup(func() {
+		SetIdentifierProvider(cryptoRandIdentifierProvider)
+	})
+
+	var counter uint64
+	SetIdentifierProvider(func() (output Identifier) {
+		newCounter := atomic.AddUint64(&counter, 1)
+		output[15] = byte(newCounter)
+		output[14] = byte(newCounter >> 8)
+		output[13] = byte(newCounter >> 16)
+		output[12] = byte(newCounter >> 24)
+		output[11] = byte(newCounter >> 32)
+		output[10] = byte(newCounter >> 40)
+		output[9] = byte(newCounter >> 48)
+		output[8] = byte(newCounter >> 56)
+		return
+	})
+	testutil.Equal(t, "00000000000000000000000000000001", NewIdentifier().String())
+	testutil.Equal(t, "00000000000000000000000000000002", NewIdentifier().String())
+	testutil.Equal(t, "00000000000000000000000000000003", NewIdentifier().String())
 }
 
 func Test_Identifier_IsZero(t *testing.T) {
