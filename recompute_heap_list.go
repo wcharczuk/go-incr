@@ -8,30 +8,32 @@ type recomputeHeapList struct {
 	head INode
 	// tail is the "last" element in the list
 	tail INode
-	// items is a map between the key and the actual list item(s)
-	items map[Identifier]INode
 }
 
 // func (l *recomputeHeapList) isEmpty() bool {
 // 	return len(l.items) == 0
 // }
 
+func (l *recomputeHeapList) isEmpty() bool {
+	return l == nil || l.head == nil
+}
+
 func (l *recomputeHeapList) len() int {
 	if l == nil {
 		return 0
 	}
-	return len(l.items)
+	count := 0
+	for v := l.head; v != nil; v = v.Node().nextInRecomputeHeap {
+		count++
+	}
+
+	return count
 }
 
 func (l *recomputeHeapList) push(v INode) {
-	if l.items == nil {
-		l.items = make(map[Identifier]INode)
-	}
-
 	v.Node().nextInRecomputeHeap = nil
 	v.Node().previousInRecomputeHeap = nil
 
-	l.items[v.Node().id] = v
 	if l.head == nil {
 		l.head = v
 		l.tail = v
@@ -51,7 +53,6 @@ func (l *recomputeHeapList) pop() (k Identifier, v INode, ok bool) {
 	k = l.head.Node().id
 	v = l.head
 	ok = true
-	delete(l.items, k)
 
 	if l.head == l.tail {
 		l.head = nil
@@ -71,44 +72,50 @@ func (l *recomputeHeapList) pop() (k Identifier, v INode, ok bool) {
 }
 
 func (l *recomputeHeapList) consume(fn func(Identifier, INode)) {
-	if l.items == nil {
-		return
+	for v := l.head; v != nil; {
+		next := v.Node().nextInRecomputeHeap
+		v.Node().nextInRecomputeHeap = nil
+		v.Node().previousInRecomputeHeap = nil
+		fn(v.Node().ID(), v)
+		v = next
 	}
-	for key, value := range l.items {
-		value.Node().nextInRecomputeHeap = nil
-		value.Node().previousInRecomputeHeap = nil
-		fn(key, value)
-	}
+
 	l.head = nil
 	l.tail = nil
-	clear(l.items)
 }
 
 func (l *recomputeHeapList) has(k Identifier) (ok bool) {
-	if l == nil || l.items == nil {
+	if l == nil {
 		return
 	}
-	_, ok = l.items[k]
+	for v := l.head; v != nil; v = v.Node().nextInRecomputeHeap {
+		if v.Node().id == k {
+			return true
+		}
+	}
+
 	return
 }
 
-func (l *recomputeHeapList) remove(k Identifier) (ok bool) {
-	if len(l.items) == 0 {
-		return
+func (l *recomputeHeapList) remove(k Identifier) bool {
+	var node INode
+	for v := l.head; v != nil; v = v.Node().nextInRecomputeHeap {
+		if v.Node().id == k {
+			node = v
+			break
+		}
 	}
 
-	var node INode
-	node, ok = l.items[k]
-	if !ok {
-		return
+	if node == nil {
+		return false
 	}
+
 	if l.head == node {
 		l.removeHeadItem()
 	} else {
 		l.removeLinkedItem(node)
 	}
-	delete(l.items, k)
-	return
+	return true
 }
 
 func (l *recomputeHeapList) removeHeadItem() {

@@ -95,15 +95,14 @@ func (rh *recomputeHeap) removeMinHeightIter(iter *recomputeHeapListIter) {
 	var heightBlock *recomputeHeapList
 	for x := 0; x < len(rh.heights); x++ {
 		heightBlock = rh.heights[x]
-		if heightBlock != nil && heightBlock.len() > 0 {
+		if !heightBlock.isEmpty() {
 			break
 		}
 	}
 	iter.cursor = heightBlock.head
+	rh.numItems = rh.numItems - heightBlock.len()
 	heightBlock.head = nil
 	heightBlock.tail = nil
-	rh.numItems = rh.numItems - len(heightBlock.items)
-	clear(heightBlock.items)
 	rh.minHeight = rh.nextMinHeightUnsafe()
 }
 
@@ -119,11 +118,11 @@ func (rh *recomputeHeap) remove(node INode) {
 
 func (rh *recomputeHeap) removeMinUnsafe() (node INode, ok bool) {
 	for x := rh.minHeight; x <= rh.maxHeight; x++ {
-		if rh.heights[x] != nil && rh.heights[x].len() > 0 {
+		if !rh.heights[x].isEmpty() {
 			_, node, ok = rh.heights[x].pop()
 			rh.numItems--
 			node.Node().heightInRecomputeHeap = HeightUnset
-			if rh.heights[x].len() > 0 {
+			if !rh.heights[x].isEmpty() {
 				rh.minHeight = x
 			} else {
 				rh.minHeight = rh.nextMinHeightUnsafe()
@@ -152,7 +151,7 @@ func (rh *recomputeHeap) removeNodeUnsafe(item INode) {
 	id := item.Node().id
 	height := item.Node().heightInRecomputeHeap
 	rh.heights[height].remove(id)
-	isLastAtHeight := rh.heights[height].len() == 0
+	isLastAtHeight := rh.heights[height].isEmpty()
 	if height == rh.minHeight && isLastAtHeight {
 		rh.minHeight = rh.nextMinHeightUnsafe()
 	}
@@ -187,7 +186,7 @@ func (rh *recomputeHeap) nextMinHeightUnsafe() (next int) {
 		return
 	}
 	for x := 0; x < len(rh.heights); x++ {
-		if rh.heights[x] != nil && rh.heights[x].len() > 0 {
+		if !rh.heights[x].isEmpty() {
 			next = x
 			break
 		}
@@ -203,7 +202,7 @@ func (rh *recomputeHeap) fixUnsafe(n INode) {
 // sanityCheck loops through each item in each height block
 // and checks that all the height values match.
 func (rh *recomputeHeap) sanityCheck() error {
-	if rh.numItems > 0 && (rh.heights[rh.minHeight] == nil || rh.heights[rh.minHeight].len() == 0) {
+	if rh.numItems > 0 && (rh.heights[rh.minHeight].isEmpty()) {
 		return fmt.Errorf("recompute heap; sanity check; lookup has items but min height block is empty")
 	}
 	for heightIndex, height := range rh.heights {
