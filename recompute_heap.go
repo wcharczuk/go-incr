@@ -119,7 +119,7 @@ func (rh *recomputeHeap) remove(node INode) {
 func (rh *recomputeHeap) removeMinUnsafe() (node INode, ok bool) {
 	for x := rh.minHeight; x <= rh.maxHeight; x++ {
 		if !rh.heights[x].isEmpty() {
-			_, node, ok = rh.heights[x].pop()
+			node, ok = rh.heights[x].pop()
 			rh.numItems--
 			node.Node().heightInRecomputeHeap = HeightUnset
 			if !rh.heights[x].isEmpty() {

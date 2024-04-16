@@ -36,15 +36,13 @@ func Test_recomputeHeapList_push_pop(t *testing.T) {
 	n2 := newHeightIncr(g, 0)
 	n3 := newHeightIncr(g, 0)
 
-	var zeroID Identifier
-	id, n, ok := q.pop()
+	n, ok := q.pop()
 
 	// Region: empty list
 	{
 		testutil.Equal(t, false, ok)
 		testutil.Nil(t, q.head)
 		testutil.Nil(t, q.tail)
-		testutil.Equal(t, zeroID, id)
 		testutil.Nil(t, n)
 		testutil.Equal(t, 0, q.len())
 
@@ -163,9 +161,8 @@ func Test_recomputeHeapList_push_pop(t *testing.T) {
 
 	// Region: pop 0
 	{
-		id, n, ok = q.pop()
+		n, ok = q.pop()
 		testutil.Equal(t, true, ok)
-		testutil.Equal(t, n0.n.id, id)
 		testutil.Equal(t, n0.n.id, n.Node().id)
 		testutil.NotNil(t, q.head)
 		testutil.NotNil(t, rhnext(q.head))
@@ -188,9 +185,8 @@ func Test_recomputeHeapList_push_pop(t *testing.T) {
 
 	// Region: pop 1
 	{
-		id, n, ok = q.pop()
+		n, ok = q.pop()
 		testutil.Equal(t, true, ok)
-		testutil.Equal(t, n1.n.id, id)
 		testutil.Equal(t, n1.n.id, n.Node().id)
 		testutil.NotNil(t, q.head)
 		testutil.NotNil(t, rhnext(q.head))
@@ -215,9 +211,8 @@ func Test_recomputeHeapList_push_pop(t *testing.T) {
 
 	// Region: pop 2
 	{
-		id, n, ok = q.pop()
+		n, ok = q.pop()
 		testutil.Equal(t, true, ok)
-		testutil.Equal(t, n2.n.id, id)
 		testutil.Equal(t, n2.n.id, n.Node().id)
 		testutil.NotNil(t, q.head)
 		testutil.Nil(t, rhnext(q.head))
@@ -238,9 +233,8 @@ func Test_recomputeHeapList_push_pop(t *testing.T) {
 
 	// Region: pop 3
 	{
-		id, n, ok = q.pop()
+		n, ok = q.pop()
 		testutil.Equal(t, true, ok)
-		testutil.Equal(t, n3.n.id, id)
 		testutil.Equal(t, n3.n.id, n.Node().id)
 		testutil.Nil(t, q.head)
 		testutil.Nil(t, q.tail)
@@ -257,10 +251,9 @@ func Test_recomputeHeapList_push_pop(t *testing.T) {
 
 	// Region: pop empty
 	{
-		id, n, ok = q.pop()
+		n, ok = q.pop()
 		testutil.Equal(t, false, ok)
 		testutil.Nil(t, n)
-		testutil.Equal(t, zeroID, id)
 
 		testutil.Equal(t, false, q.has(n0.Node().id))
 		testutil.Equal(t, false, q.has(n1.Node().id))

@@ -45,12 +45,11 @@ func (l *recomputeHeapList) push(v INode) {
 	l.tail = v
 }
 
-func (l *recomputeHeapList) pop() (k Identifier, v INode, ok bool) {
+func (l *recomputeHeapList) pop() (v INode, ok bool) {
 	if l.head == nil {
 		return
 	}
 
-	k = l.head.Node().id
 	v = l.head
 	ok = true
 
