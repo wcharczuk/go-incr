@@ -709,22 +709,32 @@ func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err 
 	if parallel {
 		graph.recomputeHeap.mu.Lock()
 		for _, c := range nn.children {
-			isNecessary := c.Node().isNecessary()
-			isStale := c.Node().isStale()
-			isNotInRecomputeHeap := c.Node().heightInRecomputeHeap == HeightUnset
-			if isNecessary && isStale && isNotInRecomputeHeap {
-				graph.recomputeHeap.addNodeUnsafe(c)
+			// Don't add to the heap if it's already been added
+			if !(c.Node().heightInRecomputeHeap == HeightUnset) {
+				continue
 			}
+			if !c.Node().isNecessary() {
+				continue
+			}
+			if !c.Node().isStale() {
+				continue
+			}
+			graph.recomputeHeap.addNodeUnsafe(c)
 		}
 		graph.recomputeHeap.mu.Unlock()
 	} else {
 		for _, c := range nn.children {
-			isNecessary := c.Node().isNecessary()
-			isStale := c.Node().isStale()
-			isNotInRecomputeHeap := c.Node().heightInRecomputeHeap == HeightUnset
-			if isNecessary && isStale && isNotInRecomputeHeap {
-				graph.recomputeHeap.addNodeUnsafe(c)
+			// Don't add to the heap if it's already been added
+			if !(c.Node().heightInRecomputeHeap == HeightUnset) {
+				continue
 			}
+			if !c.Node().isNecessary() {
+				continue
+			}
+			if !c.Node().isStale() {
+				continue
+			}
+			graph.recomputeHeap.addNodeUnsafe(c)
 		}
 	}
 
