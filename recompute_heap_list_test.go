@@ -599,8 +599,8 @@ func Test_recomputeHeapList_consume(t *testing.T) {
 	var seenIDs []Identifier
 	var seen []INode
 
-	q.consume(func(k Identifier, v INode) {
-		seenIDs = append(seenIDs, k)
+	q.consume(func(v INode) {
+		seenIDs = append(seenIDs, v.Node().id)
 		seen = append(seen, v)
 	})
 
