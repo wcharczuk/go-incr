@@ -4,36 +4,27 @@ package incr
 // as a ordered recomputeHeapList as well as a constant time
 // map using a similar technique to high throughput LRU queues.
 type recomputeHeapList struct {
-	// head is the "first" element in the list
-	head INode
-	// tail is the "last" element in the list
-	tail INode
-	// items is a map between the key and the actual list item(s)
-	items map[Identifier]INode
+	head  INode
+	tail  INode
+	count int
 }
 
 func (l *recomputeHeapList) len() int {
 	if l == nil {
 		return 0
 	}
-	return len(l.items)
+	return l.count
 }
 
 func (l *recomputeHeapList) push(v INode) {
-	if l.items == nil {
-		l.items = make(map[Identifier]INode)
-	}
-
+	l.count = l.count + 1
 	v.Node().nextInRecomputeHeap = nil
 	v.Node().previousInRecomputeHeap = nil
-
-	l.items[v.Node().id] = v
 	if l.head == nil {
 		l.head = v
 		l.tail = v
 		return
 	}
-
 	l.tail.Node().nextInRecomputeHeap = v
 	v.Node().previousInRecomputeHeap = l.tail
 	l.tail = v
@@ -47,7 +38,7 @@ func (l *recomputeHeapList) pop() (k Identifier, v INode, ok bool) {
 	k = l.head.Node().id
 	v = l.head
 	ok = true
-	delete(l.items, k)
+	l.count = l.count - 1
 
 	if l.head == l.tail {
 		l.head = nil
@@ -60,50 +51,73 @@ func (l *recomputeHeapList) pop() (k Identifier, v INode, ok bool) {
 	next := l.head.Node().nextInRecomputeHeap
 	next.Node().previousInRecomputeHeap = nil
 	l.head = next
-
 	v.Node().nextInRecomputeHeap = nil
 	v.Node().previousInRecomputeHeap = nil
 	return
 }
 
-func (l *recomputeHeapList) consume(fn func(Identifier, INode)) {
-	if l.items == nil {
-		return
-	}
-	for key, value := range l.items {
-		value.Node().nextInRecomputeHeap = nil
-		value.Node().previousInRecomputeHeap = nil
-		fn(key, value)
+func (l *recomputeHeapList) consume(fn func(INode)) {
+	cursor := l.head
+	var next INode
+	for cursor != nil {
+		next = cursor.Node().nextInRecomputeHeap
+		fn(cursor)
+		cursor.Node().nextInRecomputeHeap = nil
+		cursor.Node().previousInRecomputeHeap = nil
+		cursor = next
 	}
 	l.head = nil
 	l.tail = nil
-	clear(l.items)
+	l.count = 0
 }
 
 func (l *recomputeHeapList) has(k Identifier) (ok bool) {
-	if l == nil || l.items == nil {
+	if l == nil || l.head == nil {
 		return
 	}
-	_, ok = l.items[k]
+	cursor := l.head
+	for cursor != nil {
+		if cursor.Node().id == k {
+			ok = true
+			return
+		}
+		cursor = cursor.Node().nextInRecomputeHeap
+	}
+	return
+}
+
+func (l *recomputeHeapList) find(k Identifier) (n INode, ok bool) {
+	if l == nil || l.head == nil {
+		return
+	}
+	cursor := l.head
+	for cursor != nil {
+		if cursor.Node().id == k {
+			n = cursor
+			ok = true
+			return
+		}
+		cursor = cursor.Node().nextInRecomputeHeap
+	}
 	return
 }
 
 func (l *recomputeHeapList) remove(k Identifier) (ok bool) {
-	if len(l.items) == 0 {
+	if l.head == nil {
 		return
 	}
 
 	var node INode
-	node, ok = l.items[k]
+	node, ok = l.find(k)
 	if !ok {
 		return
 	}
+	l.count = l.count - 1
 	if l.head == node {
 		l.removeHeadItem()
 	} else {
 		l.removeLinkedItem(node)
 	}
-	delete(l.items, k)
 	return
 }
 

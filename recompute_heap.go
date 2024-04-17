@@ -88,7 +88,7 @@ func (i *recomputeHeapListIter) Next() (INode, bool) {
 	return prev, true
 }
 
-func (rh *recomputeHeap) removeMinHeightIter(iter *recomputeHeapListIter) {
+func (rh *recomputeHeap) setIterToMinHeight(iter *recomputeHeapListIter) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
 
@@ -102,8 +102,8 @@ func (rh *recomputeHeap) removeMinHeightIter(iter *recomputeHeapListIter) {
 	iter.cursor = heightBlock.head
 	heightBlock.head = nil
 	heightBlock.tail = nil
-	rh.numItems = rh.numItems - len(heightBlock.items)
-	clear(heightBlock.items)
+	rh.numItems = rh.numItems - heightBlock.len()
+	heightBlock.count = 0
 	rh.minHeight = rh.nextMinHeightUnsafe()
 }
 
