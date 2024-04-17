@@ -95,7 +95,7 @@ func Benchmark_createGraph_customIdentifierProvider_4096(b *testing.B) {
 	benchmarkCreateGraph(4096, false, b)
 }
 
-func Benchmark_createGraphpreallocateNodes__customIdentifierProvider_4096(b *testing.B) {
+func Benchmark_createGraph_preallocateNodes_customIdentifierProvider_4096(b *testing.B) {
 	b.Cleanup(func() {
 		SetIdentifierProvider(cryptoRandIdentifierProvider)
 	})
