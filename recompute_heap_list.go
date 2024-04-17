@@ -12,10 +12,6 @@ type recomputeHeapList struct {
 	items map[Identifier]INode
 }
 
-// func (l *recomputeHeapList) isEmpty() bool {
-// 	return len(l.items) == 0
-// }
-
 func (l *recomputeHeapList) len() int {
 	if l == nil {
 		return 0
