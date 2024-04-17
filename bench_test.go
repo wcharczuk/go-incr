@@ -350,12 +350,16 @@ func benchmarkSize(size int, b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		graph.SetStale(nodes[rand.Intn(size)])
+		for x := 0; x < size>>1; x++ {
+			graph.SetStale(nodes[rand.Intn(size)])
+		}
 		err = graph.Stabilize(ctx)
 		if err != nil {
 			b.Fatal(err)
 		}
-		graph.SetStale(nodes[rand.Intn(size)])
+		for x := 0; x < size>>1; x++ {
+			graph.SetStale(nodes[rand.Intn(size)])
+		}
 		err = graph.Stabilize(ctx)
 		if err != nil {
 			b.Fatal(err)
@@ -373,12 +377,16 @@ func benchmarkParallelSize(size int, b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		graph.SetStale(nodes[rand.Intn(size)])
+		for x := 0; x < size>>1; x++ {
+			graph.SetStale(nodes[rand.Intn(size)])
+		}
 		err = graph.ParallelStabilize(ctx)
 		if err != nil {
 			b.Fatal(err)
 		}
-		graph.SetStale(nodes[rand.Intn(size)])
+		for x := 0; x < size>>1; x++ {
+			graph.SetStale(nodes[rand.Intn(size)])
+		}
 		err = graph.ParallelStabilize(ctx)
 		if err != nil {
 			b.Fatal(err)

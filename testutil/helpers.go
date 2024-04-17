@@ -33,7 +33,7 @@ func NoError(t *testing.T, err error, message ...any) {
 func Equal(t *testing.T, expected, actual any, message ...any) {
 	t.Helper()
 	if !areEqual(expected, actual) {
-		fatalf(t, "expected %v to equal %v", []any{actual, expected}, message)
+		fatalf(t, "equal assertion failure; actual=%v expected=%v", []any{actual, expected}, message)
 	}
 }
 
@@ -43,7 +43,7 @@ func Equal(t *testing.T, expected, actual any, message ...any) {
 func NotEqual(t *testing.T, expected, actual any, message ...any) {
 	t.Helper()
 	if areEqual(expected, actual) {
-		fatalf(t, "expected %v not to equal %v", []any{actual, expected}, message)
+		fatalf(t, "not equal assertion failure; actual=%v expected=%v", []any{actual, expected}, message)
 	}
 }
 

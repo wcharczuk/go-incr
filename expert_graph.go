@@ -109,8 +109,10 @@ func (eg *expertGraph) RecomputeHeapIDs() []Identifier {
 	output := make([]Identifier, 0, eg.graph.recomputeHeap.numItems)
 	for _, height := range eg.graph.recomputeHeap.heights {
 		if height != nil {
-			for key := range height.items {
-				output = append(output, key)
+			cursor := height.head
+			for cursor != nil {
+				output = append(output, cursor.Node().id)
+				cursor = cursor.Node().nextInRecomputeHeap
 			}
 		}
 	}
