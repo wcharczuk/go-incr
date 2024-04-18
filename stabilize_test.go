@@ -1031,6 +1031,45 @@ func Test_Stabilize_Map4(t *testing.T) {
 	testutil.Equal(t, 10, m3.Value())
 }
 
+func Test_Stabilize_Map5(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	c0 := Return(g, 1)
+	c1 := Return(g, 2)
+	c2 := Return(g, 3)
+	c3 := Return(g, 4)
+	c4 := Return(g, 5)
+	m3 := Map5(g, c0, c1, c2, c3, c4, func(a, b, c, d, e int) int {
+		return a + b + c + d + e
+	})
+
+	_ = MustObserve(g, m3)
+
+	_ = g.Stabilize(ctx)
+	testutil.Equal(t, 15, m3.Value())
+}
+
+func Test_Stabilize_Map6(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	c0 := Return(g, 1)
+	c1 := Return(g, 2)
+	c2 := Return(g, 3)
+	c3 := Return(g, 4)
+	c4 := Return(g, 5)
+	c5 := Return(g, 6)
+	m3 := Map6(g, c0, c1, c2, c3, c4, c5, func(a, b, c, d, e, f int) int {
+		return a + b + c + d + e + f
+	})
+
+	_ = MustObserve(g, m3)
+
+	_ = g.Stabilize(ctx)
+	testutil.Equal(t, 21, m3.Value())
+}
+
 func Test_Stabilize_Map3Context(t *testing.T) {
 	ctx := testContext()
 	g := New()
