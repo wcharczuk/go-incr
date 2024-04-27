@@ -1013,6 +1013,43 @@ func Test_Stabilize_Map3(t *testing.T) {
 	testutil.Equal(t, 6, m3.Value())
 }
 
+func Test_Stabilize_Map3Context(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	c0 := Return(g, 1)
+	c1 := Return(g, 2)
+	c2 := Return(g, 3)
+	m3 := Map3Context(g, c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
+		testutil.BlueDye(ictx, t)
+		return a + b + c, nil
+	})
+
+	_ = MustObserve(g, m3)
+
+	_ = g.Stabilize(ctx)
+	testutil.Equal(t, 6, m3.Value())
+}
+
+func Test_Stabilize_Map3Context_error(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	c0 := Return(g, 1)
+	c1 := Return(g, 2)
+	c2 := Return(g, 3)
+	m3 := Map3Context(g, c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
+		testutil.BlueDye(ictx, t)
+		return a + b + c, fmt.Errorf("this is just a test")
+	})
+
+	_ = MustObserve(g, m3)
+
+	err := g.Stabilize(ctx)
+	testutil.NotNil(t, err)
+	testutil.Equal(t, 0, m3.Value())
+}
+
 func Test_Stabilize_Map4(t *testing.T) {
 	ctx := testContext()
 	g := New()
@@ -1070,41 +1107,47 @@ func Test_Stabilize_Map6(t *testing.T) {
 	testutil.Equal(t, 21, m3.Value())
 }
 
-func Test_Stabilize_Map3Context(t *testing.T) {
+func Test_Stabilize_Map7(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
 	c0 := Return(g, 1)
 	c1 := Return(g, 2)
 	c2 := Return(g, 3)
-	m3 := Map3Context(g, c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
-		testutil.BlueDye(ictx, t)
-		return a + b + c, nil
+	c3 := Return(g, 4)
+	c4 := Return(g, 5)
+	c5 := Return(g, 6)
+	c6 := Return(g, 7)
+	m3 := Map7(g, c0, c1, c2, c3, c4, c5, c6, func(a, b, c, d, e, f, g int) int {
+		return a + b + c + d + e + f + g
 	})
 
 	_ = MustObserve(g, m3)
 
 	_ = g.Stabilize(ctx)
-	testutil.Equal(t, 6, m3.Value())
+	testutil.Equal(t, 28, m3.Value())
 }
 
-func Test_Stabilize_Map3Context_error(t *testing.T) {
+func Test_Stabilize_Map8(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
 	c0 := Return(g, 1)
 	c1 := Return(g, 2)
 	c2 := Return(g, 3)
-	m3 := Map3Context(g, c0, c1, c2, func(ictx context.Context, a, b, c int) (int, error) {
-		testutil.BlueDye(ictx, t)
-		return a + b + c, fmt.Errorf("this is just a test")
+	c3 := Return(g, 4)
+	c4 := Return(g, 5)
+	c5 := Return(g, 6)
+	c6 := Return(g, 7)
+	c7 := Return(g, 8)
+	m3 := Map8(g, c0, c1, c2, c3, c4, c5, c6, c7, func(a, b, c, d, e, f, g, h int) int {
+		return a + b + c + d + e + f + g + h
 	})
 
 	_ = MustObserve(g, m3)
 
-	err := g.Stabilize(ctx)
-	testutil.NotNil(t, err)
-	testutil.Equal(t, 0, m3.Value())
+	_ = g.Stabilize(ctx)
+	testutil.Equal(t, 36, m3.Value())
 }
 
 func Test_Stabilize_MapIf(t *testing.T) {
