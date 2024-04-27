@@ -6,9 +6,9 @@ import (
 )
 
 // MapIf returns an incremental that yields one of two values
-// based on the boolean condition returned from a third.
+// based on the boolean condition returned from a third incremental.
 //
-// Specifically, we term this _Apply_If because the nodes are all
+// Specifically, we term this [MapIf] because the nodes are all
 // linked in the graph, but the value changes during stabilization.
 func MapIf[A any](scope Scope, a, b Incr[A], p Incr[bool]) Incr[A] {
 	return WithinScope(scope, &mapIfIncr[A]{
