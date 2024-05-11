@@ -34,6 +34,7 @@ func (c *customIncr[T]) Stabilize(ctx context.Context) error {
 var (
 	_ incr.Incr[string] = (*customIncr[string])(nil)
 	_ incr.IStabilize   = (*customIncr[string])(nil)
+	_ incr.IParents     = (*customIncr[string])(nil)
 )
 
 func main() {
