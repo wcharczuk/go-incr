@@ -62,6 +62,12 @@ func BindContext[A, B any](scope Scope, input Incr[A], fn BindContextFunc[A, B])
 		parents: []INode{bindLeftChange},
 	})
 	bind.main = bindMain
+	// propagate errors to main from the left change node
+	bindLeftChange.n.onErrorHandlers = append(bindLeftChange.n.onErrorHandlers, func(ctx context.Context, err error) {
+		for _, eh := range bindMain.n.onErrorHandlers {
+			eh(ctx, err)
+		}
+	})
 	return bindMain
 }
 

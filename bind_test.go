@@ -1176,26 +1176,42 @@ func Test_Bind_observedInner_cached(t *testing.T) {
 func Test_Bind_cycle(t *testing.T) {
 	ctx := testContext()
 	g := New()
+	nodesThatErrored := make(map[Identifier]INode)
 
 	var b1 BindIncr[string]
 
 	b0v := Var(g, "a")
+	b0v.Node().OnError(func(_ context.Context, err error) {
+		nodesThatErrored[b0v.Node().id] = b0v
+	})
 	b0 := Bind(g, b0v, func(bs Scope, which string) Incr[string] {
 		if which == "a" {
 			return Return(bs, "foo")
 		}
 		return b1
 	})
+	b0.Node().OnError(func(_ context.Context, err error) {
+		nodesThatErrored[b0.Node().id] = b0
+	})
 
 	b1v := Var(g, "a")
+	b1v.Node().OnError(func(_ context.Context, err error) {
+		nodesThatErrored[b1v.Node().id] = b1v
+	})
 	b1 = Bind(g, b1v, func(bs Scope, which string) Incr[string] {
 		if which == "a" {
 			return b0
 		}
 		return Return(bs, "bar")
 	})
+	b1.Node().OnError(func(_ context.Context, err error) {
+		nodesThatErrored[b1.Node().id] = b1
+	})
 
 	o := MustObserve(g, b1)
+	o.Node().OnError(func(_ context.Context, err error) {
+		nodesThatErrored[o.Node().id] = o
+	})
 
 	err := g.Stabilize(ctx)
 	testutil.NoError(t, err)
@@ -1206,6 +1222,11 @@ func Test_Bind_cycle(t *testing.T) {
 	err = g.Stabilize(ctx)
 	testutil.Error(t, err)
 	testutil.Equal(t, "foo", o.Value())
+
+	testutil.Equal(t, 1, len(nodesThatErrored))
+	errNode, ok := nodesThatErrored[b0.Node().id]
+	testutil.Equal(t, true, ok)
+	testutil.NotNil(t, errNode)
 }
 
 func Test_bind_scope(t *testing.T) {

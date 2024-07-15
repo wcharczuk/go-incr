@@ -76,7 +76,7 @@ type Node struct {
 	// they are added with `OnUpdate(...)`.
 	onUpdateHandlers []func(context.Context)
 	// onErrorHandlers are functions that are called when the node updates.
-	// they are added with `OnUpdate(...)`.
+	// they are added with `OnError(...)`.
 	onErrorHandlers []func(context.Context, error)
 	// stabilizeFn is set during initialization and is a shortcut
 	// to the interface sniff for the node for the IStabilize interface.

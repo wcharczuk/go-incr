@@ -44,7 +44,6 @@ func (graph *Graph) Stabilize(ctx context.Context) (err error) {
 		}
 	}
 	if err != nil {
-		// clear if there is an error!
 		graph.recomputeHeap.clear()
 	}
 	if len(immediateRecompute) > 0 {
