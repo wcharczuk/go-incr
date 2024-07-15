@@ -23,6 +23,12 @@ func (rh *recomputeHeap) clear() {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
 
+	var next INode
+	for rh.numItems > 0 {
+		next, _ = rh.removeMinUnsafe()
+		next.Node().heightInRecomputeHeap = HeightUnset
+	}
+
 	rh.heights = make([]*recomputeHeapList, len(rh.heights))
 	rh.minHeight = 0
 	rh.maxHeight = 0
