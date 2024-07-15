@@ -121,15 +121,25 @@ func Test_ParallelStabilize_error(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
-	v0 := Var(g, "foo")
-	m0 := MapContext(g, v0, func(ctx context.Context, a string) (string, error) {
+	v0 := Var(g, "hello")
+	m0 := Map(g, v0, ident)
+	m1 := Map(g, m0, ident)
+
+	f0 := Func(g, func(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("this is only a test")
 	})
 
-	_ = MustObserve(g, m0)
+	_ = MustObserve(g, f0)
+	_ = MustObserve(g, m1)
+
+	testutil.Equal(t, true, g.recomputeHeap.has(m1))
+	testutil.Equal(t, true, g.recomputeHeap.has(f0))
 
 	err := g.ParallelStabilize(ctx)
 	testutil.NotNil(t, err)
+
+	testutil.Equal(t, false, g.recomputeHeap.has(m1), "we should clear the recompute heap on error")
+	testutil.Equal(t, false, g.recomputeHeap.has(f0))
 }
 
 func Test_ParallelStabilize_Always(t *testing.T) {
@@ -221,7 +231,7 @@ func Test_ParallelStabilize_always_cutoff_error(t *testing.T) {
 	testutil.NotNil(t, err)
 	testutil.Equal(t, "", o.Value())
 
-	testutil.Equal(t, 2, g.recomputeHeap.len())
+	testutil.Equal(t, 1, g.recomputeHeap.len(), "we should clear the recompute heap on error")
 }
 
 func Test_ParallelStabilize_printsErrors(t *testing.T) {

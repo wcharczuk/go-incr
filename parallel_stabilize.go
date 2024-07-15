@@ -55,7 +55,10 @@ func (graph *Graph) parallelStabilize(ctx context.Context) (err error) {
 			break
 		}
 	}
-
+	if err != nil {
+		// clear if there is an error!
+		graph.recomputeHeap.clear()
+	}
 	if len(immediateRecompute) > 0 {
 		graph.recomputeHeap.mu.Lock()
 		for _, n := range immediateRecompute {

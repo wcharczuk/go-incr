@@ -60,15 +60,26 @@ func Test_Stabilize_error(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
-	m0 := Func(g, func(_ context.Context) (string, error) {
+	v0 := Var(g, "hello")
+	m0 := Map(g, v0, ident)
+	m1 := Map(g, m0, ident)
+
+	f0 := Func(g, func(_ context.Context) (string, error) {
 		return "", fmt.Errorf("this is just a test")
 	})
 
-	_ = MustObserve(g, m0)
+	_ = MustObserve(g, f0)
+	_ = MustObserve(g, m1)
+
+	testutil.Equal(t, true, g.recomputeHeap.has(m1))
+	testutil.Equal(t, true, g.recomputeHeap.has(f0))
 
 	err := g.Stabilize(ctx)
 	testutil.NotNil(t, err)
 	testutil.Equal(t, "this is just a test", err.Error())
+
+	testutil.Equal(t, false, g.recomputeHeap.has(m1), "we should clear the recompute heap on error")
+	testutil.Equal(t, false, g.recomputeHeap.has(f0))
 }
 
 func Test_Stabilize_errorHandler(t *testing.T) {
@@ -1393,7 +1404,7 @@ func Test_Stabilize_Always_Cutoff_error(t *testing.T) {
 	testutil.NotNil(t, err)
 	testutil.Equal(t, "", o.Value())
 
-	testutil.Equal(t, 2, g.recomputeHeap.len())
+	testutil.Equal(t, 1, g.recomputeHeap.len(), "we should clear the recompute heap on error")
 }
 
 func Test_Stabilize_printsErrors(t *testing.T) {
