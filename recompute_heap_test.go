@@ -411,6 +411,10 @@ func Test_recomputeHeap_clear(t *testing.T) {
 	rh.add(n60)
 	rh.add(n70)
 
+	testutil.NotEqual(t, HeightUnset, n50.n.heightInRecomputeHeap)
+	testutil.NotEqual(t, HeightUnset, n60.n.heightInRecomputeHeap)
+	testutil.NotEqual(t, HeightUnset, n70.n.heightInRecomputeHeap)
+
 	testutil.Equal(t, 3, rh.numItems)
 	testutil.Equal(t, 1, rh.heights[5].len())
 	testutil.Equal(t, 1, rh.heights[6].len())
@@ -419,6 +423,10 @@ func Test_recomputeHeap_clear(t *testing.T) {
 	testutil.Equal(t, 7, rh.maxHeight)
 
 	rh.clear()
+
+	testutil.Equal(t, HeightUnset, n50.n.heightInRecomputeHeap)
+	testutil.Equal(t, HeightUnset, n60.n.heightInRecomputeHeap)
+	testutil.Equal(t, HeightUnset, n70.n.heightInRecomputeHeap)
 
 	testutil.Equal(t, 0, rh.numItems)
 	testutil.Equal(t, 0, rh.heights[5].len())
@@ -430,6 +438,10 @@ func Test_recomputeHeap_clear(t *testing.T) {
 	rh.add(n50)
 	rh.add(n60)
 	rh.add(n70)
+
+	testutil.NotEqual(t, HeightUnset, n50.n.heightInRecomputeHeap)
+	testutil.NotEqual(t, HeightUnset, n60.n.heightInRecomputeHeap)
+	testutil.NotEqual(t, HeightUnset, n70.n.heightInRecomputeHeap)
 
 	testutil.Equal(t, 3, rh.numItems)
 	testutil.Equal(t, 1, rh.heights[5].len())
