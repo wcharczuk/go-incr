@@ -44,7 +44,12 @@ func (graph *Graph) Stabilize(ctx context.Context) (err error) {
 		}
 	}
 	if err != nil {
-		graph.recomputeHeap.clear()
+		aborted := graph.recomputeHeap.clear()
+		for _, node := range aborted {
+			for _, ah := range node.Node().onAbortedHandlers {
+				ah(ctx, err)
+			}
+		}
 	}
 	if len(immediateRecompute) > 0 {
 		for _, n := range immediateRecompute {
