@@ -19,20 +19,23 @@ type recomputeHeap struct {
 	numItems  int
 }
 
-func (rh *recomputeHeap) clear() {
+func (rh *recomputeHeap) clear() (aborted []INode) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
 
 	var next INode
 	for rh.numItems > 0 {
+		aborted = make([]INode, 0, rh.numItems)
 		next, _ = rh.removeMinUnsafe()
 		next.Node().heightInRecomputeHeap = HeightUnset
+		aborted = append(aborted, next)
 	}
 
 	rh.heights = make([]*recomputeHeapList, len(rh.heights))
 	rh.minHeight = 0
 	rh.maxHeight = 0
 	rh.numItems = 0
+	return
 }
 
 func (rh *recomputeHeap) len() int {

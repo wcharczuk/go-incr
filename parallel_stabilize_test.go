@@ -121,9 +121,13 @@ func Test_ParallelStabilize_error(t *testing.T) {
 	ctx := testContext()
 	g := New()
 
+	var didCallAbortedHandler bool
 	v0 := Var(g, "hello")
 	m0 := Map(g, v0, ident)
 	m1 := Map(g, m0, ident)
+	m1.Node().OnAborted(func(_ context.Context, err error) {
+		didCallAbortedHandler = true
+	})
 
 	f0 := Func(g, func(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("this is only a test")
@@ -140,6 +144,7 @@ func Test_ParallelStabilize_error(t *testing.T) {
 
 	testutil.Equal(t, false, g.recomputeHeap.has(m1), "we should clear the recompute heap on error")
 	testutil.Equal(t, false, g.recomputeHeap.has(f0))
+	testutil.Equal(t, true, didCallAbortedHandler)
 }
 
 func Test_ParallelStabilize_Always(t *testing.T) {

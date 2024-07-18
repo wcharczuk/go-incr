@@ -75,9 +75,13 @@ type Node struct {
 	// onUpdateHandlers are functions that are called when the node updates.
 	// they are added with `OnUpdate(...)`.
 	onUpdateHandlers []func(context.Context)
-	// onErrorHandlers are functions that are called when the node updates.
+	// onErrorHandlers are functions that are called when the node errors in stabilization.
 	// they are added with `OnError(...)`.
 	onErrorHandlers []func(context.Context, error)
+	// onAbortedHandlers are functions that are called when the node is
+	// pre-empted for update by another node erroring.
+	// they are added with `OnError(...)`.
+	onAbortedHandlers []func(context.Context, error)
 	// stabilizeFn is set during initialization and is a shortcut
 	// to the interface sniff for the node for the IStabilize interface.
 	stabilizeFn func(context.Context) error
@@ -140,6 +144,14 @@ func (n *Node) OnUpdate(fn func(context.Context)) {
 // function for this node returns an error.
 func (n *Node) OnError(fn func(context.Context, error)) {
 	n.onErrorHandlers = append(n.onErrorHandlers, fn)
+}
+
+// OnAborted registers an aborted handler.
+//
+// An aborted handler is called when the stabilize or cutoff
+// function for this node is pre-empted by another node erroring.
+func (n *Node) OnAborted(fn func(context.Context, error)) {
+	n.onAbortedHandlers = append(n.onAbortedHandlers, fn)
 }
 
 // Label returns a descriptive label for the node or
