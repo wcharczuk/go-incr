@@ -56,9 +56,44 @@ func Test_Stabilize(t *testing.T) {
 	testutil.Equal(t, "not foo bar", m0.Value())
 }
 
-func Test_Stabilize_error(t *testing.T) {
+func Test_Stabilize_error_noClear(t *testing.T) {
 	ctx := testContext()
-	g := New()
+	g := New(
+		OptGraphClearRecomputeHeapOnError(false),
+	)
+
+	var didCallAbortedHandler bool
+	v0 := Var(g, "hello")
+	m0 := Map(g, v0, ident)
+	m1 := Map(g, m0, ident)
+	m1.Node().OnAborted(func(_ context.Context, err error) {
+		didCallAbortedHandler = true
+	})
+
+	f0 := Func(g, func(_ context.Context) (string, error) {
+		return "", fmt.Errorf("this is just a test")
+	})
+
+	_ = MustObserve(g, f0)
+	_ = MustObserve(g, m1)
+
+	testutil.Equal(t, true, g.recomputeHeap.has(m1))
+	testutil.Equal(t, true, g.recomputeHeap.has(f0))
+
+	err := g.Stabilize(ctx)
+	testutil.NotNil(t, err)
+	testutil.Equal(t, "this is just a test", err.Error())
+
+	testutil.Equal(t, true, g.recomputeHeap.has(m1), "we should not clear the recompute heap on error")
+	testutil.Equal(t, false, g.recomputeHeap.has(f0))
+	testutil.Equal(t, false, didCallAbortedHandler)
+}
+
+func Test_Stabilize_error_shouldClear(t *testing.T) {
+	ctx := testContext()
+	g := New(
+		OptGraphClearRecomputeHeapOnError(true),
+	)
 
 	var didCallAbortedHandler bool
 	v0 := Var(g, "hello")

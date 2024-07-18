@@ -30,18 +30,19 @@ func New(opts ...GraphOption) *Graph {
 		opt(&options)
 	}
 	return &Graph{
-		id:                       NewIdentifier(),
-		parallelism:              options.Parallelism,
-		stabilizationNum:         1,
-		status:                   StatusNotStabilizing,
-		nodes:                    allocateMapWithSize[Identifier, INode](options.PreallocateNodesSize),
-		observers:                allocateMapWithSize[Identifier, IObserver](options.PreallocateObserversSize),
-		sentinels:                allocateMapWithSize[Identifier, ISentinel](options.PreallocateSentinelsSize),
-		recomputeHeap:            newRecomputeHeap(options.MaxHeight),
-		adjustHeightsHeap:        newAdjustHeightsHeap(options.MaxHeight),
-		setDuringStabilization:   make(map[Identifier]INode),
-		handleAfterStabilization: make(map[Identifier][]func(context.Context)),
-		propagateInvalidityQueue: new(queue[INode]),
+		id:                        NewIdentifier(),
+		parallelism:               options.Parallelism,
+		clearRecomputeHeapOnError: options.ClearRecomputeHeapOnError,
+		stabilizationNum:          1,
+		status:                    StatusNotStabilizing,
+		nodes:                     allocateMapWithSize[Identifier, INode](options.PreallocateNodesSize),
+		observers:                 allocateMapWithSize[Identifier, IObserver](options.PreallocateObserversSize),
+		sentinels:                 allocateMapWithSize[Identifier, ISentinel](options.PreallocateSentinelsSize),
+		recomputeHeap:             newRecomputeHeap(options.MaxHeight),
+		adjustHeightsHeap:         newAdjustHeightsHeap(options.MaxHeight),
+		setDuringStabilization:    make(map[Identifier]INode),
+		handleAfterStabilization:  make(map[Identifier][]func(context.Context)),
+		propagateInvalidityQueue:  new(queue[INode]),
 	}
 }
 
@@ -102,13 +103,24 @@ func OptGraphPreallocateSentinelsSize(size int) func(*GraphOptions) {
 	}
 }
 
+// OptGraphClearRecomputeHeapOnError controls a setting for whether or not the
+// recompute heap is cleared of nodes on stabilization error.
+//
+// If not provided, the default is to not clear the recompute heap, but leave nodes in place.
+func OptGraphClearRecomputeHeapOnError(shouldClear bool) func(*GraphOptions) {
+	return func(g *GraphOptions) {
+		g.ClearRecomputeHeapOnError = shouldClear
+	}
+}
+
 // GraphOptions are options for graphs.
 type GraphOptions struct {
-	MaxHeight                int
-	Parallelism              int
-	PreallocateNodesSize     int
-	PreallocateObserversSize int
-	PreallocateSentinelsSize int
+	MaxHeight                 int
+	Parallelism               int
+	PreallocateNodesSize      int
+	PreallocateObserversSize  int
+	PreallocateSentinelsSize  int
+	ClearRecomputeHeapOnError bool
 }
 
 const (
@@ -136,6 +148,9 @@ type Graph struct {
 	// parallelism is the degree of parallelism used when processing nodes
 	// with the [parallelBatch] iterator.
 	parallelism int
+
+	// clearRecomputeHeapOnError controls if we should clear the recomputeHeap on error.
+	clearRecomputeHeapOnError bool
 
 	// nodesMu interlocks access to nodes
 	nodesMu sync.Mutex
