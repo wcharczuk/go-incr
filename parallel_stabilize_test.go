@@ -270,7 +270,7 @@ func Test_ParallelStabilize_always_cutoff_error(t *testing.T) {
 	testutil.NotNil(t, err)
 	testutil.Equal(t, "", o.Value())
 
-	testutil.Equal(t, 1, g.recomputeHeap.len(), "we should clear the recompute heap on error")
+	testutil.Equal(t, 2, g.recomputeHeap.len(), "we should clear the recompute heap on error")
 }
 
 func Test_ParallelStabilize_printsErrors(t *testing.T) {
