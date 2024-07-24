@@ -1179,7 +1179,6 @@ func Test_Bind_cycle(t *testing.T) {
 	nodesThatErrored := make(map[Identifier]INode)
 
 	var b1 BindIncr[string]
-
 	b0v := Var(g, "a")
 	b0v.Node().OnError(func(_ context.Context, err error) {
 		nodesThatErrored[b0v.Node().id] = b0v
@@ -1199,10 +1198,7 @@ func Test_Bind_cycle(t *testing.T) {
 		nodesThatErrored[b1v.Node().id] = b1v
 	})
 	b1 = Bind(g, b1v, func(bs Scope, which string) Incr[string] {
-		if which == "a" {
-			return b0
-		}
-		return Return(bs, "bar")
+		return b0
 	})
 	b1.Node().OnError(func(_ context.Context, err error) {
 		nodesThatErrored[b1.Node().id] = b1
@@ -1287,4 +1283,70 @@ func Test_bindLeftChange_RightScopeNodes(t *testing.T) {
 	_ = g.Stabilize(testContext())
 
 	testutil.Equal(t, 2, len(bindTyped.bind.lhsChange.RightScopeNodes()))
+}
+
+func Test_Bind_aborted(t *testing.T) {
+	ctx := testContext()
+	g := New(
+		OptGraphClearRecomputeHeapOnError(true),
+	)
+	nodesThatErrored := make(map[Identifier]INode)
+	nodesThatAborted := make(map[Identifier]INode)
+
+	hookNode := func(n INode) {
+		n.Node().OnError(func(_ context.Context, _ error) {
+			nodesThatErrored[n.Node().id] = n
+		})
+		n.Node().OnAborted(func(_ context.Context, _ error) {
+			nodesThatAborted[n.Node().id] = n
+		})
+	}
+
+	var b1, b2 BindIncr[string]
+	b0v := Var(g, "a")
+	hookNode(b0v)
+	b0 := Bind(g, b0v, func(bs Scope, which string) Incr[string] {
+		if which == "a" {
+			return Return(bs, "foo")
+		}
+		return b1
+	})
+	hookNode(b0)
+
+	b1v := Var(g, "a")
+	hookNode(b1v)
+	b1 = Bind(g, b1v, func(bs Scope, which string) Incr[string] {
+		return b2
+	})
+	hookNode(b1)
+
+	b2v := Var(g, "a")
+	hookNode(b2v)
+	b2 = Bind(g, b2v, func(bs Scope, which string) Incr[string] {
+		return b0
+	})
+	hookNode(b2)
+
+	o := MustObserve(g, b2)
+	hookNode(o)
+
+	err := g.Stabilize(ctx)
+	testutil.NoError(t, err)
+	testutil.Equal(t, "foo", o.Value())
+
+	b0v.Set("b")
+
+	err = g.Stabilize(ctx)
+	testutil.Error(t, err)
+	testutil.Equal(t, "foo", o.Value())
+
+	testutil.Equal(t, 1, len(nodesThatErrored))
+	_, ok := nodesThatErrored[b1.Node().id]
+	testutil.Equal(t, true, ok)
+
+	testutil.Equal(t, 2, len(nodesThatAborted))
+	_, ok = nodesThatAborted[b0.Node().id]
+	testutil.Equal(t, true, ok)
+	_, ok = nodesThatAborted[b1.Node().id]
+	testutil.Equal(t, true, ok)
 }

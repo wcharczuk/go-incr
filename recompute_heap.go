@@ -24,8 +24,8 @@ func (rh *recomputeHeap) clear() (aborted []INode) {
 	defer rh.mu.Unlock()
 
 	var next INode
+	aborted = make([]INode, 0, rh.numItems)
 	for rh.numItems > 0 {
-		aborted = make([]INode, 0, rh.numItems)
 		next, _ = rh.removeMinUnsafe()
 		next.Node().heightInRecomputeHeap = HeightUnset
 		aborted = append(aborted, next)

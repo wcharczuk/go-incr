@@ -106,7 +106,10 @@ func OptGraphPreallocateSentinelsSize(size int) func(*GraphOptions) {
 // OptGraphClearRecomputeHeapOnError controls a setting for whether or not the
 // recompute heap is cleared of nodes on stabilization error.
 //
-// If not provided, the default is to not clear the recompute heap, but leave nodes in place.
+// By default the graph will not clear the recompute heap, and instead leave nodes in place.
+//
+// If this option is provided, and `shouldClear` is `true`, then the recompute heap
+// will be cleared on error, and the `OnAborted` handlers of nodes will be called.
 func OptGraphClearRecomputeHeapOnError(shouldClear bool) func(*GraphOptions) {
 	return func(g *GraphOptions) {
 		g.ClearRecomputeHeapOnError = shouldClear
