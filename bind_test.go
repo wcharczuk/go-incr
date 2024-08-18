@@ -1350,3 +1350,51 @@ func Test_Bind_aborted(t *testing.T) {
 	_, ok = nodesThatAborted[b1.Node().id]
 	testutil.Equal(t, true, ok)
 }
+
+func Test_Bind_errors(t *testing.T) {
+	ctx := testContext()
+	g := New(
+		OptGraphClearRecomputeHeapOnError(true),
+	)
+
+	var err error
+	var cached Incr[*int]
+	var mapInput Incr[*int]
+	hasErrored := false
+	two := 2
+
+	refresh := Var(g, "refresh")
+	refresh.Node().SetLabel("refresh")
+	bind := Bind(g, refresh, func(bs Scope, c string) Incr[*int] {
+		if cached != nil {
+			return cached
+		}
+		mapInput = Return(bs, &two)
+		// replace bs in MapContext and Return with g, and the test still fails.
+		cached = MapContext(bs, mapInput, func(_ context.Context, c *int) (*int, error) {
+			out := *c + 1
+			if hasErrored {
+				return &out, nil
+			}
+			hasErrored = true
+			return nil, fmt.Errorf("deliberate")
+		})
+		cached.Node().SetLabel("cached")
+		return cached
+	})
+	bind.Node().SetLabel("bind_cache")
+
+	o, err := Observe(g, bind)
+	testutil.NoError(t, err)
+
+	err = g.Stabilize(ctx)
+	testutil.Error(t, err)
+
+	g.SetStale(mapInput) //RETRY
+
+	err = g.Stabilize(ctx)
+	testutil.NoError(t, err)
+
+	testutil.NotNil(t, o.Value())
+	testutil.Equal(t, *o.Value(), 3)
+}
