@@ -128,7 +128,7 @@ func (b *bind[A, B]) isTopScope() bool       { return false }
 func (b *bind[A, B]) isScopeValid() bool     { return b.main.Node().valid }
 func (b *bind[A, B]) isScopeNecessary() bool { return b.main.Node().isNecessary() }
 func (b *bind[A, B]) scopeGraph() *Graph     { return b.graph }
-func (b *bind[A, B]) scopeHeight() int       { return b.lhs.Node().height }
+func (b *bind[A, B]) scopeHeight() int       { return b.lhsChange.Node().height }
 
 func (b *bind[A, B]) addScopeNode(n INode) {
 	b.rhsNodes = append(b.rhsNodes, n)
