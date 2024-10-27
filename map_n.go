@@ -33,6 +33,7 @@ type MapNContextFunc[A, B any] func(context.Context, ...A) (B, error)
 type MapNIncr[A, B any] interface {
 	Incr[B]
 	AddInput(Incr[A]) error
+	RemoveInput(Identifier) error
 }
 
 var (
@@ -64,6 +65,19 @@ func (mn *mapNIncr[A, B]) AddInput(i Incr[A]) error {
 		// if we're already part of the graph, we have
 		// to tell the graph to update our parent<>child metadata
 		return GraphForNode(mn).addChild(mn, i)
+	}
+	return nil
+}
+
+func (mn *mapNIncr[A, B]) RemoveInput(id Identifier) error {
+	var removed Incr[A]
+	mn.inputs, removed = remove(mn.inputs, id)
+	if removed != nil {
+		mn.Node().removeParent(id)
+		removed.Node().removeChild(mn.n.id)
+		GraphForNode(mn).SetStale(mn)
+		GraphForNode(mn).checkIfUnnecessary(removed)
+		return nil
 	}
 	return nil
 }

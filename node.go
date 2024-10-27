@@ -218,19 +218,19 @@ func (n *Node) addSentinels(sentinels ...ISentinel) {
 }
 
 func (n *Node) removeChild(id Identifier) {
-	n.children = remove(n.children, id)
+	n.children, _ = remove(n.children, id)
 }
 
 func (n *Node) removeParent(id Identifier) {
-	n.parents = remove(n.parents, id)
+	n.parents, _ = remove(n.parents, id)
 }
 
 func (n *Node) removeObserver(id Identifier) {
-	n.observers = remove(n.observers, id)
+	n.observers, _ = remove(n.observers, id)
 }
 
 func (n *Node) removeSentinel(id Identifier) {
-	n.sentinels = remove(n.sentinels, id)
+	n.sentinels, _ = remove(n.sentinels, id)
 }
 
 // maybeCutoff calls the cutoff delegate if it's set, otherwise
