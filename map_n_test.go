@@ -130,3 +130,32 @@ func Test_MapN_RemoveInput_onlyInput(t *testing.T) {
 	hasR2 := g.Has(r2)
 	testutil.Equal(t, false, hasR2)
 }
+
+func Test_MapN_RemoveInput_heightUpdates(t *testing.T) {
+	ctx := testContext()
+	g := New()
+
+	r0 := Return(g, 2)
+	m0 := Map[int](g, r0, ident)
+
+	r1 := Return(g, 1)
+
+	mn := MapN[int](g, sum, r1)
+	om := MustObserve(g, mn)
+
+	err := mn.AddInput(m0)
+	testutil.NoError(t, err)
+
+	err = g.Stabilize(ctx)
+	testutil.NoError(t, err)
+	testutil.Equal(t, 3, om.Value())
+	testutil.Equal(t, 2, mn.Node().height)
+
+	err = mn.RemoveInput(m0.Node().ID())
+	testutil.NoError(t, err)
+
+	err = g.Stabilize(ctx)
+	testutil.NoError(t, err)
+	testutil.Equal(t, 1, om.Value())
+	testutil.Equal(t, 2, mn.Node().height)
+}
