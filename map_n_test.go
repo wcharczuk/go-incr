@@ -157,5 +157,5 @@ func Test_MapN_RemoveInput_heightUpdates(t *testing.T) {
 	err = g.Stabilize(ctx)
 	testutil.NoError(t, err)
 	testutil.Equal(t, 1, om.Value())
-	testutil.Equal(t, 2, mn.Node().height)
+	testutil.Equal(t, 2, mn.Node().height, "the height should stay the same as strictly it shouldn't get smaller, but staying higher is fine")
 }
