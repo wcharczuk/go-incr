@@ -78,12 +78,6 @@ func (o *observeIncr[A]) OnUpdate(fn func(context.Context, A)) {
 
 func (o *observeIncr[A]) Node() *Node { return o.n }
 
-// Unobserve effectively removes a given node from the observed ref count for a graph.
-//
-// As well, it unlinks the observer from its parent nodes, and as a result
-// you should _not_ re-use the node.
-//
-// To observe parts of a graph again, use the `MustObserve(...)` helper.
 func (o *observeIncr[A]) Unobserve(ctx context.Context) {
 	GraphForNode(o).unobserveNode(o, o.observed)
 	o.observed = nil
