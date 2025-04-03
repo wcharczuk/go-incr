@@ -136,11 +136,11 @@ func Test_MapN_RemoveInput_heightUpdates(t *testing.T) {
 	g := New()
 
 	r0 := Return(g, 2)
-	m0 := Map[int](g, r0, ident)
+	m0 := Map(g, r0, ident)
 
 	r1 := Return(g, 1)
 
-	mn := MapN[int](g, sum, r1)
+	mn := MapN(g, sum, r1)
 	om := MustObserve(g, mn)
 
 	err := mn.AddInput(m0)
@@ -158,4 +158,35 @@ func Test_MapN_RemoveInput_heightUpdates(t *testing.T) {
 	testutil.NoError(t, err)
 	testutil.Equal(t, 1, om.Value())
 	testutil.Equal(t, 2, mn.Node().height, "the height should stay the same as strictly it shouldn't get smaller, but staying higher is fine")
+}
+
+func Test_MapN_determinism(t *testing.T) {
+	ctx := testContext()
+	g := New(
+		OptGraphDeterministic(true),
+	)
+
+	var sawValues []int
+
+	r0 := Return(g, 1)
+	r1 := Return(g, 2)
+	r2 := Return(g, 3)
+	r3 := Return(g, 4)
+	mn := MapN(g, func(values ...int) int {
+		sawValues = make([]int, len(values))
+		copy(sawValues, values)
+		return sum(values...)
+	}, r0, r1, r2, r3)
+
+	r4 := Return(g, 5)
+	err := mn.AddInput(r4)
+	testutil.NoError(t, err)
+
+	om := MustObserve(g, mn)
+
+	err = g.Stabilize(ctx)
+	testutil.NoError(t, err)
+	testutil.Equal(t, 15, om.Value())
+
+	testutil.Equal(t, []int{1, 2, 3, 4, 5}, sawValues)
 }
