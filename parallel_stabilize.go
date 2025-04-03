@@ -50,7 +50,7 @@ func (graph *Graph) parallelStabilize(ctx context.Context) (err error) {
 	var iter recomputeHeapListIter
 	for graph.recomputeHeap.len() > 0 {
 		graph.recomputeHeap.setIterToMinHeight(&iter)
-		err = parallelBatch[INode](ctx, parallelRecomputeNode, iter.Next, graph.parallelism)
+		err = parallelBatch(ctx, parallelRecomputeNode, iter.Next, graph.parallelism)
 		if err != nil {
 			break
 		}
