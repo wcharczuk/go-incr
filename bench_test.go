@@ -8,123 +8,83 @@ import (
 )
 
 func Benchmark_createGraph_512(b *testing.B) {
-	benchmarkCreateGraph(512, false, b)
+	benchmarkCreateGraph(512, false, _defaultIdentifierProvider, b)
 }
 
 func Benchmark_createGraph_preallocateNodes_512(b *testing.B) {
-	benchmarkCreateGraph(512, true, b)
+	benchmarkCreateGraph(512, true, _defaultIdentifierProvider, b)
 }
 
 func Benchmark_createGraph_customIdentifierProvider_512(b *testing.B) {
-	b.Cleanup(func() {
-		SetIdentifierProvider(cryptoRandIdentifierProvider)
-	})
-	SetIdentifierProvider(counterIdentifierProvider)
-	benchmarkCreateGraph(512, false, b)
+	benchmarkCreateGraph(512, false, NewSequentialIdentifierProvier(0), b)
 }
 
 func Benchmark_createGraph_preallocateNodes_customIdentifierProvider_512(b *testing.B) {
-	b.Cleanup(func() {
-		SetIdentifierProvider(cryptoRandIdentifierProvider)
-	})
-	SetIdentifierProvider(counterIdentifierProvider)
-	benchmarkCreateGraph(512, true, b)
+	benchmarkCreateGraph(512, true, NewSequentialIdentifierProvier(0), b)
 }
 
 func Benchmark_createGraph_1024(b *testing.B) {
-	benchmarkCreateGraph(1024, false, b)
+	benchmarkCreateGraph(1024, false, _defaultIdentifierProvider, b)
 }
 
 func Benchmark_createGraph_preallocateNodes_1024(b *testing.B) {
-	benchmarkCreateGraph(1024, true, b)
+	benchmarkCreateGraph(1024, true, _defaultIdentifierProvider, b)
 }
 
 func Benchmark_createGraph_customIdentifierProvider_1024(b *testing.B) {
-	b.Cleanup(func() {
-		SetIdentifierProvider(cryptoRandIdentifierProvider)
-	})
-	SetIdentifierProvider(counterIdentifierProvider)
-	benchmarkCreateGraph(1024, false, b)
+	benchmarkCreateGraph(1024, false, NewSequentialIdentifierProvier(0), b)
 }
 
 func Benchmark_createGraph_preallocateNodes_customIdentifierProvider_1024(b *testing.B) {
-	b.Cleanup(func() {
-		SetIdentifierProvider(cryptoRandIdentifierProvider)
-	})
-	SetIdentifierProvider(counterIdentifierProvider)
-	benchmarkCreateGraph(1024, true, b)
+	benchmarkCreateGraph(1024, true, NewSequentialIdentifierProvier(0), b)
 }
 
 func Benchmark_createGraph_2048(b *testing.B) {
-	benchmarkCreateGraph(2048, false, b)
+	benchmarkCreateGraph(2048, false, _defaultIdentifierProvider, b)
 }
 
 func Benchmark_createGraph_preallocateNodes_2048(b *testing.B) {
-	benchmarkCreateGraph(2048, true, b)
+	benchmarkCreateGraph(2048, true, _defaultIdentifierProvider, b)
 }
 
 func Benchmark_createGraph_customIdentifierProvider_2048(b *testing.B) {
-	b.Cleanup(func() {
-		SetIdentifierProvider(cryptoRandIdentifierProvider)
-	})
-	SetIdentifierProvider(counterIdentifierProvider)
-	benchmarkCreateGraph(2048, false, b)
+	benchmarkCreateGraph(2048, false, NewSequentialIdentifierProvier(0), b)
 }
 
 func Benchmark_createGraph_preallocateNodes_customIdentifierProvider_2048(b *testing.B) {
-	b.Cleanup(func() {
-		SetIdentifierProvider(cryptoRandIdentifierProvider)
-	})
-	SetIdentifierProvider(counterIdentifierProvider)
-	benchmarkCreateGraph(2048, true, b)
+	benchmarkCreateGraph(2048, true, NewSequentialIdentifierProvier(0), b)
 }
 
 func Benchmark_createGraph_4096(b *testing.B) {
-	benchmarkCreateGraph(4096, false, b)
+	benchmarkCreateGraph(4096, false, _defaultIdentifierProvider, b)
 }
 
 func Benchmark_createGraph_preallocateNodes_4096(b *testing.B) {
-	benchmarkCreateGraph(4096, true, b)
+	benchmarkCreateGraph(4096, true, _defaultIdentifierProvider, b)
 }
 
 func Benchmark_createGraph_customIdentifierProvider_4096(b *testing.B) {
-	b.Cleanup(func() {
-		SetIdentifierProvider(cryptoRandIdentifierProvider)
-	})
-	SetIdentifierProvider(counterIdentifierProvider)
-	benchmarkCreateGraph(4096, false, b)
+	benchmarkCreateGraph(4096, false, NewSequentialIdentifierProvier(0), b)
 }
 
 func Benchmark_createGraph_preallocateNodes_customIdentifierProvider_4096(b *testing.B) {
-	b.Cleanup(func() {
-		SetIdentifierProvider(cryptoRandIdentifierProvider)
-	})
-	SetIdentifierProvider(counterIdentifierProvider)
-	benchmarkCreateGraph(4096, true, b)
+	benchmarkCreateGraph(4096, true, NewSequentialIdentifierProvier(0), b)
 }
 
 func Benchmark_createGraph_8192(b *testing.B) {
-	benchmarkCreateGraph(8192, false, b)
+	benchmarkCreateGraph(8192, false, _defaultIdentifierProvider, b)
 }
 
 func Benchmark_createGraph_preallocateNodes_8192(b *testing.B) {
-	benchmarkCreateGraph(8192, true, b)
+	benchmarkCreateGraph(8192, true, _defaultIdentifierProvider, b)
 }
 
 func Benchmark_createGraph_customIdentifierProvider_8192(b *testing.B) {
-	b.Cleanup(func() {
-		SetIdentifierProvider(cryptoRandIdentifierProvider)
-	})
-	SetIdentifierProvider(counterIdentifierProvider)
-	benchmarkCreateGraph(8192, false, b)
+	benchmarkCreateGraph(8192, false, NewSequentialIdentifierProvier(0), b)
 }
 
 func Benchmark_createGraphpreallocateNodes__customIdentifierProvider_8192(b *testing.B) {
-	b.Cleanup(func() {
-		SetIdentifierProvider(cryptoRandIdentifierProvider)
-	})
-	SetIdentifierProvider(counterIdentifierProvider)
-	benchmarkCreateGraph(8192, true, b)
+	benchmarkCreateGraph(8192, true, _defaultIdentifierProvider, b)
 }
 
 func Benchmark_Stabilize_withPreInitialize_512(b *testing.B) {
@@ -265,11 +225,12 @@ func longer(a, b *string) *string {
 
 func ref[A any](v A) *A { return &v }
 
-func makeBenchmarkGraph(size int, preallocate bool) (*Graph, []Incr[*string]) {
+func makeBenchmarkGraph(size int, preallocate bool, identifierProvider IdentifierProvider) (*Graph, []Incr[*string]) {
 	var options []GraphOption
 	if preallocate {
 		options = append(options, OptGraphPreallocateNodesSize(size<<1))
 	}
+	options = append(options, OptGraphIdentifierProvider(identifierProvider))
 	graph := New(options...)
 	nodes := make([]Incr[*string], size)
 	for x := 0; x < size; x++ {
@@ -334,14 +295,14 @@ func makeBenchmarkRecombinantGraph(size int) (*Graph, VarIncr[*string], ObserveI
 	return g, input, observer
 }
 
-func benchmarkCreateGraph(size int, preallocate bool, b *testing.B) {
+func benchmarkCreateGraph(size int, preallocate bool, identifierProvider IdentifierProvider, b *testing.B) {
 	for x := 0; x < b.N; x++ {
-		_, _ = makeBenchmarkGraph(size, preallocate)
+		_, _ = makeBenchmarkGraph(size, preallocate, identifierProvider)
 	}
 }
 
 func benchmarkSize(size int, b *testing.B) {
-	graph, nodes := makeBenchmarkGraph(size, false /*preallocate*/)
+	graph, nodes := makeBenchmarkGraph(size, false /*preallocate*/, _defaultIdentifierProvider)
 	ctx := context.Background()
 	b.ResetTimer()
 	var err error
@@ -368,7 +329,7 @@ func benchmarkSize(size int, b *testing.B) {
 }
 
 func benchmarkParallelSize(size int, b *testing.B) {
-	graph, nodes := makeBenchmarkGraph(size, false /*preallocate*/)
+	graph, nodes := makeBenchmarkGraph(size, false /*preallocate*/, _defaultIdentifierProvider)
 	ctx := testContext()
 	b.ResetTimer()
 	var err error

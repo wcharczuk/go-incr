@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -29,10 +31,19 @@ func New(opts ...GraphOption) *Graph {
 	for _, opt := range opts {
 		opt(&options)
 	}
+	if options.IdentifierProvider == nil {
+		if options.Deterministic {
+			options.IdentifierProvider = NewSequentialIdentifierProvier(0)
+		} else {
+			options.IdentifierProvider = _defaultIdentifierProvider
+		}
+	}
 	return &Graph{
-		id:                        NewIdentifier(),
+		identiferProvider:         options.IdentifierProvider,
+		id:                        options.IdentifierProvider.NewIdentifier(),
 		parallelism:               options.Parallelism,
 		clearRecomputeHeapOnError: options.ClearRecomputeHeapOnError,
+		deterministic:             options.Deterministic,
 		stabilizationNum:          1,
 		status:                    StatusNotStabilizing,
 		nodes:                     allocateMapWithSize[Identifier, INode](options.PreallocateNodesSize),
@@ -116,6 +127,29 @@ func OptGraphClearRecomputeHeapOnError(shouldClear bool) func(*GraphOptions) {
 	}
 }
 
+// OptGraphDeterministic ensures that processes the operate based on order do so consistently.
+//
+// If not provided, by default some processes, like calling update handlers after stabilization, use
+// map iterators for which the execution order is undefined, though in practice it is pseudo-random.
+func OptGraphDeterministic(deterministic bool) func(*GraphOptions) {
+	return func(g *GraphOptions) {
+		g.Deterministic = deterministic
+	}
+}
+
+// OptGraphIdentifierProvider sets the graph's identifier provider.
+//
+// By default the graph will use a crypto/rand based identifier provider that returns
+// identifiers using [NewCryptoRandIdentifierProvider].
+//
+// You can customize the identifier provider used by the graph for performance or determinism
+// reasons.
+func OptGraphIdentifierProvider(identifierProvider IdentifierProvider) func(*GraphOptions) {
+	return func(g *GraphOptions) {
+		g.IdentifierProvider = identifierProvider
+	}
+}
+
 // GraphOptions are options for graphs.
 type GraphOptions struct {
 	MaxHeight                 int
@@ -124,6 +158,8 @@ type GraphOptions struct {
 	PreallocateObserversSize  int
 	PreallocateSentinelsSize  int
 	ClearRecomputeHeapOnError bool
+	Deterministic             bool
+	IdentifierProvider        IdentifierProvider
 }
 
 const (
@@ -143,6 +179,8 @@ var (
 // The graph holds information such as, how many stabilizations have happened,
 // what node are currently observed, and what nodes need to be recomputed.
 type Graph struct {
+	// identifierProvider is the provider for identifiers
+	identiferProvider IdentifierProvider
 	// id is a unique identifier for the graph
 	id Identifier
 	// label is a descriptive label for the graph
@@ -154,6 +192,10 @@ type Graph struct {
 
 	// clearRecomputeHeapOnError controls if we should clear the recomputeHeap on error.
 	clearRecomputeHeapOnError bool
+
+	// deterministic controls aspects of stabilization such that
+	// if the user values determinism, things will happen in consistent order.
+	deterministic bool
 
 	// nodesMu interlocks access to nodes
 	nodesMu sync.Mutex
@@ -184,11 +226,11 @@ type Graph struct {
 	// set during stabilization
 	setDuringStabilization map[Identifier]INode
 
+	// handleAfterStabilizationMu coordinates access to handleAfterStabilization
+	handleAfterStabilizationMu sync.Mutex
 	// handleAfterStabilization is a list of update
 	// handlers that need to run after stabilization is done.
 	handleAfterStabilization map[Identifier][]func(context.Context)
-	// handleAfterStabilizationMu coordinates access to handleAfterStabilization
-	handleAfterStabilizationMu sync.Mutex
 
 	// stabilizationNum is the version
 	// of the graph in respect to when
@@ -313,6 +355,9 @@ func (graph *Graph) scopeGraph() *Graph     { return graph }
 func (graph *Graph) scopeHeight() int       { return HeightUnset }
 func (graph *Graph) addScopeNode(_ INode)   {}
 func (graph *Graph) String() string         { return fmt.Sprintf("{graph:%s}", graph.id.Short()) }
+func (graph *Graph) newIdentifier() Identifier {
+	return graph.identiferProvider.NewIdentifier()
+}
 
 //
 // Internal discovery & observe methods
@@ -560,6 +605,10 @@ func (graph *Graph) zeroNode(n INode) {
 	delete(graph.handleAfterStabilization, nn.ID())
 	graph.handleAfterStabilizationMu.Unlock()
 
+	graph.setDuringStabilizationMu.Lock()
+	delete(graph.setDuringStabilization, nn.ID())
+	graph.setDuringStabilizationMu.Unlock()
+
 	nn.setAt = 0
 	nn.changedAt = 0
 	nn.recomputedAt = 0
@@ -660,9 +709,25 @@ func (graph *Graph) stabilizeEnd(ctx context.Context, err error) {
 func (graph *Graph) stabilizeEndHandleSetDuringStabilization(ctx context.Context) {
 	graph.setDuringStabilizationMu.Lock()
 	defer graph.setDuringStabilizationMu.Unlock()
-	for _, n := range graph.setDuringStabilization {
-		_ = n.Node().maybeStabilize(ctx)
-		graph.SetStale(n)
+
+	if graph.deterministic {
+		keys := make([]Identifier, 0, len(graph.setDuringStabilization))
+		for key := range graph.setDuringStabilization {
+			keys = append(keys, key)
+		}
+		slices.SortFunc(keys, func(id0, id1 Identifier) int {
+			return strings.Compare(id0.String(), id1.String())
+		})
+		for _, nodeID := range keys {
+			n := graph.setDuringStabilization[nodeID]
+			_ = n.Node().maybeStabilize(ctx)
+			graph.SetStale(n)
+		}
+	} else {
+		for _, n := range graph.setDuringStabilization {
+			_ = n.Node().maybeStabilize(ctx)
+			graph.SetStale(n)
+		}
 	}
 	clear(graph.setDuringStabilization)
 }
@@ -678,9 +743,26 @@ func (graph *Graph) stabilizeEndRunUpdateHandlers(ctx context.Context) {
 			TracePrintln(ctx, "stabilization calling user update handlers complete")
 		}()
 	}
-	for _, uhGroup := range graph.handleAfterStabilization {
-		for _, uh := range uhGroup {
-			uh(ctx)
+
+	if graph.deterministic {
+		// we have to sort these so that update handlers fire in order
+		keys := make([]Identifier, 0, len(graph.handleAfterStabilization))
+		for key := range graph.handleAfterStabilization {
+			keys = append(keys, key)
+		}
+		slices.SortFunc(keys, func(id0, id1 Identifier) int {
+			return strings.Compare(id0.String(), id1.String())
+		})
+		for _, nodeID := range keys {
+			for _, uh := range graph.handleAfterStabilization[nodeID] {
+				uh(ctx)
+			}
+		}
+	} else {
+		for _, updateGroup := range graph.handleAfterStabilization {
+			for _, uh := range updateGroup {
+				uh(ctx)
+			}
 		}
 	}
 	clear(graph.handleAfterStabilization)

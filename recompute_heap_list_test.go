@@ -8,7 +8,7 @@ import (
 
 func nodePtrID(n INode) Identifier {
 	if n == nil {
-		return zero
+		return _zero
 	}
 	return n.Node().id
 }
@@ -497,7 +497,7 @@ func Test_recomputeHeapList_remove_4(t *testing.T) {
 func Test_recomputeHeapList_remove_empty(t *testing.T) {
 	q := new(recomputeHeapList)
 
-	ok := q.remove(NewIdentifier())
+	ok := q.remove(_defaultIdentifierProvider.NewIdentifier())
 	testutil.Equal(t, false, ok)
 }
 
@@ -520,7 +520,7 @@ func Test_recomputeHeapList_remove_notFound(t *testing.T) {
 	testutil.NotNil(t, rhprev(q.tail))
 	testutil.Equal(t, nodePtrID(q.tail), n3.n.id)
 
-	ok := q.remove(NewIdentifier())
+	ok := q.remove(_defaultIdentifierProvider.NewIdentifier())
 	testutil.Equal(t, false, ok)
 }
 

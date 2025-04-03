@@ -1,10 +1,10 @@
 package incr
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"sync/atomic"
 	"testing"
 
 	"github.com/wcharczuk/go-incr/testutil"
@@ -15,49 +15,64 @@ var (
 	_ json.Unmarshaler = (*Identifier)(nil)
 )
 
-func Test_Identifier(t *testing.T) {
-	id := NewIdentifier()
-	testutil.Equal(t, hex.EncodeToString(id[:]), id.String())
-	testutil.Equal(t, hex.EncodeToString(id[12:]), id.Short())
+func Test_NewCryptoRandIdentifierProvider_NewIdentifier(t *testing.T) {
+	provider := NewCryptoRandIdentifierProvider(rand.Reader)
+	id00 := provider.NewIdentifier()
+	testutil.Equal(t, hex.EncodeToString(id00[:]), id00.String())
+	testutil.Equal(t, hex.EncodeToString(id00[12:]), id00.Short())
+
+	id01 := provider.NewIdentifier()
+	testutil.Equal(t, hex.EncodeToString(id01[:]), id01.String())
+	testutil.Equal(t, hex.EncodeToString(id01[12:]), id01.Short())
+
+	testutil.NotEqual(t, id00, id01, "crypto rand identifiers should be unique")
+
+	// generate another 16 identifiers (to stress the buffer rotation)
+	for x := 0; x < 16; x++ {
+		id0n := provider.NewIdentifier()
+		testutil.Equal(t, hex.EncodeToString(id0n[:]), id0n.String())
+		testutil.Equal(t, hex.EncodeToString(id0n[12:]), id0n.Short())
+
+		testutil.NotEqual(t, id0n, id00, "crypto rand identifiers should be unique")
+		testutil.NotEqual(t, id0n, id01, "crypto rand identifiers should be unique")
+	}
 }
 
-var identifierCounter uint64
+func Test_NewSequentialIdentifierProvider_NewIdentifier(t *testing.T) {
+	provider := NewSequentialIdentifierProvier(0)
+	id00 := provider.NewIdentifier()
+	testutil.Equal(t, hex.EncodeToString(id00[:]), id00.String())
+	testutil.Equal(t, hex.EncodeToString(id00[12:]), id00.Short())
 
-func counterIdentifierProvider() (output Identifier) {
-	newCounter := atomic.AddUint64(&identifierCounter, 1)
-	output[15] = byte(newCounter)
-	output[14] = byte(newCounter >> 8)
-	output[13] = byte(newCounter >> 16)
-	output[12] = byte(newCounter >> 24)
-	output[11] = byte(newCounter >> 32)
-	output[10] = byte(newCounter >> 40)
-	output[9] = byte(newCounter >> 48)
-	output[8] = byte(newCounter >> 56)
-	return
-}
+	id01 := provider.NewIdentifier()
+	testutil.Equal(t, hex.EncodeToString(id01[:]), id01.String())
+	testutil.Equal(t, hex.EncodeToString(id01[12:]), id01.Short())
 
-func Test_SetIdentifierProvider(t *testing.T) {
-	t.Cleanup(func() {
-		SetIdentifierProvider(cryptoRandIdentifierProvider)
-	})
+	testutil.NotEqual(t, id00, id01, "crypto rand identifiers should be unique")
 
-	identifierCounter = 0
-	SetIdentifierProvider(counterIdentifierProvider)
-	testutil.Equal(t, "00000000000000000000000000000001", NewIdentifier().String())
-	testutil.Equal(t, "00000000000000000000000000000002", NewIdentifier().String())
-	testutil.Equal(t, "00000000000000000000000000000003", NewIdentifier().String())
+	// generate another 16 identifiers (for no reason other than to be consistent)
+	for x := 0; x < 16; x++ {
+		id0n := provider.NewIdentifier()
+		testutil.Equal(t, hex.EncodeToString(id0n[:]), id0n.String())
+		testutil.Equal(t, hex.EncodeToString(id0n[12:]), id0n.Short())
+
+		testutil.NotEqual(t, id0n, id00, "crypto rand identifiers should be unique")
+		testutil.NotEqual(t, id0n, id01, "crypto rand identifiers should be unique")
+	}
 }
 
 func Test_Identifier_IsZero(t *testing.T) {
-	id := NewIdentifier()
+	provider := NewCryptoRandIdentifierProvider(rand.Reader)
+	id := provider.NewIdentifier()
 	testutil.Equal(t, false, id.IsZero())
-	testutil.Equal(t, true, zero.IsZero())
+	testutil.Equal(t, true, _zero.IsZero())
 	var test Identifier
 	testutil.Equal(t, true, test.IsZero())
 }
 
 func Test_ParseIdentifier(t *testing.T) {
-	knownID := NewIdentifier()
+	provider := NewCryptoRandIdentifierProvider(rand.Reader)
+	knownID := provider.NewIdentifier()
 	testCases := [...]struct {
 		Input       string
 		Expected    Identifier
@@ -86,8 +101,9 @@ type jsonTest struct {
 }
 
 func Test_Identifier_json(t *testing.T) {
+	provider := NewCryptoRandIdentifierProvider(rand.Reader)
 	testValue := jsonTest{
-		ID: NewIdentifier(),
+		ID: provider.NewIdentifier(),
 	}
 	data, err := json.Marshal(testValue)
 	testutil.Nil(t, err)

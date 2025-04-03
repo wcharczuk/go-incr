@@ -57,6 +57,11 @@ func Test_adjustHeightsHeap_ensureHeightRequirementUnsafe(t *testing.T) {
 	n2 := newMockBareNodeWithHeight(g, 3)
 	n3 := newMockBareNodeWithHeight(g, 4)
 
+	testutil.NotEqual(t, n0.n.id, n1.n.id)
+	testutil.NotEqual(t, n1.n.id, n2.n.id)
+	testutil.NotEqual(t, n2.n.id, n3.n.id)
+	testutil.NotEqual(t, n3.n.id, n0.n.id)
+
 	err := ahh.ensureHeightRequirementUnsafe(n0, n1, n1, n0)
 	testutil.Error(t, err)
 	testutil.Equal(t, 0, ahh.numNodes)

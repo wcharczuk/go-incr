@@ -7,6 +7,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 // Identifier is a unique id.
@@ -14,34 +15,32 @@ import (
 // Create a new identifier with [NewIdentifier].
 type Identifier [16]byte
 
-// NewIdentifier returns a new identifier.
-//
-// Currently the underlying data looks like a
-// uuidv4 but that shouldn't be relied upon.
-//
-// By default [NewIdentifier] uses [crypto/rand] to generate
-// the random data for the identifier in a rotating buffer, which
-// yields decent performance and uniqueness guarantees.
-//
-// If performance is still bottlenecked on creating identifiers for nodes
-// you can swap out the algorithm for generating ids with [SetIdentifierProvider].
-func NewIdentifier() (output Identifier) {
-	output = identifierProvider()
-	return
+// IdentifierProvider is a type that can provide identifiers.
+type IdentifierProvider interface {
+	NewIdentifier() Identifier
 }
 
-// MustParseIdentifier is the reverse of `.String()` that will
-// panic if an error is returned by `ParseIdentifier`.
-func MustParseIdentifier(raw string) (output Identifier) {
-	var err error
-	output, err = ParseIdentifier(raw)
-	if err != nil {
-		panic(err)
+// NewCryptoRandIdentifierProvider a new crypto rand identifier provider.
+//
+// To use this constructor in practice, pass the [rand.Reader] from crypto/rand as the argument.
+func NewCryptoRandIdentifierProvider(randomSource io.Reader) IdentifierProvider {
+	return &cryptoRandIdentifierProvider{
+		identifierRandPoolPos: cryptoRandPoolSize, // force an initial rand read
+		randomSource:          randomSource,
 	}
-	return
 }
 
-// ParseIdentifier is the reverse of `.String()`.
+// NewSequentialIdentifierProvier returns a new sequential identifier provider.
+//
+// To use this constructor in practice you can pass a 0 or another known start offset.
+func NewSequentialIdentifierProvier(sequenceStart uint64) IdentifierProvider {
+	return &sequentialIdentifierProvider{
+		seq: sequenceStart,
+	}
+}
+
+// ParseIdentifier is the reverse of [Identifier.String] and returns
+// a parsed identifier from its string representation.
 func ParseIdentifier(raw string) (output Identifier, err error) {
 	if raw == "" {
 		return
@@ -59,46 +58,21 @@ func ParseIdentifier(raw string) (output Identifier, err error) {
 	return
 }
 
-// SetIdentifierProvider sets the identifier provider
-// to a custom provider separate from the default.
+// NewIdentifier returns a new random identifier.
 //
-// This is especially useful in performance critical use cases where
-// the identifier doesn't need to be securely random, that is there are
-// looser constraints on the randomness of the identifier because
-// there will be few nodes over the lifetime of the program or graph.
-func SetIdentifierProvider(ip func() Identifier) {
-	identifierProvider = ip
+// This is a convenience method exposed for backwards compatibility reasons.
+func NewIdentifier() Identifier {
+	return _defaultIdentifierProvider.NewIdentifier()
 }
-
-func cryptoRandIdentifierProvider() (output Identifier) {
-	identifierRandPoolMu.Lock()
-	if identifierRandPoolPos == randPoolSize {
-		_, _ = io.ReadFull(randomSource, identifierRandPool[:])
-		identifierRandPoolPos = 0
-	}
-	copy(output[:], identifierRandPool[identifierRandPoolPos:(identifierRandPoolPos+16)])
-	identifierRandPoolPos += 16
-	identifierRandPoolMu.Unlock()
-	output[6] = (output[6] & 0x0f) | 0x40 // Version 4
-	output[8] = (output[8] & 0x3f) | 0x80 // Variant is 10
-	return
-}
-
-const randPoolSize = 16 * 16
 
 var (
-	identifierProvider    = cryptoRandIdentifierProvider
-	identifierRandPoolMu  sync.Mutex
-	identifierRandPoolPos = randPoolSize     // protected with poolMu
-	identifierRandPool    [randPoolSize]byte // protected with poolMu
-	randomSource          = rand.Reader      // random function
+	_defaultIdentifierProvider = NewCryptoRandIdentifierProvider(rand.Reader)
+	_zero                      Identifier
 )
-
-var zero Identifier
 
 // IsZero returns if the identifier is unset.
 func (id Identifier) IsZero() bool {
-	return id == zero
+	return id == _zero
 }
 
 // MarshalJSON implements json.Marshaler.
@@ -132,4 +106,44 @@ func (id Identifier) Short() string {
 	var buf [8]byte
 	hex.Encode(buf[:], id[12:])
 	return string(buf[:])
+}
+
+type cryptoRandIdentifierProvider struct {
+	identifierRandPoolMu  sync.Mutex
+	identifierRandPoolPos int
+	identifierRandPool    [cryptoRandPoolSize]byte // protected with poolMu
+	randomSource          io.Reader                // random function
+}
+
+func (cr *cryptoRandIdentifierProvider) NewIdentifier() (output Identifier) {
+	cr.identifierRandPoolMu.Lock()
+	if cr.identifierRandPoolPos == cryptoRandPoolSize {
+		_, _ = io.ReadFull(cr.randomSource, cr.identifierRandPool[:])
+		cr.identifierRandPoolPos = 0
+	}
+	copy(output[:], cr.identifierRandPool[cr.identifierRandPoolPos:(cr.identifierRandPoolPos+16)])
+	cr.identifierRandPoolPos += 16
+	cr.identifierRandPoolMu.Unlock()
+	output[6] = (output[6] & 0x0f) | 0x40 // Version 4
+	output[8] = (output[8] & 0x3f) | 0x80 // Variant is 10
+	return
+}
+
+const cryptoRandPoolSize = 16 * 16
+
+type sequentialIdentifierProvider struct {
+	seq uint64
+}
+
+func (s *sequentialIdentifierProvider) NewIdentifier() (output Identifier) {
+	newCounter := atomic.AddUint64(&s.seq, 1)
+	output[15] = byte(newCounter)
+	output[14] = byte(newCounter >> 8)
+	output[13] = byte(newCounter >> 16)
+	output[12] = byte(newCounter >> 24)
+	output[11] = byte(newCounter >> 32)
+	output[10] = byte(newCounter >> 40)
+	output[9] = byte(newCounter >> 48)
+	output[8] = byte(newCounter >> 56)
+	return
 }

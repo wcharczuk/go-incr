@@ -92,6 +92,22 @@ func NotEmpty[A ~[]E, E any](t *testing.T, values A, message ...any) {
 	}
 }
 
+// HasKey asserts a map has a given key.
+func HasKey[K comparable, V any](t *testing.T, k K, m map[K]V, message ...any) {
+	t.Helper()
+	if _, ok := m[k]; ok {
+		fatalf(t, "expected map not to have key: %v", []any{k}, message)
+	}
+}
+
+// NotHasKey asserts a map does not have a given key.
+func NotHasKey[K comparable, V any](t *testing.T, k K, m map[K]V, message ...any) {
+	t.Helper()
+	if _, ok := m[k]; ok {
+		fatalf(t, "expected map not to have key: %v", []any{k}, message)
+	}
+}
+
 // isNil returns if a given reference is nil, but also returning true
 // if the reference is a valid typed pointer to nil, which may not strictly
 // be equal to nil.

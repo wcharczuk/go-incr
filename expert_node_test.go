@@ -11,7 +11,7 @@ func Test_ExpertNode_setters(t *testing.T) {
 	n := newMockBareNode(g)
 	en := ExpertNode(n)
 
-	id := NewIdentifier()
+	id := _defaultIdentifierProvider.NewIdentifier()
 	en.SetID(id)
 
 	testutil.Equal(t, id, n.Node().ID())

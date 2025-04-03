@@ -16,6 +16,7 @@ import "fmt"
 // to associate the scopes correctly. This method is exported for advanced use
 // cases where you want to manage scopes manually.
 func WithinScope[A INode](scope Scope, node A) A {
+	node.Node().id = scope.newIdentifier()
 	node.Node().createdIn = scope
 	if scope != nil && scope.isTopScope() {
 		return node
@@ -53,5 +54,6 @@ type Scope interface {
 	scopeGraph() *Graph
 	scopeHeight() int
 	addScopeNode(INode)
+	newIdentifier() Identifier
 	fmt.Stringer
 }

@@ -126,6 +126,7 @@ func Test_Graph_removeNodeFromGraph(t *testing.T) {
 		func(_ context.Context) {},
 		func(_ context.Context) {},
 	}
+	g.setDuringStabilization[mn00.n.id] = mn00
 	g.recomputeHeap.add(mn00)
 
 	g.removeNode(mn00)
@@ -142,6 +143,9 @@ func Test_Graph_removeNodeFromGraph(t *testing.T) {
 	testutil.Equal(t, HeightUnset, mn00.n.height)
 	testutil.Equal(t, HeightUnset, mn00.n.heightInRecomputeHeap)
 	testutil.Equal(t, HeightUnset, mn00.n.heightInAdjustHeightsHeap)
+
+	testutil.NotHasKey(t, mn00.n.id, g.handleAfterStabilization)
+	testutil.NotHasKey(t, mn00.n.id, g.setDuringStabilization)
 }
 
 func Test_Graph_zeroNode(t *testing.T) {

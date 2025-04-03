@@ -8,7 +8,6 @@ import (
 // NewNode returns a new node.
 func NewNode(kind string) *Node {
 	return &Node{
-		id:                        NewIdentifier(),
 		kind:                      kind,
 		valid:                     true, // start out valid!
 		height:                    HeightUnset,
@@ -117,6 +116,10 @@ type Node struct {
 //
 
 // ID returns a unique identifier for the node.
+//
+// The identifier is set by the scope when you associate the node to a scope
+// with [WithinScope], as a result when the node is returned from [NewNode] the
+// identifier will be zero until it's associated with a scope.
 func (n *Node) ID() Identifier {
 	return n.id
 }

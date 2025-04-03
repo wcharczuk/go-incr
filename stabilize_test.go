@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -293,6 +294,78 @@ func Test_Stabilize_setDuringStabilization(t *testing.T) {
 	testutil.Equal(t, "not-foo", v0.Value())
 	testutil.Equal(t, g.stabilizationNum, v0.Node().setAt)
 	testutil.Equal(t, 1, g.recomputeHeap.numItems)
+}
+
+func Test_Stabilize_setDuringStabilization_deterministic(t *testing.T) {
+	ctx := testContext()
+	g := New(
+		OptGraphDeterministic(true),
+	)
+
+	v0 := Var(g, "foo-00")
+	v0.Node().SetLabel("00")
+	v1 := Var(g, "foo-01")
+	v1.Node().SetLabel("01")
+	v2 := Var(g, "foo-02")
+	v2.Node().SetLabel("02")
+
+	called := sync.WaitGroup{}
+	called.Add(3)
+	stabilizationWait := make(chan struct{})
+
+	m0 := Map(g, v0, func(v string) string {
+		called.Done()
+		return v
+	})
+	m1 := Map(g, v1, func(v string) string {
+		called.Done()
+		return v
+	})
+	m2 := Map(g, v2, func(v string) string {
+		called.Done()
+		<-stabilizationWait
+		return v
+	})
+
+	_ = MustObserve(g, m0)
+	_ = MustObserve(g, m1)
+	_ = MustObserve(g, m2)
+
+	stabilizationDone := make(chan struct{})
+	go func() {
+		defer close(stabilizationDone)
+		_ = g.Stabilize(ctx)
+	}()
+
+	called.Wait()
+
+	// we're now stabilizing, this should
+	// go in the "set during stabilization" cache
+	v0.Set("not-foo-00")
+	v1.Set("not-foo-01")
+	v2.Set("not-foo-02")
+
+	testutil.Equal(t, "foo-00", v0.Value())
+	testutil.Equal(t, "foo-01", v1.Value())
+	testutil.Equal(t, "foo-02", v2.Value())
+
+	close(stabilizationWait)
+	<-stabilizationDone
+
+	// we're now _done_ stabilizing
+	testutil.Equal(t, "not-foo-00", v0.Value())
+	testutil.Equal(t, "not-foo-01", v1.Value())
+	testutil.Equal(t, "not-foo-02", v2.Value())
+	testutil.Equal(t, g.stabilizationNum, v0.Node().setAt)
+	testutil.Equal(t, g.stabilizationNum, v1.Node().setAt)
+	testutil.Equal(t, g.stabilizationNum, v2.Node().setAt)
+	testutil.Equal(t, 3, g.recomputeHeap.numItems)
+
+	var nodesInHeap []string
+	g.recomputeHeap.heights[0].consume(func(n INode) {
+		nodesInHeap = append(nodesInHeap, n.Node().label)
+	})
+	testutil.Equal(t, []string{"00", "01", "02"}, nodesInHeap)
 }
 
 func Test_Stabilize_onUpdate(t *testing.T) {
@@ -1552,4 +1625,55 @@ func Test_Stabilize_alwaysInRecomputeHeapOnError(t *testing.T) {
 	err := g.Stabilize(testContext())
 	testutil.Error(t, err)
 	testutil.Equal(t, "this is only a test", err.Error())
+}
+
+func Test_Stabilize_determinism(t *testing.T) {
+	/*
+		the goal of this test is to stress that serial stabilization
+		with sequential identifiers should happen more or less in the same
+		order every time we stabilize.
+
+		this is important if we ever want to use incr in e.g. temporal workflows.
+	*/
+
+	g := New(
+		OptGraphIdentifierProvider(NewSequentialIdentifierProvier(0)),
+	)
+	vars := []VarIncr[string]{}
+	for index := 0; index < 10; index++ {
+		vars = append(vars, Var(g, fmt.Sprintf("%02d", index)))
+	}
+
+	var mapStabilizeOrder []Identifier
+	maps := []Incr[string]{}
+	for index := 0; index < 10; index++ {
+		m := Map(g, vars[index], ident)
+		m.Node().OnUpdate(func(_ context.Context) {
+			mapStabilizeOrder = append(mapStabilizeOrder, m.Node().ID())
+		})
+		maps = append(maps, m)
+	}
+	obs := []ObserveIncr[string]{}
+	for index := 0; index < 10; index++ {
+		obs = append(obs, MustObserve(g, maps[index]))
+	}
+
+	err := g.Stabilize(context.TODO())
+	testutil.NoError(t, err)
+
+	originalMapStabilizeOrder := make([]Identifier, len(mapStabilizeOrder))
+	copy(originalMapStabilizeOrder, mapStabilizeOrder)
+	mapStabilizeOrder = nil
+
+	for x := 0; x < 10; x++ {
+		for _, v := range vars {
+			v.Set(fmt.Sprintf("%02d", x))
+		}
+		err := g.Stabilize(context.TODO())
+		testutil.NoError(t, err)
+
+		slicesAreEqual := slices.Equal(mapStabilizeOrder, originalMapStabilizeOrder)
+		testutil.Equal(t, true, slicesAreEqual)
+		mapStabilizeOrder = nil
+	}
 }

@@ -122,7 +122,6 @@ func (mn *mockBareNode) Value() any {
 func newHeightIncr(scope Scope, height int) *heightIncr {
 	return WithinScope(scope, &heightIncr{
 		n: &Node{
-			id:     NewIdentifier(),
 			height: height,
 		},
 	})

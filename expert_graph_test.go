@@ -10,9 +10,8 @@ func Test_ExpertGraph_SetID(t *testing.T) {
 	g := New()
 	eg := ExpertGraph(g)
 
-	newID := NewIdentifier()
+	newID := _defaultIdentifierProvider.NewIdentifier()
 	eg.SetID(newID)
-
 	testutil.Equal(t, newID, g.ID())
 }
 

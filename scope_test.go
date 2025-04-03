@@ -18,3 +18,13 @@ func Test_graphFromNodeCreatedIn_unset(t *testing.T) {
 	g := GraphForNode(nil)
 	testutil.Nil(t, g)
 }
+
+func Test_WithinScope(t *testing.T) {
+	g := New()
+	n := &mockBareNode{
+		n: NewNode("bare_node"),
+	}
+	updatedNode := WithinScope(g, n)
+	testutil.Equal(t, false, updatedNode.n.id.IsZero())
+	testutil.NotNil(t, updatedNode.n.createdIn)
+}

@@ -32,9 +32,9 @@ func Test_NewNode(t *testing.T) {
 
 func Test_Node_ID(t *testing.T) {
 	n := NewNode("test_node")
-	testutil.Equal(t, false, n.ID().IsZero())
+	testutil.Equal(t, true, n.ID().IsZero(), "identifiers are provided by the scope through WithinScope")
 
-	other := NewIdentifier()
+	other := _defaultIdentifierProvider.NewIdentifier()
 	n.id = other
 	testutil.Equal(t, other, n.ID())
 }
@@ -450,7 +450,7 @@ func Test_Node_stabilize_error(t *testing.T) {
 }
 
 func Test_nodeFormatters(t *testing.T) {
-	id := NewIdentifier()
+	id := _defaultIdentifierProvider.NewIdentifier()
 	g := New()
 
 	testCases := [...]struct {
