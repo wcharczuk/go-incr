@@ -2,6 +2,7 @@ package incr
 
 import (
 	"context"
+	"fmt"
 	"sync"
 )
 
@@ -19,6 +20,10 @@ import (
 // You should only reach for [Graph.ParallelStabilize] if you have very long running node recomputations
 // that would benefit from processing in parallel, e.g. if you have nodes that are I/O bound or CPU intensive.
 func (graph *Graph) ParallelStabilize(ctx context.Context) (err error) {
+	if graph.deterministic {
+		err = fmt.Errorf("incr; cannot parallel stabilize if graph is deterministic")
+		return
+	}
 	if err = graph.ensureNotStabilizing(ctx); err != nil {
 		return
 	}

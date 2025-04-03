@@ -24,7 +24,7 @@ func Test_ParallelStabilize(t *testing.T) {
 	_ = MustObserve(g, m0)
 
 	err := g.ParallelStabilize(ctx)
-	testutil.Nil(t, err)
+	testutil.NoError(t, err)
 
 	testutil.Equal(t, 0, v0.Node().setAt)
 	testutil.Equal(t, 0, v0.Node().changedAt)
@@ -42,7 +42,7 @@ func Test_ParallelStabilize(t *testing.T) {
 	testutil.Equal(t, 0, v1.Node().setAt)
 
 	err = g.ParallelStabilize(ctx)
-	testutil.Nil(t, err)
+	testutil.NoError(t, err)
 
 	testutil.Equal(t, 2, v0.Node().changedAt)
 	testutil.Equal(t, 0, v1.Node().changedAt)
@@ -53,6 +53,23 @@ func Test_ParallelStabilize(t *testing.T) {
 	testutil.Equal(t, 2, m0.Node().recomputedAt)
 
 	testutil.Equal(t, "not foo bar", m0.Value())
+}
+
+func Test_ParallelStabilize_deterministic(t *testing.T) {
+	ctx := testContext()
+	g := New(
+		OptGraphDeterministic(true),
+	)
+
+	v0 := Var(g, "foo")
+	v1 := Var(g, "bar")
+	m0 := Map2(g, v0, v1, func(a, b string) string {
+		return a + " " + b
+	})
+
+	_ = MustObserve(g, m0)
+	err := g.ParallelStabilize(ctx)
+	testutil.Error(t, err)
 }
 
 func Test_ParallelStabilize_alreadyStabilizing(t *testing.T) {
