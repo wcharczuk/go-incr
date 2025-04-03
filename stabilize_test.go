@@ -1637,7 +1637,7 @@ func Test_Stabilize_determinism(t *testing.T) {
 	*/
 
 	g := New(
-		OptGraphIdentifierProvider(NewSequentialIdentifierProvier(0)),
+		OptGraphDeterministic(true),
 	)
 	vars := []VarIncr[string]{}
 	for index := 0; index < 10; index++ {

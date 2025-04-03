@@ -65,6 +65,17 @@ func NewIdentifier() Identifier {
 	return _defaultIdentifierProvider.NewIdentifier()
 }
 
+// SetIdentifierProvider sets the identifier provider
+// to a custom provider separate from the default.
+//
+// This is especially useful in performance critical use cases where
+// the identifier doesn't need to be securely random, that is there are
+// looser constraints on the randomness of the identifier because
+// there will be few nodes over the lifetime of the program or graph.
+func SetIdentifierProvider(ip IdentifierProvider) {
+	_defaultIdentifierProvider = ip
+}
+
 var (
 	_defaultIdentifierProvider = NewCryptoRandIdentifierProvider(rand.Reader)
 	_zero                      Identifier
