@@ -61,6 +61,10 @@ type IExpertGraph interface {
 
 	// UnobserveNode implements the unobserve steps usually handled by observers.
 	UnobserveNode(IObserver, INode)
+
+	// CheckIfUnnecessary adds a node to the became unnecessary queue
+	// if it is (newly) unnecessary.
+	CheckIfUnnecessary(INode)
 }
 
 type expertGraph struct {
@@ -133,4 +137,8 @@ func (eg *expertGraph) ObserveNode(obs IObserver, node INode) error {
 
 func (eg *expertGraph) UnobserveNode(obs IObserver, node INode) {
 	eg.graph.unobserveNode(obs, node)
+}
+
+func (eg *expertGraph) CheckIfUnnecessary(node INode) {
+	eg.graph.checkIfUnnecessary(node)
 }
