@@ -25,7 +25,7 @@ func Sentinel(scope Scope, fn func() bool, watched INode) SentinelIncr {
 // If an error is returned by the provided function stabilization will stop according to error handling rules.
 func SentinelContext(scope Scope, fn func(context.Context) (bool, error), watched INode) SentinelIncr {
 	s := WithinScope(scope, &sentinelIncr{
-		n:       NewNode("sentinel"),
+		n:       NewNode(KindSentinel),
 		fn:      fn,
 		watched: watched,
 	})

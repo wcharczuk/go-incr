@@ -18,7 +18,7 @@ func Map5[A, B, C, D, E, F any](scope Scope, a Incr[A], b Incr[B], c Incr[C], d 
 // new incremental of the output type of that function.
 func Map5Context[A, B, C, D, E, F any](scope Scope, a Incr[A], b Incr[B], c Incr[C], d Incr[D], e Incr[E], fn func(context.Context, A, B, C, D, E) (F, error)) Incr[F] {
 	return WithinScope(scope, &map5Incr[A, B, C, D, E, F]{
-		n:       NewNode("map5"),
+		n:       NewNode(KindMap5),
 		a:       a,
 		b:       b,
 		c:       c,

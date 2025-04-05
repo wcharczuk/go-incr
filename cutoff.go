@@ -11,7 +11,7 @@ import (
 // node if the difference between the previous and latest values are not
 // significant enough to warrant a full recomputation of the children of this node.
 func Cutoff[A any](bs Scope, i Incr[A], fn CutoffFunc[A]) Incr[A] {
-	return CutoffContext[A](bs, i, func(_ context.Context, oldv, newv A) (bool, error) {
+	return CutoffContext(bs, i, func(_ context.Context, oldv, newv A) (bool, error) {
 		return fn(oldv, newv), nil
 	})
 }
@@ -23,7 +23,7 @@ func Cutoff[A any](bs Scope, i Incr[A], fn CutoffFunc[A]) Incr[A] {
 // significant enough to warrant a full recomputation of the children of this node.
 func CutoffContext[A any](bs Scope, i Incr[A], fn CutoffContextFunc[A]) Incr[A] {
 	return WithinScope(bs, &cutoffIncr[A]{
-		n:  NewNode("cutoff"),
+		n:  NewNode(KindCutoff),
 		i:  i,
 		fn: fn,
 	})

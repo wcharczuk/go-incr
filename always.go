@@ -21,7 +21,7 @@ import "fmt"
 // In the above example, each time we call [Graph.Stabilize] we'll increment the counter.
 func Always[A any](scope Scope, input Incr[A]) Incr[A] {
 	return WithinScope(scope, &alwaysIncr[A]{
-		n:       NewNode("always"),
+		n:       NewNode(KindAlways),
 		input:   input,
 		parents: []INode{input},
 	})

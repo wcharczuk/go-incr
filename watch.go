@@ -9,7 +9,7 @@ import (
 // values for a given incremental each time it stabilizes.
 func Watch[A any](scope Scope, i Incr[A]) WatchIncr[A] {
 	return WithinScope(scope, &watchIncr[A]{
-		n:    NewNode("watch"),
+		n:    NewNode(KindWatch),
 		incr: i,
 	})
 }

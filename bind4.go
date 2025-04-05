@@ -16,10 +16,10 @@ func Bind4Context[A, B, C, D, E any](scope Scope, a Incr[A], b Incr[B], c Incr[C
 	m := Map4(scope, a, b, c, d, func(av A, bv B, cv C, dv D) tuple4[A, B, C, D] {
 		return tuple4[A, B, C, D]{av, bv, cv, dv}
 	})
-	bind := BindContext[tuple4[A, B, C, D], E](scope, m, func(ctx context.Context, bs Scope, tv tuple4[A, B, C, D]) (Incr[E], error) {
+	bind := BindContext(scope, m, func(ctx context.Context, bs Scope, tv tuple4[A, B, C, D]) (Incr[E], error) {
 		return fn(ctx, scope, tv.A, tv.B, tv.C, tv.D)
 	})
-	bind.Node().SetKind("bind4")
+	bind.Node().SetKind(KindBind4)
 	return bind
 }
 

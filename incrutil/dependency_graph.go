@@ -106,7 +106,7 @@ func (dg DependencyGraph[Result]) mapAction(d Dependency) func(ctx context.Conte
 }
 
 func (dg DependencyGraph[Result]) createDependencyIncr(g *incr.Graph, d Dependency) (DependencyIncr[Result], error) {
-	output := incr.MapNContext[Result, Result](g, dg.mapAction(d))
+	output := incr.MapNContext(g, dg.mapAction(d))
 	output.Node().SetLabel(d.Name)
 	if dg.CheckIfStale != nil {
 		_ = incr.SentinelContext(g, func(ctx context.Context) (bool, error) {

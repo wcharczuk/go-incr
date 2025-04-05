@@ -10,7 +10,7 @@ import (
 // always the same value, and never causes recomputations.
 func Return[A any](scope Scope, v A) Incr[A] {
 	return WithinScope(scope, &returnIncr[A]{
-		n: NewNode("return"),
+		n: NewNode(KindReturn),
 		v: v,
 	})
 }

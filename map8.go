@@ -18,7 +18,7 @@ func Map8[A, B, C, D, E, F, G, H, I any](scope Scope, a Incr[A], b Incr[B], c In
 // new incremental of the output type of that function.
 func Map8Context[A, B, C, D, E, F, G, H, I any](scope Scope, a Incr[A], b Incr[B], c Incr[C], d Incr[D], e Incr[E], f Incr[F], g Incr[G], h Incr[H], fn func(context.Context, A, B, C, D, E, F, G, H) (I, error)) Incr[I] {
 	return WithinScope(scope, &map8Incr[A, B, C, D, E, F, G, H, I]{
-		n:       NewNode("map8"),
+		n:       NewNode(KindMap8),
 		a:       a,
 		b:       b,
 		c:       c,

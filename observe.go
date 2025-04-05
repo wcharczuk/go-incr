@@ -10,7 +10,7 @@ import (
 //
 // If this detects a cycle or any other issue a panic will be raised.
 func MustObserve[A any](g *Graph, observed Incr[A]) ObserveIncr[A] {
-	o, err := Observe[A](g, observed)
+	o, err := Observe(g, observed)
 	if err != nil {
 		panic(err)
 	}
@@ -21,7 +21,7 @@ func MustObserve[A any](g *Graph, observed Incr[A]) ObserveIncr[A] {
 // as well as all of its parents.
 func Observe[A any](g *Graph, observed Incr[A]) (ObserveIncr[A], error) {
 	o := WithinScope(g, &observeIncr[A]{
-		n:        NewNode("observer"),
+		n:        NewNode(KindObserver),
 		observed: observed,
 	})
 	if err := g.observeNode(o, observed); err != nil {

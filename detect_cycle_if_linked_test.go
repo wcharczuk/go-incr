@@ -8,14 +8,14 @@ import (
 
 func Test_DetectCycleIfLinked(t *testing.T) {
 	g := New()
-	n0 := MapN[any, any](g, identMany)
-	n01 := MapN[any, any](g, identMany)
-	n02 := MapN[any, any](g, identMany)
-	n03 := MapN[any, any](g, identMany)
-	n1 := MapN[any, any](g, identMany)
-	n11 := MapN[any, any](g, identMany)
-	n12 := MapN[any, any](g, identMany)
-	n13 := MapN[any, any](g, identMany)
+	n0 := MapN[any](g, identMany)
+	n01 := MapN[any](g, identMany)
+	n02 := MapN[any](g, identMany)
+	n03 := MapN[any](g, identMany)
+	n1 := MapN[any](g, identMany)
+	n11 := MapN[any](g, identMany)
+	n12 := MapN[any](g, identMany)
+	n13 := MapN[any](g, identMany)
 
 	var err error
 	err = n01.AddInput(n0)
@@ -59,7 +59,7 @@ func Test_DetectCycleIfLinked_nils(t *testing.T) {
 
 func detectCycleNode(label string) MapNIncr[any, any] {
 	g := New()
-	n := MapN[any, any](g, identMany)
+	n := MapN[any](g, identMany)
 	n.Node().SetLabel(label)
 	return n
 }
@@ -151,9 +151,9 @@ func Test_DetectCycleIfLinked_complex2(t *testing.T) {
 func Test_DetectCycleIfLinked_2(t *testing.T) {
 	/* these are some trivial cases to make sure bases are covered */
 	g := New()
-	n0 := MapN[any, any](g, identMany)
-	n1 := MapN[any, any](g, identMany)
-	n2 := MapN[any, any](g, identMany)
+	n0 := MapN[any](g, identMany)
+	n1 := MapN[any](g, identMany)
+	n2 := MapN[any](g, identMany)
 
 	err := DetectCycleIfLinked(n0, n0)
 	testutil.Error(t, err)

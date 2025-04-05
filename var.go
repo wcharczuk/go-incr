@@ -16,7 +16,7 @@ import (
 // take the [Var] node as an input (i.e. the [Var] node's children).
 func Var[T any](scope Scope, t T) VarIncr[T] {
 	return WithinScope(scope, &varIncr[T]{
-		n:     NewNode("var"),
+		n:     NewNode(KindVar),
 		value: t,
 	})
 }

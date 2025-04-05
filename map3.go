@@ -18,7 +18,7 @@ func Map3[A, B, C, D any](scope Scope, a Incr[A], b Incr[B], c Incr[C], fn func(
 // new incremental of the output type of that function.
 func Map3Context[A, B, C, D any](scope Scope, a Incr[A], b Incr[B], c Incr[C], fn func(context.Context, A, B, C) (D, error)) Incr[D] {
 	return WithinScope(scope, &map3Incr[A, B, C, D]{
-		n:       NewNode("map3"),
+		n:       NewNode(KindMap3),
 		a:       a,
 		b:       b,
 		c:       c,

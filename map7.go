@@ -18,7 +18,7 @@ func Map7[A, B, C, D, E, F, G, H any](scope Scope, a Incr[A], b Incr[B], c Incr[
 // new incremental of the output type of that function.
 func Map7Context[A, B, C, D, E, F, G, H any](scope Scope, a Incr[A], b Incr[B], c Incr[C], d Incr[D], e Incr[E], f Incr[F], g Incr[G], fn func(context.Context, A, B, C, D, E, F, G) (H, error)) Incr[H] {
 	return WithinScope(scope, &map7Incr[A, B, C, D, E, F, G, H]{
-		n:       NewNode("map7"),
+		n:       NewNode(KindMap7),
 		a:       a,
 		b:       b,
 		c:       c,

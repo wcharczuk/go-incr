@@ -37,7 +37,7 @@ func (mfn *removedIncr[M, K, V]) Value() M { return mfn.val }
 
 func (mfn *removedIncr[M, K, V]) Stabilize(_ context.Context) error {
 	newVal := mfn.i.Value()
-	mfn.val = symmetricDiffRemoved[M, K, V](mfn.last, newVal)
+	mfn.val = symmetricDiffRemoved[M](mfn.last, newVal)
 	mfn.last = maps.Clone(newVal)
 	return nil
 }

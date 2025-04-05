@@ -602,7 +602,7 @@ func Test_Bind_nested_bindCreatesBind(t *testing.T) {
 	cv.Node().SetLabel("cv")
 	bv := Var(g, "a")
 	bv.Node().SetLabel("bv")
-	c := BindContext[string](g, cv, func(_ context.Context, bs Scope, _ string) (Incr[string], error) {
+	c := BindContext(g, cv, func(_ context.Context, bs Scope, _ string) (Incr[string], error) {
 		a0 := createDynamicMaps(bs, "a0")
 		a1 := createDynamicMaps(bs, "a1")
 		bind := BindContext(bs, bv, func(_ context.Context, bs Scope, which string) (Incr[string], error) {

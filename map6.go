@@ -18,7 +18,7 @@ func Map6[A, B, C, D, E, F, G any](scope Scope, a Incr[A], b Incr[B], c Incr[C],
 // new incremental of the output type of that function.
 func Map6Context[A, B, C, D, E, F, G any](scope Scope, a Incr[A], b Incr[B], c Incr[C], d Incr[D], e Incr[E], f Incr[F], fn func(context.Context, A, B, C, D, E, F) (G, error)) Incr[G] {
 	return WithinScope(scope, &map6Incr[A, B, C, D, E, F, G]{
-		n:       NewNode("map6"),
+		n:       NewNode(KindMap6),
 		a:       a,
 		b:       b,
 		c:       c,

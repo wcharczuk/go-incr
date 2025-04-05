@@ -10,7 +10,7 @@ import (
 // BindMemoized returns a node that caches the results of the bind function, and as a result the input must be typed such that the
 // computed value of the input is comparable.
 func BindMemoized[A comparable, B any](scope incr.Scope, a incr.Incr[A], fn incr.BindFunc[A, B]) BindMemoizedIncr[A, B] {
-	return BindMemoizedContextCached[A, B](scope, a, func(_ context.Context, innerScope incr.Scope, av A) (incr.Incr[B], error) {
+	return BindMemoizedContextCached(scope, a, func(_ context.Context, innerScope incr.Scope, av A) (incr.Incr[B], error) {
 		return fn(innerScope, av), nil
 	}, BindMapCache[A, B]())
 }
@@ -19,7 +19,7 @@ func BindMemoized[A comparable, B any](scope incr.Scope, a incr.Incr[A], fn incr
 // computed value of the input is comparable. The provided cache reference will be used, allowing this node to share its cache with
 // other bind nodes.
 func BindMemoizedCached[A comparable, B any](scope incr.Scope, a incr.Incr[A], fn incr.BindFunc[A, B], cache BindCache[A, B]) BindMemoizedIncr[A, B] {
-	return BindMemoizedContextCached[A, B](scope, a, func(_ context.Context, innerScope incr.Scope, av A) (incr.Incr[B], error) {
+	return BindMemoizedContextCached(scope, a, func(_ context.Context, innerScope incr.Scope, av A) (incr.Incr[B], error) {
 		return fn(innerScope, av), nil
 	}, cache)
 }
@@ -27,7 +27,7 @@ func BindMemoizedCached[A comparable, B any](scope incr.Scope, a incr.Incr[A], f
 // BindMemoizedContext returns a node that caches the results of the bind function, which takes a context and returns an error, and as a
 // result the input must be typed such that the computed value of the input is comparable.
 func BindMemoizedContext[A comparable, B any](scope incr.Scope, a incr.Incr[A], fn incr.BindContextFunc[A, B]) BindMemoizedIncr[A, B] {
-	return BindMemoizedContextCached[A, B](scope, a, func(ctx context.Context, innerScope incr.Scope, av A) (incr.Incr[B], error) {
+	return BindMemoizedContextCached(scope, a, func(ctx context.Context, innerScope incr.Scope, av A) (incr.Incr[B], error) {
 		return fn(ctx, innerScope, av)
 	}, BindMapCache[A, B]())
 }

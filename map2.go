@@ -18,7 +18,7 @@ func Map2[A, B, C any](scope Scope, a Incr[A], b Incr[B], fn func(A, B) C) Incr[
 // the output type of that function.
 func Map2Context[A, B, C any](scope Scope, a Incr[A], b Incr[B], fn func(context.Context, A, B) (C, error)) Incr[C] {
 	return WithinScope(scope, &map2Incr[A, B, C]{
-		n:       NewNode("map2"),
+		n:       NewNode(KindMap2),
 		a:       a,
 		b:       b,
 		fn:      fn,

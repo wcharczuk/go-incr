@@ -39,7 +39,7 @@ func (mfn *addedIncr[M, K, V]) Value() M { return mfn.val }
 
 func (mfn *addedIncr[M, K, V]) Stabilize(_ context.Context) error {
 	newVal := mfn.i.Value()
-	mfn.val = symmetricDiffAdded[M, K, V](mfn.last, newVal)
+	mfn.val = symmetricDiffAdded[M](mfn.last, newVal)
 	mfn.last = maps.Clone(newVal)
 	return nil
 }

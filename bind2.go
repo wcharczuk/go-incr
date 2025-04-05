@@ -16,10 +16,10 @@ func Bind2Context[A, B, C any](scope Scope, a Incr[A], b Incr[B], fn func(contex
 	m := Map2(scope, a, b, func(av A, bv B) tuple2[A, B] {
 		return tuple2[A, B]{av, bv}
 	})
-	bind := BindContext[tuple2[A, B], C](scope, m, func(ctx context.Context, bs Scope, tv tuple2[A, B]) (Incr[C], error) {
+	bind := BindContext(scope, m, func(ctx context.Context, bs Scope, tv tuple2[A, B]) (Incr[C], error) {
 		return fn(ctx, scope, tv.A, tv.B)
 	})
-	bind.Node().SetKind("bind2")
+	bind.Node().SetKind(KindBind2)
 	return bind
 }
 

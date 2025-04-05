@@ -36,7 +36,7 @@ func Test_parallelBatch(t *testing.T) {
 
 	seen := make(map[string]struct{})
 	var seenMu sync.Mutex
-	err := parallelBatch[string](testContext(), func(_ context.Context, v string) error {
+	err := parallelBatch(testContext(), func(_ context.Context, v string) error {
 		seenMu.Lock()
 		seen[v] = struct{}{}
 		seenMu.Unlock()
@@ -60,7 +60,7 @@ func Test_parallelBatch_error(t *testing.T) {
 	workIter := &arrayIter[string]{values: work}
 
 	var processed uint32
-	err := parallelBatch[string](testContext(), func(_ context.Context, v string) error {
+	err := parallelBatch(testContext(), func(_ context.Context, v string) error {
 		atomic.AddUint32(&processed, 1)
 		if v == "work-2" {
 			return fmt.Errorf("this is only a test")

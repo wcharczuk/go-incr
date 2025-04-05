@@ -7,7 +7,7 @@ import (
 
 // Cutoff2 returns a new cutoff incremental that takes an epsilon input.
 func Cutoff2[A, B any](bs Scope, epsilon Incr[A], input Incr[B], fn Cutoff2Func[A, B]) Incr[B] {
-	return Cutoff2Context[A, B](bs, epsilon, input, func(_ context.Context, epsilon A, oldv, newv B) (bool, error) {
+	return Cutoff2Context(bs, epsilon, input, func(_ context.Context, epsilon A, oldv, newv B) (bool, error) {
 		return fn(epsilon, oldv, newv), nil
 	})
 }
@@ -19,7 +19,7 @@ func Cutoff2[A, B any](bs Scope, epsilon Incr[A], input Incr[B], fn Cutoff2Func[
 // significant enough to warrant a full recomputation of the children of this node.
 func Cutoff2Context[A, B any](bs Scope, epsilon Incr[A], input Incr[B], fn Cutoff2ContextFunc[A, B]) Incr[B] {
 	return WithinScope(bs, &cutoff2Incr[A, B]{
-		n:  NewNode("cutoff2"),
+		n:  NewNode(KindCutoff2),
 		fn: fn,
 		e:  epsilon,
 		i:  input,

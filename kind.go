@@ -1,0 +1,32 @@
+package incr
+
+// Node kind constants.
+const (
+	KindAlways        = "always"
+	KindBindIf        = "bind_if"
+	KindBindLHSChange = "bind-lhs-change"
+	KindBind          = "bind"
+	KindBind2         = "bind2"
+	KindBind3         = "bind3"
+	KindBind4         = "bind4"
+	KindCutoff        = "cutoff"
+	KindCutoff2       = "cutoff2"
+	KindFreeze        = "freeze"
+	KindFunc          = "func"
+	KindMapIf         = "map_if"
+	KindMapN          = "map_n"
+	KindMap           = "map"
+	KindMap2          = "map2"
+	KindMap3          = "map3"
+	KindMap4          = "map4"
+	KindMap5          = "map5"
+	KindMap6          = "map6"
+	KindMap7          = "map7"
+	KindMap8          = "map8"
+	KindObserver      = "observer"
+	KindReturn        = "return"
+	KindSentinel      = "sentinel"
+	KindTimer         = "timer"
+	KindVar           = "var"
+	KindWatch         = "watch"
+)

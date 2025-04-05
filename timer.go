@@ -14,7 +14,7 @@ import (
 // is the first stabilization or if the timer has elapsed.
 func Timer[A any](scope Scope, input Incr[A], every time.Duration) Incr[A] {
 	return WithinScope(scope, &timerIncr[A]{
-		n:           NewNode("timer"),
+		n:           NewNode(KindTimer),
 		clockSource: func(_ context.Context) time.Time { return time.Now().UTC() },
 		every:       every,
 		input:       input,

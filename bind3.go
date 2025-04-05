@@ -16,10 +16,10 @@ func Bind3Context[A, B, C, D any](scope Scope, a Incr[A], b Incr[B], c Incr[C], 
 	m := Map3(scope, a, b, c, func(av A, bv B, cv C) tuple3[A, B, C] {
 		return tuple3[A, B, C]{av, bv, cv}
 	})
-	bind := BindContext[tuple3[A, B, C], D](scope, m, func(ctx context.Context, bs Scope, tv tuple3[A, B, C]) (Incr[D], error) {
+	bind := BindContext(scope, m, func(ctx context.Context, bs Scope, tv tuple3[A, B, C]) (Incr[D], error) {
 		return fn(ctx, scope, tv.A, tv.B, tv.C)
 	})
-	bind.Node().SetKind("bind3")
+	bind.Node().SetKind(KindBind3)
 	return bind
 }
 

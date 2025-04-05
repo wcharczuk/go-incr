@@ -51,13 +51,13 @@ func BindContext[A, B any](scope Scope, input Incr[A], fn BindContextFunc[A, B])
 		fn:    fn,
 	}
 	bindLeftChange := WithinScope(scope, &bindLeftChangeIncr[A, B]{
-		n:       NewNode("bind-lhs-change"),
+		n:       NewNode(KindBindLHSChange),
 		bind:    bind,
 		parents: []INode{input},
 	})
 	bind.lhsChange = bindLeftChange
 	bindMain := WithinScope(scope, &bindMainIncr[A, B]{
-		n:       NewNode("bind"),
+		n:       NewNode(KindBind),
 		bind:    bind,
 		parents: []INode{bindLeftChange},
 	})
