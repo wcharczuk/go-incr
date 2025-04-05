@@ -39,7 +39,7 @@ func Test_NewCryptoRandIdentifierProvider_NewIdentifier(t *testing.T) {
 }
 
 func Test_NewSequentialIdentifierProvider_NewIdentifier(t *testing.T) {
-	provider := NewSequentialIdentifierProvier(0)
+	provider := NewSequentialIdentifierProvier(1)
 	id00 := provider.NewIdentifier()
 	testutil.Equal(t, hex.EncodeToString(id00[:]), id00.String())
 	testutil.Equal(t, hex.EncodeToString(id00[12:]), id00.Short())
@@ -47,6 +47,9 @@ func Test_NewSequentialIdentifierProvider_NewIdentifier(t *testing.T) {
 	id01 := provider.NewIdentifier()
 	testutil.Equal(t, hex.EncodeToString(id01[:]), id01.String())
 	testutil.Equal(t, hex.EncodeToString(id01[12:]), id01.Short())
+
+	testutil.Equal(t, false, id00.IsZero())
+	testutil.Equal(t, false, id01.IsZero())
 
 	testutil.NotEqual(t, id00, id01, "crypto rand identifiers should be unique")
 

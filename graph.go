@@ -33,7 +33,7 @@ func New(opts ...GraphOption) *Graph {
 	}
 	if options.IdentifierProvider == nil {
 		if options.Deterministic {
-			options.IdentifierProvider = NewSequentialIdentifierProvier(0)
+			options.IdentifierProvider = NewSequentialIdentifierProvier(1)
 		} else {
 			options.IdentifierProvider = _defaultIdentifierProvider
 		}
