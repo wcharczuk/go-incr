@@ -1,5 +1,7 @@
 package incr
 
+import "context"
+
 // ExpertGraph returns an "expert" interface to modify
 // internal fields of the graph type.
 //
@@ -65,6 +67,28 @@ type IExpertGraph interface {
 	// CheckIfUnnecessary adds a node to the became unnecessary queue
 	// if it is (newly) unnecessary.
 	CheckIfUnnecessary(INode)
+
+	// EnsureNotStabilizing is called by the default stabilize methods
+	// before stabilizing starts to make sure that we're not already
+	// stabilizing a given graph.
+	EnsureNotStabilizing(context.Context) error
+	// StabilizeStart performs actions at start during the default stabilizers.
+	StabilizeStart(context.Context) context.Context
+	// StabilizeEnd performs actions at end during the default stabilizers.
+	StabilizeEnd(context.Context, error)
+	// Recompute recomputes a node, this is a step in the standard stabilizers.
+	//
+	// Parallel controls if we should enforce mutual exclusion by acquiring
+	// locks within the graph to prevent data races between goroutines.
+	Recompute(ctx context.Context, node INode, parallel bool) error
+	// RecomputeHeapClear empties the recompute heap list, returning
+	// references to any nodes that were in the recompute heap.
+	RecomputeHeapClear() []INode
+	// RecomputeHeapListIterator returns a recompute heap list iterator.
+	RecomputeHeapListIterator() RecomputeHeapListIterator
+	// RecomputeHeapSetIterToMinHeight sets the iterator to read from
+	// the min height that has nodes in the recompute heap.
+	RecomputeHeapSetIterToMinHeight(RecomputeHeapListIterator)
 }
 
 type expertGraph struct {
@@ -141,4 +165,26 @@ func (eg *expertGraph) UnobserveNode(obs IObserver, node INode) {
 
 func (eg *expertGraph) CheckIfUnnecessary(node INode) {
 	eg.graph.checkIfUnnecessary(node)
+}
+
+func (eg *expertGraph) EnsureNotStabilizing(ctx context.Context) error {
+	return eg.graph.ensureNotStabilizing(ctx)
+}
+func (eg *expertGraph) StabilizeStart(ctx context.Context) context.Context {
+	return eg.graph.stabilizeStart(ctx)
+}
+func (eg *expertGraph) StabilizeEnd(ctx context.Context, err error) {
+	eg.graph.stabilizeEnd(ctx, err)
+}
+func (eg *expertGraph) Recompute(ctx context.Context, n INode, parallel bool) error {
+	return eg.graph.recompute(ctx, n, parallel)
+}
+func (eg *expertGraph) RecomputeHeapListIterator() RecomputeHeapListIterator {
+	return new(recomputeHeapListIter)
+}
+func (eg *expertGraph) RecomputeHeapClear() []INode {
+	return eg.graph.recomputeHeap.clear()
+}
+func (eg *expertGraph) RecomputeHeapSetIterToMinHeight(iter RecomputeHeapListIterator) {
+	eg.graph.recomputeHeap.setIterToMinHeight(iter)
 }

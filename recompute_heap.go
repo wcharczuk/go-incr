@@ -85,6 +85,10 @@ type recomputeHeapListIter struct {
 	cursor INode
 }
 
+func (i *recomputeHeapListIter) Initialize(cursor INode) {
+	i.cursor = cursor
+}
+
 func (i *recomputeHeapListIter) Next() (INode, bool) {
 	if i.cursor == nil {
 		return nil, false
@@ -97,7 +101,12 @@ func (i *recomputeHeapListIter) Next() (INode, bool) {
 	return prev, true
 }
 
-func (rh *recomputeHeap) setIterToMinHeight(iter *recomputeHeapListIter) {
+type RecomputeHeapListIterator interface {
+	Initialize(INode)
+	Next() (INode, bool)
+}
+
+func (rh *recomputeHeap) setIterToMinHeight(iter RecomputeHeapListIterator) {
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
 
@@ -108,7 +117,7 @@ func (rh *recomputeHeap) setIterToMinHeight(iter *recomputeHeapListIter) {
 			break
 		}
 	}
-	iter.cursor = heightBlock.head
+	iter.Initialize(heightBlock.head)
 	heightBlock.head = nil
 	heightBlock.tail = nil
 	rh.numItems = rh.numItems - heightBlock.len()
