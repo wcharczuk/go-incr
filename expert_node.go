@@ -1,6 +1,7 @@
 package incr
 
 import (
+	"context"
 	"reflect"
 )
 
@@ -64,6 +65,10 @@ type IExpertNode interface {
 	RemoveChild(Identifier)
 	RemoveParent(Identifier)
 	RemoveObserver(Identifier)
+
+	OnUpdateHandlers() []func(context.Context)
+	OnErrorHandlers() []func(context.Context, error)
+	OnAbortHandlers() []func(context.Context, error)
 
 	// ComputePseudoHeight walks the node graph up from a given node
 	// computing the height of the node in-respect to its full graph.
@@ -197,6 +202,16 @@ func (en *expertNode) RemoveParent(id Identifier) {
 
 func (en *expertNode) RemoveObserver(id Identifier) {
 	en.node.removeObserver(id)
+}
+
+func (en *expertNode) OnUpdateHandlers() []func(context.Context) {
+	return en.node.onUpdateHandlers
+}
+func (en *expertNode) OnErrorHandlers() []func(context.Context, error) {
+	return en.node.onErrorHandlers
+}
+func (en *expertNode) OnAbortHandlers() []func(context.Context, error) {
+	return en.node.onAbortedHandlers
 }
 
 func (en *expertNode) Value() any {

@@ -68,6 +68,9 @@ type IExpertGraph interface {
 	// if it is (newly) unnecessary.
 	CheckIfUnnecessary(INode)
 
+	// ClearRecomputeHeapOnError is a setting that corresponds to [GraphOptions.ClearRecomputeHeapOnError].
+	ClearRecomputeHeapOnError() bool
+
 	// EnsureNotStabilizing is called by the default stabilize methods
 	// before stabilizing starts to make sure that we're not already
 	// stabilizing a given graph.
@@ -165,6 +168,10 @@ func (eg *expertGraph) UnobserveNode(obs IObserver, node INode) {
 
 func (eg *expertGraph) CheckIfUnnecessary(node INode) {
 	eg.graph.checkIfUnnecessary(node)
+}
+
+func (eg *expertGraph) ClearRecomputeHeapOnError() bool {
+	return eg.graph.clearRecomputeHeapOnError
 }
 
 func (eg *expertGraph) EnsureNotStabilizing(ctx context.Context) error {
