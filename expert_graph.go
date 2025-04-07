@@ -53,6 +53,15 @@ type IExpertGraph interface {
 	// This is useful when saving the state of a [Graph] to an external store.
 	RecomputeHeapIDs() []Identifier
 
+	// SetDuringStabilizationIDs returns the node identifiers of nodes that are held in
+	// the set during stabilization list.
+	//
+	// This is useful when saving the state of a [Graph] to an external store.
+	SetDuringStabilizationIDs() []Identifier
+
+	// SetDuringStabilizationAdd adds a given list of nodes to the set during stabilization list.
+	SetDuringStabilizationAdd(...INode)
+
 	// AddChild associates a child node to a parent.
 	AddChild(child INode, parent INode) error
 	// RemoveParent removes the association between a child and a parent.
@@ -134,6 +143,9 @@ func (eg *expertGraph) RecomputeHeapLen() int {
 }
 
 func (eg *expertGraph) RecomputeHeapIDs() []Identifier {
+	eg.graph.recomputeHeap.mu.Lock()
+	defer eg.graph.recomputeHeap.mu.Unlock()
+
 	output := make([]Identifier, 0, eg.graph.recomputeHeap.numItems)
 	for _, height := range eg.graph.recomputeHeap.heights {
 		if height != nil {
@@ -145,6 +157,29 @@ func (eg *expertGraph) RecomputeHeapIDs() []Identifier {
 		}
 	}
 	return output
+}
+
+func (eg *expertGraph) SetDuringStabilizationIDs() []Identifier {
+	eg.graph.setDuringStabilizationMu.Lock()
+	defer eg.graph.setDuringStabilizationMu.Unlock()
+
+	output := make([]Identifier, 0, len(eg.graph.setDuringStabilization))
+	for _, node := range eg.graph.setDuringStabilization {
+		output = append(output, node.Node().ID())
+	}
+	return output
+}
+
+func (eg *expertGraph) SetDuringStabilizationAdd(nodes ...INode) {
+	eg.graph.setDuringStabilizationMu.Lock()
+	defer eg.graph.setDuringStabilizationMu.Unlock()
+
+	if eg.graph.setDuringStabilization == nil {
+		eg.graph.setDuringStabilization = make(map[Identifier]INode)
+	}
+	for _, node := range nodes {
+		eg.graph.setDuringStabilization[node.Node().ID()] = node
+	}
 }
 
 func (eg *expertGraph) AddChild(child, parent INode) error {
