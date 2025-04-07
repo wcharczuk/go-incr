@@ -1653,9 +1653,8 @@ func Test_Stabilize_determinism(t *testing.T) {
 		})
 		maps = append(maps, m)
 	}
-	obs := []ObserveIncr[string]{}
 	for index := 0; index < 10; index++ {
-		obs = append(obs, MustObserve(g, maps[index]))
+		_ = MustObserve(g, maps[index])
 	}
 
 	err := g.Stabilize(context.TODO())
