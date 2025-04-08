@@ -34,6 +34,23 @@ func Test_ExpertGraph_RecomputeHeapAdd(t *testing.T) {
 	testutil.Equal(t, 2, eg.RecomputeHeapLen())
 }
 
+func Test_ExpertGraph_RecomputeHeapClear(t *testing.T) {
+	g := New()
+	eg := ExpertGraph(g)
+
+	n1 := newMockBareNode(g)
+	n2 := newMockBareNode(g)
+
+	eg.RecomputeHeapAdd(n1, n2)
+	testutil.Equal(t, 2, g.recomputeHeap.len())
+	testutil.Equal(t, 2, eg.RecomputeHeapLen())
+
+	eg.RecomputeHeapClear()
+
+	testutil.Equal(t, 0, g.recomputeHeap.len())
+	testutil.Equal(t, 0, eg.RecomputeHeapLen())
+}
+
 func Test_ExpertGraph_SetDuringStabilizationAdd(t *testing.T) {
 	g := New()
 	eg := ExpertGraph(g)
@@ -52,10 +69,17 @@ func Test_ExpertGraph_stats(t *testing.T) {
 	g.numNodes = 12
 	g.numNodesChanged = 13
 	g.numNodesRecomputed = 14
+	g.observers = make(map[Identifier]IObserver)
+
+	for x := 0; x < 15; x++ {
+		g.observers[g.newIdentifier()] = mockObserver(g)
+	}
+
 	eg := ExpertGraph(g)
 	testutil.Equal(t, 12, eg.NumNodes())
 	testutil.Equal(t, 13, eg.NumNodesChanged())
 	testutil.Equal(t, 14, eg.NumNodesRecomputed())
+	testutil.Equal(t, 15, eg.NumObservers())
 }
 
 func Test_ExpertGraph_RecomputeHeapIDs(t *testing.T) {
