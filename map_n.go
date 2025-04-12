@@ -32,6 +32,8 @@ type MapNContextFunc[A, B any] func(context.Context, ...A) (B, error)
 // MapNIncr is a type of incremental that can add inputs over time.
 type MapNIncr[A, B any] interface {
 	Incr[B]
+	IParents
+	IStabilize
 	AddInput(Incr[A]) error
 	RemoveInput(Identifier) error
 }
