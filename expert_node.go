@@ -34,6 +34,8 @@ type IExpertNode interface {
 	HeightInAdjustHeightsHeap() int
 	SetHeightInAdjustHeightsHeap(int)
 
+	IsStaleInRespectToParent() bool
+
 	ChangedAt() uint64
 	SetChangedAt(uint64)
 	SetAt() uint64
@@ -122,6 +124,10 @@ func (en *expertNode) HeightInAdjustHeightsHeap() int { return en.node.heightInA
 
 func (en *expertNode) SetHeightInAdjustHeightsHeap(height int) {
 	en.node.heightInAdjustHeightsHeap = height
+}
+
+func (en *expertNode) IsStaleInRespectToParent() bool {
+	return en.node.isStaleInRespectToParent()
 }
 
 func (en *expertNode) ChangedAt() uint64 { return en.node.changedAt }

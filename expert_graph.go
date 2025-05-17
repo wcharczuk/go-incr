@@ -101,6 +101,13 @@ type IExpertGraph interface {
 	// RecomputeHeapSetIterToMinHeight sets the iterator to read from
 	// the min height that has nodes in the recompute heap.
 	RecomputeHeapSetIterToMinHeight(RecomputeHeapListIterator)
+
+	// ChangeParent changes the parent of a node.
+	ChangeParent(child INode, oldParent INode, newParent INode) error
+	// InvalidateNode marks a node as no longer valid.
+	InvalidateNode(INode)
+	// PropagateInvalidity propagates the invalid state for nodes.
+	PropagateInvalidity()
 }
 
 type expertGraph struct {
@@ -229,4 +236,14 @@ func (eg *expertGraph) RecomputeHeapClear() []INode {
 }
 func (eg *expertGraph) RecomputeHeapSetIterToMinHeight(iter RecomputeHeapListIterator) {
 	eg.graph.recomputeHeap.setIterToMinHeight(iter)
+}
+
+func (eg *expertGraph) ChangeParent(child INode, oldParent INode, newParent INode) error {
+	return eg.graph.changeParent(child, oldParent, newParent)
+}
+func (eg *expertGraph) InvalidateNode(n INode) {
+	eg.graph.invalidateNode(n)
+}
+func (eg *expertGraph) PropagateInvalidity() {
+	eg.graph.propagateInvalidity()
 }
