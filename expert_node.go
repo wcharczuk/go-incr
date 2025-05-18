@@ -69,8 +69,11 @@ type IExpertNode interface {
 	RemoveObserver(Identifier)
 
 	OnUpdateHandlers() []func(context.Context)
+	SetOnUpdateHandlers([]func(context.Context))
 	OnErrorHandlers() []func(context.Context, error)
-	OnAbortHandlers() []func(context.Context, error)
+	SetOnErrorHandlers([]func(context.Context, error))
+	OnAbortedHandlers() []func(context.Context, error)
+	SetOnAbortedHandlers([]func(context.Context, error))
 
 	// ComputePseudoHeight walks the node graph up from a given node
 	// computing the height of the node in-respect to its full graph.
@@ -213,11 +216,20 @@ func (en *expertNode) RemoveObserver(id Identifier) {
 func (en *expertNode) OnUpdateHandlers() []func(context.Context) {
 	return en.node.onUpdateHandlers
 }
+func (en *expertNode) SetOnUpdateHandlers(handlers []func(context.Context)) {
+	en.node.onUpdateHandlers = handlers
+}
 func (en *expertNode) OnErrorHandlers() []func(context.Context, error) {
 	return en.node.onErrorHandlers
 }
-func (en *expertNode) OnAbortHandlers() []func(context.Context, error) {
+func (en *expertNode) SetOnErrorHandlers(handlers []func(context.Context, error)) {
+	en.node.onErrorHandlers = handlers
+}
+func (en *expertNode) OnAbortedHandlers() []func(context.Context, error) {
 	return en.node.onAbortedHandlers
+}
+func (en *expertNode) SetOnAbortedHandlers(handlers []func(context.Context, error)) {
+	en.node.onAbortedHandlers = handlers
 }
 
 func (en *expertNode) Value() any {
