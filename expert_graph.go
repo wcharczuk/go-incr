@@ -18,6 +18,8 @@ func ExpertGraph(g *Graph) IExpertGraph {
 // Note there are no compatibility guarantees on this interface
 // and you should use this interface at your own risk.
 type IExpertGraph interface {
+	// NewIdentifier returns a new identifier.
+	NewIdentifier() Identifier
 	// SetID sets the identifier for the [Graph].
 	SetID(Identifier)
 
@@ -112,6 +114,10 @@ type IExpertGraph interface {
 
 type expertGraph struct {
 	graph *Graph
+}
+
+func (eg *expertGraph) NewIdentifier() Identifier {
+	return eg.graph.newIdentifier()
 }
 
 func (eg *expertGraph) NumNodes() uint64 {
