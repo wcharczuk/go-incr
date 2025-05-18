@@ -22,7 +22,7 @@ type IExpertNode interface {
 	SetCreatedIn(Scope)
 	SetID(Identifier)
 
-	Valid() bool
+	IsValid() bool
 	SetValid(bool)
 
 	Height() int
@@ -100,7 +100,7 @@ func (en *expertNode) SetID(id Identifier) {
 	en.node.id = id
 }
 
-func (en *expertNode) Valid() bool {
+func (en *expertNode) IsValid() bool {
 	return en.node.valid
 }
 
