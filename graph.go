@@ -620,8 +620,6 @@ func (graph *Graph) zeroNode(n INode) {
 	nn.children = nil
 	nn.observers = nil
 
-	// TODO (wc): why can't i zero these out?
-	// nn.createdIn = nil
 	nn.height = HeightUnset
 	nn.heightInRecomputeHeap = HeightUnset
 	nn.heightInAdjustHeightsHeap = HeightUnset
@@ -629,9 +627,9 @@ func (graph *Graph) zeroNode(n INode) {
 
 func (graph *Graph) observeNode(o IObserver, input INode) error {
 	graph.addObserver(o)
-	wasNecsesary := input.Node().isNecessary()
+	wasNecsessary := input.Node().isNecessary()
 	input.Node().addObservers(o)
-	if !wasNecsesary {
+	if !wasNecsessary {
 		if err := graph.becameNecessary(input); err != nil {
 			return err
 		}
@@ -833,7 +831,7 @@ func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err 
 	for _, o := range nn.observers {
 		if len(o.Node().onUpdateHandlers) > 0 {
 			graph.handleAfterStabilizationMu.Lock()
-			graph.handleAfterStabilization[nn.id] = o.Node().onUpdateHandlers
+			graph.handleAfterStabilization[o.Node().id] = o.Node().onUpdateHandlers
 			graph.handleAfterStabilizationMu.Unlock()
 		}
 	}

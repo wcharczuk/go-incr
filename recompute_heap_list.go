@@ -75,6 +75,7 @@ func (l *recomputeHeapList) has(k Identifier) (ok bool) {
 	if l == nil || l.head == nil {
 		return
 	}
+
 	cursor := l.head
 	for cursor != nil {
 		if cursor.Node().id == k {

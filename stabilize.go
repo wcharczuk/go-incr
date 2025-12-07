@@ -12,7 +12,7 @@ import (
 // Stabilizing a node can add more nodes to the recompute heap, creating more work as the stabilization
 // progresses, until finally no more nodes are left to process.
 //
-// The [Stabailize] stabilization process is serial, that is each node is recomputed in sequence one
+// The [Graph.Stabilize] stabilization process is serial, that is each node is recomputed in sequence one
 // after the other.
 //
 // This can be extremely fast in practice because it lets us makes some assumptions about what
@@ -33,6 +33,10 @@ func (graph *Graph) Stabilize(ctx context.Context) (err error) {
 
 	var immediateRecompute []INode
 	var next INode
+
+	// note: this accesses the number of items directly
+	// which is ~unsafe but we should only be able to
+	// modify this if ensureNotStabilizing passes
 	for graph.recomputeHeap.numItems > 0 {
 		next, _ = graph.recomputeHeap.removeMinUnsafe()
 		err = graph.recompute(ctx, next, false /*parallel*/)

@@ -107,6 +107,10 @@ type RecomputeHeapListIterator interface {
 }
 
 func (rh *recomputeHeap) setIterToMinHeight(iter RecomputeHeapListIterator) {
+	if iter == nil {
+		return
+	}
+
 	rh.mu.Lock()
 	defer rh.mu.Unlock()
 
