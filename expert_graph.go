@@ -1,6 +1,9 @@
 package incr
 
-import "context"
+import (
+	"context"
+	"sync/atomic"
+)
 
 // ExpertGraph returns an "expert" interface to modify
 // internal fields of the graph type.
@@ -121,7 +124,7 @@ func (eg *expertGraph) NewIdentifier() Identifier {
 }
 
 func (eg *expertGraph) NumNodes() uint64 {
-	return eg.graph.numNodes
+	return atomic.LoadUint64(&eg.graph.numNodes)
 }
 
 func (eg *expertGraph) NumObservers() uint64 {
@@ -129,11 +132,11 @@ func (eg *expertGraph) NumObservers() uint64 {
 }
 
 func (eg *expertGraph) NumNodesRecomputed() uint64 {
-	return eg.graph.numNodesRecomputed
+	return atomic.LoadUint64(&eg.graph.numNodesRecomputed)
 }
 
 func (eg *expertGraph) NumNodesChanged() uint64 {
-	return eg.graph.numNodesChanged
+	return atomic.LoadUint64(&eg.graph.numNodesChanged)
 }
 
 func (eg *expertGraph) SetID(id Identifier) {

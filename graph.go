@@ -220,6 +220,15 @@ type Graph struct {
 	// adjustHeightsHeap is a list of nodes to adjust the heights for.
 	adjustHeightsHeap *adjustHeightsHeap
 
+	// recomputeMu serializes graph-structure mutation during
+	// [Graph.ParallelStabilize]. Within a height block the parallel workers
+	// run each node's user Stabilize concurrently, but the structural work
+	// (a bind swapping out its subgraph, and enqueuing recomputed nodes'
+	// children) must be serialized because it mutates shared node/height/heap
+	// state. It is only ever contended on the parallel path; serial
+	// stabilization is single-goroutine and never acquires it.
+	recomputeMu sync.Mutex
+
 	// setDuringStabilizationMu interlocks acces to setDuringStabilization
 	setDuringStabilizationMu sync.Mutex
 	// setDuringStabilization is a list of nodes that were
@@ -245,15 +254,25 @@ type Graph struct {
 	// stabilizationStarted is the time of the stabilization pass currently in progress
 	stabilizationStarted time.Time
 	// numNodes are the total number of nodes found during
-	// discovery and is typically used for testing
+	// discovery and is typically used for testing.
+	//
+	// mutate it with the atomic helpers; nodes can be added and removed
+	// concurrently during parallel stabilization (e.g. by binds at the
+	// same height).
 	numNodes uint64
 	// numNodesRecomputed is the total number of nodes
 	// that have been recomputed in the graph's history
-	// and is typically used in testing
+	// and is typically used in testing.
+	//
+	// mutate it with the atomic helpers; nodes are recomputed
+	// concurrently during parallel stabilization.
 	numNodesRecomputed uint64
 	// numNodesChanged is the total number of nodes
 	// that have been changed in the graph's history
-	// and is typically used in testing
+	// and is typically used in testing.
+	//
+	// mutate it with the atomic helpers; nodes are recomputed
+	// concurrently during parallel stabilization.
 	numNodesChanged uint64
 
 	// metadata is extra data you can add to the graph instance and
@@ -538,7 +557,7 @@ func (graph *Graph) addNode(n INode) {
 	if graphAlreadyHasNode {
 		return
 	}
-	graph.numNodes++
+	atomic.AddUint64(&graph.numNodes, 1)
 	gnn.initializeFrom(n)
 	graph.nodes[gnn.id] = n
 }
@@ -552,7 +571,7 @@ func (graph *Graph) addObserver(on IObserver) {
 	if graphAlreadyHasObserver {
 		return
 	}
-	graph.numNodes++
+	atomic.AddUint64(&graph.numNodes, 1)
 	onn.initializeFrom(on)
 	graph.observers[onn.id] = on
 }
@@ -566,7 +585,7 @@ func (graph *Graph) addSentinel(sn ISentinel) {
 	if graphAlreadyHasSentinel {
 		return
 	}
-	graph.numNodes++
+	atomic.AddUint64(&graph.numNodes, 1)
 	snn.initializeFrom(sn)
 	graph.sentinels[snn.id] = sn
 }
@@ -597,7 +616,7 @@ func (graph *Graph) zeroNode(n INode) {
 		graph.recomputeHeap.remove(n)
 	}
 
-	graph.numNodes--
+	atomic.AddUint64(&graph.numNodes, ^uint64(0)) // decrement by one
 
 	nn := n.Node()
 
@@ -785,7 +804,7 @@ func (graph *Graph) stabilizeEndRunUpdateHandlers(ctx context.Context) {
 // recompute starts the recompute cycle for the node
 // setting the recomputedAt field and possibly changing the value.
 func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err error) {
-	graph.numNodesRecomputed++
+	atomic.AddUint64(&graph.numNodesRecomputed, 1)
 
 	nn := n.Node()
 	nn.numRecomputes++
@@ -803,10 +822,23 @@ func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err 
 		return
 	}
 
-	graph.numNodesChanged++
+	atomic.AddUint64(&graph.numNodesChanged, 1)
 	nn.numChanges++
 
-	if err = nn.maybeStabilize(ctx); err != nil {
+	// a node whose Stabilize mutates graph structure (i.e. a bind swapping out
+	// its right-hand-side subgraph) cannot run concurrently with another
+	// worker's structural work, so on the parallel path it is serialized under
+	// recomputeMu. leaf nodes' Stabilize is left lock-free, which is the whole
+	// point of stabilizing in parallel.
+	mutatesStructure := parallel && nodeMutatesStructure(n)
+	if mutatesStructure {
+		graph.recomputeMu.Lock()
+	}
+	err = nn.maybeStabilize(ctx)
+	if mutatesStructure {
+		graph.recomputeMu.Unlock()
+	}
+	if err != nil {
 		for _, eh := range nn.onErrorHandlers {
 			eh(ctx, err)
 		}
@@ -819,7 +851,11 @@ func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err 
 	}
 
 	if parallel {
-		graph.recomputeHeap.mu.Lock()
+		// note we lock recomputeMu rather than the recompute heap's own mutex;
+		// it is the lock that also guards bind structural mutation, so that
+		// reading children's heights/staleness here is mutually exclusive with
+		// a concurrent bind rewriting that same state.
+		graph.recomputeMu.Lock()
 		for _, c := range nn.children {
 			isNecessary := c.Node().isNecessary()
 			isStale := c.Node().isStale()
@@ -828,7 +864,7 @@ func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err 
 				graph.recomputeHeap.addNodeUnsafe(c)
 			}
 		}
-		graph.recomputeHeap.mu.Unlock()
+		graph.recomputeMu.Unlock()
 	} else {
 		for _, c := range nn.children {
 			isNecessary := c.Node().isNecessary()
@@ -861,4 +897,15 @@ func (graph *Graph) queueUpdateHandlers(parallel bool, id Identifier, handlers [
 		return
 	}
 	graph.handleAfterStabilization[id] = handlers
+}
+
+// nodeMutatesStructure reports whether a node's Stabilize can mutate shared
+// graph structure (links, heights, node membership) rather than just computing
+// a value. Today this is exactly the bind left-hand-side change node, which
+// swaps out a bind's right-hand-side subgraph; the invalidation that mutation
+// triggers nests within the same Stabilize call. Such nodes must be serialized
+// against each other (and against the child-enqueue step) on the parallel path.
+func nodeMutatesStructure(n INode) bool {
+	_, ok := n.(IBindChange)
+	return ok
 }
