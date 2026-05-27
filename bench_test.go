@@ -460,6 +460,64 @@ func benchmarkDepth(width, depth int, b *testing.B) {
 	}
 }
 
+func Benchmark_Stabilize_empty_1024(b *testing.B) {
+	benchmarkEmptyStabilize(1024, b)
+}
+
+// benchmarkEmptyStabilize measures the per-call overhead of stabilizing a
+// graph where nothing is stale, i.e. the recompute heap is empty.
+func benchmarkEmptyStabilize(size int, b *testing.B) {
+	graph, _ := makeBenchmarkGraph(size, false /*preallocate*/, _defaultIdentifierProvider)
+	ctx := context.Background()
+	if err := graph.Stabilize(ctx); err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		if err := graph.Stabilize(ctx); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func Benchmark_Stabilize_mapN_64(b *testing.B) {
+	benchmarkMapN(64, b)
+}
+
+func Benchmark_Stabilize_mapN_256(b *testing.B) {
+	benchmarkMapN(256, b)
+}
+
+// benchmarkMapN measures stabilizing a single wide MapN node fed by `width`
+// vars, setting one var stale per iteration.
+func benchmarkMapN(width int, b *testing.B) {
+	graph := New()
+	vars := make([]VarIncr[int], width)
+	inputs := make([]Incr[int], width)
+	for x := 0; x < width; x++ {
+		vars[x] = Var(graph, x)
+		inputs[x] = vars[x]
+	}
+	m := MapN(graph, func(values ...int) (out int) {
+		for _, v := range values {
+			out += v
+		}
+		return
+	}, inputs...)
+	_ = MustObserve(graph, m)
+	ctx := context.Background()
+	if err := graph.Stabilize(ctx); err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		vars[n%width].Set(n)
+		if err := graph.Stabilize(ctx); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
 func benchmarkNestedBinds(depth int, b *testing.B) {
 	ctx := testContext()
 	graph := New(

@@ -680,8 +680,13 @@ func (graph *Graph) stabilizeStart(ctx context.Context) context.Context {
 		handler(ctx)
 	}
 	graph.stabilizationStarted = time.Now()
-	ctx = WithStabilizationNumber(ctx, graph.stabilizationNum)
-	TracePrintln(ctx, "stabilization starting")
+	// only decorate the context with the stabilization number when a tracer is
+	// present; the number is consumed exclusively by trace output, and
+	// context.WithValue allocates on every call otherwise.
+	if GetTracer(ctx) != nil {
+		ctx = WithStabilizationNumber(ctx, graph.stabilizationNum)
+		TracePrintln(ctx, "stabilization starting")
+	}
 	return ctx
 }
 
@@ -705,6 +710,12 @@ func (graph *Graph) stabilizeEnd(ctx context.Context, err error) {
 }
 
 func (graph *Graph) stabilizeEndHandleSetDuringStabilization(ctx context.Context) {
+	// fast path; nothing was set during the pass so there is no work to do
+	// and no reason to acquire the lock. This read is safe because all
+	// recompute work (the only concurrent writer) has completed by now.
+	if len(graph.setDuringStabilization) == 0 {
+		return
+	}
 	graph.setDuringStabilizationMu.Lock()
 	defer graph.setDuringStabilizationMu.Unlock()
 
@@ -731,16 +742,21 @@ func (graph *Graph) stabilizeEndHandleSetDuringStabilization(ctx context.Context
 }
 
 func (graph *Graph) stabilizeEndRunUpdateHandlers(ctx context.Context) {
+	atomic.StoreInt32(&graph.status, StatusRunningUpdateHandlers)
+	// fast path; no update handlers were queued during the pass so we can
+	// avoid acquiring the lock and iterating the (empty) map. This read is
+	// safe because all recompute work (the only concurrent writer) has
+	// completed by the time we reach this point.
+	if len(graph.handleAfterStabilization) == 0 {
+		return
+	}
 	graph.handleAfterStabilizationMu.Lock()
 	defer graph.handleAfterStabilizationMu.Unlock()
 
-	atomic.StoreInt32(&graph.status, StatusRunningUpdateHandlers)
-	if len(graph.handleAfterStabilization) > 0 {
-		TracePrintln(ctx, "stabilization calling user update handlers starting")
-		defer func() {
-			TracePrintln(ctx, "stabilization calling user update handlers complete")
-		}()
-	}
+	TracePrintln(ctx, "stabilization calling user update handlers starting")
+	defer func() {
+		TracePrintln(ctx, "stabilization calling user update handlers complete")
+	}()
 
 	if graph.deterministic {
 		// we have to sort these so that update handlers fire in order
@@ -799,9 +815,7 @@ func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err 
 
 	nn.changedAt = graph.stabilizationNum
 	if len(nn.onUpdateHandlers) > 0 {
-		graph.handleAfterStabilizationMu.Lock()
-		graph.handleAfterStabilization[nn.id] = nn.onUpdateHandlers
-		graph.handleAfterStabilizationMu.Unlock()
+		graph.queueUpdateHandlers(parallel, nn.id, nn.onUpdateHandlers)
 	}
 
 	if parallel {
@@ -830,10 +844,21 @@ func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err 
 	// children of this node but will not have any children themselves.
 	for _, o := range nn.observers {
 		if len(o.Node().onUpdateHandlers) > 0 {
-			graph.handleAfterStabilizationMu.Lock()
-			graph.handleAfterStabilization[o.Node().id] = o.Node().onUpdateHandlers
-			graph.handleAfterStabilizationMu.Unlock()
+			graph.queueUpdateHandlers(parallel, o.Node().id, o.Node().onUpdateHandlers)
 		}
 	}
 	return
+}
+
+// queueUpdateHandlers records the update handlers to run after stabilization
+// for a given node. The handleAfterStabilization map is only contended when
+// stabilizing in parallel, so the lock is skipped entirely on the serial path.
+func (graph *Graph) queueUpdateHandlers(parallel bool, id Identifier, handlers []func(context.Context)) {
+	if parallel {
+		graph.handleAfterStabilizationMu.Lock()
+		graph.handleAfterStabilization[id] = handlers
+		graph.handleAfterStabilizationMu.Unlock()
+		return
+	}
+	graph.handleAfterStabilization[id] = handlers
 }
