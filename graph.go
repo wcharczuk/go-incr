@@ -389,6 +389,9 @@ func (graph *Graph) newIdentifier() Identifier {
 //
 
 func (graph *Graph) invalidateNode(node INode) {
+	for _, handler := range node.Node().invalidatedHandlers() {
+		handler()
+	}
 	if !node.Node().valid {
 		return
 	}
@@ -412,16 +415,32 @@ func (graph *Graph) invalidateNode(node INode) {
 
 func (graph *Graph) removeParents(child INode) {
 	parents := child.Node().nodeParents()
+	// A node can appear in a child's input list more than once, because a child
+	// may take it as several of its inputs -- Map2(x, x), or Map3(x, x, x).
+	// [Graph.unlink] removes edges by identity and so drops every edge between the
+	// pair at once, which means visiting the same parent again would find it
+	// already unlinked and still unnecessary, and tear its subgraph down a second
+	// time. That is not just wasted work: it re-walks the whole subgraph once per
+	// duplicate edge, which compounds to arity^depth over a chain, and it
+	// decrements the graph's node count once per repeat.
+	//
+	// Almost every node has a handful of inputs, where scanning the entries
+	// already visited is cheaper than allocating a set. A mapN's arity is
+	// unbounded though, so past a threshold the scan would itself be quadratic in
+	// the input count.
+	if len(parents) > edgeIndexThreshold {
+		seen := make(map[Identifier]struct{}, len(parents))
+		for _, parent := range parents {
+			id := parent.Node().id
+			if _, ok := seen[id]; ok {
+				continue
+			}
+			seen[id] = struct{}{}
+			graph.removeParent(child, parent)
+		}
+		return
+	}
 	for index, parent := range parents {
-		// A node can appear in a child's input list more than once, because a
-		// child may take it as several of its inputs -- Map2(x, x), or
-		// Map3(x, x, x). [Graph.unlink] removes edges by identity and so drops
-		// every edge between the pair at once, which means visiting the same
-		// parent again would find it already unlinked and still unnecessary, and
-		// tear its subgraph down a second time. That is not just wasted work: it
-		// re-walks the whole subgraph once per duplicate edge, which compounds to
-		// arity^depth over a chain, and it decrements the graph's node count once
-		// per repeat.
 		if nodeAppearsBefore(parents, index, parent) {
 			continue
 		}
@@ -431,8 +450,7 @@ func (graph *Graph) removeParents(child INode) {
 
 // nodeAppearsBefore reports if node occurs in nodes at an index below limit.
 //
-// Input lists are tiny -- at most a handful of entries -- so scanning is cheaper
-// than allocating a set to track what has been seen.
+// Only used for short lists; see [Graph.removeParents] for the wide case.
 func nodeAppearsBefore(nodes []INode, limit int, node INode) bool {
 	id := node.Node().id
 	for index := 0; index < limit; index++ {
@@ -467,6 +485,9 @@ func (graph *Graph) becameUnnecessary(parent INode) {
 	// double-decrementing the node count.
 	if !parent.Node().inGraph {
 		return
+	}
+	for _, handler := range parent.Node().becameUnnecessaryHandlers() {
+		handler()
 	}
 	graph.removeParents(parent)
 	graph.removeNode(parent)
@@ -506,7 +527,13 @@ func (graph *Graph) changeParent(child, oldParent, newParent INode) error {
 		if oldParent.Node().id == newParent.Node().id {
 			return nil
 		}
-		oldParent.Node().removeChild(child.Node().id)
+		// unlink both directions: removing only the child from the old parent
+		// leaves the old parent behind in the child's parent list, where nothing
+		// ever removes it. A bind rewriting its right-hand side goes through here
+		// on every rebuild, so a one-sided removal accumulates a stale parent per
+		// rebuild -- an unbounded leak of superseded nodes, and a parent list that
+		// staleness checks re-walk every pass.
+		graph.unlink(child, oldParent)
 		oldParent.Node().forceNecessary = true
 		if err := graph.addChild(child, newParent); err != nil {
 			return err
@@ -520,7 +547,7 @@ func (graph *Graph) changeParent(child, oldParent, newParent INode) error {
 	}
 
 	// newParent is nil
-	oldParent.Node().removeChild(child.Node().id)
+	graph.unlink(child, oldParent)
 	graph.checkIfUnnecessary(oldParent)
 	return nil
 }
@@ -558,7 +585,13 @@ func (graph *Graph) addChildWithoutAdjustingHeights(child, parent INode) error {
 }
 
 func (graph *Graph) becameNecessaryRecursive(node INode) (err error) {
+	wasInGraph := node.Node().inGraph
 	graph.addNode(node)
+	if !wasInGraph {
+		for _, handler := range node.Node().becameNecessaryHandlers() {
+			handler()
+		}
+	}
 	if err = graph.adjustHeightsHeap.setHeight(node, node.Node().createdIn.scopeHeight()+1); err != nil {
 		return
 	}
@@ -693,6 +726,9 @@ func (graph *Graph) zeroNode(n INode) {
 	// would otherwise keep the unlinked nodes reachable.
 	nn.parentsInline = [1]INode{}
 	nn.childrenInline = [1]INode{}
+	nn.parentIndex = nil
+	nn.childIndex = nil
+	nn.observerIndex = nil
 	nn.observers = nil
 
 	nn.height = HeightUnset
@@ -945,7 +981,11 @@ func (graph *Graph) recomputeNode(ctx context.Context, n INode, parallel bool) (
 		// a concurrent bind rewriting that same state.
 		graph.recomputeMu.Lock()
 		for _, c := range nn.children {
-			if shouldRecomputeChild(c.Node(), graph.stabilizationNum) {
+			cn := c.Node()
+			if cn.childChangedNotifier != nil {
+				cn.childChangedNotifier.ChildChanged(n)
+			}
+			if shouldRecomputeChild(cn, graph.stabilizationNum) {
 				graph.recomputeHeap.addNodeUnsafe(c)
 			}
 		}
@@ -965,6 +1005,9 @@ func (graph *Graph) recomputeNode(ctx context.Context, n INode, parallel bool) (
 			// a height block.
 			if cn == heldNode {
 				continue
+			}
+			if cn.childChangedNotifier != nil {
+				cn.childChangedNotifier.ChildChanged(n)
 			}
 			if !shouldRecomputeChild(cn, graph.stabilizationNum) {
 				continue

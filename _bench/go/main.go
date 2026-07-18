@@ -126,7 +126,6 @@ func verify() {
 	sel2 := incr.Var(g2, 0)
 	binds := make([]incr.Incr[int], 256)
 	for j := 0; j < 256; j++ {
-		j := j
 		binds[j] = incr.Bind(g2, sel2, func(bs incr.Scope, which int) incr.Incr[int] {
 			return incr.Map(bs, incr.Return(bs, which+j), func(x int) int { return x + 1 })
 		})
@@ -184,7 +183,6 @@ func stats() {
 	sel2 := incr.Var(g2, 0)
 	binds := make([]incr.Incr[int], 256)
 	for j := 0; j < 256; j++ {
-		j := j
 		binds[j] = incr.Bind(g2, sel2, func(bs incr.Scope, which int) incr.Incr[int] {
 			return incr.Map(bs, incr.Return(bs, which+j), func(x int) int { return x + 1 })
 		})
@@ -383,7 +381,6 @@ func cases() []benchCase {
 
 	// --- Wide graphs -------------------------------------------------------
 	for _, n := range []int{1024, 16384} {
-		n := n
 
 		// Full construction plus the initial stabilization that computes
 		// every node for the first time.
@@ -467,7 +464,6 @@ func cases() []benchCase {
 	// Depth 1 is included to isolate the fixed per-stabilization overhead from
 	// the marginal per-node recompute cost that the deeper sizes measure.
 	for _, d := range []int{1, 128, 2048} {
-		d := d
 
 		out = append(out, benchCase{
 			name:  fmt.Sprintf("deep/construct/%d", d),
@@ -503,7 +499,6 @@ func cases() []benchCase {
 	// builds a fresh one of `depth` nodes, exercising scope tracking, height
 	// adjustment and invalidation.
 	for _, d := range []int{64, 512} {
-		d := d
 		out = append(out, benchCase{
 			name:  fmt.Sprintf("bind/swap_chain/%d", d),
 			group: "bind", size: d,
@@ -529,7 +524,6 @@ func cases() []benchCase {
 	// A single set therefore rebuilds n subgraphs at once, which is the
 	// "large bind graph" stress case.
 	for _, n := range []int{256, 4096} {
-		n := n
 		out = append(out, benchCase{
 			name:  fmt.Sprintf("bind/wide_swap/%d", n),
 			group: "bind_wide", size: n,
@@ -538,7 +532,6 @@ func cases() []benchCase {
 				sel := incr.Var(g, 0)
 				binds := make([]incr.Incr[int], n)
 				for j := 0; j < n; j++ {
-					j := j
 					binds[j] = incr.Bind(g, sel, func(bs incr.Scope, which int) incr.Incr[int] {
 						return incr.Map(bs, incr.Return(bs, which+j), func(x int) int { return x + 1 })
 					})
@@ -559,7 +552,6 @@ func cases() []benchCase {
 	// their input-list handling is actually exercised. There is no OCaml
 	// counterpart for this case; it exists to A/B go-incr against itself.
 	for _, d := range []int{128} {
-		d := d
 		out = append(out, benchCase{
 			name:  fmt.Sprintf("bind/swap_mixed/%d", d),
 			group: "bind_mixed", size: d,
@@ -601,7 +593,6 @@ func cases() []benchCase {
 	// Construction cost of a bind-heavy graph, including the initial
 	// stabilization that first materializes every subgraph.
 	for _, n := range []int{4096} {
-		n := n
 		out = append(out, benchCase{
 			name:  fmt.Sprintf("bind/wide_construct/%d", n),
 			group: "bind_wide", size: n,
@@ -611,7 +602,6 @@ func cases() []benchCase {
 					sel := incr.Var(g, 0)
 					binds := make([]incr.Incr[int], n)
 					for j := 0; j < n; j++ {
-						j := j
 						binds[j] = incr.Bind(g, sel, func(bs incr.Scope, which int) incr.Incr[int] {
 							return incr.Map(bs, incr.Return(bs, which+j), func(x int) int { return x + 1 })
 						})

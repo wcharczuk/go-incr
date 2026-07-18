@@ -231,6 +231,81 @@ Worth noting this is the third bug in the same family, after the duplicate-child
 hazard in (3a): anywhere go-incr walks an edge list, a node appearing twice is a
 case to think about explicitly.
 
+### 6a. Audit of the remaining edge-list walks
+
+Every other place the graph walks an edge list was checked against the same
+hazard: invalidation pushing children onto a queue, `becameNecessaryRecursive`
+linking parents, the sentinel walk, the recompute child loop, the adjust-heights
+walk over children and over a bind's right-scope nodes, `isStaleInRespectToParent`,
+`shouldBeInvalidated`, the observer walk, and the diagram renderer.
+
+All of them are safe, but **none of them is safe deliberately** -- each is saved by
+an incidental guard: an early return on the first match, a membership flag such as
+`heightInRecomputeHeap` or `heightInAdjustHeightsHeap`, an idempotent map write, or
+a height comparison that a repeat visit can no longer satisfy. That is why three
+bugs of this shape got in: the invariant was never written down or tested.
+
+`duplicate_edge_test.go` drives duplicate-input graphs through each of those walks
+-- construction, update propagation, height adjustment under a bind, invalidation
+during a bind rebuild, teardown by unobserving, sentinels, parallel stabilization,
+diagram rendering and cycle detection -- asserting computed values, an exact and
+stable node count, recompute heap self-consistency, and a fully drained graph after
+unobserving. Two of those cases fail on the pre-fix code, so the battery has teeth.
+
+### 8. Pathological scaling, hunted systematically
+
+Constant factors cost every user a little; a superlinear cost decides whether the
+library is usable past some graph size, and which size that is depends on the
+shape rather than on anything the user can see. `scaling_test.go` therefore
+measures each graph shape at three sizes and asserts a growth exponent --
+log(t2/t1)/log(n2/n1), where 1.0 is linear and 2.0 is quadratic. Thresholds are
+loose on purpose: the point is to catch a cliff, not to police a few percent.
+
+Written after the fact, it immediately found four quadratics that the
+cross-library benchmarks had missed entirely, because those benchmarks fix a size
+and measure a minimum:
+
+| shape | before | after |
+|---|---|---|
+| teardown of a wide fan-out | 1.96 (8192 deps: **197ms**) | 1.06 (14.5ms) |
+| teardown of a wide mapN | 2.01 (8192 inputs: **284ms**) | 1.09 |
+| unobserving many observers of one node | 1.98 (4096: **44ms**) | 1.12 |
+| removing every input of a wide mapN | 2.05 | 2.03, see below |
+
+The first three share a cause. A node's parent, child and observer lists are
+unordered sets searched by identifier on removal. A scan over a short contiguous
+slice is right for almost every node, but none of these lists has a bound: one var
+can feed thousands of computations, a mapN can take thousands of inputs. Removing
+every edge of such a node -- which is what tearing a graph down does -- is then
+O(n) per edge and O(n^2) overall. It is teardown rather than steady-state work, so
+a user reaches it without asking for anything unusual.
+
+`edge_index.go` gives each of the three lists an identifier-to-positions map once
+it grows past 64 entries, making removal O(1). Below the threshold nothing changes
+and nothing is allocated. Positions are a list because a node can appear in one of
+these lists more than once, when it takes another node as several of its inputs.
+
+One of the four was self-inflicted: `nodeAppearsBefore`, the duplicate-edge dedupe
+added in (6), is O(arity^2). That is free for a map3 and quadratic for a mapN with
+thousands of inputs -- it accounted for 97% of the wide-mapN teardown profile even
+after the edge index went in. `removeParents` now switches to a set past the same
+threshold.
+
+The remaining case, removing every input of a wide mapN in a loop, is quadratic and
+expected to be: a mapN's inputs are ordered, since the values reach the fold
+function in input order, so removing one shifts the rest and n removals move
+O(n^2) elements however the entry is located. Unlike the others it is not automatic
+work -- it needs an explicit loop over `RemoveInput`. Its threshold is set above 2
+with that reasoning recorded, so the test still catches it going cubic. Making it
+linear needs either permission to reorder a mapN's inputs, or a tombstoned
+representation that preserves order without shifting; both change observable
+behavior, so they are decisions rather than fixes.
+
+Two shapes were checked and found already sound: updates under a height ceiling far
+above the occupied heights (exponent 0.01, so the recompute heap's scan tracks
+occupied heights rather than the ceiling), and cost per rebuild as a long-running
+process rebuilds the same bind repeatedly (0.02, which is what (7) fixed).
+
 ## Result: equivalent work per stabilization
 
 Both harnesses have a `-stats` mode reporting how many nodes each library
@@ -325,6 +400,243 @@ GC (~25% of profile in `scanObjectsSmall` / `mallocgcSmallScanNoHeader`), becaus
 every rebuild allocates fresh 400-byte nodes. That is where OCaml's bump-allocated
 minor heap is hardest to match, and why (B) below is the highest-value item left.
 
+## Higher-order helpers added
+
+Comparing the two public surfaces, most of what `incremental` offers had an
+equivalent here already: `map`/`map2`-`map8`, `bind` and its variants, `cutoff`,
+`freeze`, `if_`, `observe`, `save_dot`, the expert interface, and memoization
+(`incrutil`'s `BindMemoized` covers `memoize_fun`). The gaps worth closing were the
+ones that change asymptotics, because a user who cannot reach for the right
+combinator writes the O(n) one instead.
+
+go-incr's only way to combine an unbounded number of inputs was `MapN`, whose
+function receives every value, so one input changing costs O(inputs). Three
+additions close that:
+
+- **`ReduceBalanced`** combines inputs pairwise through a balanced tree, so a change
+  recomputes only the path from the changed leaf to the root: **O(log n)**. It needs
+  associativity but not an inverse, so it covers min, max and concatenation. Inputs
+  are combined in the order given, so non-commutative operations are safe.
+- **`UnorderedArrayFold`** keeps an accumulator and adjusts it from the changed
+  input's old and new values: **O(1)**. It needs an inverse -- for a sum,
+  `acc - old + new` -- which is exactly the case `ReduceBalanced` cannot beat.
+- **`All`** collects inputs into a slice. This is O(n) by construction, since the
+  slice has to be built, and exists for convenience; its doc points at the other two
+  when the goal is an aggregate rather than the values.
+
+Measured cost of changing one input, asserted in `scaling_test.go`:
+
+| inputs | MapN | ReduceBalanced | UnorderedArrayFold |
+|---:|---:|---:|---:|
+| 256 | 1236ns | 319ns | 172ns |
+| 1024 | 4430ns | 378ns | 178ns |
+| 4096 | **17169ns** | **427ns** | **188ns** |
+| growth exponent | 0.98 | 0.09 | 0.04 |
+
+At four thousand inputs that is 40x and 91x. The exponents are asserted rather than
+the times, so the guarantee survives a change that makes them slower but not
+pathological.
+
+### The core hook this needed
+
+An O(1) fold has to know *which* input changed and what it changed from; a node that
+reads all its inputs cannot beat O(n) however it is written. `incremental` handles
+this by special-casing `Unordered_array_fold` inside `maybe_change_value`, which
+calls `child_changed` on the fold as the change propagates.
+
+go-incr now has the general form of that: an `IChildChanged` interface, sniffed once
+at initialization like the other optional interfaces and cached on the node, so the
+recompute loop notifies via a nil check rather than a type assertion per input
+visit. Measured against the previous build across the update and deep benchmarks it
+costs 0.98x-1.05x, i.e. nothing outside noise, and `-verify` and `-stats` output are
+unchanged.
+
+### Incremental maps
+
+`Incr_map` is a separate Jane Street library and arguably the most used part of that
+ecosystem. Its value is that a map-valued computation updates in proportion to the
+keys that changed rather than the map's size, and all of it rests on
+`Map.symmetric_diff`: on OCaml's persistent balanced maps the old and new maps share
+structure, so a diff walks only the subtrees that differ and dismisses identical ones
+in constant time by physical equality.
+
+go-incr had `incrutil/mapi.Added` and `Removed`, which are the O(n) trap rather than
+the incremental thing -- each pass scans both maps and clones the new one:
+
+| keys | cost of adding one key |
+|---:|---:|
+| 256 | 17748ns |
+| 1024 | 41460ns |
+| 4096 | **169302ns** |
+
+Go's builtin map cannot do better. A hash table shares no structure with the map it
+was copied from, so comparing two is inherently O(n), and nothing is immutable, so
+remembering the previous state means copying it. The gap is a data structure.
+
+**`incrutil/pmap`** supplies the missing structure: a generic immutable ordered map
+(`cmp.Ordered` keys) as a persistent AVL tree, so an update rebuilds only the path to
+the changed key and shares everything else. `SymmetricDiff` returns an
+`iter.Seq[Change[K, V]]` and prunes by pointer, giving the property the whole thing
+exists for:
+
+| entries | cost of diffing 8 updates |
+|---:|---:|
+| 1024 | 421ns |
+| 8192 | 667ns |
+| 65536 | **734ns** |
+
+Growth exponents of 0.22 and 0.05 -- logarithmic, not linear. `FromGoMap` and
+`ToGoMap` bridge to builtin maps at the edges; `FromGoMap` sorts keys first so the
+tree shape does not depend on Go's randomized iteration order.
+
+**`incrutil/mapi.MapValues`** is the first operator built on it, the equivalent of
+`Incr_map`'s `mapi'`: it diffs its input against the previous pass and applies the
+function only to keys that were added or changed, carrying the rest of the output
+forward untouched. Changing one key of a 65536-entry map costs ~1.4us and does not
+grow with the map, and re-setting an identical map recomputes nothing.
+
+Correctness rests on property tests rather than examples, since a persistent balanced
+tree has more rebalancing cases than spot checks reach: 4000 random operations against
+a builtin map with tree invariants checked throughout, the diff cross-checked against a
+brute-force diff over 200 randomized trials, and an explicit assertion that rebinding
+one key of a 1024-entry map rebuilds only the path.
+
+Three more operators follow, all the same shape -- diff the input against the
+previous pass, touch only what changed:
+
+- **`FilterMapValues`** (`filter_mapi'`): [MapValues] with the option to drop a key.
+  A value whose predicate result flips is added to or removed from the output, so the
+  output tracks the predicate as well as the values.
+- **`UnorderedFold`** (`unordered_fold`): folds a map to a single value with `add`
+  and `remove`, so a changed key withdraws its old contribution and applies its new
+  one. This is the keyed counterpart of `UnorderedArrayFold` and carries the same
+  requirement of an inverse.
+- **`Merge`** (`merge`): combines two incremental maps, diffing both and recomputing
+  the union of their changed keys. `MergeElement` reports which sides hold a key.
+
+Each is asserted two ways. `Test_operators_work` counts callbacks and requires
+**exactly one per changed key at both 1024 and 65536 entries** -- the precise
+algorithmic claim, immune to machine effects. `Test_operators_scaling` then bounds
+wall clock, loosely and deliberately: at the largest size the tree spans several
+megabytes, so walking it misses cache in a way that grows with size without any extra
+work being done, and an early attempt at a tight bound flagged that rather than a
+real regression. The work count is the statement; the timing is a backstop.
+
+Correctness is cross-checked against recomputing from scratch -- 500 mutations for the
+fold, 400 for the merge with both inputs moving independently -- because a wrong
+`add`/`remove` pair or a missed key drifts silently rather than failing.
+
+`Join` is ported in both forms, and the machinery it needed turned out to already be
+present -- `MapN.AddInput`/`RemoveInput` does exactly this dynamic linking, via
+`Graph.addChild` to link and adjust heights and `checkIfUnnecessary` to release.
+
+- `incr.Join` flattens an `Incr[Incr[A]]`, and is `Bind` with an identity function.
+- `mapi.Join` turns a map of incrementals into an incremental map. The outer map's
+  diff drives one link or unlink per structural change, and `IChildChanged` -- added
+  earlier for `UnorderedArrayFold` -- reports which inner incremental moved, so a value
+  change rewrites one entry. Asserted: changing one inner input recomputes exactly one
+  inner node whether the map holds 64 entries or 2048.
+
+One subtlety worth recording. An inner incremental that nothing needed until now has
+never been computed, so its value is not yet meaningful when the join links it.
+Linking makes it necessary and schedules it, but the join has already recomputed in
+that pass, so it does not look stale with respect to a parent that changes during the
+same pass and would never run again to collect the value -- the first version silently
+produced a zero. The join now marks itself stale after linking, and heights guarantee
+the second pass runs after the inner node.
+
+The old `Added` and `Removed` still operate on builtin maps and are still linear.
+They now sit beside a fast path with nothing warning a caller, so they should be
+reimplemented over `pmap` or documented.
+
+### Node lifecycle (done)
+
+`incremental`'s update callbacks carry a four-way state, and go-incr's carry none of
+it:
+
+    type 'a Update.t =
+      | Necessary of 'a
+      | Changed of 'a * 'a   (* old value, new value *)
+      | Invalidated
+      | Unnecessary
+
+`Node.OnUpdate` takes `func(context.Context)` and `ObserveIncr.OnUpdate` gets the new
+value, so none of the transitions were visible. Three are now: `OnBecameNecessary`,
+`OnInvalidated` and `OnBecameUnnecessary`. The last is what a caller needs to release
+something a node was holding -- a subscription, a file -- and there was previously no
+way to hear about it at all.
+
+They take no context, unlike the other handlers. These are structural transitions
+reached from paths that carry none, and the alternative was either threading a context
+through a wide fan of internal callers or inventing one at the call site; a handler
+needing a context can capture it. They fire as the transition happens rather than
+being deferred to the end of stabilization, because releasing a resource late is the
+wrong behavior, and they must not modify the graph. The handlers live in `nodeExtra`,
+so a node that registers none still allocates nothing -- asserted in
+`lifecycle_test.go`.
+
+Still not exposed: the **previous** value on a change. A caller wanting it can cache
+it in the handler, so this is a convenience rather than a capability.
+
+### Map operators over `pmap` (done)
+
+Built on the diff, each maintained rather than recomputed:
+
+- `Cardinality`, `Counti`, `Sum` -- folds over the change set. `Cardinality` passes no
+  equality function, since a rebound value cannot move a count and so should not
+  trigger any work.
+- `Keys` -- ordered key slice. Honestly O(n) per change, and documented as such: a
+  sorted slice cannot be maintained incrementally, so this is convenience only.
+- `Subrange` -- a window over a sorted map, with **incremental bounds**. This is the
+  point of having an ordered structure. When the map changes it applies only the
+  changes falling inside the window, O(changes); when the bounds move it rebuilds from
+  a bounded walk that never visits a subtree outside them, O(window). Neither cost
+  tracks the size of the collection, which is what makes scrolling a large collection
+  viable.
+- `pmap.Map.Min`/`Max`/`Range` -- the ordered-tree primitives these rest on.
+
+A maximum over *values* is deliberately absent. It has no inverse, so `UnorderedFold`
+cannot express it, and the obvious workaround -- rescan when the current maximum is
+withdrawn -- is O(n) in the worst case, which is the class of cliff these operators
+exist to avoid. Doing it properly needs a reduction shaped like the tree, so that a
+removal recomputes only one path. That is noted in `Sum`'s documentation rather than
+papered over.
+
+### Still missing
+
+Smaller conveniences, none of which change asymptotics: `array_fold` (an ordered
+fold with `init`/`f`), `for_all` / `exists` over boolean incrementals, `join`
+(`Bind` with identity), `depend_on` (take one node's value while also depending on
+another), named cutoffs (`Cutoff.always`/`never`/`phys_equal`, which ties into the
+default-cutoff question in (A)), and `Var.replace ~f`.
+
+The largest thing absent is `incremental`'s virtual clock -- `at`, `at_intervals`,
+`snapshot`, `step_function`, and `advance_clock` -- which makes time-dependent
+graphs deterministic under test. go-incr has `Timer` only. That is a testability gap
+rather than a performance one.
+
+## Go toolchain
+
+`go.mod` was on `go 1.21`, which left two things on the table; it is now `go 1.24`,
+a floor that still supports consumers a couple of releases back.
+
+- **Per-iteration loop variables** (1.22). Previously the `x := x` idiom inside a
+  loop was load-bearing. The library had no live capture bug, but the footgun was
+  armed; the benchmark harness's redundant copies are now removed.
+- **`testing.B.Loop`** (1.24), now used throughout `bench_test.go`. It excludes
+  setup from the timed region without an explicit `ResetTimer` and keeps the loop
+  body from being optimized away.
+
+Two features arrive for free with a recent toolchain and are already visible in
+profiles: Swiss maps (`maps.ctrlGroup.matchH2`) and the Green Tea GC
+(`tryDeferToSpanScan`, `scanObjectsSmall`).
+
+**PGO** measures at a uniform 3-7% across every case, including on the
+interface-heavy hot path where profile-guided devirtualization might have been
+expected to do more. It is not something this repository can ship, since PGO
+applies to the final binary -- it is worth mentioning to users building
+go-incr-heavy binaries, and nothing more.
+
 ## Not done — what go-incr would still benefit from
 
 Ordered by expected value.
@@ -362,7 +674,117 @@ halve it, cutting both allocation volume and GC scan work. Invasive but mechanic
 
 Done throughout; see (5) above. No `[]INode{...}` literal remains in the library.
 
-### D. Admit bind main nodes to the direct path
+### 7. A leak in bind relinking, found by asking the reference's question
+
+Investigating (D) below meant asking whether go-incr's parent and child lists are
+a bijection, since the reference's O(1) edge removal depends on one. They are not,
+and the reason is a bug rather than a design choice.
+
+`Graph.changeParent` removed the child from the old parent's child list but never
+removed the old parent from the child's parent list. Linking is symmetric, so the
+missing half accumulates: a bind rewriting its right-hand side goes through here on
+every rebuild, and each rebuild left one stale parent behind that nothing would
+ever remove.
+
+Measured on a single bind rebuilt repeatedly, before the fix:
+
+| rebuilds | len(main.parents) | per rebuild |
+|---:|---:|---:|
+| ~600 | 801 | 2227ns |
+| ~2600 | 3001 | 1759ns |
+| ~7600 | 8201 | 1829ns |
+
+The list grows without bound, holding every superseded subgraph reachable, and
+every staleness and invalidation check walks it. After the fix the list stays at 2
+-- a bind main's two real inputs, its lhs-change node and its current right-hand
+side -- and a rebuild costs ~1100-1500ns.
+
+The fix is for `changeParent` to call `Graph.unlink`, which removes both halves,
+rather than only the child side. `bind_relink_test.go` asserts the input list stays
+bounded across 50 rebuilds and that the whole graph is free of one-sided edges; both
+cases fail on the pre-fix code.
+
+On the cross-library bind benchmarks the fix is not a clean win, and the pattern is
+reproducible over five interleaved rounds rather than noise: `swap_chain/64` and
+`wide_swap/4096` improve to 0.86x and 0.91x, `wide_construct/4096` is unchanged,
+and `swap_chain/512`, `wide_swap/256` and `swap_mixed/128` regress to 1.10-1.14x.
+The extra half of the unlink is genuinely more work per rebuild. `-stats` output is
+identical before and after, so scheduling did not change; I have not fully
+accounted for the size of the regression on those three shapes.
+
+The trade is still clearly right -- an unbounded leak is not something to keep for
+a few percent -- but it is a trade, not a free improvement. Note also that neither
+these benchmarks nor `Benchmark_Stabilize_nestedBinds` rebuild often enough to show
+the leak's real cost, which only appears once a process has been running a while;
+that is worth remembering when reading the numbers in (D).
+
+### D. Edges keyed by identity, not by input slot
+
+This is the one structural difference left between the two libraries, and it is
+the root of both a scaling problem and the whole duplicate-edge bug family.
+
+**The symptom.** The repo's own `Benchmark_Stabilize_nestedBinds` scales badly, and
+did so before this pass:
+
+| depth | base | now |
+|---:|---:|---:|
+| 16 | 263us | 147us |
+| 32 | 2.11ms | 1.02ms |
+| 64 | 21.7ms | 10.9ms |
+| 128 | 293ms | 155ms |
+
+This pass made it ~1.9x faster without changing the shape: each doubling of depth
+costs 7x, then 10x, then 14x. Profiling `nestedBinds_64` puts **50% of the time in
+`remove`**, reached through `changeParent` -> `becameUnnecessary` -> `unlink`. The
+reason is visible in the graph: that benchmark builds depth^2 binds over a single
+shared control var, so one node's dependent list grows quadratically --
+`maxChildren` measures 256, 1024 and 4096 at depth 16, 32 and 64 -- and every
+unlink scans it.
+
+**What `incremental` does.** Each edge carries its position on *both* ends:
+
+    mutable my_parent_index_in_child_at_index : int array
+    mutable my_child_index_in_parent_at_index : int array
+
+`remove_parent ~child ~parent ~child_index` therefore never searches. It reads
+`parent.my_parent_index_in_child_at_index.(child_index)` to find where the parent
+sits in the child's list, moves the last entry into the freed slot, fixes that
+entry's reciprocal index, and decrements the count. O(1), no matter how many
+dependents a node has.
+
+Two design choices make that work, and they are the actual clue:
+
+- **The two directions have different requirements, and are represented
+  differently.** A node's inputs are positional and fixed-arity: `Kind.iteri_children`
+  yields `(slot, child)` pairs derived from the node kind, so map2's inputs are
+  always slots 0 and 1. Its dependents are an unordered set, so removal is free to
+  swap the last entry into the hole. go-incr conflates the two -- both are
+  `[]INode` with order-preserving removal -- and pays an ordered O(k) removal for
+  the direction that never needed ordering.
+- **An edge is identified by (node, slot), not by node identity.** `Map3(x, x, x)`
+  is three independent edges at slots 0, 1 and 2, added and removed one at a time.
+  There is no "remove every edge to node X" operation, which is precisely the
+  operation that produced all three duplicate-edge bugs in this codebase: teardown
+  running once per duplicate, a node both queued and recomputed directly, and the
+  node counter double-decrementing. In the reference's model those bugs are not
+  guarded against -- they are unrepresentable.
+
+**Direction for go-incr.** The ingredients are already present: `IParents.Parents()`
+is the ordered, fixed-arity input list, so the slot index is available at every
+call site that currently passes a node identity. A migration would be:
+
+1. Give `unlink`/`removeParent`/`removeChild` a slot index instead of an
+   `Identifier`, taking it from the position in `Parents()`.
+2. Add the two reciprocal index arrays to `Node`, maintained by `link`/`unlink`.
+   They can live inline for the common small-arity case, like `parentsInline`.
+3. Drop order preservation for `children`, since dependents are unordered.
+
+That makes `unlink` O(1), removes the last identity-keyed search from the hot
+path, and retires the duplicate-edge hazard class rather than testing around it.
+It touches the whole linking layer, so it wants to be its own change with its own
+verification rather than being folded into a performance pass.
+
+### E. Admit bind main nodes to the direct path
 
 The one remaining scheduling difference. `incremental` allows a bind main node to
 be recomputed directly when `node.height > b.lhs_change.height`, i.e. its
@@ -371,7 +793,7 @@ lhs-change node has already run. go-incr excludes bind mains outright, because
 not visible in the node's inputs. Worth one node per bind — low value, and needs
 the interface widened to do safely.
 
-### E. (done) Avoid the redundant isStale() on propagation
+### F. (done) Avoid the redundant isStale() on propagation
 
 `incremental` does not re-derive staleness when propagating to dependents — it
 knows they are stale because their input just changed, and only asserts it in
@@ -380,7 +802,7 @@ node's inputs; on a `map2` tree that is a parent scan per dependent per visit.
 The information is already known at the call site. Needs care around nodes with a
 custom `staleFn` and invalidated nodes.
 
-### F. Kind-directed dispatch
+### G. Kind-directed dispatch
 
 `incremental` recomputes via a match on a `Kind` variant, so the compiler emits a
 jump table and the per-kind logic inlines. go-incr dispatches through interfaces

@@ -93,3 +93,21 @@ type ISentinel interface {
 	// Unwatch removes the sentinel tracking of the given node.
 	Unwatch(context.Context)
 }
+
+// IChildChanged is implemented by nodes that need to know which of their inputs
+// changed, rather than re-reading all of them when they recompute.
+//
+// A node with many inputs that recomputes by reading them all costs O(inputs) per
+// pass however few of them changed, which is what makes [MapN] linear per update.
+// A node that is told which input changed, and what it changed from, can instead
+// adjust an accumulator in constant time; see [UnorderedArrayFold].
+//
+// ChildChanged is called during the input's recompute, after the input has taken
+// its new value and only when that value actually changed. It is called once per
+// edge, so a node taking the same input in several slots hears about it once per
+// slot.
+type IChildChanged interface {
+	INode
+	// ChildChanged reports that the given input has just taken a new value.
+	ChildChanged(child INode)
+}

@@ -296,7 +296,7 @@ func makeBenchmarkRecombinantGraph(size int) (*Graph, VarIncr[*string], ObserveI
 }
 
 func benchmarkCreateGraph(size int, preallocate bool, identifierProvider IdentifierProvider, b *testing.B) {
-	for x := 0; x < b.N; x++ {
+	for b.Loop() {
 		_, _ = makeBenchmarkGraph(size, preallocate, identifierProvider)
 	}
 }
@@ -304,9 +304,8 @@ func benchmarkCreateGraph(size int, preallocate bool, identifierProvider Identif
 func benchmarkSize(size int, b *testing.B) {
 	graph, nodes := makeBenchmarkGraph(size, false /*preallocate*/, _defaultIdentifierProvider)
 	ctx := context.Background()
-	b.ResetTimer()
 	var err error
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		err = graph.Stabilize(ctx)
 		if err != nil {
 			b.Fatal(err)
@@ -331,9 +330,8 @@ func benchmarkSize(size int, b *testing.B) {
 func benchmarkParallelSize(size int, b *testing.B) {
 	graph, nodes := makeBenchmarkGraph(size, false /*preallocate*/, _defaultIdentifierProvider)
 	ctx := testContext()
-	b.ResetTimer()
 	var err error
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		err = graph.ParallelStabilize(ctx)
 		if err != nil {
 			b.Fatal(err)
@@ -358,9 +356,8 @@ func benchmarkParallelSize(size int, b *testing.B) {
 func benchmarkRecombinantSize(size int, b *testing.B) {
 	graph, input, observer := makeBenchmarkRecombinantGraph(size)
 	ctx := testContext()
-	b.ResetTimer()
 	var err error
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		err = graph.Stabilize(ctx)
 		if err != nil {
 			b.Fatal(err)
@@ -390,9 +387,8 @@ func benchmarkRecombinantSize(size int, b *testing.B) {
 func benchmarkParallelRecombinantSize(size int, b *testing.B) {
 	graph, input, observer := makeBenchmarkRecombinantGraph(size)
 	ctx := testContext()
-	b.ResetTimer()
 	var err error
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		err = graph.ParallelStabilize(ctx)
 		if err != nil {
 			b.Fatal(err)
@@ -445,9 +441,8 @@ func benchmarkDepth(width, depth int, b *testing.B) {
 		observers[x] = MustObserve(graph, nodes[(width*(depth-1))+x])
 	}
 	ctx := context.Background()
-	b.ResetTimer()
 	var err error
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		err = graph.Stabilize(ctx)
 		if err != nil {
 			b.Fatal(err)
@@ -472,8 +467,7 @@ func benchmarkEmptyStabilize(size int, b *testing.B) {
 	if err := graph.Stabilize(ctx); err != nil {
 		b.Fatal(err)
 	}
-	b.ResetTimer()
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		if err := graph.Stabilize(ctx); err != nil {
 			b.Fatal(err)
 		}
@@ -509,8 +503,11 @@ func benchmarkMapN(width int, b *testing.B) {
 	if err := graph.Stabilize(ctx); err != nil {
 		b.Fatal(err)
 	}
-	b.ResetTimer()
-	for n := 0; n < b.N; n++ {
+	// b.Loop does not expose an iteration index, and this benchmark needs one to
+	// vary which var it sets and what value it sets.
+	var n int
+	for b.Loop() {
+		n++
 		vars[n%width].Set(n)
 		if err := graph.Stabilize(ctx); err != nil {
 			b.Fatal(err)
@@ -525,8 +522,7 @@ func benchmarkNestedBinds(depth int, b *testing.B) {
 	)
 	bindControl := Var(graph, 1)
 	o := makeNestedBindGraph(graph, depth, bindControl)
-	b.ResetTimer()
-	for x := 0; x < b.N; x++ {
+	for b.Loop() {
 		err := graph.Stabilize(ctx)
 		if err != nil {
 			b.Error(err)

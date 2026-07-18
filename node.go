@@ -75,6 +75,12 @@ type Node struct {
 	// reallocates when it outgrows the capacity it was handed.
 	parentsInline  [1]INode
 	childrenInline [1]INode
+	// parentIndex, childIndex and observerIndex give identifier lookup into the
+	// three edge lists above once they grow large; see edge_index.go for why.
+	// They are nil for all but very wide nodes.
+	parentIndex   map[Identifier][]int
+	childIndex    map[Identifier][]int
+	observerIndex map[Identifier][]int
 	// stabilizer, cutoffer and staler are the results of sniffing the node for
 	// the corresponding optional interfaces, cached at initialization.
 	//
@@ -140,6 +146,10 @@ type Node struct {
 	shouldBeInvalidatedProvider IShouldBeInvalidated
 	parentsProvider             IParents
 	invalidator                 IBindMain
+	// childChangedNotifier is set for nodes implementing [IChildChanged], so that
+	// the recompute loop can notify them with a nil check rather than a type
+	// assertion per input visit.
+	childChangedNotifier IChildChanged
 }
 
 // nodeExtra holds the [Node] fields that most nodes never touch: a user supplied
@@ -160,6 +170,10 @@ type nodeExtra struct {
 	onUpdateHandlers  []func(context.Context)
 	onErrorHandlers   []func(context.Context, error)
 	onAbortedHandlers []func(context.Context, error)
+	// the three lifecycle handler sets; see [Node.OnBecameNecessary].
+	onBecameNecessaryHandlers   []func()
+	onInvalidatedHandlers       []func()
+	onBecameUnnecessaryHandlers []func()
 }
 
 // extra returns the node's auxiliary fields, allocating them if this is the first
@@ -191,6 +205,27 @@ func (n *Node) abortedHandlers() []func(context.Context, error) {
 		return nil
 	}
 	return n.ext.onAbortedHandlers
+}
+
+func (n *Node) becameNecessaryHandlers() []func() {
+	if n.ext == nil {
+		return nil
+	}
+	return n.ext.onBecameNecessaryHandlers
+}
+
+func (n *Node) invalidatedHandlers() []func() {
+	if n.ext == nil {
+		return nil
+	}
+	return n.ext.onInvalidatedHandlers
+}
+
+func (n *Node) becameUnnecessaryHandlers() []func() {
+	if n.ext == nil {
+		return nil
+	}
+	return n.ext.onBecameUnnecessaryHandlers
 }
 
 func (n *Node) nodeSentinels() []ISentinel {
@@ -229,6 +264,46 @@ func (n *Node) String() string {
 func (n *Node) OnUpdate(fn func(context.Context)) {
 	e := n.extra()
 	e.onUpdateHandlers = append(e.onUpdateHandlers, fn)
+}
+
+// OnBecameNecessary registers a handler called when the node starts being needed,
+// that is when something begins observing it directly or through a dependent.
+//
+// Together with [Node.OnBecameUnnecessary] and [Node.OnInvalidated] this exposes a
+// node's lifecycle, which is otherwise invisible: a node can stop being part of the
+// computation without its value ever changing, and a caller holding a resource on
+// its behalf has no other way to learn of it.
+//
+// Lifecycle handlers are called as the transition happens rather than deferred to
+// the end of stabilization, because a caller releasing a resource wants to do so at
+// that point. They must not modify the graph.
+//
+// They take no context: these are structural transitions in the graph rather than
+// computations, and they are reached from paths that carry no request context. A
+// handler needing one should capture it.
+func (n *Node) OnBecameNecessary(fn func()) {
+	e := n.extra()
+	e.onBecameNecessaryHandlers = append(e.onBecameNecessaryHandlers, fn)
+}
+
+// OnInvalidated registers a handler called when the node is invalidated, which
+// happens when a bind rewrites the subgraph the node was created in.
+//
+// An invalidated node will not be recomputed again; see [Node.OnBecameNecessary]
+// for the constraints on lifecycle handlers.
+func (n *Node) OnInvalidated(fn func()) {
+	e := n.extra()
+	e.onInvalidatedHandlers = append(e.onInvalidatedHandlers, fn)
+}
+
+// OnBecameUnnecessary registers a handler called when nothing observes the node any
+// more, directly or through a dependent.
+//
+// This is the hook for releasing whatever the node was holding on the graph's
+// behalf; see [Node.OnBecameNecessary] for the constraints on lifecycle handlers.
+func (n *Node) OnBecameUnnecessary(fn func()) {
+	e := n.extra()
+	e.onBecameUnnecessaryHandlers = append(e.onBecameUnnecessaryHandlers, fn)
 }
 
 // OnError registers an error handler.
@@ -301,6 +376,13 @@ func (n *Node) initializeFrom(in INode) {
 	n.detectStabilize(in)
 	n.detectStale(in)
 	n.detectRequiresHeapOrdering(in)
+	n.detectChildChanged(in)
+}
+
+func (n *Node) detectChildChanged(gn INode) {
+	if typed, ok := gn.(IChildChanged); ok {
+		n.childChangedNotifier = typed
+	}
 }
 
 func (n *Node) detectRequiresHeapOrdering(gn INode) {
@@ -311,18 +393,24 @@ func (n *Node) addChildren(children ...INode) {
 	if n.children == nil {
 		n.children = n.childrenInline[:0]
 	}
-	n.children = append(n.children, children...)
+	for _, c := range children {
+		n.children, n.childIndex = edgeIndexAppend(n.children, n.childIndex, c)
+	}
 }
 
 func (n *Node) addParents(parents ...INode) {
 	if n.parents == nil {
 		n.parents = n.parentsInline[:0]
 	}
-	n.parents = append(n.parents, parents...)
+	for _, p := range parents {
+		n.parents, n.parentIndex = edgeIndexAppend(n.parents, n.parentIndex, p)
+	}
 }
 
 func (n *Node) addObservers(observers ...IObserver) {
-	n.observers = append(n.observers, observers...)
+	for _, o := range observers {
+		n.observers, n.observerIndex = edgeIndexAppend(n.observers, n.observerIndex, o)
+	}
 }
 
 func (n *Node) addSentinels(sentinels ...ISentinel) {
@@ -331,15 +419,15 @@ func (n *Node) addSentinels(sentinels ...ISentinel) {
 }
 
 func (n *Node) removeChild(id Identifier) {
-	n.children, _ = remove(n.children, id)
+	n.children, n.childIndex, _ = edgeIndexRemove(n.children, n.childIndex, id)
 }
 
 func (n *Node) removeParent(id Identifier) {
-	n.parents, _ = remove(n.parents, id)
+	n.parents, n.parentIndex, _ = edgeIndexRemove(n.parents, n.parentIndex, id)
 }
 
 func (n *Node) removeObserver(id Identifier) {
-	n.observers, _ = remove(n.observers, id)
+	n.observers, n.observerIndex, _ = edgeIndexRemove(n.observers, n.observerIndex, id)
 }
 
 func (n *Node) removeSentinel(id Identifier) {
