@@ -22,6 +22,41 @@ The inspiration for `go-incr` is Jane Street's [incremental](https://github.com/
 
 The key difference from this library versus the Jane Street implementation is _parallelism_. You can stabilize multiple nodes with the same recompute height at once using `ParallelStabilize`. This is especially useful if you have nodes that make network calls or do other non-cpu bound work.
 
+# Performance relative to the original
+
+The two libraries implement the same algorithms, and the benchmark suite in `_bench`
+cross-checks that they compute the same values and recompute the same number of nodes for
+each shape before it reports any timing. What is left is constant factors, and go-incr
+currently pays 1.1x to 2x of them depending on the shape:
+
+| shape | vs OCaml `incremental` |
+| --- | --- |
+| building a graph | parity to 1.4x slower |
+| one input changes, deep graph | 1.4 - 1.8x slower |
+| one input changes, wide graph | 1.6 - 2.1x slower |
+| every input changes, wide graph | parity at 1k nodes, 1.5 - 1.8x slower at 16k |
+| `Bind` swapping a subgraph | 1.1 - 2.2x slower |
+| writing an input the value it already holds | ~1.2x slower with `VarEqual`, 5 - 7x with `Var` |
+
+That last row is a difference in defaults rather than in machinery. OCaml `incremental`
+cuts off on physical equality by default; go-incr propagates unless you ask it not to,
+because an `Incr[A]` holds any type and equality cannot be assumed. Use `VarEqual` for
+inputs that are written repeatedly and often unchanged and the gap mostly closes -- 95ns
+against 76ns, rather than 500ns.
+
+The remaining gap is mostly allocation: construction profiles at roughly half allocation
+and garbage collection, and that is Go's allocator against OCaml's bump-allocated minor
+heap. Collapsing the two allocations per node into one was tried and reverted -- it made
+construction 20% faster and the widest update path about 1.9x slower, which is the wrong
+trade. See `_bench/ALGORITHMS.md` for that and for the rest of the analysis, including
+which differences turned out to be algorithmic and which were only constants.
+
+Two caveats if you run the suite yourself. Compare interleaved and never across sessions:
+the same unmodified binary drifts by up to 2x between runs on the same machine, which is
+enough to invent a regression or hide one. And establish the noise floor before believing a
+delta -- building identical source twice and comparing gives 1-2%, and `wide/update_all` at
+16k is unstable enough on its own to need a distribution rather than a single minimum.
+
 # Choosing a combinator
 
 Most of what decides whether an incremental graph stays fast as it grows is which

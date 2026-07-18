@@ -36,8 +36,12 @@ jobs:
     - name: Tests (repeated)
       run: go test -count 10 ./...
 
+    # -race needs cgo, which the workflow-level CGO_ENABLED=0 turns off; enabling it for
+    # this step only keeps every other step building the way a consumer would.
     - name: Tests (race)
       run: go test -race -count 1 ./...
+      env:
+        CGO_ENABLED: "1"
 
     # The scaling measurements, in their own step so nothing competes with them: they
     # time elapsed work, and running them alongside the rest of the suite means

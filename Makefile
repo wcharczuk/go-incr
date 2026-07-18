@@ -33,8 +33,11 @@ FUZZTIME ?= 30m
 fuzz:
 	@go test -run '^$$' -fuzz 'FuzzGraph$$' -fuzztime $(FUZZTIME) .
 
+# `config verify` first, because the CI action runs it before linting and a config the
+# schema rejects fails there while `run` alone passes locally.
 .PHONY: lint
 lint:
+	@golangci-lint config verify
 	@golangci-lint run ./...
 
 .PHONY: scaling

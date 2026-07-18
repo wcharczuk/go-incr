@@ -58,14 +58,10 @@ formatters:
     goimports:
       local-prefixes:
         - github.com/wcharczuk/go-incr
+  # formatter exclusions take only generated and paths; per-linter rules belong under
+  # linters.exclusions above, and `golangci-lint config verify` rejects them here
   exclusions:
     generated: lax
-    rules:
-      # prealloc is a performance hint, and in test files it mostly fires on fixture
-      # composite literals that are not built by appending at all
-      - linters:
-          - prealloc
-        path: _test\.go
     paths:
       - third_party$
       - builtin$
