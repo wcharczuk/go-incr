@@ -51,14 +51,14 @@ func BindContext[A, B any](scope Scope, input Incr[A], fn BindContextFunc[A, B])
 		fn:    fn,
 	}
 	bindLeftChange := &bindLeftChangeIncr[A, B]{
-		n:    NewNode(KindBindLHSChange),
+		n:    scope.newNode(KindBindLHSChange),
 		bind: bind,
 	}
 	bindLeftChange.parents[0] = input
 	WithinScope(scope, bindLeftChange)
 	bind.lhsChange = bindLeftChange
 	bindMain := &bindMainIncr[A, B]{
-		n:    NewNode(KindBind),
+		n:    scope.newNode(KindBind),
 		bind: bind,
 	}
 	bindMain.parentsArray[0] = bindLeftChange
@@ -128,6 +128,13 @@ type bind[A, B any] struct {
 	// alive while it invalidates those nodes, so one spare is the minimum needed
 	// to reuse capacity at all.
 	rhsNodesSpare []INode
+	// nodeSlab is where this scope's nodes get their metadata, and nodeSlabSpare holds the
+	// slab from the rebuild before last. They alternate for the same reason rhsNodes and
+	// rhsNodesSpare do: a rebuild leaves the previous generation intact while it builds the
+	// replacement and only tears it down afterwards, so the slots safe to reissue belong to
+	// the generation before that one, not the one being replaced.
+	nodeSlab      nodeSlab
+	nodeSlabSpare nodeSlab
 	fn            BindContextFunc[A, B]
 	main          *bindMainIncr[A, B]
 	lhsChange     *bindLeftChangeIncr[A, B]
@@ -142,6 +149,10 @@ func (b *bind[A, B]) newIdentifier() Identifier { return b.graph.newIdentifier()
 
 func (b *bind[A, B]) addScopeNode(n INode) {
 	b.rhsNodes = append(b.rhsNodes, n)
+}
+
+func (b *bind[A, B]) newNode(kind string) *Node {
+	return newNodeIn(&b.nodeSlab, kind)
 }
 
 func (b *bind[A, B]) String() string {
@@ -225,6 +236,13 @@ func (b *bindLeftChangeIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 	// below, so the two alternate rather than being reused immediately.
 	b.bind.rhsNodes = b.bind.rhsNodesSpare[:0]
 	b.bind.rhsNodesSpare = nil
+	// Start this generation of nodes in a fresh chunk. Nothing is freed here and no node is
+	// disturbed: the nodes just handed out stay where they are, and their chunk stays alive
+	// as long as any of them is reachable. Grouping a generation together is what lets the
+	// whole generation be collected at once when the right-hand side below replaces it,
+	// rather than leaving survivors scattered through a chunk shared with later rebuilds.
+	b.bind.nodeSlab, b.bind.nodeSlabSpare = b.bind.nodeSlabSpare, b.bind.nodeSlab
+	b.bind.nodeSlab.reset()
 	b.bind.rhs, err = b.bind.fn(ctx, b.bind, b.bind.lhs.Value())
 	if err != nil {
 		return

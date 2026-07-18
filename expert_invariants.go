@@ -104,6 +104,21 @@ func (graph *Graph) checkInvariants() error {
 					"edge asymmetry: %v lists %v as a child %d time(s), but %v lists it as a parent %d time(s)",
 					nn, cn, forward, cn, backward))
 			}
+
+			// A dependent edge exists only while the dependent is necessary. This is the
+			// invariant that makes releasing a subgraph work at all: necessity is derived
+			// from having dependents, so an edge to an unnecessary node both keeps that
+			// node reachable and props up the necessity of everything beneath it. Nothing
+			// would ever remove it, and no amount of care elsewhere recovers from that.
+			//
+			// Jane Street's incremental states it directly, with their naming (their
+			// parents are dependents, their children are inputs): "[p] is in [c]'s parents
+			// iff ([c] is in [p]'s children && [p] is necessary)".
+			if !cn.isNecessary() {
+				problems = append(problems, fmt.Errorf(
+					"%v keeps a dependent edge to %v, which is not necessary",
+					nn, cn))
+			}
 		}
 
 		// A node's recorded position in the recompute heap has to match its height, or

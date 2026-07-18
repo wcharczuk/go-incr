@@ -17,7 +17,7 @@ import (
 // as an input to other nodes.
 func Func[T any](scope Scope, fn func(context.Context) (T, error)) Incr[T] {
 	return WithinScope(scope, &funcIncr[T]{
-		n:  NewNode(KindFunc),
+		n:  scope.newNode(KindFunc),
 		fn: fn,
 	})
 }

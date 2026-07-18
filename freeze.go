@@ -13,7 +13,7 @@ import (
 // after the first stabilization.
 func Freeze[A any](scope Scope, i Incr[A]) Incr[A] {
 	return WithinScope(scope, &freezeIncr[A]{
-		n: NewNode(KindFreeze),
+		n: scope.newNode(KindFreeze),
 		i: i,
 	})
 }

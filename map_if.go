@@ -12,7 +12,7 @@ import (
 // linked in the graph, but the value changes during stabilization.
 func MapIf[A any](scope Scope, a, b Incr[A], p Incr[bool]) Incr[A] {
 	return WithinScope(scope, &mapIfIncr[A]{
-		n: NewNode(KindMapIf),
+		n: scope.newNode(KindMapIf),
 		a: a,
 		b: b,
 		p: p,

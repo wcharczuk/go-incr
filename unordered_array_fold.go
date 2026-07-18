@@ -33,7 +33,7 @@ func UnorderedArrayFold[A, B any](
 	inputs ...Incr[A],
 ) Incr[B] {
 	f := &unorderedArrayFoldIncr[A, B]{
-		n:       NewNode(KindUnorderedArrayFold),
+		n:       scope.newNode(KindUnorderedArrayFold),
 		initial: initial,
 		fold:    fold,
 		update:  update,

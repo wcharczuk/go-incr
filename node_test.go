@@ -595,11 +595,12 @@ func Test_Node_shouldBeInvalidated(t *testing.T) {
 func Test_Node_shouldBeInvalidated_fn(t *testing.T) {
 	n := NewNode("bogus")
 	n.valid = true
-	n.shouldBeInvalidatedProvider = shouldBeInvalidatedFunc(func() bool {
+	// the delegate is read off the node's own concrete value now, rather than cached
+	n.self = shouldBeInvalidatedFunc(func() bool {
 		return true
 	})
 	testutil.Equal(t, true, n.shouldBeInvalidated())
-	n.shouldBeInvalidatedProvider = shouldBeInvalidatedFunc(func() bool {
+	n.self = shouldBeInvalidatedFunc(func() bool {
 		return false
 	})
 	testutil.Equal(t, false, n.shouldBeInvalidated())
@@ -609,7 +610,7 @@ func Test_Node_shouldBeInvalidated_parent(t *testing.T) {
 	g := New()
 	n := NewNode("bogus")
 	n.valid = true
-	n.shouldBeInvalidatedProvider = nil
+	n.self = nil
 	okParent := newMockBareNode(g)
 	okParent.Node().valid = true
 	notOkParent := newMockBareNode(g)
@@ -624,7 +625,7 @@ func Test_Node_shouldBeInvalidated_fallThrough(t *testing.T) {
 	g := New()
 	n := NewNode("bogus")
 	n.valid = true
-	n.shouldBeInvalidatedProvider = nil
+	n.self = nil
 	okParent := newMockBareNode(g)
 	okParent.Node().valid = true
 	n.parents = []INode{

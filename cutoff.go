@@ -23,7 +23,7 @@ func Cutoff[A any](bs Scope, i Incr[A], fn CutoffFunc[A]) Incr[A] {
 // significant enough to warrant a full recomputation of the children of this node.
 func CutoffContext[A any](bs Scope, i Incr[A], fn CutoffContextFunc[A]) Incr[A] {
 	return WithinScope(bs, &cutoffIncr[A]{
-		n:  NewNode(KindCutoff),
+		n:  bs.newNode(KindCutoff),
 		i:  i,
 		fn: fn,
 	})

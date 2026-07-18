@@ -56,6 +56,20 @@ computation can depend on data rather than being fixed when it is built. Nodes c
 inside a bind's scope are released when the bind rewrites its right-hand side. [Join]
 flattens an incremental whose value is itself an incremental.
 
+# Keeping the graph's shape stable
+
+The largest performance decision here is whether the shape of the graph changes rather
+than which combinator is used. [Bind] rebuilds its right-hand side whenever its input
+changes, and each node in that subgraph is allocated, linked, walked for necessity and
+heights, and torn down on the next swap. The same computation as a fixed shape that simply
+recomputes measured 0.83us and one allocation against 11.5us and 73 allocations.
+
+Reach for [Bind] when the shape genuinely depends on the data, not to express a
+conditional over a known set of inputs -- that is better as a fixed graph with a cutoff, or
+[MapIf]. incrutil.BindMemoized caches right-hand sides by key when they are expensive to
+build, though it reduces allocation rather than time, since a cached subgraph is still
+relinked on every swap.
+
 # Cutoffs
 
 By default a node propagates whenever it recomputes, including when its new value equals

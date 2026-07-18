@@ -22,6 +22,47 @@ Street's OCaml implementation. The work that mattered:
 - A dependent whose only input just recomputed is now recomputed directly rather than
   being routed through the recompute heap, as the reference does. A chain of maps no
   longer touches the heap at all.
+- Node metadata is carved from contiguous chunks rather than allocated one at a time. Every
+  node needs a `Node` and it is the larger of the two allocations a node costs, so handing
+  them out by bumping an index turns most of that into a bounds check -- and, worth more,
+  puts nodes created together next to each other in memory, which is what a stabilization
+  walks. Each scope has its own slab, reached through `Scope`; `NewNode` still allocates on
+  its own and is unchanged for node types defined outside this package.
+
+  A bind reuses its slab across rebuilds, alternating two of them the way it already
+  alternates its node lists: a rebuild leaves the previous generation intact while it builds
+  the replacement, so the slots safe to reissue belong to the generation before that. A
+  steady-state rebuild therefore allocates nothing for metadata and reuses memory that is
+  already warm. This relies on the documented contract that nodes created inside a bind's
+  scope are released when its right-hand side is rewritten -- retaining one past a rebuild
+  would now observe another node's metadata rather than a stale value.
+
+  Measured interleaved on an idle machine: bind swaps 0.77-0.81x, building a wide graph
+  0.89-0.91x, updating every input of a wide graph 0.90x. Deep construction is 1.10x, which
+  is the chunk growth ramp on a small graph and is a few microseconds. Retention over 20,000
+  rebuilds is 19KB against 14KB for one-at-a-time allocation.
+- `Map` and `Map2` no longer allocate a closure per node. They used to adapt their plain
+  function to the context signature so they could call the `...Context` variant, which is a
+  third allocation on top of the node struct and its metadata, on the two most common
+  combinators in most graphs. Each now has its own node type, so there is no per-recompute
+  test either. Measured interleaved: construction 7-19% faster (`deep/construct` at 2048 is
+  0.81x, `wide/construct` at 1024 is 0.91x), update paths unchanged. `Map3` through `Map8`
+  still adapt, as do `MapN` and `Bind` -- for the latter two the closure is one per
+  aggregate or per bind rather than one per element, so it does not scale with graph size.
+- `CheckInvariants` verifies that a dependent edge exists only while the dependent is
+  necessary. Necessity is derived from having dependents, so an edge to an unnecessary node
+  both keeps that node reachable and props up the necessity of everything beneath it, and
+  nothing would ever remove it -- the shape of the bind relinking leak fixed above, which
+  was found by accident rather than by a check. The invariant already held; it is now
+  enforced on every operation of every random program the fuzzer builds (15 million
+  executions, no violations), so a future change cannot reintroduce it quietly. Jane
+  Street's incremental states the same invariant explicitly, and calls it the reason
+  releasing a subgraph works at all.
+- `Node` is 384 bytes rather than 416. The delegates consulted only while invalidating --
+  `IBindMain` and `IShouldBeInvalidated` -- are asserted from the node's own value at the
+  point of use instead of being cached in two words per node; the ones consulted on every
+  recompute are still cached. Node size is not incidental: 96 bytes of padding measured 13%
+  on construction and 31% on the widest update.
 - The graph's node registry is a slice with each node's position recorded on the node,
   rather than a map keyed by a 16 byte identifier. Insert and remove are both O(1) with no
   hashing, which a bind rebuild pays per node it creates and per node it destroys. Nothing

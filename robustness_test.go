@@ -379,3 +379,87 @@ func Test_OnInvalidated_firesOnce(t *testing.T) {
 	ExpertGraph(g).InvalidateNode(m)
 	testutil.Equal(t, 1, fired, "an already invalid node should not report it again")
 }
+
+// Test_necessaryDependentEdges covers the invariant that a dependent edge exists only
+// while the dependent is necessary.
+//
+// It is the property that makes releasing part of a graph work. Necessity is derived from
+// having dependents, so an edge pointing at an unnecessary node both keeps that node
+// reachable and props up the necessity of everything beneath it, and nothing will ever
+// remove it. Jane Street's incremental states the same invariant directly.
+//
+// The shapes below are the ones where it could plausibly break: a shared input whose
+// dependents are released one at a time, a node held by two observers, and a bind whose
+// discarded right-hand side reads an input that outlives it.
+func Test_necessaryDependentEdges(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("sharedInputPartiallyReleased", func(t *testing.T) {
+		g := New(OptGraphMaxHeight(64))
+		shared := Var(g, 1)
+		left := Map(g, shared, func(x int) int { return x + 1 })
+		right := Map(g, shared, func(x int) int { return x * 2 })
+
+		ol := MustObserve(g, left)
+		or := MustObserve(g, right)
+		testutil.Nil(t, g.Stabilize(ctx))
+		testutil.Equal(t, 2, len(shared.Node().children), "both dependents are necessary")
+
+		or.Unobserve(ctx)
+		testutil.Nil(t, g.Stabilize(ctx))
+		testutil.Equal(t, 1, len(shared.Node().children),
+			"the released dependent should no longer be recorded on its input")
+		testutil.Nil(t, ExpertGraph(g).CheckInvariants())
+
+		ol.Unobserve(ctx)
+		testutil.Nil(t, g.Stabilize(ctx))
+		testutil.Equal(t, 0, len(shared.Node().children))
+		testutil.Nil(t, ExpertGraph(g).CheckInvariants())
+	})
+
+	t.Run("twoObserversOneRemoved", func(t *testing.T) {
+		g := New(OptGraphMaxHeight(64))
+		v := Var(g, 1)
+		m := Map(g, v, func(x int) int { return x + 1 })
+		first := MustObserve(g, m)
+		second := MustObserve(g, m)
+		testutil.Nil(t, g.Stabilize(ctx))
+
+		// still necessary through the other observer, so the edge must stay
+		first.Unobserve(ctx)
+		testutil.Nil(t, g.Stabilize(ctx))
+		testutil.Equal(t, 1, len(v.Node().children), "still necessary through the second observer")
+		testutil.Nil(t, ExpertGraph(g).CheckInvariants())
+
+		second.Unobserve(ctx)
+		testutil.Nil(t, g.Stabilize(ctx))
+		testutil.Equal(t, 0, len(v.Node().children))
+		testutil.Nil(t, ExpertGraph(g).CheckInvariants())
+	})
+
+	t.Run("bindRightHandSideReadingAnOuterInput", func(t *testing.T) {
+		g := New(OptGraphMaxHeight(64))
+		outer := Var(g, 100)
+		sw := Var(g, 0)
+
+		// the right-hand side depends on a node that outlives every rebuild, so a
+		// discarded rhs is exactly the case where a stale dependent edge would be kept
+		o := MustObserve(g, Bind(g, sw, func(bs Scope, which int) Incr[int] {
+			return Map2(bs, outer, Return(bs, which), func(a, b int) int { return a + b })
+		}))
+
+		for i := range 20 {
+			sw.Set(i)
+			testutil.Nil(t, g.Stabilize(ctx))
+			testutil.Nil(t, ExpertGraph(g).CheckInvariants())
+			testutil.Equal(t, 1, len(outer.Node().children),
+				"each rebuild should leave exactly one dependent on the outer input")
+		}
+
+		o.Unobserve(ctx)
+		testutil.Nil(t, g.Stabilize(ctx))
+		testutil.Equal(t, 0, len(outer.Node().children),
+			"releasing the bind should leave no dependents on the outer input")
+		testutil.Nil(t, ExpertGraph(g).CheckInvariants())
+	})
+}

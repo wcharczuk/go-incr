@@ -337,7 +337,9 @@ verified identical; it does not affect update propagation.
 
 ## Result: timing
 
-Interleaved measurement, best-of-3, ratio = go-incr / ocaml (lower is better):
+Interleaved measurement, best-of-3, ratio = go-incr / ocaml (lower is better). This is the
+result of *this* pass; see "Current standing" below for where things ended up after
+everything in this document.
 
 | case | before | after |
 |---|---:|---:|
@@ -363,6 +365,43 @@ match, what remains is per-node constant factor, not algorithm.
 `bind/swap_chain/64` at 2.41x is the worst remaining case and the natural next
 thing to profile: it is small enough that fixed per-rebuild costs dominate, so it
 did not benefit from the allocation work the way the larger bind cases did.
+
+## Current standing
+
+The table above records one pass. Where things ended up after everything in this document,
+as the agreement of two full runs on an otherwise idle machine (ratio = go-incr / ocaml,
+lower is better):
+
+| case | ratio |
+|---|---:|
+| deep/construct/1 | **0.86 - 0.88** |
+| deep/construct/2048 | **0.91 - 0.92** |
+| wide/construct/1024 | **0.89 - 0.92** |
+| wide/construct/16384 | **0.91 - 0.95** |
+| wide/update_all/1024 | **0.85 - 0.88** |
+| wide/update_all/16384 | **0.85 - 0.89** |
+| bind/wide_swap/4096 | **0.77 - 0.78** |
+| bind/swap_chain/512 | 1.07 - 1.09 |
+| bind/wide_swap/256 | 1.08 |
+| bind/wide_construct/4096 | 1.10 - 1.13 |
+| deep/construct/128 | 0.77 - 1.06 |
+| deep/update_one/2048 | 1.38 - 1.45 |
+| deep/update_one/128 | 1.45 - 1.52 |
+| wide/update_one/1024 | 1.49 - 1.52 |
+| wide/update_one/16384 | 1.59 - 1.63 |
+| deep/update_one/1 | 1.63 - 1.66 |
+| bind/swap_chain/64 | 1.41 - 1.44 |
+| wide/update_same (plain `Var`) | 5.11 - 6.60 |
+| wide/update_same_equal (`VarEqual`) | **parity** -- 86ns against 74-91ns |
+
+Two things to read from this. Allocation-bound work -- construction, bulk updates, swapping a
+large subgraph -- is now ahead of the reference, which is the slab in section L plus the
+closure removal in section I. Propagating a *single* input change is still 1.4x to 1.7x
+behind, and that is per-node recompute cost: heap ordering, staleness checks, interface
+dispatch. It is the honest remaining gap and none of the allocation work touched it.
+
+`deep/construct/128` disagrees between runs (0.77 and 1.06) and `bind/swap_chain/64` is the
+smallest bind case; treat both as noisy rather than as signal.
 
 ## Is Go the limiting factor? No.
 
@@ -784,6 +823,184 @@ allocations deliberately.
 The general lesson, which cost a 29-file refactor to learn: a struct-layout model that
 measures allocation in isolation predicts the allocation change correctly and tells you
 nothing about the traversal. Both halves have to be measured on the real graph.
+
+### L. (done) Slab allocation for node metadata
+
+Sections I and J concluded against managing node memory, on two measurements that turned out
+to bound the wrong things. `GOGC=off` bounds "never reclaim", which is not what an allocator
+does. And the pooling prototype used a LIFO free list of individually allocated nodes, which
+*scatters* them -- the opposite of what an allocator should do.
+
+Carving nodes from contiguous chunks does the opposite of both: reclamation still happens,
+just at chunk granularity, and nodes created together are adjacent. Measured on an idle
+machine, min chunk 2 doubling to 256:
+
+    bind/wide_swap/256          0.77x
+    bind/swap_chain/512         0.80x
+    bind/swap_mixed/128         0.80x
+    bind/swap_chain/64          0.81x
+    bind/wide_swap/4096         0.81x
+    wide/construct/16384        0.89x
+    wide/update_all/16384       0.90x
+    bind/wide_construct/4096    0.97x
+    deep/construct/128          1.10x
+    deep/construct/1            1.12x
+
+Note `wide/update_all` at 0.90x: an update-path win, which neither embedding (H) nor pooling
+(I) managed. It is the contiguity, not the cheaper allocation.
+
+Three things had to be right, and each was found by a failure:
+
+**Reuse, not release.** Dropping a scope's chunk on each rebuild and letting the collector
+take it measured **1.65x** on `bind/wide_swap` -- a wide right-hand side then allocates ~1.5MB
+of cold memory per rebuild and discards as much, where one-at-a-time allocation recycles the
+same warm memory. Resetting the slab and reissuing the slots is what turns this from a
+regression into 0.79x.
+
+**Double buffering.** Resetting the slab at the start of a rebuild reissues slots that the
+previous generation is still using: teardown happens after the swap, not before, so the old
+nodes are live while the replacement is built. This broke nested binds outright. The slots
+safe to reissue belong to the generation *before* the one being replaced, which is exactly
+why `rhsNodes` and `rhsNodesSpare` already alternate; the slab alternates with them.
+
+**A tiny minimum chunk.** Every bind scope owns a slab, so a graph with thousands of binds
+whose right-hand sides are one or two nodes pays the minimum thousands of times. At 8 slots
+that cost 27% on `bind/wide_construct/4096`; at 2 it costs nothing, and larger scopes reach a
+useful size within a few doublings.
+
+Retention over 20,000 rebuilds is 19KB, against 14KB for one-at-a-time allocation and 2509KB
+for a naive shared slab with no reuse -- that last one is what happens when chunks mix
+generations, since one surviving node pins its whole chunk.
+
+The remaining cost is deep construction at 1.10x: a small chain pays the growth ramp where
+one-at-a-time allocation reuses a hot span. It is a few microseconds on a 33us operation, and
+the trade is deliberate -- the wins are on the shapes that get large.
+
+### J. Should this library manage its own node memory?
+
+The case for it: Go's collector is tuned for latency, and a big graph churn wants
+throughput. `Stabilize` already blocks, so in-pass latency is not what we are protecting --
+what we would want is for the churn's garbage not to cost the surrounding process.
+
+Measured against that goal directly, taking the minimum of three runs per setting:
+
+    setting      bind/swap_chain/512   bind/wide_swap/256   wide/construct/16384
+    GOGC=100          179us                 218us                 16.2ms
+    GOGC=400          160us  0.89x          191us  0.88x          15.3ms  0.94x
+    GOGC=off          209us  1.16x          241us  1.11x          20.5ms  1.26x
+
+**Disabling the collector is worse than leaving it on**, by 11% on bind churn and 26% on
+construction. Nothing is being collected, so nothing is being reused, so the heap grows and
+the working set stops fitting; `wide/construct` has the largest working set in the suite and
+takes the worst of it. The collector's recycling is buying locality, which is the same force
+that made embedding the metadata (H) and recycling nodes (I) lose.
+
+That bounds an allocator that never returns memory, which is not the interesting design; see
+section L, where chunk-granularity reclamation with reuse does win. What this measurement
+does establish is that the collector's recycling is buying locality, so any scheme has to
+preserve it -- which is why the naive free list lost and the contiguous slab did not.
+
+What does work is tuning the collector's frequency rather than removing it: `GOGC=400` is
+worth 11-12% on churn and 6% on construction, and it is a caller-side line
+(`debug.SetGCPercent(400)`, ideally with `debug.SetMemoryLimit` to bound the resulting peak)
+that needs nothing from this library. Reaching for it is reasonable for a churn-heavy
+workload; a library should not set it on a caller's behalf.
+
+The prior art is also empty. OCaml `incremental` has no pool, no free list, and no arena
+anywhere in its source; node records are ordinary allocations reclaimed by the runtime, and
+`Node_id.next()` being monotonic is itself evidence that records are never reused. It makes
+no calls into `Gc` beyond attaching observer finalizers, and there is no comment anywhere in
+its source discussing minor-heap behavior, pauses, or stabilization latency. Its memory
+strategy is a structural invariant instead: dependent edges exist only while a node is
+necessary, so a subgraph going unnecessary severs everything that could pin it. That is
+worth more than any allocator, and it is portable.
+
+### K. Deferring teardown to after the pass
+
+Also considered: reap nodes after a stabilization rather than during it. Measured share of a
+`bind/swap_chain/512` swap:
+
+    becameUnnecessary (unlinking)     13%   must stay inline; semantics
+    removeNode + zeroNode              4-6% deferrable
+    allocator and collector           26%   not addressed by deferring
+
+Only the scrub and registry removal can move, and they are 4-6% of the pass. Deferring them
+also *retains* the dead nodes until the queue drains, so peak memory rises and collection is
+delayed -- the opposite of the goal. Meanwhile the 26% that actually lands inside the pass is
+allocator and collector work, which deferring does not touch.
+
+OCaml does not defer any of this either. Its teardown is entirely eager and inline inside the
+recompute loop; the only things it defers to the end of a pass are user-visible callbacks,
+`Var.set` calls that arrive during stabilization, observer registration, and weak-table
+compaction. The one work queue that looks like batching, `propagate_invalidity`, exists purely
+because a parent removing itself would invalidate the iteration over parents -- the same
+problem a Go port hits when a dependent removes itself from a slice being ranged over.
+
+### I. What actually reduces allocation
+
+Construction profiles at roughly half allocation and collection, so reducing allocation
+looks like the obvious lever. Three attempts at it and one thing that worked:
+
+**Pooling nodes (measured, ~12-17% on churn, not landed).** A free list that recycles the
+`Node` metadata on teardown. Measured against the base, with an unsafe prototype that
+verifies identical values:
+
+    bind/wide_swap/256     0.83x
+    bind/swap_chain/512    0.84x
+    bind/swap_mixed/128    0.87x
+    construct (all)        0.96 - 1.04x   (nothing to recycle)
+    update paths           1.04 - 1.18x   (unattributable, see below)
+
+The bind win is real and outside the noise band. The apparent update cost is not
+attributable: the prototype does a redundant 416-byte write per node (`new(Node)` zeroes it,
+then the composite literal writes it again), and adding code to `node.go` shifts layout,
+which is independently worth ~5% on these cases. A clean prototype would be needed to know.
+
+It is also not safe as written. A caller holding an `Incr` from a discarded bind scope would
+observe another node's metadata, and could link it back into the graph. Landing it needs an
+opt-in graph option, a generation counter on `Node`, and a checked mode that panics on
+access to a recycled node -- and it should be weighed against simply not churning the graph,
+which is an order of magnitude better (below).
+
+**Memoizing the bind (measured, slower).** `incrutil.BindMemoized` caches right-hand sides
+by key, so a bind over a small key space stops allocating after warmup. Over 4 keys:
+
+    plain bind      11.5us   73 allocs
+    memoized bind   15.3us    6 allocs
+
+92% fewer allocations and 33% slower. The cached subgraph still has to be unlinked,
+relinked, and walked for necessity and heights on every swap, and that bookkeeping is what
+a swap actually costs. Useful when the rebuild function itself is expensive; not a way to
+make swaps cheaper.
+
+**Embedding the metadata (see H above, reverted).** Halves the allocation count and
+regresses the widest update path ~1.9x.
+
+**What worked: removing an allocation without moving anything.** `Map` allocated a closure
+per node purely to adapt `func(A) B` to the context signature. Giving it its own node type
+removed that allocation and touched no layout: construction 5-19% faster, updates unchanged,
+no case worse. That is the whole pattern -- three schemes that consolidated or relocated
+memory all lost more than they gained, and the one that deleted an allocation outright won
+cleanly.
+
+**Node size, and a proxy that overstated itself.** Growing `Node` by 96 bytes of padding
+cost 13% on construction and 31% on `wide/update_all/16384`, which made shrinking it look
+like the best remaining lever -- and unlike embedding or pooling it removes bytes without
+relocating anything. Removing 32 bytes (the two invalidation-only delegates, 416 to 384,
+one size class down) gained about 7% on small construction and nothing measurable
+elsewhere. Real, worth keeping, and much smaller than the proxy implied: the relationship is
+not linear, so a padding experiment bounds the direction but not the magnitude. Reaching the
+352 class needs another 32 bytes, which would mean moving the edge indexes behind `ext` and
+paying a branch per edge on a construction-hot path; not obviously worth it at this return.
+
+**And the thing that dwarfs all of it: do not churn the graph.** The same computation, once
+as a bind that rebuilds its right-hand side and once as a fixed shape driven by cutoffs:
+
+    bind rebuild    11.5us    73 allocs
+    stable shape     0.83us    1 alloc
+
+14x and 73x. No allocator this library could ship competes with restructuring the graph, so
+the highest-value guidance is a documentation matter, not an allocator one.
 
 ### D. Edges keyed by identity, not by input slot
 

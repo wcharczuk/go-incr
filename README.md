@@ -26,88 +26,75 @@ The key difference from this library versus the Jane Street implementation is _p
 
 The two libraries implement the same algorithms, and the benchmark suite in `_bench`
 cross-checks that they compute the same values and recompute the same number of nodes for
-each shape before it reports any timing. What is left is constant factors, and go-incr
-currently pays 1.1x to 2x of them depending on the shape:
+each shape before it reports any timing. What is left is constant factors, and they now fall
+differently depending on the shape:
 
 | shape | vs OCaml `incremental` |
 | --- | --- |
-| building a graph | parity to 1.4x slower |
-| one input changes, deep graph | 1.4 - 1.8x slower |
-| one input changes, wide graph | 1.6 - 2.1x slower |
-| every input changes, wide graph | parity at 1k nodes, 1.5 - 1.8x slower at 16k |
-| `Bind` swapping a subgraph | 1.1 - 2.2x slower |
-| writing an input the value it already holds | ~1.2x slower with `VarEqual`, 5 - 7x with `Var` |
+| building a graph | go-incr 1.05 - 1.15x faster |
+| every input changes, wide graph | go-incr 1.1 - 1.2x faster |
+| `Bind` swapping a large subgraph | go-incr 1.3x faster |
+| `Bind` swapping a small subgraph | parity to 1.4x slower |
+| one input changes, wide graph | 1.5 - 1.6x slower |
+| one input changes, deep graph | 1.4 - 1.7x slower |
+| writing an input the value it already holds | parity with `VarEqual`, 5 - 6.5x with `Var` |
 
-That last row is a difference in defaults rather than in machinery. OCaml `incremental`
-cuts off on physical equality by default; go-incr propagates unless you ask it not to,
-because an `Incr[A]` holds any type and equality cannot be assumed. Use `VarEqual` for
-inputs that are written repeatedly and often unchanged and the gap mostly closes -- 95ns
-against 76ns, rather than 500ns.
+That last row is a difference in defaults rather than in machinery. OCaml `incremental` cuts
+off on physical equality by default; go-incr propagates unless you ask it not to, because an
+`Incr[A]` holds any type and equality cannot be assumed. Use `VarEqual` for inputs that are
+written repeatedly and often unchanged and the difference disappears entirely -- 86ns against
+74-91ns, rather than 490ns.
 
-The remaining gap is mostly allocation: construction profiles at roughly half allocation
-and garbage collection, and that is Go's allocator against OCaml's bump-allocated minor
-heap. Collapsing the two allocations per node into one was tried and reverted -- it made
-construction 20% faster and the widest update path about 1.9x slower, which is the wrong
-trade. See `_bench/ALGORITHMS.md` for that and for the rest of the analysis, including
-which differences turned out to be algorithmic and which were only constants.
+Where go-incr is ahead is allocation-bound work. Node metadata is carved from contiguous
+per-scope chunks rather than allocated one at a time, and a bind reuses its chunks across
+rebuilds, so building a graph and swapping a subgraph both cost less than they did and nodes
+created together sit next to each other in memory. Where it is behind is propagating a single
+input change: that is per-node recompute cost -- heap ordering, staleness checks, interface
+dispatch -- and it is the honest remaining gap.
+
+`_bench/ALGORITHMS.md` has the full analysis, including several optimizations that measured
+worse and were reverted, which are usually more informative than the ones that landed.
+
+If a workload churns the graph heavily and cares about throughput rather than latency,
+`debug.SetGCPercent(400)` is worth about 10% on bind swaps and 6% on construction, ideally
+with `debug.SetMemoryLimit` to bound the resulting peak. Note that turning collection off
+entirely is *slower* than the default, by 11-26%: nothing gets reused, the heap grows, and
+the working set stops fitting. This library does not tune the collector on a caller's behalf.
 
 Two caveats if you run the suite yourself. Compare interleaved and never across sessions:
 the same unmodified binary drifts by up to 2x between runs on the same machine, which is
 enough to invent a regression or hide one. And establish the noise floor before believing a
 delta -- building identical source twice and comparing gives 1-2%, and `wide/update_all` at
-16k is unstable enough on its own to need a distribution rather than a single minimum.
+16k is unstable enough on its own to need a distribution rather than a single minimum. The
+numbers above are the agreement of two full runs on an otherwise idle machine.
 
-# Choosing a combinator
+# Keeping the graph's shape stable
 
-Most of what decides whether an incremental graph stays fast as it grows is which
-combinator you reach for. Several ways of writing the same aggregate differ by orders of
-magnitude, and the difference does not appear until the collection is large:
+The single largest performance decision in this library is not which combinator you pick,
+it is whether the shape of the graph changes. `Bind` rebuilds its right-hand side every
+time its input changes, and every node in that subgraph is allocated, linked, walked for
+necessity and heights, then torn down again on the next swap.
 
-| aggregating n inputs | cost of one input changing | at 4096 inputs |
-| --- | --- | --- |
-| `MapN` | O(n) — every value is passed to the function | 17.2us |
-| `ReduceBalanced` | O(log n) — only the path from the changed leaf to the root | 427ns |
-| `UnorderedArrayFold` | O(1) — the accumulator is adjusted in place | 188ns |
+The same computation, once as a bind that rebuilds and once as a fixed shape whose nodes
+are always present and simply recompute:
 
-The rule of thumb:
+    bind rebuild    11.5us    73 allocations
+    stable shape     0.83us    1 allocation
 
-- Aggregating with an operation that **has an inverse** (a sum, a count) — use
-  `UnorderedArrayFold`, which withdraws the old contribution and applies the new one.
-- Aggregating with an operation that has **no inverse** (a maximum, a concatenation) —
-  use `ReduceBalanced`. Nothing can be withdrawn from a maximum, so a running
-  accumulator cannot work, but a balanced tree only recomputes one path.
-- `MapN` and `All` read every input on every pass by construction. Use them when you
-  genuinely want all the values, not to aggregate them.
+14x the time and 73x the garbage, for the same answer. Nothing else in this library is
+worth that much.
 
-# Incremental maps
+So reach for `Bind` when the shape genuinely depends on the data -- when you cannot know
+the set of nodes until you see a value -- and not as a way to express a conditional. A
+condition over a known set of inputs is better as a fixed graph plus a cutoff, or as
+`MapIf`. If the right-hand side is expensive to build and the input takes a small set of
+values, `incrutil.BindMemoized` caches the subgraphs by key; note that it reduces
+allocation rather than time, since a cached subgraph still has to be relinked on every
+swap.
 
-A computation over a map has the same trap in a sharper form: comparing two of Go's
-builtin maps costs O(n) however few keys changed, because a hash table shares no
-structure with the map it was copied from and cannot say what differs.
-
-`incrutil/pmap` is an immutable ordered map with structural sharing, whose symmetric
-difference is proportional to the number of changes rather than the size of the map —
-diffing 8 changes in a 65536 entry map costs about 700ns and does not grow with the map.
-`incrutil/mapi` builds the incremental operators over it:
-
-| operator | does |
-| --- | --- |
-| `MapValues`, `FilterMapValues` | per-key transform, recomputing only changed keys |
-| `Merge` | combine two maps, recomputing the union of their changes |
-| `UnorderedFold` | aggregate with an inverse, O(1) per changed key |
-| `Reduce`, `MaxValue`, `MinValue` | aggregate without an inverse, O(log n) per change |
-| `Subrange` | a window over a sorted map, with incremental bounds |
-| `Partition` | split by a predicate into two maps |
-| `Join` | a map of incrementals becomes an incremental map |
-| `Selector` | an incremental per key, so one key changing wakes only that key's consumers |
-| `Sum`, `Cardinality`, `Counti`, `Keys` | common aggregates |
-
-`FromGoMap` and `ToGoMap` bridge to builtin maps at the edges.
-
-`examples/incremental_map` is a worked example: a book of 5000 orders with a per-order
-transform, a running total, a maximum and a moving window over it. Repricing one order
-recomputes one line and adjusts the total in constant time; filling the largest order
-finds the new maximum without rereading the book.
+Two related habits, both measured elsewhere in this file: prefer `UnorderedArrayFold` or
+`ReduceBalanced` to `MapN` for aggregates, and use `VarEqual` for inputs that are written
+repeatedly with the value they already hold.
 
 # Cutoffs
 

@@ -23,7 +23,7 @@ func MapN[A, B any](scope Scope, fn MapNFunc[A, B], inputs ...Incr[A]) MapNIncr[
 // only valid for the duration of the call; do not retain it past fn returning.
 func MapNContext[A, B any](scope Scope, fn MapNContextFunc[A, B], inputs ...Incr[A]) MapNIncr[A, B] {
 	m := &mapNIncr[A, B]{
-		n:      NewNode(KindMapN),
+		n:      scope.newNode(KindMapN),
 		inputs: inputs,
 		fn:     fn,
 	}

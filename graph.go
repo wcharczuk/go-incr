@@ -202,6 +202,8 @@ type Graph struct {
 	// recomputingNode is the node currently being recomputed on the serial path, read only
 	// when recovering from a panic to report and retry the node responsible.
 	recomputingNode INode
+	// nodeSlab is where nodes created directly on the graph get their metadata.
+	nodeSlab nodeSlab
 
 	// deterministic controls aspects of stabilization such that
 	// if the user values determinism, things will happen in consistent order.
@@ -396,7 +398,10 @@ func (graph *Graph) isScopeNecessary() bool { return true }
 func (graph *Graph) scopeGraph() *Graph     { return graph }
 func (graph *Graph) scopeHeight() int       { return HeightUnset }
 func (graph *Graph) addScopeNode(_ INode)   {}
-func (graph *Graph) String() string         { return fmt.Sprintf("{graph:%s}", graph.id.Short()) }
+func (graph *Graph) newNode(kind string) *Node {
+	return newNodeIn(&graph.nodeSlab, kind)
+}
+func (graph *Graph) String() string { return fmt.Sprintf("{graph:%s}", graph.id.Short()) }
 func (graph *Graph) newIdentifier() Identifier {
 	return graph.identiferProvider.NewIdentifier()
 }

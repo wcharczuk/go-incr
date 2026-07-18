@@ -18,7 +18,7 @@ func Map4[A, B, C, D, E any](scope Scope, a Incr[A], b Incr[B], c Incr[C], d Inc
 // new incremental of the output type of that function.
 func Map4Context[A, B, C, D, E any](scope Scope, a Incr[A], b Incr[B], c Incr[C], d Incr[D], fn func(context.Context, A, B, C, D) (E, error)) Incr[E] {
 	m := &map4Incr[A, B, C, D, E]{
-		n:  NewNode(KindMap4),
+		n:  scope.newNode(KindMap4),
 		a:  a,
 		b:  b,
 		c:  c,

@@ -111,7 +111,7 @@ func At(scope Scope, clock *Clock, when time.Time) Incr[bool] {
 		clock: clock,
 		when:  when,
 	}
-	a.n = NewNode(KindAt)
+	a.n = scope.newNode(KindAt)
 	WithinScope(scope, a)
 	a.entry = clock.register(a, when)
 	return a
@@ -162,7 +162,7 @@ func AtIntervals(scope Scope, clock *Clock, every time.Duration) Incr[int] {
 		start: clock.Now(),
 		every: every,
 	}
-	a.n = NewNode(KindAtIntervals)
+	a.n = scope.newNode(KindAtIntervals)
 	WithinScope(scope, a)
 	a.entry = clock.register(a, a.start.Add(every))
 	return a
@@ -215,7 +215,7 @@ func Snapshot[A any](scope Scope, clock *Clock, input Incr[A], at time.Time, bef
 		at:    at,
 		value: before,
 	}
-	s.n = NewNode(KindSnapshot)
+	s.n = scope.newNode(KindSnapshot)
 	s.parents[0] = input
 	WithinScope(scope, s)
 	s.entry = clock.register(s, at)

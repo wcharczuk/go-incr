@@ -16,7 +16,7 @@ import (
 // take the [Var] node as an input (i.e. the [Var] node's children).
 func Var[T any](scope Scope, t T) VarIncr[T] {
 	return WithinScope(scope, &varIncr[T]{
-		n:     NewNode(KindVar),
+		n:     scope.newNode(KindVar),
 		value: t,
 	})
 }
@@ -41,7 +41,7 @@ func VarEqual[T comparable](scope Scope, t T) VarIncr[T] {
 // VarEqualFunc is [VarEqual] for types with no ==, taking the comparison.
 func VarEqualFunc[T any](scope Scope, t T, equal func(a, b T) bool) VarIncr[T] {
 	return WithinScope(scope, &varIncr[T]{
-		n:     NewNode(KindVar),
+		n:     scope.newNode(KindVar),
 		value: t,
 		equal: equal,
 	})

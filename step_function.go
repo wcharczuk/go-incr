@@ -38,7 +38,7 @@ func StepFunction[A any](scope Scope, clock *Clock, initial A, steps ...Step[A])
 		steps:   ordered,
 		value:   initial,
 	}
-	s.n = NewNode(KindStepFunction)
+	s.n = scope.newNode(KindStepFunction)
 	WithinScope(scope, s)
 	// wake for the first step that has not already passed; nothing to wake for if they
 	// have all gone by, since the value will not change again

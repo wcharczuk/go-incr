@@ -19,7 +19,7 @@ func Cutoff2[A, B any](bs Scope, epsilon Incr[A], input Incr[B], fn Cutoff2Func[
 // significant enough to warrant a full recomputation of the children of this node.
 func Cutoff2Context[A, B any](bs Scope, epsilon Incr[A], input Incr[B], fn Cutoff2ContextFunc[A, B]) Incr[B] {
 	return WithinScope(bs, &cutoff2Incr[A, B]{
-		n:  NewNode(KindCutoff2),
+		n:  bs.newNode(KindCutoff2),
 		fn: fn,
 		e:  epsilon,
 		i:  input,

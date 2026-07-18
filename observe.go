@@ -21,7 +21,7 @@ func MustObserve[A any](g *Graph, observed Incr[A]) ObserveIncr[A] {
 // as well as all of its parents.
 func Observe[A any](g *Graph, observed Incr[A]) (ObserveIncr[A], error) {
 	o := WithinScope(g, &observeIncr[A]{
-		n:        NewNode(KindObserver),
+		n:        g.newNode(KindObserver),
 		observed: observed,
 	})
 	if err := g.observeNode(o, observed); err != nil {

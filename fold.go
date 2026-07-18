@@ -58,7 +58,7 @@ func DependOn[A any](scope Scope, input Incr[A], dependency INode) Incr[A] {
 // input to a combinator that does not care what it produces.
 func asUnit(scope Scope, node INode) Incr[struct{}] {
 	u := &unitIncr{input: node}
-	u.n = NewNode(KindUnit)
+	u.n = scope.newNode(KindUnit)
 	u.parents[0] = node
 	return WithinScope(scope, u)
 }

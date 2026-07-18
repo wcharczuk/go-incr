@@ -61,6 +61,10 @@ type Scope interface {
 	scopeGraph() *Graph
 	scopeHeight() int
 	addScopeNode(INode)
+	// newNode hands out this scope's metadata for a node of the given kind. Nodes created
+	// in the same scope come from the same slab, so they end up adjacent in memory and a
+	// bind's generation of nodes can be reclaimed together; see nodeSlab.
+	newNode(kind string) *Node
 	newIdentifier() Identifier
 	fmt.Stringer
 }
