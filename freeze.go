@@ -30,10 +30,14 @@ type freezeIncr[A any] struct {
 	i        Incr[A]
 	freezeAt uint64
 	v        A
+	// parents is the storage [Parents] fills and returns a slice over, so that
+	// asking a node for its inputs does not allocate a fresh list every call.
+	parents [1]INode
 }
 
 func (f *freezeIncr[T]) Parents() []INode {
-	return []INode{f.i}
+	f.parents[0] = f.i
+	return f.parents[:]
 }
 
 func (f *freezeIncr[T]) Node() *Node { return f.n }

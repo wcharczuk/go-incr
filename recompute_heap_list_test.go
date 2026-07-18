@@ -6,25 +6,25 @@ import (
 	"github.com/wcharczuk/go-incr/testutil"
 )
 
-func nodePtrID(n INode) Identifier {
+func nodePtrID(n *Node) Identifier {
 	if n == nil {
 		return _zero
 	}
-	return n.Node().id
+	return n.id
 }
 
-func rhnext(n INode) INode {
+func rhnext(n *Node) *Node {
 	if n == nil {
 		return nil
 	}
-	return n.Node().nextInRecomputeHeap
+	return n.nextInRecomputeHeap
 }
 
-func rhprev(n INode) INode {
+func rhprev(n *Node) *Node {
 	if n == nil {
 		return nil
 	}
-	return n.Node().previousInRecomputeHeap
+	return n.previousInRecomputeHeap
 }
 
 func Test_recomputeHeapList_push_pop(t *testing.T) {
@@ -649,7 +649,7 @@ func Test_recomputeHeapList_removeHeadItem_full(t *testing.T) {
 	testutil.Equal(t, n1.Node().id, nodePtrID(rhprev(rhprev(rhprev(q.tail)))))
 	testutil.Equal(t, n0.Node().id, nodePtrID(rhprev(rhprev(rhprev(rhprev(q.tail))))))
 
-	q.removeHeadItem()
+	q.popNode()
 
 	testutil.NotNil(t, q.head)
 	testutil.NotNil(t, rhnext(q.head))
@@ -684,7 +684,7 @@ func Test_recomputeHeapList_removeHeadItem_one(t *testing.T) {
 	testutil.Nil(t, rhprev(q.tail))
 	testutil.Equal(t, n0.Node().id, nodePtrID(q.tail))
 
-	q.removeHeadItem()
+	q.popNode()
 
 	testutil.Nil(t, q.head)
 	testutil.Nil(t, q.tail)

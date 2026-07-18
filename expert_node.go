@@ -214,22 +214,22 @@ func (en *expertNode) RemoveObserver(id Identifier) {
 }
 
 func (en *expertNode) OnUpdateHandlers() []func(context.Context) {
-	return en.node.onUpdateHandlers
+	return en.node.updateHandlers()
 }
 func (en *expertNode) SetOnUpdateHandlers(handlers []func(context.Context)) {
-	en.node.onUpdateHandlers = handlers
+	en.node.extra().onUpdateHandlers = handlers
 }
 func (en *expertNode) OnErrorHandlers() []func(context.Context, error) {
-	return en.node.onErrorHandlers
+	return en.node.errorHandlers()
 }
 func (en *expertNode) SetOnErrorHandlers(handlers []func(context.Context, error)) {
-	en.node.onErrorHandlers = handlers
+	en.node.extra().onErrorHandlers = handlers
 }
 func (en *expertNode) OnAbortedHandlers() []func(context.Context, error) {
-	return en.node.onAbortedHandlers
+	return en.node.abortedHandlers()
 }
 func (en *expertNode) SetOnAbortedHandlers(handlers []func(context.Context, error)) {
-	en.node.onAbortedHandlers = handlers
+	en.node.extra().onAbortedHandlers = handlers
 }
 
 func (en *expertNode) Value() any {

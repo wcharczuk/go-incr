@@ -140,8 +140,8 @@ func (hi heightIncr) Node() *Node {
 	return hi.n
 }
 
-func newList(items ...INode) *recomputeHeapList {
-	l := new(recomputeHeapList)
+func newList(items ...INode) recomputeHeapList {
+	var l recomputeHeapList
 	for _, i := range items {
 		i.Node().heightInRecomputeHeap = i.Node().height
 		l.push(i)

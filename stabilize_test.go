@@ -363,7 +363,7 @@ func Test_Stabilize_setDuringStabilization_deterministic(t *testing.T) {
 
 	var nodesInHeap []string
 	g.recomputeHeap.heights[0].consume(func(n INode) {
-		nodesInHeap = append(nodesInHeap, n.Node().label)
+		nodesInHeap = append(nodesInHeap, n.Node().Label())
 	})
 	testutil.Equal(t, []string{"00", "01", "02"}, nodesInHeap)
 }

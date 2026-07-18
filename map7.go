@@ -17,18 +17,25 @@ func Map7[A, B, C, D, E, F, G, H any](scope Scope, a Incr[A], b Incr[B], c Incr[
 // an error, to given input incrementals and returns a
 // new incremental of the output type of that function.
 func Map7Context[A, B, C, D, E, F, G, H any](scope Scope, a Incr[A], b Incr[B], c Incr[C], d Incr[D], e Incr[E], f Incr[F], g Incr[G], fn func(context.Context, A, B, C, D, E, F, G) (H, error)) Incr[H] {
-	return WithinScope(scope, &map7Incr[A, B, C, D, E, F, G, H]{
-		n:       NewNode(KindMap7),
-		a:       a,
-		b:       b,
-		c:       c,
-		d:       d,
-		e:       e,
-		f:       f,
-		g:       g,
-		fn:      fn,
-		parents: []INode{a, b, c, d, e, f, g},
-	})
+	m := &map7Incr[A, B, C, D, E, F, G, H]{
+		n:  NewNode(KindMap7),
+		a:  a,
+		b:  b,
+		c:  c,
+		d:  d,
+		e:  e,
+		f:  f,
+		g:  g,
+		fn: fn,
+	}
+	m.parents[0] = a
+	m.parents[1] = b
+	m.parents[2] = c
+	m.parents[3] = d
+	m.parents[4] = e
+	m.parents[5] = f
+	m.parents[6] = g
+	return WithinScope(scope, m)
 }
 
 var (
@@ -39,21 +46,23 @@ var (
 )
 
 type map7Incr[A, B, C, D, E, F, G, H any] struct {
-	n       *Node
-	a       Incr[A]
-	b       Incr[B]
-	c       Incr[C]
-	d       Incr[D]
-	e       Incr[E]
-	f       Incr[F]
-	g       Incr[G]
-	fn      func(context.Context, A, B, C, D, E, F, G) (H, error)
-	val     H
-	parents []INode
+	n   *Node
+	a   Incr[A]
+	b   Incr[B]
+	c   Incr[C]
+	d   Incr[D]
+	e   Incr[E]
+	f   Incr[F]
+	g   Incr[G]
+	fn  func(context.Context, A, B, C, D, E, F, G) (H, error)
+	val H
+	// parents is an array rather than a slice so that constructing the node does
+	// not allocate a separate input list; [Parents] hands out a slice over it.
+	parents [7]INode
 }
 
 func (mn *map7Incr[A, B, C, D, E, F, G, H]) Parents() []INode {
-	return mn.parents
+	return mn.parents[:]
 }
 
 func (mn *map7Incr[A, B, C, D, E, F, G, H]) Node() *Node { return mn.n }

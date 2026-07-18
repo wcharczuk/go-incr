@@ -17,14 +17,17 @@ func Map3[A, B, C, D any](scope Scope, a Incr[A], b Incr[B], c Incr[C], fn func(
 // an error, to given input incrementals and returns a
 // new incremental of the output type of that function.
 func Map3Context[A, B, C, D any](scope Scope, a Incr[A], b Incr[B], c Incr[C], fn func(context.Context, A, B, C) (D, error)) Incr[D] {
-	return WithinScope(scope, &map3Incr[A, B, C, D]{
-		n:       NewNode(KindMap3),
-		a:       a,
-		b:       b,
-		c:       c,
-		fn:      fn,
-		parents: []INode{a, b, c},
-	})
+	m := &map3Incr[A, B, C, D]{
+		n:  NewNode(KindMap3),
+		a:  a,
+		b:  b,
+		c:  c,
+		fn: fn,
+	}
+	m.parents[0] = a
+	m.parents[1] = b
+	m.parents[2] = c
+	return WithinScope(scope, m)
 }
 
 var (
@@ -35,17 +38,19 @@ var (
 )
 
 type map3Incr[A, B, C, D any] struct {
-	n       *Node
-	a       Incr[A]
-	b       Incr[B]
-	c       Incr[C]
-	fn      func(context.Context, A, B, C) (D, error)
-	val     D
-	parents []INode
+	n   *Node
+	a   Incr[A]
+	b   Incr[B]
+	c   Incr[C]
+	fn  func(context.Context, A, B, C) (D, error)
+	val D
+	// parents is an array rather than a slice so that constructing the node does
+	// not allocate a separate input list; [Parents] hands out a slice over it.
+	parents [3]INode
 }
 
 func (mn *map3Incr[A, B, C, D]) Parents() []INode {
-	return mn.parents
+	return mn.parents[:]
 }
 
 func (mn *map3Incr[A, B, C, D]) Node() *Node { return mn.n }

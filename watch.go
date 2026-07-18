@@ -39,10 +39,14 @@ type watchIncr[A any] struct {
 	incr   Incr[A]
 	value  A
 	values []A
+	// parents is the storage [Parents] fills and returns a slice over, so that
+	// asking a node for its inputs does not allocate a fresh list every call.
+	parents [1]INode
 }
 
 func (w *watchIncr[A]) Parents() []INode {
-	return []INode{w.incr}
+	w.parents[0] = w.incr
+	return w.parents[:]
 }
 
 func (w *watchIncr[A]) Value() A {

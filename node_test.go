@@ -15,19 +15,19 @@ func Test_NewNode(t *testing.T) {
 	testutil.Equal(t, "test_node", n.kind)
 	testutil.Equal(t, 0, len(n.parents))
 	testutil.Equal(t, 0, len(n.children))
-	testutil.Equal(t, "", n.label)
+	testutil.Equal(t, "", n.Label())
 	testutil.Equal(t, HeightUnset, n.height)
 	testutil.Equal(t, HeightUnset, n.heightInRecomputeHeap)
 	testutil.Equal(t, HeightUnset, n.heightInAdjustHeightsHeap)
 	testutil.Equal(t, 0, n.changedAt)
 	testutil.Equal(t, 0, n.setAt)
 	testutil.Equal(t, 0, n.recomputedAt)
-	testutil.Nil(t, n.onUpdateHandlers)
-	testutil.Nil(t, n.onErrorHandlers)
-	testutil.Nil(t, n.stabilizeFn)
-	testutil.Nil(t, n.cutoffFn)
+	testutil.Nil(t, n.updateHandlers())
+	testutil.Nil(t, n.errorHandlers())
+	testutil.Nil(t, n.stabilizer)
+	testutil.Nil(t, n.cutoffer)
 	testutil.Equal(t, 0, n.numRecomputes)
-	testutil.Nil(t, n.metadata)
+	testutil.Nil(t, n.Metadata())
 }
 
 func Test_Node_ID(t *testing.T) {
@@ -94,25 +94,25 @@ func Test_SetStale(t *testing.T) {
 func Test_Node_OnUpdate(t *testing.T) {
 	n := NewNode("test_node")
 
-	testutil.Equal(t, 0, len(n.onUpdateHandlers))
+	testutil.Equal(t, 0, len(n.updateHandlers()))
 	n.OnUpdate(func(_ context.Context) {})
-	testutil.Equal(t, 1, len(n.onUpdateHandlers))
+	testutil.Equal(t, 1, len(n.updateHandlers()))
 }
 
 func Test_Node_OnError(t *testing.T) {
 	n := NewNode("test_node")
 
-	testutil.Equal(t, 0, len(n.onErrorHandlers))
+	testutil.Equal(t, 0, len(n.errorHandlers()))
 	n.OnError(func(_ context.Context, _ error) {})
-	testutil.Equal(t, 1, len(n.onErrorHandlers))
+	testutil.Equal(t, 1, len(n.errorHandlers()))
 }
 
 func Test_Node_SetLabel(t *testing.T) {
 	n := NewNode("test_node")
 
-	testutil.Equal(t, "", n.label)
+	testutil.Equal(t, "", n.Label())
 	n.SetLabel("test-label")
-	testutil.Equal(t, "test-label", n.label)
+	testutil.Equal(t, "test-label", n.Label())
 }
 
 func Test_Node_addChildren(t *testing.T) {
@@ -277,11 +277,11 @@ func Test_Node_maybeStabilize(t *testing.T) {
 	testutil.Nil(t, err)
 
 	var calledStabilize bool
-	n.stabilizeFn = func(ictx context.Context) error {
+	n.stabilizer = stabilizeFunc(func(ictx context.Context) error {
 		calledStabilize = true
 		testutil.BlueDye(ictx, t)
 		return nil
-	}
+	})
 
 	err = n.maybeStabilize(ctx)
 	testutil.Nil(t, err)
@@ -292,10 +292,10 @@ func Test_Node_maybeStabilize_error(t *testing.T) {
 	ctx := testContext()
 	n := NewNode("test_node")
 
-	n.stabilizeFn = func(ictx context.Context) error {
+	n.stabilizer = stabilizeFunc(func(ictx context.Context) error {
 		testutil.BlueDye(ictx, t)
 		return fmt.Errorf("just a test")
-	}
+	})
 
 	err := n.maybeStabilize(ctx)
 	testutil.NotNil(t, err)
@@ -312,19 +312,19 @@ func Test_Node_maybeCutoff(t *testing.T) {
 	testutil.Nil(t, err)
 	testutil.Equal(t, false, shouldCutoff)
 
-	n.cutoffFn = func(ictx context.Context) (bool, error) {
+	n.cutoffer = cutoffFunc(func(ictx context.Context) (bool, error) {
 		testutil.BlueDye(ictx, t)
 		return true, nil
-	}
+	})
 
 	shouldCutoff, err = n.maybeCutoff(ctx)
 	testutil.Nil(t, err)
 	testutil.Equal(t, true, shouldCutoff)
 
-	n.cutoffFn = func(ictx context.Context) (bool, error) {
+	n.cutoffer = cutoffFunc(func(ictx context.Context) (bool, error) {
 		testutil.BlueDye(ictx, t)
 		return true, fmt.Errorf("this is just a test")
-	}
+	})
 	shouldCutoff, err = n.maybeCutoff(ctx)
 	testutil.NotNil(t, err)
 	testutil.Equal(t, true, shouldCutoff)
@@ -333,21 +333,21 @@ func Test_Node_maybeCutoff(t *testing.T) {
 func Test_Node_detectCutoff(t *testing.T) {
 	yes := NewNode("test_node")
 	yes.detectCutoff(new(cutoffIncr[string]))
-	testutil.NotNil(t, yes.cutoffFn)
+	testutil.NotNil(t, yes.cutoffer)
 
 	no := NewNode("test_node")
 	no.detectCutoff(new(mockBareNode))
-	testutil.Nil(t, no.cutoffFn)
+	testutil.Nil(t, no.cutoffer)
 }
 
 func Test_Node_detectStabilize(t *testing.T) {
 	yes := NewNode("test_node")
 	yes.detectStabilize(new(mapIncr[string, string]))
-	testutil.NotNil(t, yes.stabilizeFn)
+	testutil.NotNil(t, yes.stabilizer)
 
 	no := NewNode("test_node")
 	no.detectStabilize(new(mockBareNode))
-	testutil.Nil(t, no.stabilizeFn)
+	testutil.Nil(t, no.stabilizer)
 }
 
 func Test_Node_isStale(t *testing.T) {
@@ -358,11 +358,11 @@ func Test_Node_isStale(t *testing.T) {
 	testutil.Equal(t, false, n.isStale())
 
 	n.valid = true
-	n.staleFn = func() bool { return true }
+	n.staler = staleFunc(func() bool { return true })
 	testutil.Equal(t, true, n.isStale())
 
 	n.valid = true
-	n.staleFn = nil
+	n.staler = nil
 	n.recomputedAt = 1
 	testutil.Equal(t, false, n.isStale())
 }
@@ -481,7 +481,7 @@ func Test_nodeFormatters(t *testing.T) {
 		tc.Node.Node().id = id
 		tc.Node.Node().height = 2
 		testutil.Equal(t, fmt.Sprintf("%s[%s]@2", tc.Label, id.Short()), fmt.Sprint(tc.Node))
-		tc.Node.Node().label = "test-label"
+		tc.Node.Node().SetLabel("test-label")
 		testutil.Equal(t, fmt.Sprintf("%s[%s]:test-label@2", tc.Label, id.Short()), fmt.Sprint(tc.Node))
 	}
 }
@@ -595,13 +595,13 @@ func Test_Node_shouldBeInvalidated(t *testing.T) {
 func Test_Node_shouldBeInvalidated_fn(t *testing.T) {
 	n := NewNode("bogus")
 	n.valid = true
-	n.shouldBeInvalidatedFn = func() bool {
+	n.shouldBeInvalidatedProvider = shouldBeInvalidatedFunc(func() bool {
 		return true
-	}
+	})
 	testutil.Equal(t, true, n.shouldBeInvalidated())
-	n.shouldBeInvalidatedFn = func() bool {
+	n.shouldBeInvalidatedProvider = shouldBeInvalidatedFunc(func() bool {
 		return false
-	}
+	})
 	testutil.Equal(t, false, n.shouldBeInvalidated())
 }
 
@@ -609,7 +609,7 @@ func Test_Node_shouldBeInvalidated_parent(t *testing.T) {
 	g := New()
 	n := NewNode("bogus")
 	n.valid = true
-	n.shouldBeInvalidatedFn = nil
+	n.shouldBeInvalidatedProvider = nil
 	okParent := newMockBareNode(g)
 	okParent.Node().valid = true
 	notOkParent := newMockBareNode(g)
@@ -624,7 +624,7 @@ func Test_Node_shouldBeInvalidated_fallThrough(t *testing.T) {
 	g := New()
 	n := NewNode("bogus")
 	n.valid = true
-	n.shouldBeInvalidatedFn = nil
+	n.shouldBeInvalidatedProvider = nil
 	okParent := newMockBareNode(g)
 	okParent.Node().valid = true
 	n.parents = []INode{

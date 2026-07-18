@@ -42,9 +42,9 @@ func Test_DetectCycleIfLinked_nils(t *testing.T) {
 	g := New()
 	n0 := newMockBareNode(g)
 	n1 := newMockBareNode(g)
-	n1.n.parentsFn = func() []INode {
+	n1.n.parentsProvider = parentsFunc(func() []INode {
 		return []INode{nil}
-	}
+	})
 
 	var err error
 	err = DetectCycleIfLinked(nil, n0)

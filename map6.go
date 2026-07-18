@@ -17,17 +17,23 @@ func Map6[A, B, C, D, E, F, G any](scope Scope, a Incr[A], b Incr[B], c Incr[C],
 // an error, to given input incrementals and returns a
 // new incremental of the output type of that function.
 func Map6Context[A, B, C, D, E, F, G any](scope Scope, a Incr[A], b Incr[B], c Incr[C], d Incr[D], e Incr[E], f Incr[F], fn func(context.Context, A, B, C, D, E, F) (G, error)) Incr[G] {
-	return WithinScope(scope, &map6Incr[A, B, C, D, E, F, G]{
-		n:       NewNode(KindMap6),
-		a:       a,
-		b:       b,
-		c:       c,
-		d:       d,
-		e:       e,
-		f:       f,
-		fn:      fn,
-		parents: []INode{a, b, c, d, e, f},
-	})
+	m := &map6Incr[A, B, C, D, E, F, G]{
+		n:  NewNode(KindMap6),
+		a:  a,
+		b:  b,
+		c:  c,
+		d:  d,
+		e:  e,
+		f:  f,
+		fn: fn,
+	}
+	m.parents[0] = a
+	m.parents[1] = b
+	m.parents[2] = c
+	m.parents[3] = d
+	m.parents[4] = e
+	m.parents[5] = f
+	return WithinScope(scope, m)
 }
 
 var (
@@ -38,20 +44,22 @@ var (
 )
 
 type map6Incr[A, B, C, D, E, F, G any] struct {
-	n       *Node
-	a       Incr[A]
-	b       Incr[B]
-	c       Incr[C]
-	d       Incr[D]
-	e       Incr[E]
-	f       Incr[F]
-	fn      func(context.Context, A, B, C, D, E, F) (G, error)
-	val     G
-	parents []INode
+	n   *Node
+	a   Incr[A]
+	b   Incr[B]
+	c   Incr[C]
+	d   Incr[D]
+	e   Incr[E]
+	f   Incr[F]
+	fn  func(context.Context, A, B, C, D, E, F) (G, error)
+	val G
+	// parents is an array rather than a slice so that constructing the node does
+	// not allocate a separate input list; [Parents] hands out a slice over it.
+	parents [6]INode
 }
 
 func (mn *map6Incr[A, B, C, D, E, F, G]) Parents() []INode {
-	return mn.parents
+	return mn.parents[:]
 }
 
 func (mn *map6Incr[A, B, C, D, E, F, G]) Node() *Node { return mn.n }

@@ -2,12 +2,13 @@ package incr
 
 import (
 	"fmt"
+	"math"
 	"sync"
 )
 
 func newRecomputeHeap(maxHeight int) *recomputeHeap {
 	return &recomputeHeap{
-		heights: make([]*recomputeHeapList, maxHeight),
+		heights: make([]recomputeHeapList, maxHeight),
 	}
 }
 
@@ -15,8 +16,11 @@ type recomputeHeap struct {
 	mu        sync.Mutex
 	minHeight int
 	maxHeight int
-	heights   []*recomputeHeapList
-	numItems  int
+	// heights holds the nodes at each height inline rather than behind a
+	// pointer per height, so scanning for the next non-empty block reads one
+	// contiguous run of memory instead of chasing a pointer per probe.
+	heights  []recomputeHeapList
+	numItems int
 }
 
 func (rh *recomputeHeap) clear() (aborted []INode) {
@@ -31,7 +35,7 @@ func (rh *recomputeHeap) clear() (aborted []INode) {
 		aborted = append(aborted, next)
 	}
 
-	rh.heights = make([]*recomputeHeapList, len(rh.heights))
+	rh.heights = make([]recomputeHeapList, len(rh.heights))
 	rh.minHeight = 0
 	rh.maxHeight = 0
 	rh.numItems = 0
@@ -94,10 +98,16 @@ func (i *recomputeHeapListIter) Next() (INode, bool) {
 		return nil, false
 	}
 	prev := i.cursor
-	i.cursor = i.cursor.Node().nextInRecomputeHeap
-	prev.Node().nextInRecomputeHeap = nil
-	prev.Node().previousInRecomputeHeap = nil
-	prev.Node().heightInRecomputeHeap = HeightUnset
+	pn := prev.Node()
+	// the links carry *Node; hand back the owning interface value instead.
+	if next := pn.nextInRecomputeHeap; next != nil {
+		i.cursor = next.self
+	} else {
+		i.cursor = nil
+	}
+	pn.nextInRecomputeHeap = nil
+	pn.previousInRecomputeHeap = nil
+	pn.heightInRecomputeHeap = HeightUnset
 	return prev, true
 }
 
@@ -115,16 +125,19 @@ func (rh *recomputeHeap) setIterToMinHeight(iter RecomputeHeapListIterator) {
 	defer rh.mu.Unlock()
 
 	var heightBlock *recomputeHeapList
-	for x := 0; x < len(rh.heights); x++ {
-		heightBlock = rh.heights[x]
-		if heightBlock != nil && heightBlock.len() > 0 {
+	for x := rh.minHeight; x < len(rh.heights); x++ {
+		if rh.heights[x].count > 0 {
+			heightBlock = &rh.heights[x]
 			break
 		}
 	}
-	iter.Initialize(heightBlock.head)
+	if heightBlock == nil {
+		return
+	}
+	iter.Initialize(heightBlock.head.self)
 	heightBlock.head = nil
 	heightBlock.tail = nil
-	rh.numItems = rh.numItems - heightBlock.len()
+	rh.numItems = rh.numItems - heightBlock.count
 	heightBlock.count = 0
 	rh.minHeight = rh.nextMinHeightUnsafe()
 }
@@ -141,17 +154,21 @@ func (rh *recomputeHeap) remove(node INode) {
 
 func (rh *recomputeHeap) removeMinUnsafe() (node INode, ok bool) {
 	for x := rh.minHeight; x <= rh.maxHeight; x++ {
-		if rh.heights[x] != nil && rh.heights[x].len() > 0 {
-			_, node, ok = rh.heights[x].pop()
-			rh.numItems--
-			node.Node().heightInRecomputeHeap = HeightUnset
-			if rh.heights[x].len() > 0 {
-				rh.minHeight = x
-			} else {
-				rh.minHeight = rh.nextMinHeightUnsafe()
-			}
-			return
+		block := &rh.heights[x]
+		if block.count == 0 {
+			continue
 		}
+		n := block.popNode()
+		rh.numItems--
+		n.heightInRecomputeHeap = HeightUnset
+		if block.count > 0 {
+			rh.minHeight = x
+		} else {
+			// the block just emptied, so the next candidate is above it; this
+			// keeps the scan monotone rather than restarting from zero.
+			rh.minHeight = rh.nextMinHeightFromUnsafe(x + 1)
+		}
+		return n.self, true
 	}
 	return
 }
@@ -159,26 +176,26 @@ func (rh *recomputeHeap) removeMinUnsafe() (node INode, ok bool) {
 func (rh *recomputeHeap) addNodeUnsafe(s INode) {
 	sn := s.Node()
 	height := sn.height
-	s.Node().heightInRecomputeHeap = height
+	sn.heightInRecomputeHeap = height
 	rh.maybeUpdateMinMaxHeightsUnsafe(height)
 	rh.maybeAddNewHeightsUnsafe(height)
-	if rh.heights[height] == nil {
-		rh.heights[height] = new(recomputeHeapList)
-	}
-	rh.heights[height].push(s)
+	sn.self = s
+	rh.heights[height].pushNode(sn)
 	rh.numItems++
 }
 
 func (rh *recomputeHeap) removeNodeUnsafe(item INode) {
+	in := item.Node()
 	rh.numItems--
-	id := item.Node().id
-	height := item.Node().heightInRecomputeHeap
-	rh.heights[height].remove(id)
-	isLastAtHeight := rh.heights[height].len() == 0
-	if height == rh.minHeight && isLastAtHeight {
-		rh.minHeight = rh.nextMinHeightUnsafe()
+	height := in.heightInRecomputeHeap
+	block := &rh.heights[height]
+	// the node is linked into the block for its own recorded height, so it can
+	// be unlinked through its own pointers without searching the block.
+	block.removeNode(in)
+	if height == rh.minHeight && block.count == 0 {
+		rh.minHeight = rh.nextMinHeightFromUnsafe(height + 1)
 	}
-	item.Node().heightInRecomputeHeap = HeightUnset
+	in.heightInRecomputeHeap = HeightUnset
 }
 
 func (rh *recomputeHeap) maybeUpdateMinMaxHeightsUnsafe(newHeight int) {
@@ -197,21 +214,43 @@ func (rh *recomputeHeap) maybeUpdateMinMaxHeightsUnsafe(newHeight int) {
 
 func (rh *recomputeHeap) maybeAddNewHeightsUnsafe(newHeight int) {
 	if len(rh.heights) <= newHeight {
-		required := (newHeight - len(rh.heights)) + 1
-		for x := 0; x < required; x++ {
-			rh.heights = append(rh.heights, nil)
-		}
+		rh.heights = append(rh.heights, make([]recomputeHeapList, (newHeight-len(rh.heights))+1)...)
 	}
 }
 
 func (rh *recomputeHeap) nextMinHeightUnsafe() (next int) {
+	return rh.nextMinHeightFromUnsafe(0)
+}
+
+// minHeightUnsafe returns the lowest height holding a pending node, or [math.MaxInt]
+// if the heap is empty.
+//
+// The tracked minHeight can lag behind the true minimum, since blocks are only
+// rescanned as they drain. That is the safe direction for this function's
+// callers: an answer lower than the truth makes them more conservative.
+func (rh *recomputeHeap) minHeightUnsafe() int {
+	if rh.numItems == 0 {
+		return math.MaxInt
+	}
+	return rh.minHeight
+}
+
+// nextMinHeightFromUnsafe finds the lowest non-empty height at or above from.
+//
+// Callers that have just emptied a block pass the height above it: the minimum
+// can only ever move up while a block is being drained, so resuming the scan
+// there keeps draining the heap linear in the number of heights rather than
+// rescanning every lower height on each removal.
+func (rh *recomputeHeap) nextMinHeightFromUnsafe(from int) (next int) {
 	if rh.numItems == 0 {
 		return
 	}
-	for x := 0; x < len(rh.heights); x++ {
-		if rh.heights[x] != nil && rh.heights[x].len() > 0 {
-			next = x
-			break
+	if from < 0 {
+		from = 0
+	}
+	for x := from; x < len(rh.heights); x++ {
+		if rh.heights[x].count > 0 {
+			return x
 		}
 	}
 	return
@@ -225,22 +264,19 @@ func (rh *recomputeHeap) fixUnsafe(n INode) {
 // sanityCheck loops through each item in each height block
 // and checks that all the height values match.
 func (rh *recomputeHeap) sanityCheck() error {
-	if rh.numItems > 0 && (rh.heights[rh.minHeight] == nil || rh.heights[rh.minHeight].len() == 0) {
+	if rh.numItems > 0 && rh.heights[rh.minHeight].count == 0 {
 		return fmt.Errorf("recompute heap; sanity check; lookup has items but min height block is empty")
 	}
-	for heightIndex, height := range rh.heights {
-		if height == nil {
-			continue
-		}
-		cursor := height.head
+	for heightIndex := range rh.heights {
+		cursor := rh.heights[heightIndex].head
 		for cursor != nil {
-			if cursor.Node().heightInRecomputeHeap != heightIndex {
-				return fmt.Errorf("recompute heap; sanity check; at height %d item has height %d", heightIndex, cursor.Node().heightInRecomputeHeap)
+			if cursor.heightInRecomputeHeap != heightIndex {
+				return fmt.Errorf("recompute heap; sanity check; at height %d item has height %d", heightIndex, cursor.heightInRecomputeHeap)
 			}
-			if cursor.Node().heightInRecomputeHeap != cursor.Node().height {
-				return fmt.Errorf("recompute heap; sanity check; at height %d item has height %d and node has height %d", heightIndex, cursor.Node().heightInRecomputeHeap, cursor.Node().height)
+			if cursor.heightInRecomputeHeap != cursor.height {
+				return fmt.Errorf("recompute heap; sanity check; at height %d item has height %d and node has height %d", heightIndex, cursor.heightInRecomputeHeap, cursor.height)
 			}
-			cursor = cursor.Node().nextInRecomputeHeap
+			cursor = cursor.nextInRecomputeHeap
 		}
 	}
 	return nil

@@ -17,12 +17,13 @@ func Map[A, B any](scope Scope, a Incr[A], fn func(A) B) Incr[B] {
 // a new incremental of the output type of that function but is context aware
 // and can also return an error, aborting stabilization.
 func MapContext[A, B any](scope Scope, a Incr[A], fn func(context.Context, A) (B, error)) Incr[B] {
-	return WithinScope(scope, &mapIncr[A, B]{
-		n:       NewNode(KindMap),
-		a:       a,
-		fn:      fn,
-		parents: []INode{a},
-	})
+	m := &mapIncr[A, B]{
+		n:  NewNode(KindMap),
+		a:  a,
+		fn: fn,
+	}
+	m.parents[0] = a
+	return WithinScope(scope, m)
 }
 
 var (
@@ -33,15 +34,18 @@ var (
 )
 
 type mapIncr[A, B any] struct {
-	n       *Node
-	a       Incr[A]
-	fn      func(context.Context, A) (B, error)
-	val     B
-	parents []INode
+	n   *Node
+	a   Incr[A]
+	fn  func(context.Context, A) (B, error)
+	val B
+	// parents is stored as an array rather than a slice so that constructing the
+	// node does not allocate a separate one-element input list; [Parents] hands
+	// out a slice over it.
+	parents [1]INode
 }
 
 func (mn *mapIncr[A, B]) Parents() []INode {
-	return mn.parents
+	return mn.parents[:]
 }
 
 func (mn *mapIncr[A, B]) Node() *Node {

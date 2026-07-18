@@ -20,11 +20,12 @@ import "fmt"
 //
 // In the above example, each time we call [Graph.Stabilize] we'll increment the counter.
 func Always[A any](scope Scope, input Incr[A]) Incr[A] {
-	return WithinScope(scope, &alwaysIncr[A]{
-		n:       NewNode(KindAlways),
-		input:   input,
-		parents: []INode{input},
-	})
+	m := &alwaysIncr[A]{
+		n:     NewNode(KindAlways),
+		input: input,
+	}
+	m.parents[0] = input
+	return WithinScope(scope, m)
 }
 
 var (
@@ -35,13 +36,15 @@ var (
 )
 
 type alwaysIncr[A any] struct {
-	n       *Node
-	input   Incr[A]
-	parents []INode
+	n     *Node
+	input Incr[A]
+	// parents is an array rather than a slice so that constructing the node does
+	// not allocate a separate input list; [Parents] hands out a slice over it.
+	parents [1]INode
 }
 
 func (a *alwaysIncr[A]) Parents() []INode {
-	return a.parents
+	return a.parents[:]
 }
 
 func (a *alwaysIncr[A]) Stale() bool {

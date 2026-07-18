@@ -37,6 +37,11 @@ type IExpertGraph interface {
 	// updated the value of in its lifetime.
 	NumNodesChanged() uint64
 
+	// NumNodesRecomputedDirectly returns the number of nodes the [Graph] has
+	// recomputed immediately after the node they depend on, rather than by way
+	// of the recompute heap.
+	NumNodesRecomputedDirectly() uint64
+
 	// NumObservers returns the current count of observers the [Graph] is tracking.
 	NumObservers() uint64
 
@@ -139,6 +144,10 @@ func (eg *expertGraph) NumNodesChanged() uint64 {
 	return atomic.LoadUint64(&eg.graph.numNodesChanged)
 }
 
+func (eg *expertGraph) NumNodesRecomputedDirectly() uint64 {
+	return eg.graph.numNodesRecomputedDirectly
+}
+
 func (eg *expertGraph) SetID(id Identifier) {
 	eg.graph.id = id
 }
@@ -166,13 +175,12 @@ func (eg *expertGraph) RecomputeHeapIDs() []Identifier {
 	defer eg.graph.recomputeHeap.mu.Unlock()
 
 	output := make([]Identifier, 0, eg.graph.recomputeHeap.numItems)
-	for _, height := range eg.graph.recomputeHeap.heights {
-		if height != nil {
-			cursor := height.head
-			for cursor != nil {
-				output = append(output, cursor.Node().id)
-				cursor = cursor.Node().nextInRecomputeHeap
-			}
+	heights := eg.graph.recomputeHeap.heights
+	for index := range heights {
+		cursor := heights[index].head
+		for cursor != nil {
+			output = append(output, cursor.id)
+			cursor = cursor.nextInRecomputeHeap
 		}
 	}
 	return output

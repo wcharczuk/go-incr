@@ -51,10 +51,14 @@ type cutoffIncr[A any] struct {
 	i     Incr[A]
 	value A
 	fn    CutoffContextFunc[A]
+	// parents is the storage [Parents] fills and returns a slice over, so that
+	// asking a node for its inputs does not allocate a fresh list every call.
+	parents [1]INode
 }
 
 func (c *cutoffIncr[A]) Parents() []INode {
-	return []INode{c.i}
+	c.parents[0] = c.i
+	return c.parents[:]
 }
 
 func (c *cutoffIncr[A]) Value() A {

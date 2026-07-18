@@ -32,10 +32,16 @@ type mapIfIncr[A any] struct {
 	b     Incr[A]
 	p     Incr[bool]
 	value A
+	// parents is the storage [Parents] fills and returns a slice over, so that
+	// asking a node for its inputs does not allocate a fresh list every call.
+	parents [3]INode
 }
 
 func (mi *mapIfIncr[T]) Parents() []INode {
-	return []INode{mi.a, mi.b, mi.p}
+	mi.parents[0] = mi.a
+	mi.parents[1] = mi.b
+	mi.parents[2] = mi.p
+	return mi.parents[:]
 }
 
 func (mi *mapIfIncr[A]) Node() *Node { return mi.n }

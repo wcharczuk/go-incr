@@ -50,28 +50,31 @@ func BindContext[A, B any](scope Scope, input Incr[A], fn BindContextFunc[A, B])
 		lhs:   input,
 		fn:    fn,
 	}
-	bindLeftChange := WithinScope(scope, &bindLeftChangeIncr[A, B]{
-		n:       NewNode(KindBindLHSChange),
-		bind:    bind,
-		parents: []INode{input},
-	})
+	bindLeftChange := &bindLeftChangeIncr[A, B]{
+		n:    NewNode(KindBindLHSChange),
+		bind: bind,
+	}
+	bindLeftChange.parents[0] = input
+	WithinScope(scope, bindLeftChange)
 	bind.lhsChange = bindLeftChange
-	bindMain := WithinScope(scope, &bindMainIncr[A, B]{
-		n:       NewNode(KindBind),
-		bind:    bind,
-		parents: []INode{bindLeftChange},
-	})
+	bindMain := &bindMainIncr[A, B]{
+		n:    NewNode(KindBind),
+		bind: bind,
+	}
+	bindMain.parentsArray[0] = bindLeftChange
+	bindMain.parents = bindMain.parentsArray[:1]
+	WithinScope(scope, bindMain)
 	bind.main = bindMain
 
 	// propagate errors to main from the left change node
-	bindLeftChange.n.onErrorHandlers = append(bindLeftChange.n.onErrorHandlers, func(ctx context.Context, err error) {
-		for _, eh := range bindMain.n.onErrorHandlers {
+	bindLeftChange.n.extra().onErrorHandlers = append(bindLeftChange.n.extra().onErrorHandlers, func(ctx context.Context, err error) {
+		for _, eh := range bindMain.n.errorHandlers() {
 			eh(ctx, err)
 		}
 	})
 	// propagate aborted events to main from the left change node
-	bindLeftChange.n.onAbortedHandlers = append(bindLeftChange.n.onAbortedHandlers, func(ctx context.Context, err error) {
-		for _, eh := range bindMain.n.onAbortedHandlers {
+	bindLeftChange.n.extra().onAbortedHandlers = append(bindLeftChange.n.extra().onAbortedHandlers, func(ctx context.Context, err error) {
+		for _, eh := range bindMain.n.abortedHandlers() {
 			eh(ctx, err)
 		}
 	})
@@ -115,13 +118,19 @@ var (
 // bind is a root struct that holds shared
 // information for both the main and the lhs-change.
 type bind[A, B any] struct {
-	graph     *Graph
-	lhs       Incr[A]
-	rhs       Incr[B]
-	rhsNodes  []INode
-	fn        BindContextFunc[A, B]
-	main      *bindMainIncr[A, B]
-	lhsChange *bindLeftChangeIncr[A, B]
+	graph    *Graph
+	lhs      Incr[A]
+	rhs      Incr[B]
+	rhsNodes []INode
+	// rhsNodesSpare holds the buffer from the rebuild before last, so that
+	// successive rebuilds alternate between two buffers rather than allocating a
+	// fresh one each time. A rebuild has to keep the previous rebuild's list
+	// alive while it invalidates those nodes, so one spare is the minimum needed
+	// to reuse capacity at all.
+	rhsNodesSpare []INode
+	fn            BindContextFunc[A, B]
+	main          *bindMainIncr[A, B]
+	lhsChange     *bindLeftChangeIncr[A, B]
 }
 
 func (b *bind[A, B]) isTopScope() bool          { return false }
@@ -140,10 +149,13 @@ func (b *bind[A, B]) String() string {
 }
 
 type bindMainIncr[A, B any] struct {
-	n       *Node
-	bind    *bind[A, B]
-	value   B
-	parents []INode
+	n     *Node
+	bind  *bind[A, B]
+	value B
+	// parents is a slice over parentsArray, which lets the lhs-change node swap
+	// the right-hand side in without allocating a new input list on each rebuild.
+	parents      []INode
+	parentsArray [2]INode
 }
 
 func (b *bindMainIncr[A, B]) Parents() (out []INode) {
@@ -185,13 +197,15 @@ func (b *bindMainIncr[A, B]) String() string {
 }
 
 type bindLeftChangeIncr[A, B any] struct {
-	n       *Node
-	bind    *bind[A, B]
-	parents []INode
+	n    *Node
+	bind *bind[A, B]
+	// parents is an array rather than a slice so that constructing the node does
+	// not allocate a separate input list; [Parents] hands out a slice over it.
+	parents [1]INode
 }
 
 func (b *bindLeftChangeIncr[A, B]) Parents() []INode {
-	return b.parents
+	return b.parents[:]
 }
 
 func (b *bindLeftChangeIncr[A, B]) Node() *Node { return b.n }
@@ -207,16 +221,23 @@ func (b *bindLeftChangeIncr[A, B]) RightScopeNodes() []INode {
 func (b *bindLeftChangeIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 	oldRightNodes := b.bind.rhsNodes
 	oldRhs := b.bind.rhs
-	b.bind.rhsNodes = nil
+	// take the buffer from the rebuild before last; oldRightNodes is still needed
+	// below, so the two alternate rather than being reused immediately.
+	b.bind.rhsNodes = b.bind.rhsNodesSpare[:0]
+	b.bind.rhsNodesSpare = nil
 	b.bind.rhs, err = b.bind.fn(ctx, b.bind, b.bind.lhs.Value())
 	if err != nil {
 		return
 	}
 
+	main := b.bind.main
+	main.parentsArray[0] = b
 	if b.bind.rhs != nil {
-		b.bind.main.parents = []INode{b, b.bind.rhs}
+		main.parentsArray[1] = b.bind.rhs
+		main.parents = main.parentsArray[:2]
 	} else {
-		b.bind.main.parents = []INode{b}
+		main.parentsArray[1] = nil
+		main.parents = main.parentsArray[:1]
 	}
 
 	if err = GraphForNode(b).changeParent(b.bind.main, oldRhs, b.bind.rhs); err != nil {
@@ -237,6 +258,9 @@ func (b *bindLeftChangeIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 		// }
 	}
 	GraphForNode(b).propagateInvalidity()
+	// oldRightNodes is done being read; keep its capacity for the next rebuild.
+	clear(oldRightNodes)
+	b.bind.rhsNodesSpare = oldRightNodes
 	return nil
 }
 

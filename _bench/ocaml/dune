@@ -1,0 +1,4 @@
+(executable
+ (name bench)
+ (ocamlopt_flags (:standard -O3))
+ (libraries incremental unix))

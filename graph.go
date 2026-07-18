@@ -274,6 +274,12 @@ type Graph struct {
 	// mutate it with the atomic helpers; nodes are recomputed
 	// concurrently during parallel stabilization.
 	numNodesChanged uint64
+	// numNodesRecomputedDirectly is the total number of nodes that were
+	// recomputed immediately after the node they depend on, without being routed
+	// through the recompute heap. See [Graph.canRecomputeImmediately].
+	//
+	// this only happens during serial stabilization, so it needs no atomics.
+	numNodesRecomputedDirectly uint64
 
 	// metadata is extra data you can add to the graph instance and
 	// manage yourself.
@@ -405,9 +411,36 @@ func (graph *Graph) invalidateNode(node INode) {
 }
 
 func (graph *Graph) removeParents(child INode) {
-	for _, parent := range child.Node().nodeParents() {
+	parents := child.Node().nodeParents()
+	for index, parent := range parents {
+		// A node can appear in a child's input list more than once, because a
+		// child may take it as several of its inputs -- Map2(x, x), or
+		// Map3(x, x, x). [Graph.unlink] removes edges by identity and so drops
+		// every edge between the pair at once, which means visiting the same
+		// parent again would find it already unlinked and still unnecessary, and
+		// tear its subgraph down a second time. That is not just wasted work: it
+		// re-walks the whole subgraph once per duplicate edge, which compounds to
+		// arity^depth over a chain, and it decrements the graph's node count once
+		// per repeat.
+		if nodeAppearsBefore(parents, index, parent) {
+			continue
+		}
 		graph.removeParent(child, parent)
 	}
+}
+
+// nodeAppearsBefore reports if node occurs in nodes at an index below limit.
+//
+// Input lists are tiny -- at most a handful of entries -- so scanning is cheaper
+// than allocating a set to track what has been seen.
+func nodeAppearsBefore(nodes []INode, limit int, node INode) bool {
+	id := node.Node().id
+	for index := 0; index < limit; index++ {
+		if nodes[index].Node().id == id {
+			return true
+		}
+	}
+	return false
 }
 
 func (graph *Graph) unlink(child, parent INode) {
@@ -427,6 +460,14 @@ func (graph *Graph) checkIfUnnecessary(parent INode) {
 }
 
 func (graph *Graph) becameUnnecessary(parent INode) {
+	// Tearing a node down is idempotent: removeNode deregisters it, so a node
+	// that is no longer registered has already been walked. removeParents skips
+	// duplicate edges, which is the case that used to reach here twice, but the
+	// guard keeps any other repeated path from re-walking the subgraph and
+	// double-decrementing the node count.
+	if !parent.Node().inGraph {
+		return
+	}
 	graph.removeParents(parent)
 	graph.removeNode(parent)
 }
@@ -531,7 +572,7 @@ func (graph *Graph) becameNecessaryRecursive(node INode) (err error) {
 			}
 		}
 	}
-	for _, sentinels := range node.Node().sentinels {
+	for _, sentinels := range node.Node().nodeSentinels() {
 		graph.recomputeHeap.addIfNotPresent(sentinels)
 	}
 	if node.Node().isStale() {
@@ -553,10 +594,13 @@ func (graph *Graph) addNode(n INode) {
 	defer graph.nodesMu.Unlock()
 
 	gnn := n.Node()
-	_, graphAlreadyHasNode := graph.nodes[gnn.id]
-	if graphAlreadyHasNode {
+	// the inGraph flag answers the "already added" question without hashing the
+	// node's 16 byte identifier; bind rebuilds run this per node created, so the
+	// second map operation is worth avoiding.
+	if gnn.inGraph {
 		return
 	}
+	gnn.inGraph = true
 	atomic.AddUint64(&graph.numNodes, 1)
 	gnn.initializeFrom(n)
 	graph.nodes[gnn.id] = n
@@ -606,6 +650,7 @@ func (graph *Graph) removeSentinel(sn ISentinel) {
 
 func (graph *Graph) removeNode(gn INode) {
 	graph.nodesMu.Lock()
+	gn.Node().inGraph = false
 	delete(graph.nodes, gn.Node().id)
 	graph.nodesMu.Unlock()
 	graph.zeroNode(gn)
@@ -620,12 +665,19 @@ func (graph *Graph) zeroNode(n INode) {
 
 	nn := n.Node()
 
+	// both of these maps are empty outside of stabilization, and tearing down a
+	// bind's subgraph calls through here once per node, so check for emptiness
+	// before paying to hash the node's identifier.
 	graph.handleAfterStabilizationMu.Lock()
-	delete(graph.handleAfterStabilization, nn.ID())
+	if len(graph.handleAfterStabilization) > 0 {
+		delete(graph.handleAfterStabilization, nn.id)
+	}
 	graph.handleAfterStabilizationMu.Unlock()
 
 	graph.setDuringStabilizationMu.Lock()
-	delete(graph.setDuringStabilization, nn.ID())
+	if len(graph.setDuringStabilization) > 0 {
+		delete(graph.setDuringStabilization, nn.id)
+	}
 	graph.setDuringStabilizationMu.Unlock()
 
 	nn.setAt = 0
@@ -637,6 +689,10 @@ func (graph *Graph) zeroNode(n INode) {
 
 	nn.parents = nil
 	nn.children = nil
+	// the slices above may have been backed by storage inside the node, which
+	// would otherwise keep the unlinked nodes reachable.
+	nn.parentsInline = [1]INode{}
+	nn.childrenInline = [1]INode{}
 	nn.observers = nil
 
 	nn.height = HeightUnset
@@ -654,7 +710,7 @@ func (graph *Graph) observeNode(o IObserver, input INode) error {
 		}
 	}
 	graph.handleAfterStabilizationMu.Lock()
-	graph.handleAfterStabilization[o.Node().id] = o.Node().onUpdateHandlers
+	graph.handleAfterStabilization[o.Node().id] = o.Node().updateHandlers()
 	graph.handleAfterStabilizationMu.Unlock()
 	return nil
 }
@@ -803,8 +859,36 @@ func (graph *Graph) stabilizeEndRunUpdateHandlers(ctx context.Context) {
 
 // recompute starts the recompute cycle for the node
 // setting the recomputedAt field and possibly changing the value.
+//
+// When stabilizing serially, recomputing a node can hand back a single child
+// that is safe to recompute immediately; rather than routing that child through
+// the recompute heap, this loops on it directly. See recomputeNode for when that
+// applies. The loop keeps the chain iterative, so a long run of such nodes costs
+// constant stack rather than one frame per node.
 func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err error) {
-	atomic.AddUint64(&graph.numNodesRecomputed, 1)
+	for n != nil {
+		n, err = graph.recomputeNode(ctx, n, parallel)
+		if err != nil {
+			return
+		}
+		if n != nil {
+			graph.numNodesRecomputedDirectly++
+		}
+	}
+	return
+}
+
+// recomputeNode recomputes a single node, returning a child to recompute
+// immediately, or nil if the children were queued to the recompute heap.
+func (graph *Graph) recomputeNode(ctx context.Context, n INode, parallel bool) (immediate INode, err error) {
+	// these counters are only shared when stabilizing in parallel; on the serial
+	// path a plain increment is equivalent and avoids a locked instruction per
+	// node, which is otherwise a measurable share of a cheap node's recompute.
+	if parallel {
+		atomic.AddUint64(&graph.numNodesRecomputed, 1)
+	} else {
+		graph.numNodesRecomputed++
+	}
 
 	nn := n.Node()
 	nn.numRecomputes++
@@ -813,7 +897,7 @@ func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err 
 	var shouldCutoff bool
 	shouldCutoff, err = nn.maybeCutoff(ctx)
 	if err != nil {
-		for _, eh := range nn.onErrorHandlers {
+		for _, eh := range nn.errorHandlers() {
 			eh(ctx, err)
 		}
 		return
@@ -822,7 +906,11 @@ func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err 
 		return
 	}
 
-	atomic.AddUint64(&graph.numNodesChanged, 1)
+	if parallel {
+		atomic.AddUint64(&graph.numNodesChanged, 1)
+	} else {
+		graph.numNodesChanged++
+	}
 	nn.numChanges++
 
 	// a node whose Stabilize mutates graph structure (i.e. a bind swapping out
@@ -839,15 +927,15 @@ func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err 
 		graph.recomputeMu.Unlock()
 	}
 	if err != nil {
-		for _, eh := range nn.onErrorHandlers {
+		for _, eh := range nn.errorHandlers() {
 			eh(ctx, err)
 		}
 		return
 	}
 
 	nn.changedAt = graph.stabilizationNum
-	if len(nn.onUpdateHandlers) > 0 {
-		graph.queueUpdateHandlers(parallel, nn.id, nn.onUpdateHandlers)
+	if handlers := nn.updateHandlers(); len(handlers) > 0 {
+		graph.queueUpdateHandlers(parallel, nn.id, handlers)
 	}
 
 	if parallel {
@@ -857,21 +945,40 @@ func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err 
 		// a concurrent bind rewriting that same state.
 		graph.recomputeMu.Lock()
 		for _, c := range nn.children {
-			isNecessary := c.Node().isNecessary()
-			isStale := c.Node().isStale()
-			isNotInRecomputeHeap := c.Node().heightInRecomputeHeap == HeightUnset
-			if isNecessary && isStale && isNotInRecomputeHeap {
+			if shouldRecomputeChild(c.Node(), graph.stabilizationNum) {
 				graph.recomputeHeap.addNodeUnsafe(c)
 			}
 		}
 		graph.recomputeMu.Unlock()
 	} else {
+		// hold one child back and queue the rest, then decide whether the held
+		// child can be recomputed directly. Deferring that decision until every
+		// sibling has been queued is what makes the recompute heap's minimum
+		// height sound to test against in canRecomputeImmediately.
+		var held INode
+		var heldNode *Node
 		for _, c := range nn.children {
-			isNecessary := c.Node().isNecessary()
-			isStale := c.Node().isStale()
-			isNotInRecomputeHeap := c.Node().heightInRecomputeHeap == HeightUnset
-			if isNecessary && isStale && isNotInRecomputeHeap {
-				graph.recomputeHeap.addNodeUnsafe(c)
+			cn := c.Node()
+			// a node can appear among the children more than once, for instance
+			// when it takes the same input twice. It must not be both held back
+			// and queued, or it would end up recomputed while still linked into
+			// a height block.
+			if cn == heldNode {
+				continue
+			}
+			if !shouldRecomputeChild(cn, graph.stabilizationNum) {
+				continue
+			}
+			if held != nil {
+				graph.recomputeHeap.addNodeUnsafe(held)
+			}
+			held, heldNode = c, cn
+		}
+		if held != nil {
+			if graph.canRecomputeImmediately(nn, held) {
+				immediate = held
+			} else {
+				graph.recomputeHeap.addNodeUnsafe(held)
 			}
 		}
 	}
@@ -879,11 +986,101 @@ func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err 
 	// recompute observers immediately because logically they're
 	// children of this node but will not have any children themselves.
 	for _, o := range nn.observers {
-		if len(o.Node().onUpdateHandlers) > 0 {
-			graph.queueUpdateHandlers(parallel, o.Node().id, o.Node().onUpdateHandlers)
+		if handlers := o.Node().updateHandlers(); len(handlers) > 0 {
+			graph.queueUpdateHandlers(parallel, o.Node().id, handlers)
 		}
 	}
 	return
+}
+
+// canRecomputeImmediately reports if a child can be recomputed as soon as its
+// parent finishes, skipping the trip through the recompute heap.
+//
+// Adding a node to the recompute heap and taking it back out again is only
+// necessary when something else has to be stabilized in between. For a child
+// whose only input is the node that just recomputed, nothing else can be
+// pending, so the heap round trip is pure overhead. This is the common shape of
+// a chain of maps, where it removes the heap from the hot path entirely.
+//
+// The conditions are:
+//
+//   - The child takes exactly one input, which is the node that just recomputed,
+//     so nothing else can still be pending for it. This is the shape of a chain
+//     of maps, and removes the heap from that hot path entirely. Multi-input
+//     nodes (map2, mapN, folds) must wait, because a sibling input may still be
+//     queued. See the note in _bench/ALGORITHMS.md on why the reference's
+//     additional minimum-height bypass is not safe to approximate here.
+//
+//   - The child's scope has already stabilized, i.e. the parent sits above the
+//     height of the bind that created the child. Otherwise the child could still
+//     be invalidated by that bind and must not be computed yet.
+//
+//   - The child is a kind that may be recomputed out of heap order at all; see
+//     nodeRequiresHeapOrdering.
+//
+//   - The child is not an "always" node, because [Graph.Stabilize] re-queues
+//     those by inspecting the nodes it pulled from the heap, and a node reached
+//     by chaining never appears there.
+func (graph *Graph) canRecomputeImmediately(parent *Node, child INode) bool {
+	cn := child.Node()
+	if cn.always || cn.requiresHeapOrdering || parent.height <= cn.createdIn.scopeHeight() {
+		return false
+	}
+	if len(cn.parents) == 1 {
+		return true
+	}
+	return cn.height <= graph.recomputeHeap.minHeightUnsafe()
+}
+
+// nodeRequiresHeapOrdering reports if a node must be taken off the recompute heap
+// in height order rather than recomputed directly by the node it depends on.
+//
+// Bind nodes are excluded because the height relationship the direct-recompute
+// checks rely on does not capture their real ordering constraint:
+//
+//   - A bind-lhs-change node rewrites graph structure, which has to happen in
+//     height order relative to the rest of the pass.
+//   - A bind main node must not recompute before its own lhs-change node has run,
+//     since that is what populates the right-hand side it reads. Its inputs do
+//     not express that as an ordinary height relationship, so neither the
+//     single-input nor the minimum-height argument establishes it, and running a
+//     bind main early can observe a right-hand side that is not yet set.
+func nodeRequiresHeapOrdering(n INode) bool {
+	switch n.(type) {
+	case IBindChange:
+		return true
+	case IBindMain:
+		return true
+	default:
+		return false
+	}
+}
+
+// shouldRecomputeChild reports if a child of a just-recomputed node needs to be
+// added to the recompute heap, where stabilizationNum is the number of the pass
+// currently running.
+//
+// The checks are ordered cheapest-first and short-circuit: the recompute heap
+// membership test is a single field load, whereas isStale can walk the node's
+// parents, so testing membership first avoids that walk for the common case of
+// a child that is already queued.
+//
+// The parent scan inside isStale can usually be skipped outright. The caller has
+// just stamped the parent's changedAt with the current stabilization number, so
+// for a child that has not already been recomputed in this pass, that parent
+// alone makes the scan's answer true; the scan would find it and stop. That
+// leaves only children carrying their own staleness predicate to ask directly.
+func shouldRecomputeChild(cn *Node, stabilizationNum uint64) bool {
+	if cn.heightInRecomputeHeap != HeightUnset || !cn.isNecessary() {
+		return false
+	}
+	if !cn.valid {
+		return false
+	}
+	if cn.staler == nil && cn.recomputedAt < stabilizationNum {
+		return true
+	}
+	return cn.isStale()
 }
 
 // queueUpdateHandlers records the update handlers to run after stabilization

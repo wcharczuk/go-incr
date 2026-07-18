@@ -91,8 +91,8 @@ func (o *observeIncr[A]) Value() (output A) {
 }
 
 func (o *observeIncr[A]) String() string {
-	if o.n.label != "" {
-		return fmt.Sprintf("%s[%s]:%s", o.n.kind, o.n.id.Short(), o.n.label)
+	if label := o.n.Label(); label != "" {
+		return fmt.Sprintf("%s[%s]:%s", o.n.kind, o.n.id.Short(), label)
 	}
 	return fmt.Sprintf("%s[%s]", o.n.kind, o.n.id.Short())
 }

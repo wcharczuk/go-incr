@@ -64,7 +64,7 @@ func (graph *Graph) parallelStabilize(ctx context.Context) (err error) {
 		if graph.clearRecomputeHeapOnError {
 			aborted := graph.recomputeHeap.clear()
 			for _, node := range aborted {
-				for _, ah := range node.Node().onAbortedHandlers {
+				for _, ah := range node.Node().abortedHandlers() {
 					ah(ctx, err)
 				}
 			}

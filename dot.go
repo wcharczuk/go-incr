@@ -53,8 +53,8 @@ func Dot(wr io.Writer, g *Graph) (err error) {
 
 		var nodeInternalLabelParts []string
 		nodeInternalLabelParts = append(nodeInternalLabelParts, fmt.Sprintf("%s:%s", n.Node().kind, n.Node().id.Short()))
-		if n.Node().label != "" {
-			nodeInternalLabelParts = append(nodeInternalLabelParts, fmt.Sprintf("label: %s", n.Node().label))
+		if n.Node().Label() != "" {
+			nodeInternalLabelParts = append(nodeInternalLabelParts, fmt.Sprintf("label: %s", n.Node().Label()))
 		}
 		if n.Node().height != HeightUnset {
 			nodeInternalLabelParts = append(nodeInternalLabelParts, fmt.Sprintf("height: %d", n.Node().height))

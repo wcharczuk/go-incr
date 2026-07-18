@@ -36,10 +36,14 @@ type timerIncr[A any] struct {
 	every       time.Duration
 	input       Incr[A]
 	value       A
+	// parents is the storage [Parents] fills and returns a slice over, so that
+	// asking a node for its inputs does not allocate a fresh list every call.
+	parents [1]INode
 }
 
 func (ti *timerIncr[A]) Parents() []INode {
-	return []INode{ti.input}
+	ti.parents[0] = ti.input
+	return ti.parents[:]
 }
 
 func (ti *timerIncr[A]) Node() *Node { return ti.n }

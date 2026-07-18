@@ -17,19 +17,27 @@ func Map8[A, B, C, D, E, F, G, H, I any](scope Scope, a Incr[A], b Incr[B], c In
 // an error, to given input incrementals and returns a
 // new incremental of the output type of that function.
 func Map8Context[A, B, C, D, E, F, G, H, I any](scope Scope, a Incr[A], b Incr[B], c Incr[C], d Incr[D], e Incr[E], f Incr[F], g Incr[G], h Incr[H], fn func(context.Context, A, B, C, D, E, F, G, H) (I, error)) Incr[I] {
-	return WithinScope(scope, &map8Incr[A, B, C, D, E, F, G, H, I]{
-		n:       NewNode(KindMap8),
-		a:       a,
-		b:       b,
-		c:       c,
-		d:       d,
-		e:       e,
-		f:       f,
-		g:       g,
-		h:       h,
-		fn:      fn,
-		parents: []INode{a, b, c, d, e, f, g, h},
-	})
+	m := &map8Incr[A, B, C, D, E, F, G, H, I]{
+		n:  NewNode(KindMap8),
+		a:  a,
+		b:  b,
+		c:  c,
+		d:  d,
+		e:  e,
+		f:  f,
+		g:  g,
+		h:  h,
+		fn: fn,
+	}
+	m.parents[0] = a
+	m.parents[1] = b
+	m.parents[2] = c
+	m.parents[3] = d
+	m.parents[4] = e
+	m.parents[5] = f
+	m.parents[6] = g
+	m.parents[7] = h
+	return WithinScope(scope, m)
 }
 
 var (
@@ -40,22 +48,24 @@ var (
 )
 
 type map8Incr[A, B, C, D, E, F, G, H, I any] struct {
-	n       *Node
-	a       Incr[A]
-	b       Incr[B]
-	c       Incr[C]
-	d       Incr[D]
-	e       Incr[E]
-	f       Incr[F]
-	g       Incr[G]
-	h       Incr[H]
-	fn      func(context.Context, A, B, C, D, E, F, G, H) (I, error)
-	val     I
-	parents []INode
+	n   *Node
+	a   Incr[A]
+	b   Incr[B]
+	c   Incr[C]
+	d   Incr[D]
+	e   Incr[E]
+	f   Incr[F]
+	g   Incr[G]
+	h   Incr[H]
+	fn  func(context.Context, A, B, C, D, E, F, G, H) (I, error)
+	val I
+	// parents is an array rather than a slice so that constructing the node does
+	// not allocate a separate input list; [Parents] hands out a slice over it.
+	parents [8]INode
 }
 
 func (mn *map8Incr[A, B, C, D, E, F, G, H, I]) Parents() []INode {
-	return mn.parents
+	return mn.parents[:]
 }
 
 func (mn *map8Incr[A, B, C, D, E, F, G, H, I]) Node() *Node { return mn.n }

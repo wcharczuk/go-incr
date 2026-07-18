@@ -217,9 +217,6 @@ func Test_recomputeHeap_remove(t *testing.T) {
 	testutil.Equal(t, false, rh.has(n21))
 
 	for _, h := range rh.heights {
-		if h == nil {
-			continue
-		}
 		testutil.Equal(t, false, h.has(n21.n.id))
 	}
 
@@ -238,15 +235,9 @@ func Test_recomputeHeap_remove(t *testing.T) {
 	testutil.Equal(t, 3, rh.maxHeight)
 
 	for _, h := range rh.heights {
-		if h == nil {
-			continue
-		}
 		testutil.Equal(t, false, h.has(n10.n.id))
 	}
 	for _, h := range rh.heights {
-		if h == nil {
-			continue
-		}
 		testutil.Equal(t, false, h.has(n11.n.id))
 	}
 }
@@ -362,8 +353,8 @@ func Test_recomputeHeap_sanityCheck_badItemHeight(t *testing.T) {
 
 	height2 := newList(n_2_00, n_2_01)
 
-	rh.heights = []*recomputeHeapList{
-		nil,
+	rh.heights = []recomputeHeapList{
+		{},
 		newList(n_1_00),
 		height2,
 		newList(n_3_00, n_3_01, n_3_02),
@@ -387,8 +378,8 @@ func Test_recomputeHeap_sanityCheck_badHeightInRecomputeHeap(t *testing.T) {
 
 	height2 := newList(n_2_00, n_2_01)
 
-	rh.heights = []*recomputeHeapList{
-		nil,
+	rh.heights = []recomputeHeapList{
+		{},
 		newList(n_1_00),
 		height2,
 		newList(n_3_00, n_3_01, n_3_02),

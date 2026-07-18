@@ -17,16 +17,21 @@ func Map5[A, B, C, D, E, F any](scope Scope, a Incr[A], b Incr[B], c Incr[C], d 
 // an error, to given input incrementals and returns a
 // new incremental of the output type of that function.
 func Map5Context[A, B, C, D, E, F any](scope Scope, a Incr[A], b Incr[B], c Incr[C], d Incr[D], e Incr[E], fn func(context.Context, A, B, C, D, E) (F, error)) Incr[F] {
-	return WithinScope(scope, &map5Incr[A, B, C, D, E, F]{
-		n:       NewNode(KindMap5),
-		a:       a,
-		b:       b,
-		c:       c,
-		d:       d,
-		e:       e,
-		fn:      fn,
-		parents: []INode{a, b, c, d, e},
-	})
+	m := &map5Incr[A, B, C, D, E, F]{
+		n:  NewNode(KindMap5),
+		a:  a,
+		b:  b,
+		c:  c,
+		d:  d,
+		e:  e,
+		fn: fn,
+	}
+	m.parents[0] = a
+	m.parents[1] = b
+	m.parents[2] = c
+	m.parents[3] = d
+	m.parents[4] = e
+	return WithinScope(scope, m)
 }
 
 var (
@@ -37,19 +42,21 @@ var (
 )
 
 type map5Incr[A, B, C, D, E, F any] struct {
-	n       *Node
-	a       Incr[A]
-	b       Incr[B]
-	c       Incr[C]
-	d       Incr[D]
-	e       Incr[E]
-	fn      func(context.Context, A, B, C, D, E) (F, error)
-	val     F
-	parents []INode
+	n   *Node
+	a   Incr[A]
+	b   Incr[B]
+	c   Incr[C]
+	d   Incr[D]
+	e   Incr[E]
+	fn  func(context.Context, A, B, C, D, E) (F, error)
+	val F
+	// parents is an array rather than a slice so that constructing the node does
+	// not allocate a separate input list; [Parents] hands out a slice over it.
+	parents [5]INode
 }
 
 func (mn *map5Incr[A, B, C, D, E, F]) Parents() []INode {
-	return mn.parents
+	return mn.parents[:]
 }
 
 func (mn *map5Incr[A, B, C, D, E, F]) Node() *Node { return mn.n }

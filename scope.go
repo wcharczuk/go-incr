@@ -18,6 +18,7 @@ import "fmt"
 func WithinScope[A INode](scope Scope, node A) A {
 	node.Node().id = scope.newIdentifier()
 	node.Node().createdIn = scope
+	node.Node().graph = scope.scopeGraph()
 	if scope != nil && scope.isTopScope() {
 		return node
 	}
@@ -39,7 +40,13 @@ func GraphForNode(node INode) *Graph {
 	if node == nil {
 		return nil
 	}
-	return node.Node().createdIn.scopeGraph()
+	n := node.Node()
+	// [WithinScope] caches this; fall back to the scope for any node that did not
+	// go through it.
+	if n.graph != nil {
+		return n.graph
+	}
+	return n.createdIn.scopeGraph()
 }
 
 // Scope is a type that's used to track which nodes are created by which "areas" of the graph.
