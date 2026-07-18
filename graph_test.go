@@ -118,9 +118,10 @@ func Test_Graph_removeNodeFromGraph(t *testing.T) {
 	g := New()
 
 	mn00 := newMockBareNodeWithHeight(g, 2)
+	// tracked through addNode so that the node's recorded position stays consistent with
+	// the graph's node slice, which is what removeNode splices
+	g.addNode(mn00)
 	g.numNodes = 2
-
-	g.nodes[mn00.n.id] = mn00
 
 	g.handleAfterStabilization[mn00.n.id] = []func(context.Context){
 		func(_ context.Context) {},
@@ -132,6 +133,7 @@ func Test_Graph_removeNodeFromGraph(t *testing.T) {
 	g.removeNode(mn00)
 
 	testutil.Equal(t, 1, g.numNodes)
+	testutil.Equal(t, 0, len(g.nodes), "the node should be gone from the graph's node list")
 	testutil.Equal(t, false, g.recomputeHeap.has(mn00))
 	testutil.NoError(t, g.recomputeHeap.sanityCheck())
 

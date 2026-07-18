@@ -290,3 +290,48 @@ func (n *node[K, V]) eachRange(low, high K, yield func(K, V) bool) bool {
 	}
 	return true
 }
+
+// Nth returns the entry at a position in key order, counting from zero.
+//
+// This costs O(log n) rather than a walk, because each node records the size of its
+// subtree: the search can tell which side a position falls on without visiting it.
+func (m Map[K, V]) Nth(index int) (key K, value V, ok bool) {
+	if index < 0 {
+		return
+	}
+	cursor := m.root
+	for cursor != nil {
+		leftSize := cursor.left.treeSize()
+		switch {
+		case index < leftSize:
+			cursor = cursor.left
+		case index == leftSize:
+			return cursor.key, cursor.value, true
+		default:
+			// skip the left subtree and this node in one step
+			index -= leftSize + 1
+			cursor = cursor.right
+		}
+	}
+	return
+}
+
+// Rank returns how many keys sort before a key, and whether the key is present.
+//
+// The rank is meaningful either way: for an absent key it is the position the key would
+// occupy. Costs O(log n) for the same reason as [Map.Nth].
+func (m Map[K, V]) Rank(key K) (rank int, present bool) {
+	cursor := m.root
+	for cursor != nil {
+		switch {
+		case key < cursor.key:
+			cursor = cursor.left
+		case cursor.key < key:
+			rank += cursor.left.treeSize() + 1
+			cursor = cursor.right
+		default:
+			return rank + cursor.left.treeSize(), true
+		}
+	}
+	return rank, false
+}

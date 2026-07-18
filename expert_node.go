@@ -58,6 +58,27 @@ type IExpertNode interface {
 	Observer() bool
 	SetObserver(bool)
 
+	// Children, Parents and Observers report a node's edges, and the Add and Remove
+	// methods change them.
+	//
+	// These change one side of an edge only. An edge is recorded on both of the nodes it
+	// joins, so pairing them up is the caller's responsibility: AddChildren on a parent
+	// wants AddParents on each child, and likewise for removal. That is deliberate,
+	// because a caller rebuilding a graph from outside -- from persisted state, or while
+	// driving the machinery from another system -- needs to set each half
+	// independently. It does mean the failure is quiet: a half-recorded edge leaks, since
+	// nothing will ever remove the dangling side. The same mistake inside the library's
+	// own bind relinking leaked one edge per rebuild until it was found.
+	//
+	// These also do none of the work that linking normally implies: a new edge can make a
+	// subgraph necessary, and can require heights to be adjusted so a child still
+	// recomputes after its parent. [IExpertGraph.AddChild] and
+	// [IExpertGraph.RemoveParent] do both halves and that work, and are what to use
+	// unless you specifically need one side.
+	//
+	// [IExpertGraph.CheckInvariants] verifies that the edges of a graph agree with each
+	// other and that heights are ordered, which is worth asserting in the tests of
+	// anything that assembles a graph this way.
 	Children() []INode
 	AddChildren(...INode)
 	Parents() []INode

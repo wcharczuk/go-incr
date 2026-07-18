@@ -595,12 +595,39 @@ Built on the diff, each maintained rather than recomputed:
   viable.
 - `pmap.Map.Min`/`Max`/`Range` -- the ordered-tree primitives these rest on.
 
-A maximum over *values* is deliberately absent. It has no inverse, so `UnorderedFold`
-cannot express it, and the obvious workaround -- rescan when the current maximum is
-withdrawn -- is O(n) in the worst case, which is the class of cliff these operators
-exist to avoid. Doing it properly needs a reduction shaped like the tree, so that a
-removal recomputes only one path. That is noted in `Sum`'s documentation rather than
-papered over.
+### Aggregates with no inverse (done)
+
+`UnorderedFold` maintains a running total by withdrawing an entry's contribution and
+applying its replacement, which only works when the operation has an inverse. A
+maximum does not: withdrawing the current maximum says nothing about the next one.
+
+`pmap.Reducer` handles that case, and the shape of the solution comes from the
+representation rather than from new graph machinery. The map is already a balanced
+tree whose subtrees are shared between versions, so folding over the tree and
+memoizing each subtree's result on the subtree itself means an unchanged subtree is
+found in the memo and its walk stops there. A changed key only invalidates the
+subtrees on its path to the root.
+
+Measured combines for one changed key:
+
+| entries | combines | full fold would be |
+|---:|---:|---:|
+| 1024 | 18 | 1023 |
+| 8192 | 24 | 8191 |
+| 65536 | **30** | 65535 |
+
+That is about 2 x log2(n), an exponent of 0.12 against map size, and ~2000x less work
+than folding from scratch at the largest size.
+
+Two details the tests pin down. Subtrees are combined in key order, so an associative
+but non-commutative operation -- string concatenation -- is well defined, not merely
+lucky. And the memo needs pruning: it holds an entry per subtree and nothing reports
+when a version is discarded, so it is rebuilt from the reachable set once it exceeds a
+multiple of the map's size, which amortizes against the growth that triggered it.
+`Test_Reduce_memoIsBounded` drives 4000 updates and asserts it stays bounded.
+
+`mapi.Reduce` exposes this as a node, with `MaxValue` and `MinValue` over it returning
+an `Optional` so an empty map reports absence rather than a zero value.
 
 ### Still missing
 
@@ -717,6 +744,46 @@ a few percent -- but it is a trade, not a free improvement. Note also that neith
 these benchmarks nor `Benchmark_Stabilize_nestedBinds` rebuild often enough to show
 the leak's real cost, which only appears once a process has been running a while;
 that is worth remembering when reading the numbers in (D).
+
+### H. (tried, reverted) Embed `Node` by value in the node types
+
+Each node is two allocations: the concrete node struct (`mapIncr` and friends, ~56 bytes)
+and the `Node` metadata it points at (368 bytes). Making the metadata a value field
+collapses those into one, and construction is allocation-bound, so this looks like a clear
+win. In isolation it is: modelling both layouts over a chain of 1024, allocations halve and
+construction runs 18% faster.
+
+Implemented across all 29 node types, it is not a win. Measured interleaved:
+
+    bind/wide_construct/4096    0.79x
+    deep/construct/128          0.80x
+    bind/wide_swap/256          0.86x
+    wide/update_one/16384       0.85x
+    wide/update_all/16384       1.43x - 2.07x   <-- 
+
+`wide/update_all` at 16384 regresses consistently. Eight alternating runs of the one case,
+no overlap between the distributions:
+
+    pointer   3.3  3.8  5.0  5.1  5.2  5.5  5.8  6.3 ms   (median ~5.1)
+    embedded  7.2  7.5  8.6  9.7 10.0 10.1 10.7 12.3 ms   (median ~9.8)
+
+It is not the allocator or the collector: `gctrace` shows four cycles and the same heap
+sizes for both. It is the access pattern. Leading with 368 bytes of metadata pushes each
+node's own fields -- the input, the function, the value, the inline parent array, which is
+what a recompute reads -- past six cache lines from the node's address. Putting the
+embedded field last instead recovers most of the single-node paths (`update_one/16384`
+1.18x to 0.85x) but `update_all` stays 1.43x: that case walks 32k nodes and is the largest
+working set in the suite, right at the cache boundary, so it is the one shape where the
+layout change dominates.
+
+Reverted. Construction is a one-time cost and the widest update is the steady-state hot
+path; trading a ~1.9x regression there for 20% off construction is the wrong direction, and
+a pathological case at scale is worse than a slow constructor. `NewNode` keeps its two
+allocations deliberately.
+
+The general lesson, which cost a 29-file refactor to learn: a struct-layout model that
+measures allocation in isolation predicts the allocation change correctly and tells you
+nothing about the traversal. Both halves have to be measured on the real graph.
 
 ### D. Edges keyed by identity, not by input slot
 

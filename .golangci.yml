@@ -1,72 +1,72 @@
-# This file contains all available configuration options
-# with their default values.
-
-# options for analysis running
+# golangci-lint v2 configuration; migrated from v1 with `golangci-lint migrate`.
+version: "2"
 run:
-  # exit code when at least one issue was found, default is 1
   issues-exit-code: 127
-
-  # include test files or not, default is true
+  # lint test files too: most of this repository's assertions about its own
+  # invariants live in tests, so they are worth holding to the same standard
   tests: true
-
-  # default is true. Enables skipping of directories:
-  #   vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
-  skip-dirs-use-default: true
-
-  # by default isn't set. If set we pass it to "go list -mod={option}". From "go help modules":
-  # If invoked with -mod=readonly, the go command is disallowed from the implicit
-  # automatic updating of go.mod described above. Instead, it fails when any changes
-  # to go.mod are needed. This setting is most useful to check that go.mod does
-  # not need updates, such as in a continuous integration and testing system.
-  # If invoked with -mod=vendor, the go command assumes that the vendor
-  # directory holds the correct copies of dependencies and ignores
-  # the dependency descriptions in go.mod.
-  # modules-download-mode: vendor
-
-# all available settings of specific linters
-linters-settings:
-  gci:
-    # put imports beginning with prefix after 3rd-party packages;
-    # only support one prefix
-    # if not set, use goimports.local-prefixes
-    local-prefixes: github.com/wcharcuzk/go-incr
-
-  gofmt:
-    # simplify code: gofmt with `-s` option, true by default
-    simplify: true
-
-  goimports:
-    # put imports beginning with prefix after 3rd-party packages;
-    # it's a comma-separated list of prefixes
-    local-prefixes: github.com/wcharcuzk/go-incr
-
-  revive:
-    severity: warning
-
-  govet:
-    # report about shadowed variables
-    check-shadowing: false
-
-  staticcheck:
-    # checks: [S1000,S1008,S1023,S1035,SA4006,SA5008]
-    checks: ["all"]
-
-  misspell:
-    # Correct spellings using locale preferences for US or UK.
-    # Default is to use a neutral variety of English.
-    # Setting locale to US will correct the British spelling of 'colour' to 'color'.
-    locale: US
-
 linters:
   enable:
-    - gofmt
-    - govet
     - godot
-    - revive
-    - ineffassign
-    - errcheck
     - misspell
-    - unused
-    - unparam
     - prealloc
-  fast: true
+    - revive
+    - unparam
+  disable:
+    # staticcheck was not enabled under v1 either; it is in v2's default set, so it
+    # has to be turned off explicitly to keep the same linter set as before
+    - staticcheck
+  settings:
+    govet:
+      disable:
+        - shadow
+    misspell:
+      locale: US
+    revive:
+      severity: warning
+    staticcheck:
+      checks:
+        - all
+  exclusions:
+    generated: lax
+    rules:
+      # prealloc is a performance hint, and in test files it mostly fires on fixture
+      # composite literals that are not built by appending at all
+      - linters:
+          - prealloc
+        path: _test\.go
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/wcharczuk/go-incr)
+    gofmt:
+      simplify: true
+    goimports:
+      local-prefixes:
+        - github.com/wcharczuk/go-incr
+  exclusions:
+    generated: lax
+    rules:
+      # prealloc is a performance hint, and in test files it mostly fires on fixture
+      # composite literals that are not built by appending at all
+      - linters:
+          - prealloc
+        path: _test\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

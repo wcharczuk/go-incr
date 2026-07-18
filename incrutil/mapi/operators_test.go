@@ -4,12 +4,23 @@ import (
 	"context"
 	"math"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/wcharczuk/go-incr"
 	"github.com/wcharczuk/go-incr/incrutil/pmap"
 )
+
+// skipTimingUnlessRequested skips a wall-clock measurement unless it was asked for; see
+// the same helper in the root package for why these are opt-in. The deterministic
+// work-counting tests in this package run always.
+func skipTimingUnlessRequested(t *testing.T) {
+	t.Helper()
+	if os.Getenv("INCR_SCALING_TESTS") == "" {
+		t.Skip("wall-clock scaling measurement; set INCR_SCALING_TESTS=1 to run")
+	}
+}
 
 func Test_FilterMapValues(t *testing.T) {
 	ctx := context.Background()
@@ -306,6 +317,7 @@ func Test_operators_work(t *testing.T) {
 // map as well as the operator. Test_operators_work above is the exact statement;
 // this is a backstop against a genuine return to linear behavior.
 func Test_operators_scaling(t *testing.T) {
+	skipTimingUnlessRequested(t)
 	ctx := context.Background()
 	sizes := []int{1024, 8192, 65536}
 

@@ -87,6 +87,21 @@ type IExpertGraph interface {
 	// if it is (newly) unnecessary.
 	CheckIfUnnecessary(INode)
 
+	// CheckInvariants verifies the structural properties the graph relies on but does
+	// not enforce, reporting every problem it finds rather than the first.
+	//
+	// This is for callers assembling a graph through this interface rather than through
+	// the ordinary constructors. The one-sided edge methods on [IExpertNode] update one
+	// node's record of an edge and leave the other alone, which is deliberate -- a
+	// caller rebuilding a graph piecemeal needs that -- but it means the caller owns an
+	// invariant the library would otherwise maintain, and getting it wrong is quiet. A
+	// half-recorded edge leaks rather than failing, and an inverted height computes a
+	// node from a stale input rather than erroring.
+	//
+	// It walks the whole graph, so it belongs in tests and in assembly paths rather
+	// than in a stabilization loop.
+	CheckInvariants() error
+
 	// ClearRecomputeHeapOnError is a setting that corresponds to [GraphOptions.ClearRecomputeHeapOnError].
 	ClearRecomputeHeapOnError() bool
 
@@ -168,6 +183,10 @@ func (eg *expertGraph) RecomputeHeapAdd(nodes ...INode) {
 
 func (eg *expertGraph) RecomputeHeapLen() int {
 	return eg.graph.recomputeHeap.len()
+}
+
+func (eg *expertGraph) CheckInvariants() error {
+	return eg.graph.checkInvariants()
 }
 
 func (eg *expertGraph) RecomputeHeapIDs() []Identifier {

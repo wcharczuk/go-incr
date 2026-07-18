@@ -33,7 +33,7 @@ func NewCryptoRandIdentifierProvider(randomSource io.Reader) IdentifierProvider 
 // NewSequentialIdentifierProvier returns a new sequential identifier provider.
 //
 // To use this constructor in practice you can pass a 0 or another known start offset.
-func NewSequentialIdentifierProvier(sequenceStart uint64) IdentifierProvider {
+func NewSequentialIdentifierProvider(sequenceStart uint64) IdentifierProvider {
 	return &sequentialIdentifierProvider{
 		seq: sequenceStart,
 	}
@@ -157,4 +157,12 @@ func (s *sequentialIdentifierProvider) NewIdentifier() (output Identifier) {
 	output[9] = byte(newCounter >> 48)
 	output[8] = byte(newCounter >> 56)
 	return
+}
+
+// NewSequentialIdentifierProvier is a misspelling of [NewSequentialIdentifierProvider].
+//
+// Deprecated: use [NewSequentialIdentifierProvider]. Retained so that the rename is not
+// a silent break for callers.
+func NewSequentialIdentifierProvier(startAt uint64) IdentifierProvider {
+	return NewSequentialIdentifierProvider(startAt)
 }

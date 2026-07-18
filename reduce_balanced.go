@@ -15,7 +15,9 @@ package incr
 // [UnorderedArrayFold] -- min, max and concatenation work here and cannot be
 // expressed there.
 //
-// Returns nil for no inputs, and the single input unchanged for one.
+// Returns the single input unchanged for one input, and nil for none: with no identity
+// element there is no value to report for an empty reduction. Callers assembling inputs
+// dynamically should check for that, or use [All] whose empty case is well defined.
 func ReduceBalanced[A any](scope Scope, reduce func(A, A) A, inputs ...Incr[A]) Incr[A] {
 	if len(inputs) == 0 {
 		return nil

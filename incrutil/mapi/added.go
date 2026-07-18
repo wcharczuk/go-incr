@@ -7,6 +7,11 @@ import (
 	"github.com/wcharczuk/go-incr"
 )
 
+// Deprecated: this compares the whole map and clones it on every pass, so a single key
+// changing costs O(n) -- about 169us for a 4096 key map. Use a
+// [github.com/wcharczuk/go-incr/incrutil/pmap].Map with [Changes], whose cost is
+// proportional to the number of changes instead.
+//
 // Added returns an incremental node whose value is just the added keys (and their associated values)
 // of an input map between stabilizations.
 func Added[M ~map[K]V, K comparable, V any](scope incr.Scope, i incr.Incr[M]) incr.Incr[M] {

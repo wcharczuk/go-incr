@@ -5,6 +5,7 @@ import (
 	"maps"
 	"math"
 	"math/rand"
+	"os"
 	"slices"
 	"testing"
 	"time"
@@ -157,6 +158,10 @@ func Test_SymmetricDiff_earlyExit(t *testing.T) {
 // A builtin map cannot do this. Comparing two of them is O(n) whatever changed,
 // because a hash table shares no structure with the map it was copied from.
 func Test_SymmetricDiff_scaling(t *testing.T) {
+	// opt-in; see the root package's skipTimingUnlessRequested for why
+	if os.Getenv("INCR_SCALING_TESTS") == "" {
+		t.Skip("wall-clock scaling measurement; set INCR_SCALING_TESTS=1 to run")
+	}
 	const updates = 8
 	sizes := []int{1024, 8192, 65536}
 	costs := make([]time.Duration, len(sizes))

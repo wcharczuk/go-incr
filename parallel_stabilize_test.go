@@ -162,7 +162,8 @@ func Test_ParallelStabilize_error_noClear(t *testing.T) {
 	testutil.NotNil(t, err)
 
 	testutil.Equal(t, true, g.recomputeHeap.has(m1), "we should not clear the recompute heap on error")
-	testutil.Equal(t, false, g.recomputeHeap.has(f0))
+	// the failed node is kept as well, so that a later pass retries it
+	testutil.Equal(t, true, g.recomputeHeap.has(f0), "the failed node should be retried")
 	testutil.Equal(t, false, didCallAbortedHandler)
 }
 
@@ -287,7 +288,9 @@ func Test_ParallelStabilize_always_cutoff_error(t *testing.T) {
 	testutil.NotNil(t, err)
 	testutil.Equal(t, "", o.Value())
 
-	testutil.Equal(t, 2, g.recomputeHeap.len(), "we should clear the recompute heap on error")
+	// the two nodes never reached, plus the cutoff node that failed, which is returned to
+	// the heap so that a later pass retries it
+	testutil.Equal(t, 3, g.recomputeHeap.len())
 }
 
 func Test_ParallelStabilize_printsErrors(t *testing.T) {

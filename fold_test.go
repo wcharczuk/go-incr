@@ -206,5 +206,11 @@ func Test_All(t *testing.T) {
 	testutil.Equal(t, []int{0, 99, 2, 3}, o.Value())
 	testutil.Equal(t, []int{0, 1, 2, 3}, first)
 
-	testutil.Nil(t, All[int](g))
+	// no inputs is a well defined empty slice rather than a nil node, so that a caller
+	// assembling inputs dynamically does not have to special-case it
+	empty := All[int](g)
+	testutil.NotNil(t, empty)
+	emptyObserved := MustObserve(g, empty)
+	testutil.Nil(t, g.Stabilize(ctx))
+	testutil.Equal(t, 0, len(emptyObserved.Value()))
 }

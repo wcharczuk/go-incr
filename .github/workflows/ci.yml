@@ -4,10 +4,12 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
-    paths: [ "*.go" ]
   pull_request:
     branches: [ main ]
-    paths: [ "*.go" ]
+
+# The path filter that used to be here, paths: [ "*.go" ], only matched Go files at
+# the repository root: changes under incrutil/ and changes to go.mod ran no CI at all.
+# Removed rather than corrected, since this repository is small enough to always build.
 
 jobs:
   tests:
@@ -24,11 +26,51 @@ jobs:
     - uses: actions/checkout@v4
     - uses: actions/setup-go@v5
       with:
-        go-version: '1.21'
+        # taken from go.mod rather than pinned here, so the two cannot drift
+        go-version-file: 'go.mod'
         cache: false
 
-    - name: Run all tests
+    # Repeated runs catch order dependence and state leaking between tests. The
+    # wall-clock scaling measurements are opt-in and so do not run here; what they
+    # assert is also covered by the deterministic work-counting tests, which do.
+    - name: Tests (repeated)
       run: go test -count 10 ./...
+
+    - name: Tests (race)
+      run: go test -race -count 1 ./...
+
+    # The scaling measurements, in their own step so nothing competes with them: they
+    # time elapsed work, and running them alongside the rest of the suite means
+    # competing with a large heap and whatever GC the preceding tests left behind. -p 1
+    # keeps packages from overlapping for the same reason. A genuine return to
+    # quadratic behavior fails here.
+    - name: Scaling measurements
+      run: go test -p 1 -count 1 -run 'Test_scaling|_scaling|_work' ./...
+      env:
+        INCR_SCALING_TESTS: "1"
+
+    # A short fuzz run per target, which is a smoke test rather than a search: it
+    # exercises the seed corpus plus a minute of mutation, and catches a target that no
+    # longer builds or that a recent change broke outright. Finding new bugs takes far
+    # longer than CI should hold, so real campaigns are run by hand -- see CONTRIBUTING.
+    #
+    # Each target is run separately because -fuzz only accepts one at a time.
+    - name: Fuzz (smoke)
+      run: |
+        set -euo pipefail
+        go test -run '^$' -fuzz 'FuzzGraph$' -fuzztime 60s .
+        go test -run '^$' -fuzz 'FuzzMap$' -fuzztime 45s ./incrutil/pmap
+        go test -run '^$' -fuzz 'FuzzSymmetricDiff$' -fuzztime 45s ./incrutil/pmap
+
+    # A failing fuzz run writes the input that broke it to testdata/fuzz; keeping it makes
+    # the failure reproducible instead of a report that a seed nobody has went wrong.
+    - name: Preserve fuzz failures
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: fuzz-failures
+        path: "**/testdata/fuzz/**"
+        if-no-files-found: ignore
 
   lint:
     name: "Lint"
@@ -37,10 +79,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version-file: 'go.mod'
           cache: false
 
+      # golangci-lint has to be built with a Go at least as new as the one this module
+      # targets, or it refuses to load: v1.54 failed importing sync/atomic with
+      # "unsupported version: 2", and v1.64 (built with go1.24) rejects a go1.26
+      # module outright. v2.12.2 is built with go1.26. The config is v2 format.
       - name: Lint repository
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v8
         with:
-          version: v1.54
+          version: v2.12.2

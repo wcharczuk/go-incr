@@ -46,7 +46,7 @@ func New(opts ...GraphOption) *Graph {
 		deterministic:             options.Deterministic,
 		stabilizationNum:          1,
 		status:                    StatusNotStabilizing,
-		nodes:                     allocateMapWithSize[Identifier, INode](options.PreallocateNodesSize),
+		nodes:                     allocateSliceWithSize[INode](options.PreallocateNodesSize),
 		observers:                 allocateMapWithSize[Identifier, IObserver](options.PreallocateObserversSize),
 		sentinels:                 allocateMapWithSize[Identifier, ISentinel](options.PreallocateSentinelsSize),
 		recomputeHeap:             newRecomputeHeap(options.MaxHeight),
@@ -55,6 +55,13 @@ func New(opts ...GraphOption) *Graph {
 		handleAfterStabilization:  make(map[Identifier][]func(context.Context)),
 		propagateInvalidityQueue:  new(queue[INode]),
 	}
+}
+
+func allocateSliceWithSize[V any](size int) []V {
+	if size > 0 {
+		return make([]V, 0, size)
+	}
+	return nil
 }
 
 func allocateMapWithSize[K comparable, V any](size int) map[K]V {
@@ -192,6 +199,9 @@ type Graph struct {
 
 	// clearRecomputeHeapOnError controls if we should clear the recomputeHeap on error.
 	clearRecomputeHeapOnError bool
+	// recomputingNode is the node currently being recomputed on the serial path, read only
+	// when recovering from a panic to report and retry the node responsible.
+	recomputingNode INode
 
 	// deterministic controls aspects of stabilization such that
 	// if the user values determinism, things will happen in consistent order.
@@ -201,7 +211,14 @@ type Graph struct {
 	nodesMu sync.Mutex
 	// observed are the nodes that the graph currently observes
 	// organized by node id.
-	nodes map[Identifier]INode
+	// nodes holds every node in the graph, so that they can be enumerated.
+	//
+	// A slice with each node's position recorded on the node itself, rather than a map
+	// keyed by identifier: insert and remove are both O(1) without hashing a 16 byte
+	// identifier, which a bind rebuild pays per node it creates and per node it destroys.
+	// Hashing showed up at 7% of a bind swap. Nothing looks a node up by its identifier --
+	// Has takes the node itself, and answers from a flag -- so the map bought nothing.
+	nodes []INode
 
 	// observersMu interlocks access to observers
 	observersMu sync.Mutex
@@ -327,7 +344,7 @@ func (graph *Graph) IsStabilizing() bool {
 // IsObserving returns if a graph is observing a given node.
 func (graph *Graph) Has(gn INode) (ok bool) {
 	graph.nodesMu.Lock()
-	_, ok = graph.nodes[gn.Node().id]
+	ok = gn.Node().inGraph
 	graph.nodesMu.Unlock()
 	return
 }
@@ -389,11 +406,16 @@ func (graph *Graph) newIdentifier() Identifier {
 //
 
 func (graph *Graph) invalidateNode(node INode) {
-	for _, handler := range node.Node().invalidatedHandlers() {
-		handler()
-	}
+	// The validity check comes first because the handlers report a transition, and a node
+	// can be reached by invalidation more than once -- teardown and a bind's own
+	// invalidation walk both reach the nodes of a discarded right-hand side. Firing the
+	// handlers before this check reported one transition as several, which would
+	// double-release whatever the node was holding on the graph's behalf.
 	if !node.Node().valid {
 		return
+	}
+	for _, handler := range node.Node().invalidatedHandlers() {
+		handler()
 	}
 
 	nn := node.Node()
@@ -571,6 +593,15 @@ func (graph *Graph) link(child, parent INode) {
 }
 
 func (graph *Graph) addChildWithoutAdjustingHeights(child, parent INode) error {
+	// A node whose Parents reports a nil entry would otherwise fault here, several
+	// frames below the call that introduced it, which is a poor way to learn that a
+	// combinator was handed a nil input.
+	if parent == nil {
+		return errParentNil
+	}
+	if child == nil {
+		return errChildNil
+	}
 	wasNecessary := parent.Node().isNecessary()
 	graph.link(child, parent)
 	if !parent.Node().valid {
@@ -636,7 +667,8 @@ func (graph *Graph) addNode(n INode) {
 	gnn.inGraph = true
 	atomic.AddUint64(&graph.numNodes, 1)
 	gnn.initializeFrom(n)
-	graph.nodes[gnn.id] = n
+	gnn.graphIndex = len(graph.nodes)
+	graph.nodes = append(graph.nodes, n)
 }
 
 func (graph *Graph) addObserver(on IObserver) {
@@ -683,8 +715,20 @@ func (graph *Graph) removeSentinel(sn ISentinel) {
 
 func (graph *Graph) removeNode(gn INode) {
 	graph.nodesMu.Lock()
-	gn.Node().inGraph = false
-	delete(graph.nodes, gn.Node().id)
+	nn := gn.Node()
+	if nn.inGraph {
+		nn.inGraph = false
+		// swap the last node into the vacated position and tell it where it moved, which
+		// keeps removal O(1) and the slice compact
+		last := len(graph.nodes) - 1
+		if moved := graph.nodes[last]; nn.graphIndex != last {
+			graph.nodes[nn.graphIndex] = moved
+			moved.Node().graphIndex = nn.graphIndex
+		}
+		graph.nodes[last] = nil
+		graph.nodes = graph.nodes[:last]
+		nn.graphIndex = -1
+	}
 	graph.nodesMu.Unlock()
 	graph.zeroNode(gn)
 }
@@ -787,6 +831,9 @@ func (graph *Graph) ensureNotStabilizing(ctx context.Context) error {
 
 func (graph *Graph) stabilizeStart(ctx context.Context) context.Context {
 	atomic.StoreInt32(&graph.status, StatusStabilizing)
+	// cleared so that a panic raised before any node is recomputed does not blame whichever
+	// node happened to be last in the previous pass
+	graph.recomputingNode = nil
 	for _, handler := range graph.onStabilizationStart {
 		handler(ctx)
 	}
@@ -893,6 +940,52 @@ func (graph *Graph) stabilizeEndRunUpdateHandlers(ctx context.Context) {
 	clear(graph.handleAfterStabilization)
 }
 
+// recomputePanicked handles a node whose computation panicked, returning the error that
+// stabilization will report.
+//
+// The node is made stale unconditionally rather than having its previous stamp restored,
+// which is what the error path does. A panic unwinds past the point where that stamp was
+// still known, and "never recomputed" is the conservative answer: it costs one extra
+// recompute of a node that was going to be retried anyway.
+func (graph *Graph) recomputePanicked(ctx context.Context, n INode, recovered any) error {
+	// n is nil when the panic did not come from a node's computation -- something in the
+	// graph's own bookkeeping. There is nothing to retry or to notify, but the panic is
+	// still reported rather than swallowed.
+	if n == nil {
+		return newPanicError(nil, recovered)
+	}
+	err := newPanicError(n, recovered)
+	if !graph.clearRecomputeHeapOnError {
+		n.Node().recomputedAt = 0
+		graph.recomputeHeap.addIfNotPresent(n)
+	}
+	for _, eh := range n.Node().errorHandlers() {
+		eh(ctx, err)
+	}
+	return err
+}
+
+// recomputeFailed returns a node that errored to the state it was in before the
+// attempt, so that a later stabilization tries it again.
+//
+// Without this a failed node is indistinguishable from one that succeeded: it keeps
+// the recomputedAt stamp applied at the top of recomputeNode, which leaves it no
+// longer stale with respect to its inputs, and nothing puts it back in the recompute
+// heap. A transient failure -- a request that timed out, a query that deadlocked --
+// would strand the node's old value permanently, and every subsequent pass would
+// report success while serving it.
+//
+// Nodes are left as they are when the graph clears the heap on error, since there the
+// whole pass is being abandoned rather than retried, and the aborted handlers are the
+// mechanism that reports it.
+func (graph *Graph) recomputeFailed(n INode, previousRecomputedAt uint64) {
+	if graph.clearRecomputeHeapOnError {
+		return
+	}
+	n.Node().recomputedAt = previousRecomputedAt
+	graph.recomputeHeap.addIfNotPresent(n)
+}
+
 // recompute starts the recompute cycle for the node
 // setting the recomputedAt field and possibly changing the value.
 //
@@ -926,13 +1019,27 @@ func (graph *Graph) recomputeNode(ctx context.Context, n INode, parallel bool) (
 		graph.numNodesRecomputed++
 	}
 
+	// Recorded so that the single recover at the top of a serial pass knows which node
+	// panicked, which a deferred guard per node would otherwise be needed for. This costs a
+	// store; the guard costs a deferred call. Parallel workers each hold their own guard
+	// and read a local, so they must not write here -- the branch is on a value already
+	// tested twice in this function and predicts perfectly.
+	if !parallel {
+		graph.recomputingNode = n
+	}
+
 	nn := n.Node()
 	nn.numRecomputes++
+	// the stamp is applied before the attempt, so that anything this node's own
+	// stabilization consults sees the current pass; recomputeFailed puts it back if
+	// the attempt does not succeed.
+	previousRecomputedAt := nn.recomputedAt
 	nn.recomputedAt = graph.stabilizationNum
 
 	var shouldCutoff bool
 	shouldCutoff, err = nn.maybeCutoff(ctx)
 	if err != nil {
+		graph.recomputeFailed(n, previousRecomputedAt)
 		for _, eh := range nn.errorHandlers() {
 			eh(ctx, err)
 		}
@@ -963,6 +1070,7 @@ func (graph *Graph) recomputeNode(ctx context.Context, n INode, parallel bool) (
 		graph.recomputeMu.Unlock()
 	}
 	if err != nil {
+		graph.recomputeFailed(n, previousRecomputedAt)
 		for _, eh := range nn.errorHandlers() {
 			eh(ctx, err)
 		}

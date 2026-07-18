@@ -19,6 +19,9 @@ import (
 //
 // You should only reach for [Graph.ParallelStabilize] if you have very long running node recomputations
 // that would benefit from processing in parallel, e.g. if you have nodes that are I/O bound or CPU intensive.
+//
+// Canceling ctx stops the pass at the next height block boundary and returns the
+// context's cause; nodes not yet recomputed stay in the recompute heap.
 func (graph *Graph) ParallelStabilize(ctx context.Context) (err error) {
 	if graph.deterministic {
 		err = fmt.Errorf("incr; cannot parallel stabilize if graph is deterministic")
@@ -42,7 +45,15 @@ func (graph *Graph) parallelStabilize(ctx context.Context) (err error) {
 
 	var immediateRecompute []INode
 	var immediateRecomputeMu sync.Mutex
+	// Each worker holds its own guard, which is the only place a panic in a worker
+	// goroutine can be caught: a recover in the caller never sees it, so without this a
+	// panicking node ends the process. The node is a local, so nothing is shared.
 	parallelRecomputeNode := func(ctx context.Context, n INode) (err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				err = graph.recomputePanicked(ctx, n, r)
+			}
+		}()
 		err = graph.recompute(ctx, n, true)
 		if n.Node().always {
 			immediateRecomputeMu.Lock()
@@ -52,8 +63,16 @@ func (graph *Graph) parallelStabilize(ctx context.Context) (err error) {
 		return
 	}
 
+	// Cancellation is checked once per height block rather than per node: the batch is
+	// where a pass can be interrupted without leaving a block half applied, and parallel
+	// stabilization is for nodes expensive enough that block granularity is fine.
+	done := ctx.Done()
+
 	var iter recomputeHeapListIter
 	for graph.recomputeHeap.len() > 0 {
+		if err = contextCanceled(ctx, done); err != nil {
+			break
+		}
 		graph.recomputeHeap.setIterToMinHeight(&iter)
 		err = parallelBatch(ctx, parallelRecomputeNode, iter.Next, graph.parallelism)
 		if err != nil {

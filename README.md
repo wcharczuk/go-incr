@@ -22,6 +22,107 @@ The inspiration for `go-incr` is Jane Street's [incremental](https://github.com/
 
 The key difference from this library versus the Jane Street implementation is _parallelism_. You can stabilize multiple nodes with the same recompute height at once using `ParallelStabilize`. This is especially useful if you have nodes that make network calls or do other non-cpu bound work.
 
+# Choosing a combinator
+
+Most of what decides whether an incremental graph stays fast as it grows is which
+combinator you reach for. Several ways of writing the same aggregate differ by orders of
+magnitude, and the difference does not appear until the collection is large:
+
+| aggregating n inputs | cost of one input changing | at 4096 inputs |
+| --- | --- | --- |
+| `MapN` | O(n) — every value is passed to the function | 17.2us |
+| `ReduceBalanced` | O(log n) — only the path from the changed leaf to the root | 427ns |
+| `UnorderedArrayFold` | O(1) — the accumulator is adjusted in place | 188ns |
+
+The rule of thumb:
+
+- Aggregating with an operation that **has an inverse** (a sum, a count) — use
+  `UnorderedArrayFold`, which withdraws the old contribution and applies the new one.
+- Aggregating with an operation that has **no inverse** (a maximum, a concatenation) —
+  use `ReduceBalanced`. Nothing can be withdrawn from a maximum, so a running
+  accumulator cannot work, but a balanced tree only recomputes one path.
+- `MapN` and `All` read every input on every pass by construction. Use them when you
+  genuinely want all the values, not to aggregate them.
+
+# Incremental maps
+
+A computation over a map has the same trap in a sharper form: comparing two of Go's
+builtin maps costs O(n) however few keys changed, because a hash table shares no
+structure with the map it was copied from and cannot say what differs.
+
+`incrutil/pmap` is an immutable ordered map with structural sharing, whose symmetric
+difference is proportional to the number of changes rather than the size of the map —
+diffing 8 changes in a 65536 entry map costs about 700ns and does not grow with the map.
+`incrutil/mapi` builds the incremental operators over it:
+
+| operator | does |
+| --- | --- |
+| `MapValues`, `FilterMapValues` | per-key transform, recomputing only changed keys |
+| `Merge` | combine two maps, recomputing the union of their changes |
+| `UnorderedFold` | aggregate with an inverse, O(1) per changed key |
+| `Reduce`, `MaxValue`, `MinValue` | aggregate without an inverse, O(log n) per change |
+| `Subrange` | a window over a sorted map, with incremental bounds |
+| `Partition` | split by a predicate into two maps |
+| `Join` | a map of incrementals becomes an incremental map |
+| `Selector` | an incremental per key, so one key changing wakes only that key's consumers |
+| `Sum`, `Cardinality`, `Counti`, `Keys` | common aggregates |
+
+`FromGoMap` and `ToGoMap` bridge to builtin maps at the edges.
+
+`examples/incremental_map` is a worked example: a book of 5000 orders with a per-order
+transform, a running total, a maximum and a moving window over it. Repricing one order
+recomputes one line and adjusts the total in constant time; filling the largest order
+finds the new maximum without rereading the book.
+
+# Cutoffs
+
+By default a node propagates whenever it recomputes, including when its new value equals
+its old one — so writing a var the value it already holds costs a full propagation. There
+is no graph-wide setting for this and there cannot be: comparing two values requires them
+to be comparable, and an `Incr[A]` holds any type. The constraint appears at construction
+instead:
+
+- `VarEqual` ignores being set to the value it already holds. This is the cheapest place
+  to stop a no-op write, since nothing downstream is consulted: measured over 4096
+  dependents, 329us for a plain `Var` against 87ns.
+- `CutoffEqual` stops propagation further down, for computed rather than set values.
+- `Cutoff`/`Cutoff2` take an arbitrary predicate, for when "changed enough to matter" is a
+  judgement rather than equality.
+
+`VarEqualFunc` and `CutoffEqualFunc` take the comparison, for types with no `==`.
+
+# Time
+
+Nodes that read the wall clock are hard to test and hard to reason about, since two nodes
+in one pass can see different instants. `Clock` separates what time it is from time
+passing: advance it explicitly with `Advance`, and it wakes only the nodes whose trigger
+has passed while holding still for the duration of a stabilization. `At`, `AtIntervals`,
+`Snapshot` and `StepFunction` are built on it.
+
+For code that reads the real clock — including the older `Timer` node — `testing/synctest`
+makes it testable without an abstraction; see `timer_synctest_test.go`.
+
+# Node lifecycle
+
+A node can stop being part of the computation without its value ever changing, which is
+invisible through update handlers. `Node.OnBecameNecessary`, `OnBecameUnnecessary` and
+`OnInvalidated` report those transitions, and are how a node releases something it was
+holding on the graph's behalf.
+
+# Examples
+
+Each of these is a runnable program that reports what work it actually did, rather than
+just producing an answer.
+
+| example | shows |
+| --- | --- |
+| `examples/aggregation` | the cost of `MapN` vs `ReduceBalanced` vs `UnorderedArrayFold` on one workload: 4096 function calls vs 12 vs 1 |
+| `examples/build_graph` | an incremental build: a cutoff on canonical content so a comment-only edit rebuilds nothing, and `Bind` for dependencies discovered by parsing |
+| `examples/incremental_map` | a book of 5000 orders with a per-order transform, running total, maximum and moving window over it |
+| `examples/monitoring` | staleness detection and alerting driven by `Clock`, stepping through half an hour deterministically |
+| `examples/subscriptions` | lifecycle handlers opening and closing real resources as a dashboard's panels change |
+| `examples/basic`, `examples/orders`, `examples/streaming` | smaller introductions to the core API |
+
 # Basic concepts
 
 A computation in `go-incr` is composed of three "meta" node types.

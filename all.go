@@ -8,10 +8,12 @@ package incr
 // the goal is an aggregate rather than the values themselves, prefer
 // [UnorderedArrayFold] for O(1) updates or [ReduceBalanced] for O(log n).
 //
-// Returns nil for no inputs.
+// With no inputs the result is an empty slice. Unlike [ReduceBalanced], which has no
+// value to report for an empty input, this returns a usable node so that a caller
+// assembling inputs dynamically does not have to special-case the empty case.
 func All[A any](scope Scope, inputs ...Incr[A]) Incr[[]A] {
 	if len(inputs) == 0 {
-		return nil
+		return Return(scope, []A{})
 	}
 	return MapN(scope, func(values ...A) []A {
 		// copied because MapN reuses its value slice between passes

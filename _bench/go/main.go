@@ -325,6 +325,28 @@ type wideGraph struct {
 	obs  incr.ObserveIncr[int]
 }
 
+// buildWideEqual is buildWide with inputs that ignore being set to the value they already
+// hold, which is what OCaml incremental does by default. Without it the update_same case
+// compares a library that cuts off against one that does not, which measures the semantic
+// difference rather than the cost of the machinery.
+func buildWideEqual(n int, ident incr.IdentifierProvider) *wideGraph {
+	opts := []incr.GraphOption{incr.OptGraphMaxHeight(1024)}
+	if ident != nil {
+		opts = append(opts, incr.OptGraphIdentifierProvider(ident))
+	}
+	g := incr.New(opts...)
+
+	vars := make([]incr.VarIncr[int], n)
+	leaves := make([]incr.Incr[int], n)
+	for i := 0; i < n; i++ {
+		vars[i] = incr.VarEqual(g, i)
+		leaves[i] = incr.Map(g, vars[i], func(v int) int { return v + 1 })
+	}
+	root := buildTreeReduce(g, leaves)
+	obs := incr.MustObserve(g, root)
+	return &wideGraph{g: g, vars: vars, obs: obs}
+}
+
 func buildWide(n int, ident incr.IdentifierProvider) *wideGraph {
 	opts := []incr.GraphOption{incr.OptGraphMaxHeight(1024)}
 	if ident != nil {
@@ -451,6 +473,22 @@ func cases() []benchCase {
 			group: "wide_cutoff", size: n,
 			setup: func() func() {
 				w := buildWide(n, incr.NewSequentialIdentifierProvier(1))
+				mustStabilize(w.g)
+				return func() {
+					w.vars[0].Set(0)
+					mustStabilize(w.g)
+				}
+			},
+		})
+
+		// The same case with an input that cuts off, which is the comparable
+		// configuration: what update_same above measures against OCaml is mostly the
+		// default, not the machinery.
+		out = append(out, benchCase{
+			name:  fmt.Sprintf("wide/update_same_equal/%d", n),
+			group: "wide_cutoff", size: n,
+			setup: func() func() {
+				w := buildWideEqual(n, incr.NewSequentialIdentifierProvier(1))
 				mustStabilize(w.g)
 				return func() {
 					w.vars[0].Set(0)

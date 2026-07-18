@@ -13,6 +13,7 @@ func NewNode(kind string) *Node {
 		height:                    HeightUnset,
 		heightInRecomputeHeap:     HeightUnset,
 		heightInAdjustHeightsHeap: HeightUnset,
+		graphIndex:                -1,
 	}
 }
 
@@ -78,6 +79,9 @@ type Node struct {
 	// parentIndex, childIndex and observerIndex give identifier lookup into the
 	// three edge lists above once they grow large; see edge_index.go for why.
 	// They are nil for all but very wide nodes.
+	// graphIndex is this node's position in the graph's node slice, or -1 when the node is
+	// not in a graph. It is what makes removal O(1) without hashing; see Graph.nodes.
+	graphIndex    int
 	parentIndex   map[Identifier][]int
 	childIndex    map[Identifier][]int
 	observerIndex map[Identifier][]int

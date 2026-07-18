@@ -86,7 +86,10 @@ func Test_Stabilize_error_noClear(t *testing.T) {
 	testutil.Equal(t, "this is just a test", err.Error())
 
 	testutil.Equal(t, true, g.recomputeHeap.has(m1), "we should not clear the recompute heap on error")
-	testutil.Equal(t, false, g.recomputeHeap.has(f0))
+	// the node that failed is kept too, which is what makes this option mean anything: the
+	// pass is being retried rather than abandoned, and a failed node that is not in the heap
+	// is never tried again. See Test_Stabilize_errorIsRetried.
+	testutil.Equal(t, true, g.recomputeHeap.has(f0), "the failed node should be retried")
 	testutil.Equal(t, false, didCallAbortedHandler)
 }
 
@@ -1517,7 +1520,9 @@ func Test_Stabilize_Always_Cutoff_error(t *testing.T) {
 	testutil.NotNil(t, err)
 	testutil.Equal(t, "", o.Value())
 
-	testutil.Equal(t, 2, g.recomputeHeap.len(), "we should clear the recompute heap on error")
+	// the two nodes never reached, plus the cutoff node that failed, which is returned to
+	// the heap so that a later pass retries it
+	testutil.Equal(t, 3, g.recomputeHeap.len())
 }
 
 func Test_Stabilize_printsErrors(t *testing.T) {

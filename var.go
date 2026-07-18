@@ -21,6 +21,32 @@ func Var[T any](scope Scope, t T) VarIncr[T] {
 	})
 }
 
+// VarEqual returns a var that ignores being set to the value it already holds.
+//
+// Setting a var normally marks it stale and propagates through everything downstream,
+// including when the new value equals the old one. For inputs that are written
+// repeatedly and often unchanged -- a poll result, a config reload, a replayed event --
+// that is the dominant cost, and it is entirely avoidable.
+//
+// This is a separate constructor rather than the behavior of [Var] because deciding
+// whether two values are equal requires them to be comparable, and an ordinary
+// [Incr][A] holds any type at all. There is nowhere to put a graph-wide setting for it:
+// the constraint has to appear where the type is known, which is here. For types with no
+// ==, [VarEqualFunc] takes the comparison, and for cutting off further down the graph
+// rather than at the source, see [CutoffEqual].
+func VarEqual[T comparable](scope Scope, t T) VarIncr[T] {
+	return VarEqualFunc(scope, t, func(a, b T) bool { return a == b })
+}
+
+// VarEqualFunc is [VarEqual] for types with no ==, taking the comparison.
+func VarEqualFunc[T any](scope Scope, t T, equal func(a, b T) bool) VarIncr[T] {
+	return WithinScope(scope, &varIncr[T]{
+		n:     NewNode(KindVar),
+		value: t,
+		equal: equal,
+	})
+}
+
 // VarIncr is a graph node type that implements an incremental variable.
 type VarIncr[T any] interface {
 	Incr[T]
@@ -29,6 +55,13 @@ type VarIncr[T any] interface {
 	//
 	// Calling [Set] will invalidate any nodes that reference this variable.
 	Set(T)
+	// Update sets the var value from its current one.
+	//
+	// This saves reading the value out to change it, which matters because reading a
+	// var directly bypasses the graph: during stabilization the value a [Set] will
+	// take has not been applied yet, so computing the next value from what [Value]
+	// returns can be reading a stale one.
+	Update(func(T) T)
 }
 
 var (
@@ -40,9 +73,12 @@ var (
 )
 
 type varIncr[T any] struct {
-	n                           *Node
-	setAt                       uint64
-	value                       T
+	n     *Node
+	setAt uint64
+	value T
+	// equal, when set, decides whether a [Set] is a change at all. It is nil for [Var]
+	// and set by [VarEqual]; see there for why this cannot simply be the default.
+	equal                       func(a, b T) bool
 	setDuringStabilizationValue T
 	setDuringStabilization      bool
 }
@@ -56,6 +92,13 @@ func (vn *varIncr[T]) ShouldBeInvalidated() bool {
 }
 
 func (vn *varIncr[T]) Set(v T) {
+	// A var told to hold the value it already holds has not changed, and stopping here
+	// is much cheaper than letting the graph work that out downstream: a cutoff node
+	// still has to recompute this var and itself before deciding nothing happened,
+	// whereas this costs one comparison and touches the graph not at all.
+	if vn.equal != nil && !vn.setDuringStabilization && vn.equal(vn.value, v) {
+		return
+	}
 	graph := GraphForNode(vn)
 	if atomic.LoadInt32(&graph.status) == StatusStabilizing {
 		vn.setDuringStabilizationValue = v
@@ -70,6 +113,16 @@ func (vn *varIncr[T]) Set(v T) {
 	if vn.n.isNecessary() {
 		graph.SetStale(vn)
 	}
+}
+
+func (vn *varIncr[T]) Update(fn func(T) T) {
+	// read through the pending value if one is set, so that two updates within a
+	// single stabilization compose rather than the second discarding the first
+	current := vn.value
+	if vn.setDuringStabilization {
+		current = vn.setDuringStabilizationValue
+	}
+	vn.Set(fn(current))
 }
 
 func (vn *varIncr[T]) Node() *Node { return vn.n }

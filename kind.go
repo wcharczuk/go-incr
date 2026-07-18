@@ -2,6 +2,11 @@ package incr
 
 // Node kind constants.
 const (
+	KindStepFunction       = "step_function"
+	KindUnit               = "unit"
+	KindAt                 = "at"
+	KindAtIntervals        = "at_intervals"
+	KindSnapshot           = "snapshot"
 	KindAlways             = "always"
 	KindBindIf             = "bind_if"
 	KindBindLHSChange      = "bind-lhs-change"
