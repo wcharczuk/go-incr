@@ -22,6 +22,24 @@ Street's OCaml implementation. The work that mattered:
 - A dependent whose only input just recomputed is now recomputed directly rather than
   being routed through the recompute heap, as the reference does. A chain of maps no
   longer touches the heap at all.
+- The serial recompute path is specialized. `recomputeNode` is the hottest function in the
+  library -- 51% flat in a profile of a deep update, against 11% for the node functions it
+  calls -- and it tested a `parallel` flag at six points per node. The serial path is now a
+  copy with that flag resolved away, worth 0.94 - 0.97x on single-input updates.
+  `Test_serialAndParallelAgree` drives five shapes through both paths and requires they agree,
+  so the copy cannot drift silently.
+- A stabilization no longer reads the clock unless something consumes the reading. It was
+  read twice per pass -- once in `stabilizeStart`, and once more because `time.Since` was an
+  *argument* to a trace call and so was evaluated whether or not a tracer existed, to format
+  a string that was then discarded. At 38ns a read that was most of what an otherwise empty
+  pass cost. It is now taken only when there is a stabilization-end handler to receive it or
+  a tracer to print it.
+
+  An empty stabilization went from 86ns to 22ns, and one that recomputes a single node from
+  149ns to 84ns. Against the reference that turns the shallowest update case from 1.65x
+  behind into 1.1x ahead, and a rejected `VarEqual` write from 85ns to 26ns -- 2.8x faster
+  than the reference's default cutoff. Larger update passes gain 0.83 - 0.97x, since the cost
+  is fixed per pass rather than per node.
 - Node metadata is carved from contiguous chunks rather than allocated one at a time. Every
   node needs a `Node` and it is the larger of the two allocations a node costs, so handing
   them out by bumping an index turns most of that into a bounds check -- and, worth more,

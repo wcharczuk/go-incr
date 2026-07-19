@@ -842,11 +842,18 @@ func (graph *Graph) stabilizeStart(ctx context.Context) context.Context {
 	for _, handler := range graph.onStabilizationStart {
 		handler(ctx)
 	}
-	graph.stabilizationStarted = time.Now()
+	// Reading the clock costs about 38ns, which is most of what an otherwise empty
+	// stabilization costs, so it is read only when something will consume it: the
+	// stabilization-end handlers are handed the start time, and trace output reports how
+	// long the pass took. A graph with neither pays nothing.
+	tracing := GetTracer(ctx) != nil
+	if tracing || len(graph.onStabilizationEnd) > 0 {
+		graph.stabilizationStarted = time.Now()
+	}
 	// only decorate the context with the stabilization number when a tracer is
 	// present; the number is consumed exclusively by trace output, and
 	// context.WithValue allocates on every call otherwise.
-	if GetTracer(ctx) != nil {
+	if tracing {
 		ctx = WithStabilizationNumber(ctx, graph.stabilizationNum)
 		TracePrintln(ctx, "stabilization starting")
 	}
@@ -863,9 +870,18 @@ func (graph *Graph) stabilizeEnd(ctx context.Context, err error) {
 	}
 	if err != nil {
 		TraceErrorf(ctx, "stabilization error: %v", err)
-		TracePrintf(ctx, "stabilization failed (%v elapsed)", time.Since(graph.stabilizationStarted).Round(time.Microsecond))
-	} else {
-		TracePrintf(ctx, "stabilization complete (%v elapsed)", time.Since(graph.stabilizationStarted).Round(time.Microsecond))
+	}
+	// The elapsed time is computed only when there is a tracer to print it. Arguments are
+	// evaluated whether or not the call does anything with them, so leaving time.Since here
+	// unguarded read the clock on every stabilization to format a string that was then
+	// thrown away -- a second 38ns on top of the one in stabilizeStart.
+	if GetTracer(ctx) != nil {
+		elapsed := time.Since(graph.stabilizationStarted).Round(time.Microsecond)
+		if err != nil {
+			TracePrintf(ctx, "stabilization failed (%v elapsed)", elapsed)
+		} else {
+			TracePrintf(ctx, "stabilization complete (%v elapsed)", elapsed)
+		}
 	}
 	graph.stabilizeEndRunUpdateHandlers(ctx)
 	graph.stabilizationNum++
@@ -1000,8 +1016,22 @@ func (graph *Graph) recomputeFailed(n INode, previousRecomputedAt uint64) {
 // applies. The loop keeps the chain iterative, so a long run of such nodes costs
 // constant stack rather than one frame per node.
 func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err error) {
+	// the mode is decided once here rather than tested inside the per-node work; see
+	// recomputeNodeSerial
+	if parallel {
+		for n != nil {
+			n, err = graph.recomputeNode(ctx, n, true)
+			if err != nil {
+				return
+			}
+			if n != nil {
+				graph.numNodesRecomputedDirectly++
+			}
+		}
+		return
+	}
 	for n != nil {
-		n, err = graph.recomputeNode(ctx, n, parallel)
+		n, err = graph.recomputeNodeSerial(ctx, n)
 		if err != nil {
 			return
 		}
@@ -1012,8 +1042,108 @@ func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err 
 	return
 }
 
-// recomputeNode recomputes a single node, returning a child to recompute
-// immediately, or nil if the children were queued to the recompute heap.
+// recomputeNodeSerial is [Graph.recomputeNode] with the parallel path resolved away.
+//
+// The two are deliberately duplicated rather than sharing a body with a flag. This is the
+// hottest function in the library -- profiling a deep update attributes 51% of the pass to
+// it, against 11% for the node functions it calls -- and the flag was tested at six points
+// per node: two counter increments, the in-flight record, the structural lock around
+// Stabilize, the update handler queue, and the whole children loop. Specializing removes all
+// of them from the serial path.
+//
+// Keep them in step. Anything changed here almost certainly belongs in recomputeNode too.
+func (graph *Graph) recomputeNodeSerial(ctx context.Context, n INode) (immediate INode, err error) {
+	graph.numNodesRecomputed++
+
+	// recorded so the single recover at the top of the pass knows which node panicked
+	graph.recomputingNode = n
+
+	nn := n.Node()
+	nn.numRecomputes++
+	// the stamp is applied before the attempt, so that anything this node's own
+	// stabilization consults sees the current pass; recomputeFailed puts it back if
+	// the attempt does not succeed.
+	previousRecomputedAt := nn.recomputedAt
+	nn.recomputedAt = graph.stabilizationNum
+
+	var shouldCutoff bool
+	shouldCutoff, err = nn.maybeCutoff(ctx)
+	if err != nil {
+		graph.recomputeFailed(n, previousRecomputedAt)
+		for _, eh := range nn.errorHandlers() {
+			eh(ctx, err)
+		}
+		return
+	}
+	if shouldCutoff {
+		return
+	}
+
+	graph.numNodesChanged++
+	nn.numChanges++
+
+	err = nn.maybeStabilize(ctx)
+	if err != nil {
+		graph.recomputeFailed(n, previousRecomputedAt)
+		for _, eh := range nn.errorHandlers() {
+			eh(ctx, err)
+		}
+		return
+	}
+
+	nn.changedAt = graph.stabilizationNum
+	if handlers := nn.updateHandlers(); len(handlers) > 0 {
+		graph.queueUpdateHandlers(false, nn.id, handlers)
+	}
+
+	// hold one child back and queue the rest, then decide whether the held
+	// child can be recomputed directly. Deferring that decision until every
+	// sibling has been queued is what makes the recompute heap's minimum
+	// height sound to test against in canRecomputeImmediately.
+	var held INode
+	var heldNode *Node
+	for _, c := range nn.children {
+		cn := c.Node()
+		// a node can appear among the children more than once, for instance
+		// when it takes the same input twice. It must not be both held back
+		// and queued, or it would end up recomputed while still linked into
+		// a height block.
+		if cn == heldNode {
+			continue
+		}
+		if cn.childChangedNotifier != nil {
+			cn.childChangedNotifier.ChildChanged(n)
+		}
+		if !shouldRecomputeChild(cn, graph.stabilizationNum) {
+			continue
+		}
+		if held != nil {
+			graph.recomputeHeap.addNodeUnsafe(held)
+		}
+		held, heldNode = c, cn
+	}
+	if held != nil {
+		if graph.canRecomputeImmediately(nn, held) {
+			immediate = held
+		} else {
+			graph.recomputeHeap.addNodeUnsafe(held)
+		}
+	}
+
+	// recompute observers immediately because logically they're
+	// children of this node but will not have any children themselves.
+	for _, o := range nn.observers {
+		if handlers := o.Node().updateHandlers(); len(handlers) > 0 {
+			graph.queueUpdateHandlers(false, o.Node().id, handlers)
+		}
+	}
+	return
+}
+
+// recomputeNode recomputes a single node on the parallel path, returning a child to
+// recompute immediately, or nil if the children were queued to the recompute heap.
+//
+// See recomputeNodeSerial, which is this function with the parallel path resolved away.
 func (graph *Graph) recomputeNode(ctx context.Context, n INode, parallel bool) (immediate INode, err error) {
 	// these counters are only shared when stabilizing in parallel; on the serial
 	// path a plain increment is equivalent and avoids a locked instruction per

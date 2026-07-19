@@ -463,3 +463,127 @@ func Test_necessaryDependentEdges(t *testing.T) {
 		testutil.Nil(t, ExpertGraph(g).CheckInvariants())
 	})
 }
+
+// Test_OnStabilizationEnd_receivesStartTime pins the start time handed to the handler.
+//
+// Reading the clock is most of what an otherwise empty stabilization costs, so it is only
+// read when something consumes it -- an end handler or a tracer. That makes it possible to
+// skip the read for a graph that does want it, which no other test would catch: the existing
+// coverage calls the handler but ignores its arguments, so a zero time passes unnoticed.
+func Test_OnStabilizationEnd_receivesStartTime(t *testing.T) {
+	ctx := context.Background()
+	g := New()
+	MustObserve(g, Map(g, Var(g, 1), func(x int) int { return x + 1 }))
+
+	var started time.Time
+	var calls int
+	g.OnStabilizationEnd(func(_ context.Context, s time.Time, _ error) {
+		started = s
+		calls++
+	})
+
+	before := time.Now()
+	testutil.Nil(t, g.Stabilize(ctx))
+	after := time.Now()
+
+	testutil.Equal(t, 1, calls)
+	testutil.Equal(t, false, started.IsZero(), "the handler should be given the time the pass started")
+	if started.Before(before) || started.After(after) {
+		t.Fatalf("start time %v is outside the window the pass ran in (%v..%v)", started, before, after)
+	}
+}
+
+// Test_serialAndParallelAgree guards the duplication between recomputeNodeSerial and
+// recomputeNode.
+//
+// The serial path is a specialized copy of the parallel one with the mode resolved away,
+// because that flag was tested six times per node in the hottest function in the library. The
+// hazard of a copy is that the two drift apart, and a difference would show up as a wrong
+// value or a corrupt graph on one path only. This drives the same shapes through both and
+// requires they agree.
+func Test_serialAndParallelAgree(t *testing.T) {
+	ctx := context.Background()
+
+	shapes := map[string]func(g *Graph) ObserveIncr[int]{
+		"deepChain": func(g *Graph) ObserveIncr[int] {
+			var cur Incr[int] = Var(g, 1)
+			for range 40 {
+				cur = Map(g, cur, func(x int) int { return x + 1 })
+			}
+			return MustObserve(g, cur)
+		},
+		"wideFanIn": func(g *Graph) ObserveIncr[int] {
+			inputs := make([]Incr[int], 0, 64)
+			for i := range 64 {
+				inputs = append(inputs, Map(g, Var(g, i), func(x int) int { return x * 2 }))
+			}
+			return MustObserve(g, ReduceBalanced(g, func(a, b int) int { return a + b }, inputs...))
+		},
+		"duplicateInputs": func(g *Graph) ObserveIncr[int] {
+			v := Var(g, 3)
+			m := Map(g, v, func(x int) int { return x + 1 })
+			return MustObserve(g, Map2(g, m, m, func(a, b int) int { return a + b }))
+		},
+		"bindRebuilding": func(g *Graph) ObserveIncr[int] {
+			sw := Var(g, 2)
+			return MustObserve(g, Bind(g, sw, func(bs Scope, which int) Incr[int] {
+				leaves := make([]Incr[int], 0, 8)
+				for j := range 8 {
+					leaves = append(leaves, Map(bs, Return(bs, j*which), func(x int) int { return x + 1 }))
+				}
+				return ReduceBalanced(bs, func(a, b int) int { return a + b }, leaves...)
+			}))
+		},
+		"nestedBinds": func(g *Graph) ObserveIncr[int] {
+			outer := Var(g, 1)
+			return MustObserve(g, Bind(g, outer, func(bs Scope, a int) Incr[int] {
+				inner := Var(bs, a*2)
+				return Bind(bs, inner, func(is Scope, b int) Incr[int] {
+					return Map(is, Return(is, b), func(x int) int { return x + a })
+				})
+			}))
+		},
+	}
+
+	for name, build := range shapes {
+		t.Run(name, func(t *testing.T) {
+			// the same shape twice: one graph stabilized serially, one in parallel
+			serialGraph := New(OptGraphMaxHeight(256))
+			serialObserved := build(serialGraph)
+			parallelGraph := New(OptGraphMaxHeight(256))
+			parallelObserved := build(parallelGraph)
+
+			serialVars := varsOf(serialGraph)
+			parallelVars := varsOf(parallelGraph)
+			testutil.Equal(t, len(serialVars), len(parallelVars), "the two graphs should be the same shape")
+
+			for round := range 6 {
+				for i := range serialVars {
+					serialVars[i].Set(round + i)
+					parallelVars[i].Set(round + i)
+				}
+				testutil.Nil(t, serialGraph.Stabilize(ctx))
+				testutil.Nil(t, parallelGraph.ParallelStabilize(ctx))
+
+				testutil.Equal(t, serialObserved.Value(), parallelObserved.Value(),
+					"the two paths disagree on the value after round %d", round)
+				testutil.Nil(t, ExpertGraph(serialGraph).CheckInvariants())
+				testutil.Nil(t, ExpertGraph(parallelGraph).CheckInvariants())
+				testutil.Equal(t, serialGraph.numNodes, parallelGraph.numNodes,
+					"the two paths disagree on the node count after round %d", round)
+			}
+		})
+	}
+}
+
+// varsOf collects a graph's var nodes in a stable order, so the same writes can be applied
+// to two graphs of the same shape.
+func varsOf(g *Graph) []VarIncr[int] {
+	out := make([]VarIncr[int], 0, len(g.nodes))
+	for _, n := range g.nodes {
+		if v, ok := n.(VarIncr[int]); ok {
+			out = append(out, v)
+		}
+	}
+	return out
+}

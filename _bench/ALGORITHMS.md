@@ -366,42 +366,126 @@ match, what remains is per-node constant factor, not algorithm.
 thing to profile: it is small enough that fixed per-rebuild costs dominate, so it
 did not benefit from the allocation work the way the larger bind cases did.
 
+## N. Why single input changes degrade with graph size
+
+Sweeping the wide shape over a 64x range, ratio = go-incr / ocaml:
+
+    n         construct   update_one   update_all
+    1024        0.90         1.21         0.87
+    4096        0.96         1.23         0.86
+    16384       0.91         1.30         0.87
+    65536       0.93         1.34          --
+
+Construction and updating every input are **flat** across the whole range, and ahead of the
+reference throughout. Only the single-input case degrades, and it does so steadily. Per node
+walked, go-incr goes 26.8ns to 28.4ns while the reference goes 22.1ns to 21.2ns -- ours rises
+slightly, theirs does not, and the ratio compounds to 1.34.
+
+It is not the amount of work: `update_one` touches one map plus log2(n) tree levels, about 12
+nodes at 1024 and 18 at 65536, and the work-count assertions confirm both libraries recompute
+the same set. It is where those nodes are. At 65536 the graph is roughly 86MB, and the walk
+touches eighteen nodes scattered through it, so nearly every access is a cache miss and often
+a TLB miss. The reference's node record is smaller, so the same walk crosses less memory.
+
+Confirmed directly by padding `Node` with 128 bytes and re-measuring the same case:
+
+    update_one/1024     324ns -> 317ns   (no effect)
+    update_one/16384    417ns -> 471ns   (+13%)
+    update_one/65536    504ns -> 546ns   (+8%)
+
+Footprint has no effect at 1024 and 8-13% at scale, which is the mechanism. Two consequences
+worth keeping in mind:
+
+- Per-node footprint is the lever for this gap, not per-node instruction count. `Node` is 384
+  bytes; the cold fields still in it are the three edge index maps (24 bytes, nil for all but
+  very wide nodes), two diagnostic counters, `kind`, and four `int` fields that would fit in
+  `int32`. Roughly 56 bytes are reachable without moving anything hot, which would drop a size
+  class. Each such step is worth a few percent *at scale only* -- measured on small graphs it
+  looks like noise, which is why section H's padding proxy overstated its own case.
+- The slab (section L) groups nodes created together, which is why bulk updates are ahead. It
+  cannot help here: the path from one leaf to the root touches one node per tree level, and
+  those are far apart in construction order no matter how they are allocated. Co-locating a
+  node with its dependents would be a graph-layout problem rather than an allocator one.
+
 ## Current standing
 
-The table above records one pass. Where things ended up after everything in this document,
-as the agreement of two full runs on an otherwise idle machine (ratio = go-incr / ocaml,
-lower is better):
+Where things ended up after everything in this document, as the agreement of two full runs on
+an otherwise idle machine (ratio = go-incr / ocaml, lower is better):
 
 | case | ratio |
 |---|---:|
-| deep/construct/1 | **0.86 - 0.88** |
-| deep/construct/2048 | **0.91 - 0.92** |
-| wide/construct/1024 | **0.89 - 0.92** |
-| wide/construct/16384 | **0.91 - 0.95** |
-| wide/update_all/1024 | **0.85 - 0.88** |
-| wide/update_all/16384 | **0.85 - 0.89** |
-| bind/wide_swap/4096 | **0.77 - 0.78** |
-| bind/swap_chain/512 | 1.07 - 1.09 |
-| bind/wide_swap/256 | 1.08 |
-| bind/wide_construct/4096 | 1.10 - 1.13 |
-| deep/construct/128 | 0.77 - 1.06 |
-| deep/update_one/2048 | 1.38 - 1.45 |
-| deep/update_one/128 | 1.45 - 1.52 |
-| wide/update_one/1024 | 1.49 - 1.52 |
-| wide/update_one/16384 | 1.59 - 1.63 |
-| deep/update_one/1 | 1.63 - 1.66 |
-| bind/swap_chain/64 | 1.41 - 1.44 |
-| wide/update_same (plain `Var`) | 5.11 - 6.60 |
-| wide/update_same_equal (`VarEqual`) | **parity** -- 86ns against 74-91ns |
+| wide/update_same_equal (`VarEqual`) | **0.35** -- 26ns against 74ns |
+| bind/wide_swap/4096 | **0.76 - 0.82** |
+| deep/construct/128 | **0.78 - 0.99** |
+| deep/construct/1 | **0.86** |
+| wide/update_all/16384 | **0.91** |
+| wide/construct/1024 | **0.91 - 0.93** |
+| wide/update_all/1024 | **0.92** |
+| deep/construct/2048 | **0.92 - 0.93** |
+| deep/update_one/1 | **0.92 - 0.93** |
+| wide/construct/16384 | **0.92** - 1.05 |
+| bind/wide_swap/256 | 1.09 |
+| bind/swap_chain/512 | 1.14 |
+| wide/update_one/1024 | 1.23 - 1.26 |
+| bind/wide_construct/4096 | 1.22 - 1.25 |
+| deep/update_one/2048 | 1.34 |
+| deep/update_one/128 | 1.36 |
+| wide/update_one/16384 | 1.37 - 1.38 |
+| bind/swap_chain/64 | 1.41 - 1.45 |
+| wide/update_same (plain `Var`) | 4.33 - 5.61 |
 
-Two things to read from this. Allocation-bound work -- construction, bulk updates, swapping a
-large subgraph -- is now ahead of the reference, which is the slab in section L plus the
-closure removal in section I. Propagating a *single* input change is still 1.4x to 1.7x
-behind, and that is per-node recompute cost: heap ordering, staleness checks, interface
-dispatch. It is the honest remaining gap and none of the allocation work touched it.
+Allocation-bound work -- construction, bulk updates, swapping a large subgraph -- is ahead of
+the reference, from the slab in section L and the closure removal in section I. Fixed per-pass
+cost is ahead, from section M. What remains behind is propagating a *single* input change
+through many nodes, 1.2 to 1.4x, which is per-node recompute cost: heap ordering, staleness
+checks, interface dispatch. `recomputeNode` is 51% flat in a profile of `deep/update_one/2048`
+against 11% for the user's own function, and it carries a branch on `parallel` at six points;
+specializing a serial version was worth 4-6% (section O), and the rest is footprint
+rather than instruction count (section N).
 
-`deep/construct/128` disagrees between runs (0.77 and 1.06) and `bind/swap_chain/64` is the
-smallest bind case; treat both as noisy rather than as signal.
+`bind/swap_chain/64` is the smallest bind case and `bind/wide_construct/4096` has swung
+between 8.4ms and 11.5ms across variants; treat both as noisy. OCaml's own
+`deep/update_one/2048` moved 12% between two runs of this table, which is why these are bands.
+
+## O. (done) Specialize the serial recompute
+
+`recomputeNode` is 51% flat in a profile of `deep/update_one/2048`, against 11% for the node
+functions it calls, and it tested the `parallel` flag at six points per node: two counter
+increments, the in-flight record, the structural lock around `Stabilize`, the update handler
+queue, and the whole children loop. The serial path is now a specialized copy with that flag
+resolved away, and `recompute` picks the loop once per chain instead.
+
+Worth 0.94 - 0.97x on every `update_one` case, and neutral elsewhere. Less than the 51% flat
+share suggests, because the branches were all perfectly predicted -- what is saved is the
+instructions, not the mispredictions.
+
+The cost is a copy of an 85 line function that can drift from its twin. That is guarded by
+`Test_serialAndParallelAgree`, which drives five shapes -- deep chain, wide fan-in, duplicated
+inputs, a rebuilding bind, nested binds -- through both paths and requires identical values,
+node counts and invariants. It was mutation checked: dropping a single `changedAt` stamp from
+the serial copy fails it in six places.
+
+## M. (done) Stop reading the clock twice per stabilization
+
+A pass called `time.Now()` in `stabilizeStart`, and then `time.Since` again in `stabilizeEnd`
+-- the second one because it was an *argument* to `TracePrintf`, and arguments are evaluated
+whether or not the callee does anything with them. So every stabilization read the clock twice
+to format a string that was discarded whenever no tracer was attached.
+
+A clock read is 38ns here. An empty stabilization was 86ns, so the two reads were most of it:
+
+    empty stabilization          86ns  ->  22ns
+    one node recomputed         149ns  ->  84ns
+
+The reading is now taken only when a stabilization-end handler will receive it or a tracer will
+print it, both of which are cheap to test. Against the reference this is what took
+`deep/update_one/1` from 1.65x behind to 0.92x, and a rejected `VarEqual` write from 85ns to
+26ns. The gain is fixed per pass, so it is largest on the cases that were worst: 0.83x on
+`wide/update_one`, 0.31x on `update_same_equal`, 0.97x on `deep/update_one/2048`.
+
+The general lesson is worth more than the fix: a diagnostic that looks free because its output
+is discarded is not free if computing the *argument* has a cost. `go vet` will not find these,
+and a profile attributes them to the clock rather than to the trace call that asked for them.
 
 ## Is Go the limiting factor? No.
 

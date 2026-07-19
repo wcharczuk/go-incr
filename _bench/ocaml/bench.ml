@@ -275,7 +275,7 @@ let cases =
   List.concat
     [ List.concat_map
         (fun n -> [ wide_construct n; wide_update_one n; wide_update_all n; wide_update_same n ])
-        [ 1024; 16384 ]
+        [ 1024; 16384; 65536 ]
       (* Depth 1 isolates the fixed per-stabilization overhead from the marginal
          per-node recompute cost that the deeper sizes measure. *)
     ; List.concat_map (fun d -> [ deep_construct d; deep_update_one d ]) [ 1; 128; 2048 ]

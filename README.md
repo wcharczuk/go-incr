@@ -31,26 +31,41 @@ differently depending on the shape:
 
 | shape | vs OCaml `incremental` |
 | --- | --- |
-| building a graph | go-incr 1.05 - 1.15x faster |
-| every input changes, wide graph | go-incr 1.1 - 1.2x faster |
-| `Bind` swapping a large subgraph | go-incr 1.3x faster |
-| `Bind` swapping a small subgraph | parity to 1.4x slower |
-| one input changes, wide graph | 1.5 - 1.6x slower |
-| one input changes, deep graph | 1.4 - 1.7x slower |
-| writing an input the value it already holds | parity with `VarEqual`, 5 - 6.5x with `Var` |
+| `Bind` swapping a large subgraph | go-incr 1.25x faster |
+| writing an input the value it already holds | go-incr 2.9x faster with `VarEqual` |
+| every input changes, wide graph | go-incr 1.15x faster |
+| building a graph | go-incr 1.1x faster, parity on the deepest |
+| one input changes, shallow graph | go-incr 1.1x faster |
+| `Bind` swapping a small subgraph | 1.15 - 1.4x slower |
+| one input changes, wide graph | 1.2x slower at 1k nodes, 1.35x at 64k |
+| one input changes, deep graph | 1.3 - 1.4x slower |
+| writing the same value through a plain `Var` | 4 - 6x slower |
 
-That last row is a difference in defaults rather than in machinery. OCaml `incremental` cuts
-off on physical equality by default; go-incr propagates unless you ask it not to, because an
-`Incr[A]` holds any type and equality cannot be assumed. Use `VarEqual` for inputs that are
-written repeatedly and often unchanged and the difference disappears entirely -- 86ns against
-74-91ns, rather than 490ns.
+The last two rows are the same difference in defaults, seen from both sides. OCaml
+`incremental` cuts off on physical equality by default; go-incr propagates unless you ask it
+not to, because an `Incr[A]` holds any type and equality cannot be assumed. Through a plain
+`Var` that costs 4-5x. Through `VarEqual` a no-op write costs 26ns against the reference's
+74ns, because the write is rejected before anything downstream is consulted at all.
 
-Where go-incr is ahead is allocation-bound work. Node metadata is carved from contiguous
-per-scope chunks rather than allocated one at a time, and a bind reuses its chunks across
-rebuilds, so building a graph and swapping a subgraph both cost less than they did and nodes
-created together sit next to each other in memory. Where it is behind is propagating a single
-input change: that is per-node recompute cost -- heap ordering, staleness checks, interface
-dispatch -- and it is the honest remaining gap.
+Where go-incr is ahead is allocation-bound work and fixed per-pass cost. Node metadata is
+carved from contiguous per-scope chunks rather than allocated one at a time, and a bind reuses
+its chunks across rebuilds, so building a graph and swapping a large subgraph both cost less
+than the reference and nodes created together sit next to each other in memory. A
+stabilization that finds nothing to do costs 22ns.
+
+Where it is behind is propagating a *single* input change through many nodes, and that one
+gets worse as the graph grows: 1.2x at a thousand nodes, 1.35x at sixty-five thousand. Nothing
+else in the suite does that -- construction and bulk updates hold their ratio flat across a 64x
+size range. The cause is footprint rather than work, and both libraries recompute the same set
+of nodes. A single-input change walks one node per tree level, so at 64k nodes it touches
+eighteen nodes scattered through about 86MB, and nearly every one of those is a cache miss.
+`Node` is 384 bytes here and the reference's node record is smaller, so the same walk crosses
+less memory. Padding `Node` by 128 bytes and re-measuring confirms it: no effect at a thousand
+nodes, 8-13% at sixteen and sixty-five thousand.
+
+So if your graphs are large and your updates touch one input at a time, that is the shape
+where this library is furthest behind, and per-node footprint is the lever rather than
+per-node instruction count.
 
 `_bench/ALGORITHMS.md` has the full analysis, including several optimizations that measured
 worse and were reverted, which are usually more informative than the ones that landed.

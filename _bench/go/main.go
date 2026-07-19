@@ -402,7 +402,10 @@ func cases() []benchCase {
 	var out []benchCase
 
 	// --- Wide graphs -------------------------------------------------------
-	for _, n := range []int{1024, 16384} {
+	// 65536 is here so the suite can see the scaling effect described in ALGORITHMS.md
+	// section N: single input changes degrade with total graph footprint, which two sizes
+	// an order of magnitude apart cannot show.
+	for _, n := range []int{1024, 16384, 65536} {
 
 		// Full construction plus the initial stabilization that computes
 		// every node for the first time.
