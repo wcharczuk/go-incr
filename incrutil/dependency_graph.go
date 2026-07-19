@@ -23,8 +23,9 @@ type DependencyGraph[Result any] struct {
 	// CheckIfStale is an optional delegate to provide an automatic method for determining
 	// if a dependency needs to be rebuilt.
 	//
-	// If this is not provided, you will have to set the dependencies stale individually
-	// with `incr.Graph::SetStale(Dependency)`, which is returned by the function `Create`.
+	// If this is not provided, you will have to mark dependencies stale individually by
+	// passing the incremental that [DependencyGraph.Create] returns for a name to
+	// [incr.Graph.SetStale].
 	CheckIfStale func(context.Context, Dependency) (bool, error)
 
 	// Action is the function that is called to "resolve" or build a dependency.
@@ -44,8 +45,8 @@ type Dependency struct {
 	DependsOn []string
 }
 
-// Create walks the dependency graph and returns the "leaves" of the graph, or the nodes that
-// are not depended on by any other nodes.
+// Create walks the dependency graph and returns a graph, plus an incremental for every
+// dependency in it keyed by name -- not only the leaves.
 func (dg DependencyGraph[Result]) Create(ctx context.Context) (*incr.Graph, map[string]DependencyIncr[Result], error) {
 	dependencyLookup := dg.createDependencyLookup()
 	for _, p := range dg.Dependencies {

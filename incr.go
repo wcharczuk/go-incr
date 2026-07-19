@@ -103,9 +103,14 @@ type ISentinel interface {
 // adjust an accumulator in constant time; see [UnorderedArrayFold].
 //
 // ChildChanged is called during the input's recompute, after the input has taken
-// its new value and only when that value actually changed. It is called once per
-// edge, so a node taking the same input in several slots hears about it once per
-// slot.
+// its new value and only when that value actually changed.
+//
+// How many times it is called for one changed input is not guaranteed. A node taking the
+// same input in several slots hears about it once per slot when stabilizing in parallel, and
+// once when stabilizing serially, because the serial path holds one dependent back and skips
+// a repeat of it. An implementation therefore has to be idempotent within a pass --
+// [UnorderedArrayFold] is, because it recomputes each affected slot's contribution from the
+// input's current value rather than accumulating a delta per notification.
 type IChildChanged interface {
 	INode
 	// ChildChanged reports that the given input has just taken a new value.

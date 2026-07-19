@@ -83,8 +83,8 @@ type IExpertGraph interface {
 	// UnobserveNode implements the unobserve steps usually handled by observers.
 	UnobserveNode(IObserver, INode)
 
-	// CheckIfUnnecessary adds a node to the became unnecessary queue
-	// if it is (newly) unnecessary.
+	// CheckIfUnnecessary tears a node down if it has become unnecessary. There is no
+	// queue; the teardown is synchronous, and unlinks the node's edges.
 	CheckIfUnnecessary(INode)
 
 	// CheckInvariants verifies the structural properties the graph relies on but does

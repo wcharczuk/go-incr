@@ -15,7 +15,7 @@ func AccumulateSorted[A any](scope incr.Scope, from incr.Incr[A], f SortFunc[A])
 // SortFunc is a function that can be used to sort slices.
 type SortFunc[A any] func(a, b A) int
 
-// Asc returns a sorted comparer for sortable values in ascending order.
+// Asc is a comparer for sortable values in ascending order.
 func Asc[A ~int | ~uint | ~float64 | ~string](testValue, newValue A) int {
 	if testValue == newValue {
 		return 0
@@ -26,7 +26,7 @@ func Asc[A ~int | ~uint | ~float64 | ~string](testValue, newValue A) int {
 	return 1
 }
 
-// Desc returns a sorted comparer for sortable values in descending order.
+// Desc is a comparer for sortable values in descending order.
 func Desc[A ~int | ~uint | ~float64 | ~string](testValue, newValue A) int {
 	if testValue == newValue {
 		return 0

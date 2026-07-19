@@ -70,7 +70,7 @@ func (graph *Graph) Stabilize(ctx context.Context) (err error) {
 	var immediateRecompute []INode
 	var next INode
 
-	// Checking for cancellation costs about 4.5ns against a node recompute of about 25ns,
+	// Checking for cancellation costs about 4.5ns against a node recompute of about 20ns,
 	// so it is done once per stride rather than per node, and not at all for a context that
 	// can never be canceled -- which is the common case, and where the nil check below is
 	// a branch that predicts perfectly. The stride starts spent, so a context that is

@@ -39,9 +39,10 @@ type ObserveIncr[A any] interface {
 	// This handler is called when the observed node is recomputed. It is
 	// passed the value of the observed node post-stabilization.
 	//
-	// If the stabilization is "serial" all update handlers that are registered
-	// will also be called serially, conversely if the stabilization is "paralllel"
-	// all update handlers will be called in parallel using the graph worker pool.
+	// Update handlers run after the pass finishes, serially, on whichever goroutine called
+	// the stabilizer. That is true of both [Graph.Stabilize] and [Graph.ParallelStabilize]:
+	// the handlers are collected during the pass and drained afterwards, so a handler never
+	// observes a node mid-flight.
 	OnUpdate(func(context.Context, A))
 	// Value returns the observed node value.
 	Value() A

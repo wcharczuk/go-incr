@@ -20,31 +20,45 @@ Very often code is faster _without_ incremental. Only reach for this library if 
 
 The inspiration for `go-incr` is Jane Street's [incremental](https://github.com/janestreet/incremental) library.
 
-The key difference from this library versus the Jane Street implementation is _parallelism_. You can stabilize multiple nodes with the same recompute height at once using `ParallelStabilize`. This is especially useful if you have nodes that make network calls or do other non-cpu bound work.
+Three differences are worth knowing if you are coming from that library:
+
+- **No cutoff by default.** The original stops propagating when a recomputed value is
+  physically equal to the previous one. This one cannot: an `Incr[A]` holds any type, so
+  equality is not available to it. Ask for it where the type is known, with `VarEqual` on an
+  input or `CutoffEqual` further down. This is the difference most likely to surprise you,
+  and the one most likely to cost you performance if you miss it.
+- **Parallelism.** `ParallelStabilize` recomputes nodes of the same height concurrently,
+  which is worth reaching for when individual nodes are expensive -- network calls, or other
+  work that is not CPU bound. For cheap nodes the coordination costs more than it saves.
+- **Errors, contexts and panics.** A node's computation can take a `context.Context` and
+  return an error; a failing or panicking node stops the pass and is retried on the next
+  one. See "Error handling and context propagation" below.
 
 # Performance relative to the original
 
-The two libraries implement the same algorithms, and the benchmark suite in `_bench`
-cross-checks that they compute the same values and recompute the same number of nodes for
-each shape before it reports any timing. What is left is constant factors, and they now fall
-differently depending on the shape:
+The two libraries implement the same algorithms. The benchmark suite in `_bench` refuses to
+report any timing until both harnesses agree on every observed value, so a graph that
+stabilized nothing cannot look fast rather than wrong. It also has a separate `-stats` mode
+that reports how many nodes each shape recomputes; those counts agree except in three
+understood places, listed in `_bench/ALGORITHMS.md`. What is left is constant factors, and
+they fall differently depending on the shape:
 
 | shape | vs OCaml `incremental` |
 | --- | --- |
 | `Bind` swapping a large subgraph | go-incr 1.25x faster |
 | writing an input the value it already holds | go-incr 2.9x faster with `VarEqual` |
 | every input changes, wide graph | go-incr 1.15x faster |
-| building a graph | go-incr 1.1x faster, parity on the deepest |
+| building a graph | go-incr 1.1x faster; the widest case straddles parity |
 | one input changes, shallow graph | go-incr 1.1x faster |
-| `Bind` swapping a small subgraph | 1.15 - 1.4x slower |
+| `Bind` swapping a small subgraph | 1.1 - 1.45x slower |
 | one input changes, wide graph | 1.2x slower at 1k nodes, 1.35x at 64k |
 | one input changes, deep graph | 1.3 - 1.4x slower |
-| writing the same value through a plain `Var` | 4 - 6x slower |
+| writing the same value through a plain `Var` | 4.3 - 5.6x slower |
 
 The last two rows are the same difference in defaults, seen from both sides. OCaml
 `incremental` cuts off on physical equality by default; go-incr propagates unless you ask it
 not to, because an `Incr[A]` holds any type and equality cannot be assumed. Through a plain
-`Var` that costs 4-5x. Through `VarEqual` a no-op write costs 26ns against the reference's
+`Var` that costs 4.3 - 5.6x. Through `VarEqual` a no-op write costs 26ns against the reference's
 74ns, because the write is rejected before anything downstream is consulted at all.
 
 Where go-incr is ahead is allocation-bound work and fixed per-pass cost. Node metadata is
@@ -71,7 +85,7 @@ per-node instruction count.
 worse and were reverted, which are usually more informative than the ones that landed.
 
 If a workload churns the graph heavily and cares about throughput rather than latency,
-`debug.SetGCPercent(400)` is worth about 10% on bind swaps and 6% on construction, ideally
+`debug.SetGCPercent(400)` is worth about 11% on bind swaps and 6% on construction, ideally
 with `debug.SetMemoryLimit` to bound the resulting peak. Note that turning collection off
 entirely is *slower* than the default, by 11-26%: nothing gets reused, the heap grows, and
 the working set stops fitting. This library does not tune the collector on a caller's behalf.
@@ -83,6 +97,58 @@ delta -- building identical source twice and comparing gives 1-2%, and `wide/upd
 16k is unstable enough on its own to need a distribution rather than a single minimum. The
 numbers above are the agreement of two full runs on an otherwise idle machine.
 
+# Choosing a combinator
+
+Most of what decides whether an incremental graph stays fast as it grows is which
+combinator you reach for. Several ways of writing the same aggregate differ by orders of
+magnitude, and the difference does not appear until the collection is large:
+
+| aggregating n inputs | cost of one input changing | at 4096 inputs |
+| --- | --- | --- |
+| `MapN` | O(n) — every value is passed to the function | 17.5us |
+| `ReduceBalanced` | O(log n) — only the path from the changed leaf to the root | 330ns |
+| `UnorderedArrayFold` | O(1) — the accumulator is adjusted in place | 112ns |
+
+The rule of thumb:
+
+- Aggregating with an operation that **has an inverse** (a sum, a count) — use
+  `UnorderedArrayFold`, which withdraws the old contribution and applies the new one.
+- Aggregating with an operation that has **no inverse** (a maximum, a concatenation) —
+  use `ReduceBalanced`. Nothing can be withdrawn from a maximum, so a running
+  accumulator cannot work, but a balanced tree only recomputes one path.
+- `MapN` and `All` read every input on every pass by construction. Use them when you
+  genuinely want all the values, not to aggregate them.
+
+# Incremental maps
+
+A computation over a map has the same trap in a sharper form: comparing two of Go's
+builtin maps costs O(n) however few keys changed, because a hash table shares no
+structure with the map it was copied from and cannot say what differs.
+
+`incrutil/pmap` is an immutable ordered map with structural sharing, whose symmetric
+difference is proportional to the number of changes rather than the size of the map —
+diffing 8 changes in a 65536 entry map costs about 700ns and does not grow with the map.
+`incrutil/mapi` builds the incremental operators over it:
+
+| operator | does |
+| --- | --- |
+| `MapValues`, `FilterMapValues` | per-key transform, recomputing only changed keys |
+| `Merge` | combine two maps, recomputing the union of their changes |
+| `UnorderedFold` | aggregate with an inverse, O(1) per changed key |
+| `Reduce`, `MaxValue`, `MinValue` | aggregate without an inverse, O(log n) per change |
+| `Subrange` | a window over a sorted map, with incremental bounds |
+| `Partition` | split by a predicate into two maps |
+| `Join` | a map of incrementals becomes an incremental map |
+| `Selector` | an incremental per key, so one key changing wakes only that key's consumers |
+| `Sum`, `Cardinality`, `Counti`, `Keys` | common aggregates |
+
+`FromGoMap` and `ToGoMap` bridge to builtin maps at the edges.
+
+`examples/incremental_map` is a worked example: a book of 5000 orders with a per-order
+transform, a running total, a maximum and a moving window over it. Repricing one order
+recomputes one line and adjusts the total in constant time; filling the largest order
+finds the new maximum without rereading the book.
+
 # Keeping the graph's shape stable
 
 The single largest performance decision in this library is not which combinator you pick,
@@ -93,19 +159,19 @@ necessity and heights, then torn down again on the next swap.
 The same computation, once as a bind that rebuilds and once as a fixed shape whose nodes
 are always present and simply recompute:
 
-    bind rebuild    11.5us    73 allocations
-    stable shape     0.83us    1 allocation
+    bind rebuild    9.1us    34 allocations
+    stable shape    0.7us     0 allocations
 
-14x the time and 73x the garbage, for the same answer. Nothing else in this library is
-worth that much.
+13x the time, and the stable shape allocates nothing at all once it is built. Nothing else
+in this library is worth that much.
 
 So reach for `Bind` when the shape genuinely depends on the data -- when you cannot know
 the set of nodes until you see a value -- and not as a way to express a conditional. A
 condition over a known set of inputs is better as a fixed graph plus a cutoff, or as
 `MapIf`. If the right-hand side is expensive to build and the input takes a small set of
 values, `incrutil.BindMemoized` caches the subgraphs by key; note that it reduces
-allocation rather than time, since a cached subgraph still has to be relinked on every
-swap.
+allocation rather than time, since a cached subgraph still has to be relinked on every swap
+-- measured, it was slower than rebuilding.
 
 Two related habits, both measured elsewhere in this file: prefer `UnorderedArrayFold` or
 `ReduceBalanced` to `MapN` for aggregates, and use `VarEqual` for inputs that are written
@@ -121,7 +187,9 @@ instead:
 
 - `VarEqual` ignores being set to the value it already holds. This is the cheapest place
   to stop a no-op write, since nothing downstream is consulted: measured over 4096
-  dependents, 329us for a plain `Var` against 87ns.
+  dependents, 329us for a plain `Var` against 87ns. (The performance section above quotes
+  26ns for the same operation; that is a different graph -- a no-op write with a handful of
+  dependents rather than a few thousand.)
 - `CutoffEqual` stops propagation further down, for computed rather than set values.
 - `Cutoff`/`Cutoff2` take an arbitrary predicate, for when "changed enough to matter" is a
   judgement rather than equality.
@@ -212,13 +280,32 @@ A more ideal balance is to write your code as normal assuming nothing is increme
 
 # Error handling and context propagation
 
-There are simplified versions of common node types (`Map` and `Map2`) as well as more advanced versions (`MapContext` and `Map2Context`) that are intended for real world use cases, and facilitating taking contexts and returning errors from operations.
+Every combinator has a `...Context` form -- `MapContext`, `Map2Context` through
+`Map8Context`, `MapNContext`, `BindContext`, `CutoffContext`, `SentinelContext` -- whose
+function takes a `context.Context` and may return an error. The plain forms are for
+computations that cannot fail.
 
-Errors returned by these incremental operations will halt the computation for the stabilization pass, but the effect will be slightly different based on the stabilization method used.
+**An error halts the pass.** Stabilizing serially returns immediately and recomputes nothing
+further; stabilizing in parallel finishes the current height block and then stops.
 
-When recomputing serially (using `.Stabilize(...)`) the stabilization pass will return immediately on error and no other nodes will be recomputed.
+**A failed node is retried.** It goes back on the recompute heap, so the next pass tries it
+again even if no input changed. A transient failure -- a request that timed out, a query that
+deadlocked -- does not strand the node's old value. `OptGraphClearRecomputeHeapOnError(true)`
+opts out, abandoning the pass instead and running the aborted handlers.
 
-When recomputing in parallel (using `.ParallelStabilize(...)`), the current height block will finish stabilizing, and subsequent height blocks will not be recomputed.
+**A panic becomes an error.** A panic in your code is reported as a `*PanicError` carrying the
+panic value, the stack, and the node responsible, and the node is retried like any other
+failure. `errors.As` gets you the `*PanicError`; `errors.Is` sees through to the panicked
+value when it was itself an error. This matters most under `ParallelStabilize`, where nodes
+run in worker goroutines and a panic could not be recovered by the caller at all.
+
+**Cancelling the context stops the pass.** It returns the context's cause, and the nodes not
+yet recomputed stay on the heap, so the state left behind is the same as an error abort and
+stabilizing again continues from where it stopped. A context that cannot be cancelled costs
+nothing.
+
+Per-node handlers are available for all of this: `Node().OnError`, `OnAborted`, and
+`OnUpdate`. Graph-wide, `OnStabilizationStart` and `OnStabilizationEnd` bracket each pass.
 
 # Design Choices
 
@@ -265,18 +352,25 @@ Here `t1` is _not_ created within a bind scope (it's created in the top level sc
 
 # Progress
 
-Many of the original library types are implemented, including:
-- Always|Timer
-- Bind(2,3,4,If)
-- Cutoff(2)
-- Freeze
-- Map(2,3,4,If,N)
-- Observe
-- Return
-- Sentinel
-- Var
-- Watch
+The combinators from the original library are implemented, plus a few this one adds:
 
-With these, you can create 90% of what this library is typically needed for, though some others would be relatively straightforward to implement given the primitives already implemented.
+- **Inputs** — `Var`, `VarEqual`, `VarEqualFunc`, `Return`, `Func`
+- **Mapping** — `Map` through `Map8`, `MapN` (which accepts inputs added after construction
+  via `AddInput`/`RemoveInput`), `MapIf`, and a `...Context` form of each that can take a
+  context and fail
+- **Aggregating** — `ReduceBalanced`, `UnorderedArrayFold`, `ArrayFold`, `All`, `ForAll`,
+  `Exists`
+- **Dynamic shape** — `Bind`, `Bind2`, `Bind3`, `Bind4`, `BindIf`, `Join`, and
+  `incrutil.BindMemoized` for right-hand sides that are expensive to build
+- **Cutoffs** — `Cutoff`, `Cutoff2`, `CutoffEqual`, `CutoffEqualFunc`, `CutoffAlways`,
+  `CutoffNever`
+- **Time** — `Clock`, `At`, `AtIntervals`, `Snapshot`, `StepFunction`, `Timer`
+- **Other** — `Observe`, `Freeze`, `Always`, `Watch`, `Sentinel`, `DependOn`
+- **Keyed collections** — `incrutil/pmap` and `incrutil/mapi`, described above
+- **Escape hatches** — `ExpertGraph`, `ExpertNode`, `ExpertScope`, `ExpertVar` for
+  assembling or driving a graph from outside the ordinary constructors, and
+  `ExpertGraph.CheckInvariants` to verify the result
 
-An example of likely extension to this to facilitate some more advanced use cases; adding the ability to set inputs _after_ nodes have been created, as well as the ability to return un-typed values from nodes.
+Not implemented: `Incr_map`'s `transpose` and the nested-map `collapse`/`expand` operators,
+which are the most niche of that family. `ParallelStabilize` has no counterpart in the
+original.

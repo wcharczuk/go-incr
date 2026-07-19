@@ -30,9 +30,11 @@ func ToGoMap[K cmp.Ordered, V any](in Map[K, V]) map[K]V {
 	return out
 }
 
-// SetAll returns a map with every entry of in applied on top of the receiver,
-// which is cheaper than a Set per entry from the caller since the intermediate
-// maps are not retained.
+// SetAll returns a map with every entry of in applied on top of the receiver.
+//
+// This is a Set per entry, so it costs the same as the caller's own loop would. What it adds
+// is a defined order -- entries are applied in key order -- so the resulting tree shape is
+// reproducible rather than depending on Go's map iteration.
 func (m Map[K, V]) SetAll(in map[K]V) Map[K, V] {
 	out := m
 	for _, key := range sortedKeys(in) {

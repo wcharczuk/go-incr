@@ -2,22 +2,28 @@ package incr
 
 // nodeSlab hands out [Node] values from contiguous chunks.
 //
-// A node costs two allocations: the concrete node type, and the metadata it points at.
-// The metadata is the larger of the two and every node needs one, so carving them from
-// chunks turns most of those allocations into a bounds check and an index bump. It also
-// puts nodes created together next to each other in memory, which is what a stabilization
-// walks -- measured, that is worth more than the cheaper allocation: a wide graph's
-// construction improves about 10% and updating every input about 7%, and a bind swapping
-// its subgraph about 17%.
+// A node would otherwise cost two allocations: the concrete node type, and the metadata it
+// points at. The metadata is the larger of the two and every node needs one, so carving them
+// from chunks turns most of those allocations into a bounds check and an index bump -- a
+// bind rebuilding an eight leaf subgraph went from 73 allocations and 11.7KB to 34 and
+// 1.8KB. It also puts nodes created together next to each other in memory, which is what a
+// stabilization walks, and measured that is worth more than the cheaper allocation: a wide
+// graph's construction and updating every input each improve about 10%, and a bind swapping
+// its subgraph about 20%.
 //
-// Chunks are ordinary heap objects and slots are never handed out twice, so this changes
-// the granularity of reclamation and nothing else. A chunk is collected once every node in
-// it is unreachable, which means one live node keeps its whole chunk alive; that is the
-// cost of the arrangement, and it is why chunks start small.
+// Chunks are ordinary heap objects, so this changes the granularity of reclamation rather
+// than escaping it. A chunk is collected once every node in it is unreachable, which means
+// one live node keeps its whole chunk alive; that is the cost of the arrangement, and it is
+// why chunks start small.
+//
+// A graph's own slab only ever moves forward, so a slot it hands out is never reused. A bind
+// scope's slab is reset on each rebuild and does reissue slots; see reset for the contract
+// that relies on.
 type nodeSlab struct {
-	// chunks holds every chunk handed out since the last reset. A generation that is
-	// rebuilt repeatedly reuses these rather than allocating new ones, so after the first
-	// rebuild a bind's right-hand side costs no allocation at all for its metadata.
+	// chunks holds every chunk handed out since the last reset. A generation that is rebuilt
+	// repeatedly reuses these rather than allocating new ones, so in the steady state a
+	// bind's right-hand side costs no allocation at all for its metadata. A bind alternates
+	// two slabs, so reuse begins on its third rebuild.
 	chunks [][]Node
 	// chunk is the index into chunks currently being filled, and next the bump position
 	// within it.

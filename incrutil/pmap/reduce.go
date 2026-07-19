@@ -42,8 +42,9 @@ func NewReducer[K cmp.Ordered, V, R any](project func(K, V) R, combine func(R, R
 func (r *Reducer[K, V, R]) Reduce(m Map[K, V]) (R, bool) {
 	// Subtrees the map has moved past stay in the memo until they are pruned, since
 	// nothing reports when a version is discarded. Pruning is proportional to the
-	// map, so it is amortized against the growth that triggered it: the memo has to
-	// have gained roughly as many stale entries as the map has nodes.
+	// map, so it is amortized against the growth that triggered it. Live folds already
+	// occupy roughly one entry per node, so the threshold below waits for about three
+	// times that many stale entries to accumulate before paying for a sweep.
 	if len(r.memo) > 4*m.Len()+64 {
 		r.prune(m.root)
 	}

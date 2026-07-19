@@ -53,7 +53,10 @@ type VarIncr[T any] interface {
 
 	// Set sets the var value.
 	//
-	// Calling [Set] will invalidate any nodes that reference this variable.
+	// Calling Set marks the var stale, so that it and everything downstream of it is
+	// recomputed on the next stabilization. It does not *invalidate* anything -- invalidation
+	// is the separate, terminal state a node enters when the bind scope that created it is
+	// rewritten, and a var never enters it.
 	Set(T)
 	// Update sets the var value from its current one.
 	//

@@ -31,6 +31,12 @@ func (graph *Graph) checkInvariants() error {
 	// different node and the graph silently loses one.
 	for index, node := range graph.nodes {
 		nn := node.Node()
+		// The delegates consulted while invalidating are asserted from self at the point of
+		// use rather than cached, so a node in the graph with a nil self silently skips them.
+		if nn.self == nil {
+			problems = append(problems, fmt.Errorf(
+				"node %v is in the graph but does not know its own concrete value", nn.id.Short()))
+		}
 		if nn.graphIndex != index {
 			problems = append(problems, fmt.Errorf(
 				"node %v is at position %d but records position %d",

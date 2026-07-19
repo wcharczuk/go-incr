@@ -116,7 +116,7 @@ type Node struct {
 	// always determines if we always recompute this node.
 	always bool
 	// inGraph tracks whether the node is currently registered with the graph,
-	// mirroring its presence in the graph's node map.
+	// mirroring its presence in the graph's node list.
 	inGraph bool
 	// requiresHeapOrdering caches the node-kind test in nodeRequiresHeapOrdering,
 	// which is otherwise an interface type switch on every visit to the node as
@@ -144,9 +144,11 @@ type Node struct {
 	ext *nodeExtra
 	// heightInAdjustHeightsHeap is the height of a node in the adjust heights heap
 	heightInAdjustHeightsHeap int
-	// shouldBeInvalidatedProvider, parentsProvider and invalidator are the
-	// remaining optional-interface sniffs; see stabilizer above for why these
-	// hold interfaces rather than bound method values.
+	// parentsProvider is the remaining optional-interface sniff; see stabilizer above for
+	// why it holds an interface rather than a bound method value. The delegates consulted
+	// only while invalidating are asserted at the point of use instead of being cached
+	// here, since two words per node cost more than an assertion on a path that rare; see
+	// maybeInvalidate.
 	parentsProvider IParents
 	// childChangedNotifier is set for nodes implementing [IChildChanged], so that
 	// the recompute loop can notify them with a nil check rather than a type
@@ -369,6 +371,11 @@ func (n *Node) SetKind(kind string) {
 
 // initializeFrom detects delegates on the node type.
 func (n *Node) initializeFrom(in INode) {
+	// self is recorded here, not only where the recompute heap sets it, because the
+	// delegates consulted while invalidating are asserted from it at the point of use. A
+	// node that was never queued would otherwise have a nil self, and those assertions
+	// would silently do nothing -- see maybeInvalidate. checkInvariants requires it.
+	n.self = in
 	n.detectAlways(in)
 	n.detectCutoff(in)
 	n.detectObserver(in)
@@ -482,8 +489,10 @@ func (n *Node) detectStale(gn INode) {
 //
 // The interface is asserted here rather than cached on the node, unlike the delegates
 // consulted on every recompute: this runs only while invalidating, and two words per node
-// is worth more than an assertion on a path that rare. Node size is not incidental -- 96
-// bytes of padding measured 13% on construction and 31% on the widest update.
+// is worth more than an assertion on a path that rare. Node size is not incidental: 96 bytes
+// of padding measured 13% on construction and 31% on the widest update. Note the relationship
+// is not symmetric -- removing 32 bytes gained about 7% on small construction and nothing
+// measurable elsewhere -- so treat padding as evidence of direction, not of magnitude.
 func (n *Node) maybeInvalidate() {
 	if typed, ok := n.self.(IBindMain); ok {
 		typed.Invalidate()

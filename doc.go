@@ -20,7 +20,7 @@ magnitude, and the difference does not show up until the collection is large:
 	  ReduceBalanced        O(log n)   only the path from the changed leaf to the root
 	  UnorderedArrayFold    O(1)       the accumulator is adjusted in place
 
-Measured at 4096 inputs those are 17.2us, 427ns and 188ns.
+Measured at 4096 inputs those are 17.5us, 330ns and 112ns.
 
 The rule of thumb:
 
@@ -62,7 +62,7 @@ The largest performance decision here is whether the shape of the graph changes 
 than which combinator is used. [Bind] rebuilds its right-hand side whenever its input
 changes, and each node in that subgraph is allocated, linked, walked for necessity and
 heights, and torn down on the next swap. The same computation as a fixed shape that simply
-recomputes measured 0.83us and one allocation against 11.5us and 73 allocations.
+recomputes measured 0.7us and no allocations against 9.1us and 34 allocations.
 
 Reach for [Bind] when the shape genuinely depends on the data, not to express a
 conditional over a known set of inputs -- that is better as a fixed graph with a cutoff, or
@@ -113,8 +113,11 @@ it was holding on the graph's behalf.
 If a node's stabilization returns an error the pass stops and the error is returned. The
 node that failed and every node not yet reached stay in the recompute heap, so a later
 pass tries them again: a transient failure does not strand a value. Canceling the
-context has the same shape, stopping at the next node boundary and returning the
-context's cause, which makes a long pass over a large graph interruptible.
+context has the same shape and returns the context's cause, which makes a long pass over a
+large graph interruptible. It stops within a bounded amount of work rather than instantly:
+serial stabilization checks every 64 nodes, since checking every node would cost a
+measurable share of a cheap node's recompute, and parallel stabilization checks once per
+height block.
 
 A panic in a node's computation is reported the same way, as a [PanicError] carrying the
 panic value, the stack, and the node responsible. This is not only for convenience: under

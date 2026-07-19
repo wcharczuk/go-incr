@@ -9,8 +9,8 @@ import (
 // a new incremental of the output type of that function.
 func Map[A, B any](scope Scope, a Incr[A], fn func(A) B) Incr[B] {
 	// A distinct type rather than adapting fn to the context signature. The adapter is a
-	// closure capturing fn, which is a third allocation per node on top of the node struct
-	// and its metadata, and it buys nothing: this is the most common combinator in most
+	// closure capturing fn, so it is an allocation per node on top of the node struct, and it
+	// buys nothing: this is the most common combinator in most
 	// graphs. A field holding both function types and a branch in Stabilize would also
 	// work, but that trades an allocation paid once at construction for a test paid on
 	// every recompute for the life of the node.

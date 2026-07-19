@@ -91,7 +91,7 @@ func OptGraphParallelism(parallelism int) func(*GraphOptions) {
 	}
 }
 
-// OptGraphPreallocateNodesSize preallocates the node tracking map within
+// OptGraphPreallocateNodesSize preallocates the node tracking slice within
 // the graph with a given size number of elements for items.
 //
 // If not provided, no size for elements will be preallocated.
@@ -211,8 +211,6 @@ type Graph struct {
 
 	// nodesMu interlocks access to nodes
 	nodesMu sync.Mutex
-	// observed are the nodes that the graph currently observes
-	// organized by node id.
 	// nodes holds every node in the graph, so that they can be enumerated.
 	//
 	// A slice with each node's position recorded on the node itself, rather than a map
@@ -343,7 +341,8 @@ func (graph *Graph) IsStabilizing() bool {
 	return atomic.LoadInt32(&graph.status) != StatusNotStabilizing
 }
 
-// IsObserving returns if a graph is observing a given node.
+// Has returns if a node is part of the graph. It reports membership, not observation: an
+// unobserved node that is still reachable from an observer is in the graph.
 func (graph *Graph) Has(gn INode) (ok bool) {
 	graph.nodesMu.Lock()
 	ok = gn.Node().inGraph
@@ -663,9 +662,8 @@ func (graph *Graph) addNode(n INode) {
 	defer graph.nodesMu.Unlock()
 
 	gnn := n.Node()
-	// the inGraph flag answers the "already added" question without hashing the
-	// node's 16 byte identifier; bind rebuilds run this per node created, so the
-	// second map operation is worth avoiding.
+	// the inGraph flag answers the "already added" question directly; bind rebuilds run this
+	// once per node created, so it is worth answering from a field rather than by searching.
 	if gnn.inGraph {
 		return
 	}
@@ -1012,23 +1010,16 @@ func (graph *Graph) recomputeFailed(n INode, previousRecomputedAt uint64) {
 //
 // When stabilizing serially, recomputing a node can hand back a single child
 // that is safe to recompute immediately; rather than routing that child through
-// the recompute heap, this loops on it directly. See recomputeNode for when that
+// the recompute heap, this loops on it directly. See canRecomputeImmediately for when that
 // applies. The loop keeps the chain iterative, so a long run of such nodes costs
 // constant stack rather than one frame per node.
 func (graph *Graph) recompute(ctx context.Context, n INode, parallel bool) (err error) {
-	// the mode is decided once here rather than tested inside the per-node work; see
-	// recomputeNodeSerial
+	// The mode is decided once here rather than tested inside the per-node work; see
+	// recomputeNodeSerial. Only the serial path chains: the parallel path queues every
+	// dependent to the heap so that other workers can take them, so there is nothing to
+	// loop on.
 	if parallel {
-		for n != nil {
-			n, err = graph.recomputeNode(ctx, n, true)
-			if err != nil {
-				return
-			}
-			if n != nil {
-				graph.numNodesRecomputedDirectly++
-			}
-		}
-		return
+		return graph.recomputeNodeParallel(ctx, n)
 	}
 	for n != nil {
 		n, err = graph.recomputeNodeSerial(ctx, n)
@@ -1140,28 +1131,19 @@ func (graph *Graph) recomputeNodeSerial(ctx context.Context, n INode) (immediate
 	return
 }
 
-// recomputeNode recomputes a single node on the parallel path, returning a child to
-// recompute immediately, or nil if the children were queued to the recompute heap.
+// recomputeNodeParallel recomputes a single node on the parallel path.
 //
-// See recomputeNodeSerial, which is this function with the parallel path resolved away.
-func (graph *Graph) recomputeNode(ctx context.Context, n INode, parallel bool) (immediate INode, err error) {
-	// these counters are only shared when stabilizing in parallel; on the serial
-	// path a plain increment is equivalent and avoids a locked instruction per
-	// node, which is otherwise a measurable share of a cheap node's recompute.
-	if parallel {
-		atomic.AddUint64(&graph.numNodesRecomputed, 1)
-	} else {
-		graph.numNodesRecomputed++
-	}
+// Unlike the serial twin it never hands a dependent back for immediate recompute: every
+// dependent goes to the recompute heap so that any worker can take it.
+//
+// See recomputeNodeSerial for the twin, and for why the two are duplicated rather than
+// sharing a body with a flag. Keep them in step.
+func (graph *Graph) recomputeNodeParallel(ctx context.Context, n INode) (err error) {
+	// the counters are shared between workers here, unlike on the serial path
+	atomic.AddUint64(&graph.numNodesRecomputed, 1)
 
-	// Recorded so that the single recover at the top of a serial pass knows which node
-	// panicked, which a deferred guard per node would otherwise be needed for. This costs a
-	// store; the guard costs a deferred call. Parallel workers each hold their own guard
-	// and read a local, so they must not write here -- the branch is on a value already
-	// tested twice in this function and predicts perfectly.
-	if !parallel {
-		graph.recomputingNode = n
-	}
+	// the in-flight node is not recorded here: each worker holds its own recover and reads a
+	// local, so there is nothing to share. See recomputeNodeSerial.
 
 	nn := n.Node()
 	nn.numRecomputes++
@@ -1184,11 +1166,7 @@ func (graph *Graph) recomputeNode(ctx context.Context, n INode, parallel bool) (
 		return
 	}
 
-	if parallel {
-		atomic.AddUint64(&graph.numNodesChanged, 1)
-	} else {
-		graph.numNodesChanged++
-	}
+	atomic.AddUint64(&graph.numNodesChanged, 1)
 	nn.numChanges++
 
 	// a node whose Stabilize mutates graph structure (i.e. a bind swapping out
@@ -1196,7 +1174,7 @@ func (graph *Graph) recomputeNode(ctx context.Context, n INode, parallel bool) (
 	// worker's structural work, so on the parallel path it is serialized under
 	// recomputeMu. leaf nodes' Stabilize is left lock-free, which is the whole
 	// point of stabilizing in parallel.
-	mutatesStructure := parallel && nodeMutatesStructure(n)
+	mutatesStructure := nodeMutatesStructure(n)
 	if mutatesStructure {
 		graph.recomputeMu.Lock()
 	}
@@ -1214,66 +1192,30 @@ func (graph *Graph) recomputeNode(ctx context.Context, n INode, parallel bool) (
 
 	nn.changedAt = graph.stabilizationNum
 	if handlers := nn.updateHandlers(); len(handlers) > 0 {
-		graph.queueUpdateHandlers(parallel, nn.id, handlers)
+		graph.queueUpdateHandlers(true, nn.id, handlers)
 	}
 
-	if parallel {
-		// note we lock recomputeMu rather than the recompute heap's own mutex;
-		// it is the lock that also guards bind structural mutation, so that
-		// reading children's heights/staleness here is mutually exclusive with
-		// a concurrent bind rewriting that same state.
-		graph.recomputeMu.Lock()
-		for _, c := range nn.children {
-			cn := c.Node()
-			if cn.childChangedNotifier != nil {
-				cn.childChangedNotifier.ChildChanged(n)
-			}
-			if shouldRecomputeChild(cn, graph.stabilizationNum) {
-				graph.recomputeHeap.addNodeUnsafe(c)
-			}
+	// note we lock recomputeMu rather than the recompute heap's own mutex;
+	// it is the lock that also guards bind structural mutation, so that
+	// reading children's heights/staleness here is mutually exclusive with
+	// a concurrent bind rewriting that same state.
+	graph.recomputeMu.Lock()
+	for _, c := range nn.children {
+		cn := c.Node()
+		if cn.childChangedNotifier != nil {
+			cn.childChangedNotifier.ChildChanged(n)
 		}
-		graph.recomputeMu.Unlock()
-	} else {
-		// hold one child back and queue the rest, then decide whether the held
-		// child can be recomputed directly. Deferring that decision until every
-		// sibling has been queued is what makes the recompute heap's minimum
-		// height sound to test against in canRecomputeImmediately.
-		var held INode
-		var heldNode *Node
-		for _, c := range nn.children {
-			cn := c.Node()
-			// a node can appear among the children more than once, for instance
-			// when it takes the same input twice. It must not be both held back
-			// and queued, or it would end up recomputed while still linked into
-			// a height block.
-			if cn == heldNode {
-				continue
-			}
-			if cn.childChangedNotifier != nil {
-				cn.childChangedNotifier.ChildChanged(n)
-			}
-			if !shouldRecomputeChild(cn, graph.stabilizationNum) {
-				continue
-			}
-			if held != nil {
-				graph.recomputeHeap.addNodeUnsafe(held)
-			}
-			held, heldNode = c, cn
-		}
-		if held != nil {
-			if graph.canRecomputeImmediately(nn, held) {
-				immediate = held
-			} else {
-				graph.recomputeHeap.addNodeUnsafe(held)
-			}
+		if shouldRecomputeChild(cn, graph.stabilizationNum) {
+			graph.recomputeHeap.addNodeUnsafe(c)
 		}
 	}
+	graph.recomputeMu.Unlock()
 
 	// recompute observers immediately because logically they're
 	// children of this node but will not have any children themselves.
 	for _, o := range nn.observers {
 		if handlers := o.Node().updateHandlers(); len(handlers) > 0 {
-			graph.queueUpdateHandlers(parallel, o.Node().id, handlers)
+			graph.queueUpdateHandlers(true, o.Node().id, handlers)
 		}
 	}
 	return
@@ -1290,12 +1232,12 @@ func (graph *Graph) recomputeNode(ctx context.Context, n INode, parallel bool) (
 //
 // The conditions are:
 //
-//   - The child takes exactly one input, which is the node that just recomputed,
-//     so nothing else can still be pending for it. This is the shape of a chain
-//     of maps, and removes the heap from that hot path entirely. Multi-input
-//     nodes (map2, mapN, folds) must wait, because a sibling input may still be
-//     queued. See the note in _bench/ALGORITHMS.md on why the reference's
-//     additional minimum-height bypass is not safe to approximate here.
+//   - Either the child takes exactly one input -- which is necessarily the node that just
+//     recomputed, so nothing else can be pending for it -- or its height is at or below the
+//     recompute heap's current minimum, which says the same thing a different way: nothing
+//     queued can be reached before it. The first case is a chain of maps; the second is what
+//     admits the interior of a map2 reduction tree. The caller queues every sibling before
+//     asking, which is what makes the minimum sound to test against.
 //
 //   - The child's scope has already stabilized, i.e. the parent sits above the
 //     height of the bind that created the child. Otherwise the child could still

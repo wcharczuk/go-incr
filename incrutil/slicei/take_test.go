@@ -158,3 +158,22 @@ func Test_TakeLastSearch(t *testing.T) {
 	testutil.NoError(t, err)
 	testutil.Equal(t, []int{6, 7, 8, 9}, of.Value())
 }
+
+// Test_TakeLast_notExactlyTwiceCount pins the case the original test could not see.
+//
+// TakeLast used to copy values[count:], which is the last count elements only when the input
+// is exactly twice as long as the count -- which is what the test above happens to use. Any
+// other length returned a window from the middle.
+func Test_TakeLast_notExactlyTwiceCount(t *testing.T) {
+	ctx := testContext()
+	g := incr.New()
+	v := incr.Var(g, []int{1, 2, 3, 4, 5, 6, 7})
+	o := incr.MustObserve(g, TakeLast(g, v, 3))
+	testutil.Nil(t, g.Stabilize(ctx))
+	testutil.Equal(t, []int{5, 6, 7}, o.Value())
+
+	// and a count equal to the length, and one longer than it
+	v.Set([]int{8, 9})
+	testutil.Nil(t, g.Stabilize(ctx))
+	testutil.Equal(t, []int{8, 9}, o.Value(), "shorter than the count returns what there is")
+}

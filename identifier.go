@@ -112,7 +112,7 @@ func (id Identifier) String() string {
 
 // Short returns the short hex representation of the id.
 //
-// In practice this is the last ~8 bytes of the identifier.
+// In practice this is the last 4 bytes of the identifier, as 8 hex characters.
 func (id Identifier) Short() string {
 	var buf [8]byte
 	hex.Encode(buf[:], id[12:])

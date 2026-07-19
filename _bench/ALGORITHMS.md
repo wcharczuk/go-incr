@@ -183,7 +183,7 @@ alternates between two buffers (the previous rebuild's list has to stay alive
 while its nodes are invalidated, so one spare is the minimum that allows reuse);
 the latter writes into a `[2]INode` array.
 
-`Node` ended at 368 bytes, up from the 288 the lazy `nodeExtra` alone achieved:
+`Node` ended this pass at 368 bytes, up from the 288 the lazy `nodeExtra` alone achieved (it is 384 today; see section N):
 48 bytes for the six interfaces and 32 for the two inline arrays. Every one of
 those trades bytes for fewer allocations, and each measured as a win — the
 reverse of the intuition that shrinking the struct was the prize. Node *size*
@@ -520,8 +520,10 @@ dominates; it is the accumulation of per-node bookkeeping.
 
 Bind is the exception to all of this. There the cost genuinely is allocation and
 GC (~25% of profile in `scanObjectsSmall` / `mallocgcSmallScanNoHeader`), because
-every rebuild allocates fresh 400-byte nodes. That is where OCaml's bump-allocated
-minor heap is hardest to match, and why (B) below is the highest-value item left.
+every rebuild allocated fresh 400-byte nodes at the time of this measurement -- section L
+later removed that, so a steady state rebuild now allocates nothing for node metadata. That
+is where OCaml's bump-allocated
+minor heap is hardest to match, and why (B) below was the highest-value item at this point.
 
 ## Higher-order helpers added
 
@@ -752,22 +754,24 @@ multiple of the map's size, which amortizes against the growth that triggered it
 `mapi.Reduce` exposes this as a node, with `MaxValue` and `MinValue` over it returning
 an `Optional` so an empty map reports absence rather than a zero value.
 
-### Still missing
+### Still missing (all since implemented)
 
-Smaller conveniences, none of which change asymptotics: `array_fold` (an ordered
-fold with `init`/`f`), `for_all` / `exists` over boolean incrementals, `join`
-(`Bind` with identity), `depend_on` (take one node's value while also depending on
-another), named cutoffs (`Cutoff.always`/`never`/`phys_equal`, which ties into the
-default-cutoff question in (A)), and `Var.replace ~f`.
+This section listed `array_fold`, `for_all` / `exists`, `join`, `depend_on`, the named
+cutoffs, `Var.replace ~f`, and -- called out as "the largest thing absent" -- the virtual
+clock: `at`, `at_intervals`, `snapshot`, `step_function`, `advance_clock`.
 
-The largest thing absent is `incremental`'s virtual clock -- `at`, `at_intervals`,
-`snapshot`, `step_function`, and `advance_clock` -- which makes time-dependent
-graphs deterministic under test. go-incr has `Timer` only. That is a testability gap
-rather than a performance one.
+All of them now exist: `ArrayFold`, `ForAll`, `Exists`, `Join`, `DependOn`, `CutoffAlways`,
+`CutoffNever`, `CutoffEqual`, `VarIncr.Update`, and `Clock` with `At`, `AtIntervals`,
+`Snapshot`, `StepFunction` and `Clock.Advance`. Kept as a record of what the gap analysis
+found, not as a to-do list.
+
+The only operators still absent are `Incr_map`'s `transpose` and the nested-map
+`collapse`/`expand`, deliberately: they are the most niche of that family and nothing needed
+them.
 
 ## Go toolchain
 
-`go.mod` was on `go 1.21`, which left two things on the table; it is now `go 1.24`,
+`go.mod` was on `go 1.21`, which left two things on the table; it is now `go 1.25`,
 a floor that still supports consumers a couple of releases back.
 
 - **Per-iteration loop variables** (1.22). Previously the `x := x` idiom inside a
@@ -787,38 +791,71 @@ expected to do more. It is not something this repository can ship, since PGO
 applies to the final binary -- it is worth mentioning to users building
 go-incr-heavy binaries, and nothing more.
 
-## Not done — what go-incr would still benefit from
+## Individual investigations
 
-Ordered by expected value.
+Each item below is lettered, and the letters are historical rather than ordered -- they were
+assigned as the questions came up, and later ones were appended where they were written rather
+than sorted in. Some of the earliest are now done, and a few turned out to be the wrong idea,
+which is worth as much as the ones that landed.
 
-### A. Cutoff by default (semantic change, needs a decision)
+| | | where |
+|---|---|---|
+| A | Cutoff by default | **decided** -- impossible graph-wide; `VarEqual`/`CutoffEqual` instead |
+| B | Shrink `Node` | **done**, and see N for what remains |
+| C | Inline the first input and dependent | **done** |
+| D | Edges keyed by identity, not input slot | open |
+| E | Admit bind main nodes to the direct path | open |
+| F | Avoid the redundant `isStale()` | **done** |
+| G | Kind-directed dispatch | open, and probably not worth it |
+| H | Embed `Node` by value | **tried, reverted** -- 1.9x worse on the widest update |
+| I | What actually reduces allocation | findings; three attempts, one winner |
+| J | Manage our own node memory? | superseded by L |
+| K | Defer teardown to after the pass | **declined** -- 4-6% and it retains garbage |
+| L | Slab allocation for node metadata | **done** |
+| M | Stop reading the clock twice per pass | **done** -- above, before "Is Go the limiting factor" |
+| N | Why single input changes degrade with size | analysis; above, before "Current standing" |
+| O | Specialize the serial recompute | **done** -- above |
 
-`incremental`'s `maybe_change_value` compares the new value against the old with
-the node's cutoff — **physical equality by default** — and if unchanged, does not
-touch `changed_at` and does not enqueue dependents at all. Propagation stops dead.
+M, N and O sit earlier in this file rather than in the block below, next to the measurements
+they explain.
 
-go-incr has `Cutoff`/`Cutoff2` nodes but no default, so a write of an unchanged
-value propagates through the entire graph. This is the `wide/update_same` case,
-still **10x** and growing with graph size.
+### A. (decided) Cutoff by default
 
-This is a real design difference, not a bug, and changing the default would alter
-observable behavior for existing users (update handlers would stop firing on
-no-op writes), so it should be an explicit decision rather than something folded
-into a performance pass. Options: an `OptGraphDefaultCutoff` graph option, or a
-cutoff-by-default `Var` variant. Workloads where writes are frequently no-ops —
-common in practice — would benefit a lot.
+`incremental`'s `maybe_change_value` compares the new value against the old with the node's
+cutoff -- **physical equality by default** -- and if unchanged does not touch `changed_at` and
+does not enqueue dependents at all. Propagation stops dead. go-incr had no default, so a write
+of an unchanged value propagated through the whole graph: the `wide/update_same` case.
+
+**Resolved: there cannot be a graph-wide default.** Deciding whether two values are equal
+requires them to be comparable, and an `Incr[A]` holds `any`. There is no way to express the
+constraint at the graph level, so it has to appear where the type is known -- at construction.
+`VarEqual` and `VarEqualFunc` were added for the input case, `CutoffEqual` and
+`CutoffEqualFunc` for computed values, plus the degenerate `CutoffAlways` and `CutoffNever`.
+
+With `VarEqual` a no-op write costs 26ns against the reference's 74ns, so this case went from
+behind to ahead. Through a plain `Var` it remains 4.3 - 5.6x, which is the cost of the default
+and is now a documented choice rather than an open question.
 
 ### B. (done) Shrink `Node` and cut allocation per node
 
-`Node` is ~400 bytes. Bind rebuilds allocate one per node created, and the bind
-benchmarks are dominated by allocation and GC (~25% of profile in
-`scanObjectsSmall` / `mallocgcSmallScanNoHeader`). This is where OCaml's
-bump-allocated minor heap and cheap generational collection are hardest to match.
+`Node` was ~400 bytes. Bind rebuilds allocate one per node created, and the bind benchmarks
+were dominated by allocation and GC (~25% of profile in `scanObjectsSmall` /
+`mallocgcSmallScanNoHeader`). This is where OCaml's bump-allocated minor heap and cheap
+generational collection are hardest to match.
 
-Moving cold fields (`kind`, `label`, `metadata`, the three handler slices,
-`shouldBeInvalidatedFn`, `parentsFn`, `invalidateFn`, `sentinels`,
-`heightInAdjustHeightsHeap`) behind a lazily-allocated side pointer would roughly
-halve it, cutting both allocation volume and GC scan work. Invasive but mechanical.
+What landed, across this pass and later ones: the rarely used fields moved behind a lazily
+allocated `nodeExtra`; the optional-interface sniffs became cached interface values rather
+than bound method values, which had allocated a closure per delegate per node; and later the
+two delegates consulted only while invalidating stopped being cached at all, since asserting
+them at the point of use costs less than two words on every node (section N).
+
+`Node` is 384 bytes today. The cold fields still in it are the three edge index maps (nil for
+all but very wide nodes), two diagnostic counters, `kind`, and four `int` fields that would fit
+in `int32` -- roughly 56 bytes reachable without touching anything hot, which would drop a size
+class. Section N measures what that is worth and why it only shows up on large graphs.
+
+Allocation per node was addressed separately and more effectively by section L, which carves
+metadata from per-scope slabs.
 
 ### C. (done) Inline the first input and dependent
 
@@ -871,7 +908,7 @@ that is worth remembering when reading the numbers in (D).
 ### H. (tried, reverted) Embed `Node` by value in the node types
 
 Each node is two allocations: the concrete node struct (`mapIncr` and friends, ~56 bytes)
-and the `Node` metadata it points at (368 bytes). Making the metadata a value field
+and the `Node` metadata it points at (384 bytes). Making the metadata a value field
 collapses those into one, and construction is allocation-bound, so this looks like a clear
 win. In isolation it is: modelling both layouts over a chain of 1024, allocations halve and
 construction runs 18% faster.
@@ -891,7 +928,7 @@ no overlap between the distributions:
     embedded  7.2  7.5  8.6  9.7 10.0 10.1 10.7 12.3 ms   (median ~9.8)
 
 It is not the allocator or the collector: `gctrace` shows four cycles and the same heap
-sizes for both. It is the access pattern. Leading with 368 bytes of metadata pushes each
+sizes for both. It is the access pattern. Leading with 384 bytes of metadata pushes each
 node's own fields -- the input, the function, the value, the inline parent array, which is
 what a recompute reads -- past six cache lines from the node's address. Putting the
 embedded field last instead recovers most of the single-node paths (`update_one/16384`
@@ -1049,7 +1086,7 @@ which is an order of magnitude better (below).
 **Memoizing the bind (measured, slower).** `incrutil.BindMemoized` caches right-hand sides
 by key, so a bind over a small key space stops allocating after warmup. Over 4 keys:
 
-    plain bind      11.5us   73 allocs
+    plain bind      11.5us   73 allocs   (before the slab; 9.1us and 34 today)
     memoized bind   15.3us    6 allocs
 
 92% fewer allocations and 33% slower. The cached subgraph still has to be unlinked,
@@ -1060,9 +1097,10 @@ make swaps cheaper.
 **Embedding the metadata (see H above, reverted).** Halves the allocation count and
 regresses the widest update path ~1.9x.
 
-**What worked: removing an allocation without moving anything.** `Map` allocated a closure
-per node purely to adapt `func(A) B` to the context signature. Giving it its own node type
-removed that allocation and touched no layout: construction 5-19% faster, updates unchanged,
+**What worked: removing an allocation without moving anything.** `Map` and `Map2` allocated a
+closure per node purely to adapt their plain function to the context signature. Giving each its
+own node type
+removed that allocation and touched no layout: construction 7-19% faster, updates unchanged,
 no case worse. That is the whole pattern -- three schemes that consolidated or relocated
 memory all lost more than they gained, and the one that deleted an allocation outright won
 cleanly.
@@ -1080,7 +1118,7 @@ paying a branch per edge on a construction-hot path; not obviously worth it at t
 **And the thing that dwarfs all of it: do not churn the graph.** The same computation, once
 as a bind that rebuilds its right-hand side and once as a fixed shape driven by cutoffs:
 
-    bind rebuild    11.5us    73 allocs
+    bind rebuild    11.5us    73 allocs   (before the slab; 9.1us and 34 today)
     stable shape     0.83us    1 alloc
 
 14x and 73x. No allocator this library could ship competes with restructuring the graph, so
@@ -1163,17 +1201,26 @@ the interface widened to do safely.
 
 ### F. (done) Avoid the redundant isStale() on propagation
 
-`incremental` does not re-derive staleness when propagating to dependents — it
-knows they are stale because their input just changed, and only asserts it in
-debug builds. go-incr's `shouldRecomputeChild` calls `isStale()`, which walks the
-node's inputs; on a `map2` tree that is a parent scan per dependent per visit.
-The information is already known at the call site. Needs care around nodes with a
-custom `staleFn` and invalidated nodes.
+`incremental` does not re-derive staleness when propagating to dependents -- it knows they are
+stale because their input just changed, and only asserts it in debug builds. go-incr's
+`shouldRecomputeChild` called `isStale()`, which walks the node's inputs; on a `map2` tree that
+is an input scan per dependent per visit.
+
+What landed: `shouldRecomputeChild` now short-circuits before the scan. It tests heap
+membership and necessity first, both single field loads, and then takes the fast path
+`cn.staler == nil && cn.recomputedAt < stabilizationNum` -- the caller has just stamped the
+input's `changedAt` with the current pass, so a node without a custom staleness rule that has
+not run this pass is necessarily stale. The input scan is reached only for nodes that supply
+their own `IStale`, which is what the care this section asked for amounts to: the delegate's
+answer cannot be inferred, so it still has to be asked.
 
 ### G. Kind-directed dispatch
 
-`incremental` recomputes via a match on a `Kind` variant, so the compiler emits a
-jump table and the per-kind logic inlines. go-incr dispatches through interfaces
-and cached closures (`stabilizeFn`, `cutoffFn`, `staleFn`), which cannot inline.
-This is idiomatic Go and probably not worth changing, but it is a standing part
-of the remaining constant factor.
+`incremental` recomputes via a match on a `Kind` variant, so the compiler emits a jump table
+and the per-kind logic inlines. go-incr dispatches through cached interface values --
+`stabilizer`, `cutoffer`, `staler` on `Node` -- which cannot inline. (Those were bound method
+values once, which also allocated a closure per node; section B replaced them with interfaces.)
+This is idiomatic Go and probably not worth changing, but it is a standing part of the
+remaining constant factor, and section N argues the larger remaining term is footprint rather
+than dispatch.
+

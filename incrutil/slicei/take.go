@@ -40,10 +40,10 @@ func TakeFirst[A any](scope incr.Scope, input incr.Incr[[]A], count int) incr.In
 //
 // The requirement for the input incremental is that it should already be sorted.
 //
-// The function should return true for elements you would like to skip, and the first element
-// that returns false is the one that will mark the end of the list.
+// The function should return false for the elements you would like to keep, and the first
+// element that returns true marks the end of the list.
 //
-// An example sort function might be:
+// An example search function might be:
 //
 //	func(v int) bool {
 //		return v >= 5
@@ -62,14 +62,14 @@ func TakeFirstSearch[A any](scope incr.Scope, input incr.Incr[[]A], fn func(A) b
 	})
 }
 
-// Last returns the last count elements from an incremental that is typed as an array.
+// TakeLast returns the last count elements from an incremental that is typed as an array.
 func TakeLast[A any](scope incr.Scope, input incr.Incr[[]A], count int) incr.Incr[[]A] {
 	return incr.Map(scope, input, func(values []A) []A {
 		if len(values) < count {
 			return values
 		}
 		output := make([]A, count)
-		copy(output, values[count:])
+		copy(output, values[len(values)-count:])
 		return output
 	})
 }
@@ -78,10 +78,10 @@ func TakeLast[A any](scope incr.Scope, input incr.Incr[[]A], count int) incr.Inc
 //
 // The requirement for the input incremental is that it should already be sorted.
 //
-// The function should return true for elements you would like to skip, and the first element
-// that returns false is the one that will mark the beginning of the list.
+// The function should return false for the elements you would like to skip, and the first
+// element that returns true marks the beginning of the list.
 //
-// An example sort function might be:
+// An example search function might be:
 //
 //	func(v int) bool {
 //		return v > 5

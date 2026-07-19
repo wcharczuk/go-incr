@@ -587,3 +587,44 @@ func varsOf(g *Graph) []VarIncr[int] {
 	}
 	return out
 }
+
+// Test_UnorderedArrayFold_duplicateInputOnBothPaths covers a fold taking the same input in
+// more than one slot, on both stabilization paths.
+//
+// The two paths deliver IChildChanged differently -- serial skips a child it has already
+// held back, parallel iterates the edges and so notifies once per slot -- and the fold
+// maintains a running accumulator by withdrawing an old contribution and applying a new one.
+// If a duplicated notification were not idempotent within a pass, the accumulator would
+// drift, and only on one of the two paths.
+func Test_UnorderedArrayFold_duplicateInputOnBothPaths(t *testing.T) {
+	ctx := context.Background()
+
+	build := func(g *Graph) (VarIncr[int], ObserveIncr[int]) {
+		v := Var(g, 5)
+		other := Var(g, 100)
+		return v, MustObserve(g, UnorderedArrayFold(g, 0,
+			func(acc, x int) int { return acc + x },
+			func(acc, old, next int) int { return acc - old + next },
+			v, v, other)) // v twice, deliberately
+	}
+
+	serialGraph := New(OptGraphMaxHeight(64))
+	serialVar, serialObserved := build(serialGraph)
+	parallelGraph := New(OptGraphMaxHeight(64))
+	parallelVar, parallelObserved := build(parallelGraph)
+
+	testutil.Nil(t, serialGraph.Stabilize(ctx))
+	testutil.Nil(t, parallelGraph.ParallelStabilize(ctx))
+	testutil.Equal(t, 110, serialObserved.Value(), "5 twice plus 100")
+	testutil.Equal(t, 110, parallelObserved.Value())
+
+	for _, next := range []int{7, 9, 2, 7} {
+		serialVar.Set(next)
+		parallelVar.Set(next)
+		testutil.Nil(t, serialGraph.Stabilize(ctx))
+		testutil.Nil(t, parallelGraph.ParallelStabilize(ctx))
+		want := 100 + 2*next
+		testutil.Equal(t, want, serialObserved.Value(), "serial accumulator drifted")
+		testutil.Equal(t, want, parallelObserved.Value(), "parallel accumulator drifted")
+	}
+}

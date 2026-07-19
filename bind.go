@@ -236,11 +236,11 @@ func (b *bindLeftChangeIncr[A, B]) Stabilize(ctx context.Context) (err error) {
 	// below, so the two alternate rather than being reused immediately.
 	b.bind.rhsNodes = b.bind.rhsNodesSpare[:0]
 	b.bind.rhsNodesSpare = nil
-	// Start this generation of nodes in a fresh chunk. Nothing is freed here and no node is
-	// disturbed: the nodes just handed out stay where they are, and their chunk stays alive
-	// as long as any of them is reachable. Grouping a generation together is what lets the
-	// whole generation be collected at once when the right-hand side below replaces it,
-	// rather than leaving survivors scattered through a chunk shared with later rebuilds.
+	// Take the slab from the rebuild before last and reissue its slots. Nothing is freed and
+	// nothing is allocated in the steady state: the generation whose storage this is was
+	// invalidated during the previous rebuild, so its metadata is dead and the memory is
+	// already warm. The generation being replaced right now keeps its own slab untouched
+	// until the swap below completes, which is why two of them alternate.
 	b.bind.nodeSlab, b.bind.nodeSlabSpare = b.bind.nodeSlabSpare, b.bind.nodeSlab
 	b.bind.nodeSlab.reset()
 	b.bind.rhs, err = b.bind.fn(ctx, b.bind, b.bind.lhs.Value())
